@@ -5,6 +5,7 @@ Current task: `docs/tasks/01_kickoff.md`. This README is only about **running th
 
 ## Quick start
 ```bash
+git clone --recurse-submodules git@github.com:macnack/cross_view_sat_roma.git   # or: git submodule update --init
 make deps      # einops + pytest into ./.pydeps (the conda env is not modified)
 make test      # 19 unit tests, no data needed
 make fetch     # Dur360BEV subset (~2 h, ~35 GB kept); see data/README.md

@@ -1,0 +1,21 @@
+[submodule "third_party/bev-patch-pf"]
+	path = third_party/bev-patch-pf
+	url = https://github.com/ut-amrl/bev-patch-pf.git
+[submodule "third_party/Dur360BEV"]
+	path = third_party/Dur360BEV
+	url = https://github.com/Tom-E-Durham/Dur360BEV.git
+[submodule "third_party/FG2"]
+	path = third_party/FG2
+	url = https://github.com/vita-epfl/FG2.git
+[submodule "third_party/lift-splat-shoot"]
+	path = third_party/lift-splat-shoot
+	url = https://github.com/nv-tlabs/lift-splat-shoot.git
+[submodule "third_party/RoMa"]
+	path = third_party/RoMa
+	url = https://github.com/Parskatt/RoMa.git
+[submodule "third_party/RoMaV2"]
+	path = third_party/RoMaV2
+	url = https://github.com/Parskatt/RoMaV2.git
+[submodule "third_party/VIGOR"]
+	path = third_party/VIGOR
+	url = https://github.com/Jeff-Zilence/VIGOR.git
