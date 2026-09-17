@@ -1,0 +1,52 @@
+# Single source of parameters for task 01 (kick-off). Every script takes --config and
+# writes a snapshot of the resolved config next to its outputs.
+data:
+  root: data/dur360bev
+  ortho: null                      # data/ortho/durham/<year>/*.vrt once available (EPSG:27700)
+
+erp:
+  size: [1280, 640]                # width, height
+  lens: dur360                     # dur360 (196/203 piecewise, verified) | equidistant203 (fisheye_tools remap)
+  lens_params: {fov_inner_deg: 196.0, fov_outer_deg: 203.0, alpha: 1.0}
+  valid_mask: experiments/00_calib/erp_valid_1280x640.npy
+
+calib:                             # see docs/decisions.md; all provisional until cross-checked
+  cam_from_lidar_rpy_deg: [0.0, 0.0, 0.0]
+  cam_from_lidar_t_m: [0.0, 0.0, -0.27]      # camera 0.27 m above the LiDAR origin
+  lidar_height_m: 1.57                        # above road; preliminary (5 frames)
+
+grid:
+  n: 224
+  cell_m: 0.25
+
+ground:
+  floor_cell_m: 0.5
+  ground_tol_m: 0.20
+  max_floor_dev_m: 1.2
+  max_range_m: 40.0
+  contact_max_height_m: 0.7        # only returns this close to the floor define a contact (not canopy/signs)
+
+edges:
+  min_obj_height_m: 1.5
+  max_jump_m: 0.75
+
+mask:                              # ego-vehicle / seam mask estimation (scripts/calib_erp_mask.py)
+  frames: {ranges: [[500, 1450], [1900, 2700]], stride: 10}   # moving frames only
+  std_thresh: 5.0
+  meanhp_thresh: 6.0
+  min_blob_px: 80
+  margin_px: 6
+  seam_halfwidth_px: 4
+  horizon_frac: 0.53
+
+matcher:
+  checkpoint: 4adxis71             # ACIVS-2026 paper checkpoint: query 35-70 m, +-55 deg
+  use_means: false                 # false = published config (one peak per patch)
+  min_valid_frac: 0.5              # PROPOSED, not yet agreed (package default 1.0)
+  reproj_cells: 3.0
+  seed: 0
+
+reference:
+  scale: 4
+  max_offset_frac: 0.30
+  max_rot_deg: 55.0

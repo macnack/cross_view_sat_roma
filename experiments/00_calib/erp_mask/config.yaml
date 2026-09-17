@@ -1,0 +1,63 @@
+run:
+  command: scripts/calib_erp_mask.py --config configs/default.yaml
+  time: '2026-09-17 16:56:44'
+  git: uncommitted
+config:
+  data:
+    root: data/dur360bev
+    ortho: null
+  erp:
+    size:
+    - 1280
+    - 640
+    lens: dur360
+    lens_params:
+      fov_inner_deg: 196.0
+      fov_outer_deg: 203.0
+      alpha: 1.0
+    valid_mask: experiments/00_calib/erp_valid_1280x640.npy
+  calib:
+    cam_from_lidar_rpy_deg:
+    - 0.0
+    - 0.0
+    - 0.0
+    cam_from_lidar_t_m:
+    - 0.0
+    - 0.0
+    - -0.27
+    lidar_height_m: 1.57
+  grid:
+    n: 224
+    cell_m: 0.25
+  ground:
+    floor_cell_m: 0.5
+    ground_tol_m: 0.2
+    max_floor_dev_m: 1.2
+    max_range_m: 40.0
+  edges:
+    min_obj_height_m: 1.5
+    max_jump_m: 0.75
+  mask:
+    frames:
+      ranges:
+      - - 500
+        - 1450
+      - - 1900
+        - 2700
+      stride: 10
+    std_thresh: 5.0
+    meanhp_thresh: 6.0
+    min_blob_px: 80
+    margin_px: 6
+    seam_halfwidth_px: 4
+    horizon_frac: 0.53
+  matcher:
+    checkpoint: 4adxis71
+    use_means: false
+    min_valid_frac: 0.5
+    reproj_cells: 3.0
+    seed: 0
+  reference:
+    scale: 4
+    max_offset_frac: 0.3
+    max_rot_deg: 55.0

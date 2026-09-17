@@ -1,0 +1,44 @@
+{
+ "erp_size": [
+  1280,
+  640
+ ],
+ "frames_used": 177,
+ "ego_fraction_of_erp": 0.30221435546875,
+ "seam_halfwidth_deg": 1.265625,
+ "camera_height_m": 1.84,
+ "sectors": {
+  "front": {
+   "ego_top_elevation_deg": -30.515621185302734,
+   "blind_radius_m": 3.121753454208374,
+   "blind_radius_min_max_m": [
+    2.5990262031555176,
+    4.6673784255981445
+   ]
+  },
+  "right": {
+   "ego_top_elevation_deg": -45.421878814697266,
+   "blind_radius_m": 1.8131011724472046,
+   "blind_radius_min_max_m": [
+    1.7092726230621338,
+    2.020141124725342
+   ]
+  },
+  "back": {
+   "ego_top_elevation_deg": -14.625001907348633,
+   "blind_radius_m": 7.051919937133789,
+   "blind_radius_min_max_m": [
+    2.768439292907715,
+    8.2890043258667
+   ]
+  },
+  "left": {
+   "ego_top_elevation_deg": -45.140621185302734,
+   "blind_radius_m": 1.830990195274353,
+   "blind_radius_min_max_m": [
+    1.7092726230621338,
+    1.9807257652282715
+   ]
+  }
+ }
+}

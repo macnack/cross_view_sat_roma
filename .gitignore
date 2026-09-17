@@ -1,0 +1,12 @@
+# data, weights, local deps
+data/*
+!data/README.md
+checkpoints/
+.pydeps/
+__pycache__/
+*.pyc
+# regenerable / large experiment artefacts (make mask | make viewer)
+experiments/**/attic/
+experiments/**/*.npy
+experiments/**/*.html
+experiments/**/queries/

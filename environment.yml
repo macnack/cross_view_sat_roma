@@ -1,0 +1,24 @@
+name: bevloc
+channels: [conda-forge, pytorch, nvidia]
+dependencies:
+  - python=3.11
+  - pytorch=2.4.*        # pin to the Eagle CUDA driver — CHECK before first run
+  - pytorch-cuda=12.1
+  - torchvision
+  - numpy<2
+  - scipy
+  - opencv
+  - rasterio
+  - pyproj
+  - shapely
+  - geopandas
+  - h5py
+  - pyyaml
+  - tqdm
+  - matplotlib
+  - pip
+  - pip:
+      - einops
+      - kornia
+      - timm
+      - xformers   # only if dinov3 needs it on Eagle; otherwise drop
