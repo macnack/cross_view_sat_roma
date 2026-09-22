@@ -19,3 +19,6 @@
 [submodule "third_party/VIGOR"]
 	path = third_party/VIGOR
 	url = https://github.com/Jeff-Zilence/VIGOR.git
+[submodule "third_party/sat_roma_infer"]
+	path = third_party/sat_roma_infer
+	url = git@github.com:macnack/sat_roma_infer.git
