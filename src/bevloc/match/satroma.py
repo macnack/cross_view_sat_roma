@@ -42,12 +42,17 @@ class Match:
 
 class SatRoMa:
     def __init__(self, checkpoint="0t1q66hy", device=None, use_means=False,
-                 reproj_cells=3.0, seed=0, min_valid_frac=1.0):
+                 reproj_cells=3.0, seed=0, min_valid_frac=1.0, solver="srt"):
         """use_means=False is the published configuration: RANSAC targets are the
         per-patch peak (identical for all modes of a patch). use_means=True feeds
-        the distinct per-mode means, i.e. genuine competing hypotheses."""
+        the distinct per-mode means, i.e. genuine competing hypotheses.
+        solver: "srt" = the package's 4-DoF similarity RANSAC + weighted refinement (published);
+        "se2" = fixed-scale 2-point SE(2) RANSAC on the same hypothesis set (kick-off H7)."""
         self.m = SatRoMaMatcher.from_pretrained(checkpoint, device=device)
         self.use_means = use_means
+        if solver not in ("srt", "se2"):
+            raise ValueError(f"solver must be 'srt' or 'se2', got {solver!r}")
+        self.solver = solver
         self.reproj = float(reproj_cells)
         self.seed = seed
         # fraction of a 16 px query patch that must be valid for the patch to vote.
@@ -58,7 +63,7 @@ class SatRoMa:
     def from_config(cls, cfg, **override):
         m = cfg.matcher
         kw = dict(checkpoint=m.checkpoint, use_means=m.use_means, reproj_cells=m.reproj_cells,
-                  seed=m.seed, min_valid_frac=m.min_valid_frac)
+                  seed=m.seed, min_valid_frac=m.min_valid_frac, solver=getattr(m, "solver", "srt"))
         kw.update(override)
         return cls(**kw)
 
@@ -143,10 +148,19 @@ class SatRoMa:
         else:
             n_patches = n_multi = 0
         Hf = np.asarray(r.H, dtype=np.float64)
-        if n_modes < 4 or np.array_equal(Hf, np.eye(3)) or not np.isfinite(Hf).all():
+        tgt = r.means_B if self.use_means else r.peaks_B
+        if self.solver == "se2":
+            # Same hypothesis set, but the consensus model has no scale (metric query, shared GSD).
+            from bevloc.match.se2 import se2_ransac
+            if n_modes < 2:
+                return Match(None, None, n_modes, n_patches, n_multi, 0.0, argmax_cells)
+            H2, _ = se2_ransac(r.pts_A, tgt, thresh=self.reproj, n_iter=500, seed=self.seed)
+            if H2 is None:
+                return Match(None, None, n_modes, n_patches, n_multi, 0.0, argmax_cells)
+            Hf = H2
+        elif n_modes < 4 or np.array_equal(Hf, np.eye(3)) or not np.isfinite(Hf).all():
             return Match(None, None, n_modes, n_patches, n_multi, 0.0, argmax_cells)
 
-        tgt = r.means_B if self.use_means else r.peaks_B
         p = np.c_[r.pts_A, np.ones(n_modes)] @ Hf.T
         err = np.linalg.norm(p[:, :2] / p[:, 2:3] - tgt, axis=1)
         inl = float((err <= self.reproj).mean())
