@@ -88,13 +88,34 @@ def neighbour_hinge(logits, tgt, radius, margin=1.0):
     return torch.cat(terms, 1).mean()
 
 
+def vote_heatmap(gm_cls, gm_certainty=None, matchable=None):
+    """Certainty-weighted soft vote of all query patches: (B, K, K) log-probabilities over the
+    reference grid. This is the quantity RANSAC ultimately votes for and the observation a
+    particle filter reads (bevloc.track)."""
+    B, K2, h, w = gm_cls.shape
+    k = int(round(K2 ** 0.5))
+    if k * k != K2:
+        raise ValueError(f"gm_cls channels {K2} not a square")
+    log_p = F.log_softmax(gm_cls.float().permute(0, 2, 3, 1), dim=-1)      # (B, h, w, K2)
+    if gm_certainty is not None:
+        c = gm_certainty[:, 0] if gm_certainty.ndim == 4 else gm_certainty
+        weight = torch.sigmoid(c.float())
+    else:
+        weight = gm_cls.new_ones(B, h, w, dtype=torch.float32)
+    if matchable is not None:
+        weight = weight * matchable.float()
+    wsum = weight.reshape(B, -1).sum(-1).clamp_min(1e-6)
+    heat = (log_p * weight[..., None]).reshape(B, -1, K2).sum(1) / wsum[:, None]
+    return F.log_softmax(heat, dim=-1).reshape(B, k, k)
+
+
 def pose_heatmap_nll(gm_cls, H, matchable=None, gm_certainty=None, local_radius=6,
                      query_size=224, patch=16, ref_size=896):
     """OrienterNet-style NLL of the GT vehicle cell under a soft pose heatmap.
 
     Sat-RoMa's ``gm_cls`` is per-patch over a fixed K×K reference grid (K=56). We
-    certainty-weight the per-patch softmaxes into one (B, K, K) heatmap, optionally
-    window it around the GT centre cell, and take −log p(GT). This trains the
+    certainty-weight the per-patch softmaxes into one (B, K, K) heatmap (``vote_heatmap``),
+    optionally window it around the GT centre cell, and take −log p(GT). This trains the
     quantity RANSAC ultimately votes for, not each patch in isolation.
 
     Returns (nll scalar, stats dict). Empty / no-match batches return 0 loss.
@@ -103,23 +124,10 @@ def pose_heatmap_nll(gm_cls, H, matchable=None, gm_certainty=None, local_radius=
     k = int(round(K2 ** 0.5))
     if k * k != K2:
         raise ValueError(f"gm_cls channels {K2} not a square")
-    # Soft votes: (B, h, w, K2)
-    log_p = F.log_softmax(gm_cls.float().permute(0, 2, 3, 1), dim=-1)
-    if gm_certainty is not None:
-        c = gm_certainty[:, 0] if gm_certainty.ndim == 4 else gm_certainty
-        weight = torch.sigmoid(c.float())
-    else:
-        weight = gm_cls.new_ones(B, h, w)
-    if matchable is not None:
-        weight = weight * matchable.float()
-    # logsumexp over patches with weights: heatmap logits (B, K2)
-    # Σ_i w_i log_p_i  is not a log-prob; use weighted mean of log_p then log_softmax.
-    wsum = weight.reshape(B, -1).sum(-1).clamp_min(1e-6)
-    if float(wsum.max()) <= 1e-6 or (matchable is not None and not bool(matchable.any())):
+    if matchable is not None and not bool(matchable.any()):
         z = gm_cls.sum() * 0.0
         return z, dict(pose_nll=0.0, pose_err=float("nan"), n=0)
-    weighted = (log_p * weight[..., None]).reshape(B, -1, K2).sum(1) / wsum[:, None]
-    heat = weighted  # (B, K2) unnormalised log-votes
+    heat = vote_heatmap(gm_cls, gm_certainty, matchable).reshape(B, K2)   # log-probs, constant shift vs raw votes
     # GT vehicle centre (query image centre) → reference cell
     centre = torch.tensor([query_size / 2 - 0.5, query_size / 2 - 0.5, 1.0],
                           device=H.device, dtype=H.dtype)
