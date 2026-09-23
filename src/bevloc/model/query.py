@@ -69,3 +69,12 @@ def load_query_state(query, state):
         query.lift.load_state_dict(state["lift"])
     elif "lift" in state and hasattr(query, "load_lift_weights"):
         query.load_lift_weights(state["lift"])
+
+
+def lift_state_dict(state):
+    """The raw SphericalLiftSplat weights from either checkpoint layout (for viz scripts)."""
+    if "lift" in state:
+        return state["lift"]
+    if "query" in state:
+        return {k[len("lift."):]: v for k, v in state["query"].items() if k.startswith("lift.")}
+    raise KeyError("checkpoint has neither 'lift' nor 'query'")

@@ -20,6 +20,7 @@ from bevloc.eval.metrics import pose_errors, recall
 from bevloc.match.satroma import SatRoMa
 from bevloc.model.coarse import FeatureQueryMatcher, coarse_targets, ref_cell_validity
 from bevloc.model.lift_splat import SphericalLiftSplat
+from bevloc.model.query import lift_state_dict
 
 CELL_M = 4.0
 
@@ -53,7 +54,7 @@ def main():
         dim=L.dim, depth_bins=L.depth_bins, d_min=L.d_min, d_max=L.d_max,
         n=cfg.grid.n, cell=cfg.grid.cell_m, max_elev_deg=L.max_elev_deg,
     ).to(dev)
-    lift.load_state_dict(state["lift"])
+    lift.load_state_dict(lift_state_dict(state))
     lift.eval()
 
     # Two RANSAC modes reuse the same SatRoMa wrapper for estimate_homography.

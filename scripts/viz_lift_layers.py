@@ -19,6 +19,7 @@ from bevloc.eval.metrics import pose_errors
 from bevloc.match.satroma import SatRoMa
 from bevloc.model.coarse import FeatureQueryMatcher
 from bevloc.model.lift_splat import SphericalLiftSplat
+from bevloc.model.query import lift_state_dict
 
 MAP_ROOT = C.REPO / "data/mapillary"
 VAL_SEQ = MAP_ROOT / "Fixtor/IcRzj0wTLZX874qitxVsQa"
@@ -53,7 +54,7 @@ def main():
         dim=L.dim, depth_bins=L.depth_bins, d_min=L.d_min, d_max=L.d_max,
         n=cfg.grid.n, cell=cfg.grid.cell_m, max_elev_deg=L.max_elev_deg,
     ).to(dev).eval()
-    lift.load_state_dict(state["lift"])
+    lift.load_state_dict(lift_state_dict(state))
     ransac = SatRoMa.from_config(cfg, use_means=False, min_valid_frac=L.min_patch_valid)
     ransac.m.model.decoder.load_state_dict(state["decoder"], strict=False)
 

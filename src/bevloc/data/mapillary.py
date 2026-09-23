@@ -13,6 +13,7 @@ from pyproj import Geod, Transformer
 from rasterio.windows import Window
 from torch.utils.data import Dataset
 
+from bevloc.bev.ipm_sphere import ipm_erp
 from bevloc.data.ortho import Oriented, gt_homography, sample_negative_reference, sample_reference
 
 CS92 = "EPSG:2180"
@@ -234,16 +235,23 @@ class MapillaryPairs(Dataset):
                 uniq.append(j)
         return uniq
 
-    def _load_erp_R_pose(self, fr, rng):
+    def _load_erp_R_pose(self, fr, rng, full=False):
+        """Resized, jittered ERP (+ the full-resolution one when ``full``), R_w2c, up-bearing, EN."""
         path = Path(fr["_seq"]) / "images" / f"{fr['id']}.jpg"
-        erp = cv2.cvtColor(cv2.imread(str(path)), cv2.COLOR_BGR2RGB)
-        erp = cv2.resize(erp, (self.erp_w, self.erp_h), interpolation=cv2.INTER_AREA)
+        erp_full = cv2.cvtColor(cv2.imread(str(path)), cv2.COLOR_BGR2RGB)
+        erp = cv2.resize(erp_full, (self.erp_w, self.erp_h), interpolation=cv2.INTER_AREA)
         R = rodrigues(fr["computed_rotation"]).astype(np.float32)
         lon, lat = fr["computed_geometry"]["coordinates"]
         up, en = grid_bearing(lon, lat, fr["computed_compass_angle"])
         R = self._attitude_noise(R, rng)
         erp = self._colour_jitter(erp, rng)
+        if full:
+            return erp, R, up, en, erp_full
         return erp, R, up, en
+
+    def _query_mode(self):
+        L = getattr(self.cfg, "lift", None)
+        return str(getattr(L, "query_mode", "lift") or "lift") if L else "lift"
 
     def _pose_budget(self, rng):
         L = getattr(self.cfg, "lift", None)
@@ -292,7 +300,7 @@ class MapillaryPairs(Dataset):
         fr = self.frames[i]
         rng = (self.rng if self.train
                else np.random.default_rng([self.cfg.matcher.seed, int(fr["id"]) % (2**32)]))
-        erp_q, R_q, up_q, en_q = self._load_erp_R_pose(fr, rng)
+        erp_q, R_q, up_q, en_q, erp_full = self._load_erp_R_pose(fr, rng, full=True)
         g = self.cfg.grid
         query = Oriented(en_q, up_q, g.n, g.cell_m)
         year = int(rng.choice(self.years)) if self.train else int(self.years[0])
@@ -307,7 +315,7 @@ class MapillaryPairs(Dataset):
         else:
             ref_o = sample_reference(query, rng, scale=scale, max_offset_frac=off, max_rot_deg=rot)
         return self._build(i, ref_o, year, rng, negative=negative, scale=scale,
-                           loaded=(erp_q, R_q, up_q, en_q))
+                           loaded=(erp_q, R_q, up_q, en_q, erp_full))
 
     def sample_for(self, frame_id, ref_o, year):
         """Deterministic sample for one frame with a GIVEN reference crop (manifest evaluation)."""
@@ -318,7 +326,8 @@ class MapillaryPairs(Dataset):
 
     def _build(self, i, ref_o, year, rng, negative=False, scale=4, loaded=None):
         fr = self.frames[i]
-        erp_q, R_q, up_q, en_q = loaded if loaded is not None else self._load_erp_R_pose(fr, rng)
+        erp_q, R_q, up_q, en_q, erp_full = (loaded if loaded is not None
+                                             else self._load_erp_R_pose(fr, rng, full=True))
         g = self.cfg.grid
         query = Oriented(en_q, up_q, g.n, g.cell_m)
         ref, valid = self.ortho[year].render(ref_o)
@@ -340,7 +349,7 @@ class MapillaryPairs(Dataset):
             Rs.append(torch.from_numpy(R))
             se2s.append(torch.tensor([yaw, tx, ty], dtype=torch.float32))
 
-        return dict(
+        out = dict(
             id=fr["id"],
             year=year,
             scale=scale,
@@ -352,6 +361,15 @@ class MapillaryPairs(Dataset):
             H=torch.from_numpy(H),
             en=torch.tensor(en_q, dtype=torch.float64),
         )
+        if self._query_mode() == "ipm":
+            # Camera-only flat-ground picture of the QUERY frame at full ERP resolution
+            # (kick-off H2 lower bound): the decoder sees it through the frozen encoder.
+            ipm = self.cfg.ipm
+            bev, bev_valid = ipm_erp(erp_full, R_q, ipm.height_m, g.n, g.cell_m, ipm.blind_radius_m)
+            bev = self._colour_jitter(bev, rng)
+            out["bev"] = torch.from_numpy(np.ascontiguousarray(bev)).permute(2, 0, 1).float().div(255.0)
+            out["bev_valid"] = torch.from_numpy(bev_valid)
+        return out
 
     def __getitem__(self, i):
         last = None
@@ -381,6 +399,9 @@ def collate(batch):
         "H": torch.stack([b["H"] for b in batch]),
         "en": torch.stack([b["en"] for b in batch]),
     }
+    if "bev" in batch[0]:
+        out["bev"] = torch.stack([b["bev"] for b in batch])
+        out["bev_valid"] = torch.stack([b["bev_valid"] for b in batch])
     out["id"] = [b["id"] for b in batch]
     out["year"] = [b["year"] for b in batch]
     out["scale"] = [b["scale"] for b in batch]

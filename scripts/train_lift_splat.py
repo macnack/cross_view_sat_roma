@@ -21,26 +21,12 @@ from bevloc.data.mapillary import (
 from bevloc.model.coarse import (
     FeatureQueryMatcher, coarse_targets, pose_heatmap_nll, ref_cell_validity, roma_coarse_loss,
 )
-from bevloc.model.lift_splat import SphericalLiftSplat
+from bevloc.model.query import build_query, load_query_state
 
-def encode_erp(matcher, erp):
-    with torch.no_grad():
-        return matcher.model.encoder(erp)[16]
-
-
-def step(lift, matcher, batch, cfg, min_patch, local_radius, neighbour_radius, neighbour_weight,
+def step(query, matcher, batch, cfg, min_patch, local_radius, neighbour_radius, neighbour_weight,
          certainty_weight=0.01, pose_nll_weight=0.0):
-    erp, ref = batch["erp"], batch["ref"]
-    # erp: (B, 3, H, W) legacy or (B, T, 3, H, W) multi-frame
-    if erp.ndim == 4:
-        f_erp = encode_erp(matcher, erp)
-        f_q, patch_frac = lift(f_erp, batch["R_w2c"], erp_hw=erp.shape[-2:])
-    else:
-        B, T = erp.shape[:2]
-        feats = [encode_erp(matcher, erp[:, t]) for t in range(T)]
-        f_erp = torch.stack(feats, 1)  # (B, T, C, h, w)
-        f_q, patch_frac = lift.forward_multiframe(
-            f_erp, batch["R_w2c"], batch["se2"], erp_hw=erp.shape[-2:])
+    ref = batch["ref"]
+    f_q, patch_frac = query(batch, matcher)          # lift | ipm | hybrid, see bevloc.model.query
     out = matcher.model.decoder({16: f_q}, matcher.reference_features(ref),
                                 scale_factor=matcher.wrapper.im_a_size / 560.0)
     gm = out[16]["gm_cls"]
@@ -76,18 +62,18 @@ def step(lift, matcher, batch, cfg, min_patch, local_radius, neighbour_radius, n
 
 
 @torch.no_grad()
-def validate(lift, matcher, loader, cfg, min_patch, local_radius, device, max_batches=32,
+def validate(query, matcher, loader, cfg, min_patch, local_radius, device, max_batches=32,
              certainty_weight=0.01, pose_nll_weight=0.0):
-    lift.eval()
+    query.eval()
     rows = []
     for i, batch in enumerate(loader):
         if i >= max_batches:
             break
         batch = {k: (v.to(device) if torch.is_tensor(v) else v) for k, v in batch.items()}
-        _, st = step(lift, matcher, batch, cfg, min_patch, local_radius, 0, 0.0,
+        _, st = step(query, matcher, batch, cfg, min_patch, local_radius, 0, 0.0,
                      certainty_weight=certainty_weight, pose_nll_weight=pose_nll_weight)
         rows.append(st)
-    lift.train()
+    query.train()
     if not rows:
         return dict(ce=float("nan"), top1=float("nan"), top5=float("nan"), cell_err_m=float("nan"),
                     pose_nll=float("nan"), pose_err_m=float("nan"), n=0)
@@ -129,9 +115,13 @@ def main():
     ap.add_argument("--seq-dists", default="",
                     help="comma metres behind query for multi-frame splat, e.g. 0,2,5")
     ap.add_argument("--val-every", type=int, default=0)
+    ap.add_argument("--query", default="", help="lift | ipm | hybrid (default cfg.lift.query_mode)")
     a = ap.parse_args()
     cfg = C.load(a.config)
     L = cfg.lift
+    if a.query:
+        L.query_mode = a.query
+    mode = str(getattr(L, "query_mode", "lift") or "lift")
     if a.seq_dists.strip():
         L.seq_dists_m = [float(x) for x in a.seq_dists.split(",") if x.strip()]
     if a.max_offset >= 0:
@@ -199,27 +189,31 @@ def main():
     for n, p in matcher.model.decoder.named_parameters():
         if "conv_refiner" in n:
             p.requires_grad = False
-    lift = SphericalLiftSplat(
-        dim=L.dim, depth_bins=L.depth_bins, d_min=L.d_min, d_max=L.d_max,
-        n=cfg.grid.n, cell=cfg.grid.cell_m, max_elev_deg=L.max_elev_deg,
-    ).to(dev)
+    query = build_query(cfg, mode).to(dev)
     start_step = 0
     if a.ckpt:
         state = torch.load(a.ckpt, map_location=dev, weights_only=False)
-        lift.load_state_dict(state["lift"])
+        load_query_state(query, state)
         matcher.model.decoder.load_state_dict(state["decoder"], strict=False)
         start_step = int(state.get("step", 0))
-        print(f"warm-start {a.ckpt} (step {start_step})", flush=True)
+        print(f"warm-start {a.ckpt} (step {start_step}, mode {state.get('mode', 'lift')})", flush=True)
 
-    groups = [{"params": lift.parameters(), "lr": L.lr_lift}]
+    groups = []
+    qp = [p for p in query.parameters() if p.requires_grad]
+    if qp:
+        groups.append({"params": qp, "lr": L.lr_lift})
     dec = [p for p in matcher.model.decoder.parameters() if p.requires_grad]
     if dec:
         groups.append({"params": dec, "lr": cfg.train.lr_decoder})
+    if not groups:
+        raise SystemExit("nothing to train: query has no parameters and the decoder is frozen")
     opt = torch.optim.AdamW(groups, weight_decay=cfg.train.weight_decay)
+    print(f"query mode {mode}: {sum(p.numel() for p in qp) / 1e6:.2f} M trainable query params, "
+          f"{sum(p.numel() for p in dec) / 1e6:.1f} M decoder params", flush=True)
 
     out = Path(a.out)
     C.snapshot(cfg, out, dict(
-        overfit=a.overfit, years=years, val_year=a.val_year, n_train=len(train_frames),
+        overfit=a.overfit, query_mode=mode, years=years, val_year=a.val_year, n_train=len(train_frames),
         n_val=len(val_frames), local_radius=local_radius, neighbour_radius=neigh_r,
         neighbour_weight=neigh_w, pose_nll_weight=pose_w, ckpt=a.ckpt,
         train_seqs=[str(p) for p in TRAIN_SEQS], val_seqs=[str(p) for p in VAL_SEQS],
@@ -228,13 +222,13 @@ def main():
     if not log.exists():
         log.write_text("step,split,ce,cert,top1,top5,cell_err_m,pose_nll,pose_err_m,n,sec\n")
 
-    lift.train()
+    query.train()
     t0 = time.time()
     best_val = float("inf")
     for step_i in range(1, steps + 1):
         batch = {k: (v.to(dev) if torch.is_tensor(v) else v) for k, v in next(it).items()}
         opt.zero_grad(set_to_none=True)
-        loss, st = step(lift, matcher, batch, cfg, L.min_patch_valid, local_radius, neigh_r, neigh_w,
+        loss, st = step(query, matcher, batch, cfg, L.min_patch_valid, local_radius, neigh_r, neigh_w,
                         certainty_weight=cert_w, pose_nll_weight=pose_w)
         loss.backward()
         opt.step()
@@ -255,7 +249,7 @@ def main():
                   f"arg {cell_m:.1f} m  pose {pose_m:.1f} m  n {st['n']}{neg_tag}  "
                   f"({time.time()-t0:.0f}s)", flush=True)
         if val_frames and (step_i % val_every == 0 or step_i == steps):
-            vst = validate(lift, matcher, va_loader, cfg, L.min_patch_valid, local_radius,
+            vst = validate(query, matcher, va_loader, cfg, L.min_patch_valid, local_radius,
                            device=dev, max_batches=L.val_frames, certainty_weight=cert_w,
                            pose_nll_weight=pose_w)
             with log.open("a") as f:
@@ -270,7 +264,7 @@ def main():
                 best_val = score
                 ckpt = C.REPO / "checkpoints" / f"{out.parent.name}_{out.name}_best.pt"
                 ckpt.parent.mkdir(parents=True, exist_ok=True)
-                torch.save({"lift": lift.state_dict(),
+                torch.save({"query": query.state_dict(), "mode": mode,
                             "decoder": {k: v for k, v in matcher.model.decoder.state_dict().items()
                                         if "conv_refiner" not in k},
                             "step": global_step, "val": vst}, ckpt)
@@ -279,7 +273,7 @@ def main():
 
     ckpt = C.REPO / "checkpoints" / f"{out.parent.name}_{out.name}.pt"
     ckpt.parent.mkdir(parents=True, exist_ok=True)
-    torch.save({"lift": lift.state_dict(),
+    torch.save({"query": query.state_dict(), "mode": mode,
                 "decoder": {k: v for k, v in matcher.model.decoder.state_dict().items()
                             if "conv_refiner" not in k},
                 "step": start_step + steps}, ckpt)

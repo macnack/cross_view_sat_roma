@@ -158,6 +158,17 @@ eagle-submit: ## submit CMD="scripts/x.py ..." JOB=name as one H100 job (run on 
 	mkdir -p slurm/logs   # SLURM does not create the --output directory itself
 	sbatch --job-name=$(JOB) --export=ALL,CMD="$(CMD)" slurm/run.sbatch
 
+ipm-train: ## camera-only RGB-IPM query (frozen encoder, decoder fine-tune) with the Lift-Splat recipe; task 03 Task 2
+	$(RUN) scripts/train_lift_splat.py --config $(CONFIG) --query ipm --out experiments/05_lift_splat/fixtor_ipm \
+		--years 2025,2024,2021 --val-year 2025 --steps 3000 \
+		--neighbour-radius 4 --neighbour-weight 0.5 --pose-nll-weight 0.5
+
+lift-splat-pose-nll-only: ## A alone: pose-heatmap NLL, single frame, from aug best (separates A from B); task 03 Task 1
+	$(RUN) scripts/train_lift_splat.py --config $(CONFIG) --out experiments/05_lift_splat/fixtor_pose_nll \
+		--ckpt checkpoints/05_lift_splat_fixtor_aug_best.pt \
+		--years 2025,2024,2021 --val-year 2025 --steps 2000 \
+		--neighbour-radius 4 --neighbour-weight 0.5 --pose-nll-weight 0.5
+
 # --- Task 02: FG² / BevSplat transfer (docs/tasks/02_fg2_bevsplat.md) ---
 baselines-manifest: ## immutable ≥200-frame Fixtor held-out manifest (2025+2024)
 	$(RUN) scripts/build_baseline_manifest.py --out experiments/06_fg2_bevsplat/manifest.json --n 200
