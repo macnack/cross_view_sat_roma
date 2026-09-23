@@ -12,7 +12,8 @@ import torch.nn as nn
 import torch.nn.functional as F
 
 
-def coarse_targets(H, patch_valid, ref_valid=None, query_size=224, ref_size=896, patch=16, cells=56):
+def coarse_targets(H, patch_valid, ref_valid=None, query_size=224, ref_size=896, patch=16, cells=56,
+                   query_xy=None):
     """GT reference cell of every query patch centre.
 
     H: (B, 3, 3) query px -> reference px. patch_valid: (B, h, w) bool.
@@ -27,9 +28,15 @@ def coarse_targets(H, patch_valid, ref_valid=None, query_size=224, ref_size=896,
     (if ref_valid given) target real reference content.
     """
     B, h, w = patch_valid.shape
-    c = (torch.arange(h, device=H.device, dtype=H.dtype) + 0.5) * patch - 0.5        # patch-centre pixels
-    v, u = torch.meshgrid(c, c, indexing="ij")
-    p = torch.stack([u, v, torch.ones_like(u)], -1).reshape(1, -1, 3) @ H.transpose(1, 2)
+    if query_xy is not None:
+        # placed query points (B, h, w, 2) in query pixels, e.g. ERP tokens placed on the virtual BEV
+        uv = query_xy.to(H.dtype).reshape(B, -1, 2)
+        p = torch.cat([uv, torch.ones_like(uv[..., :1])], -1) @ H.transpose(1, 2)
+    else:
+        cy = (torch.arange(h, device=H.device, dtype=H.dtype) + 0.5) * patch - 0.5    # patch-centre pixels
+        cx = (torch.arange(w, device=H.device, dtype=H.dtype) + 0.5) * patch - 0.5
+        v, u = torch.meshgrid(cy, cx, indexing="ij")
+        p = torch.stack([u, v, torch.ones_like(u)], -1).reshape(1, -1, 3) @ H.transpose(1, 2)
     xy = p[..., :2] / p[..., 2:3]
     s = ref_size / cells
     col, row = torch.floor((xy[..., 0] + 0.5) / s).long(), torch.floor((xy[..., 1] + 0.5) / s).long()

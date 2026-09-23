@@ -3,6 +3,7 @@
   lift   — spherical Lift-Splat (learned depth per ERP token)            [05_lift_splat]
   ipm    — RGB flat-ground IPM picture through the frozen sat493m encoder [kick-off H2 lower bound]
   hybrid — dense IPM ground features + learned depth above the horizon   [task 03, Task 3]
+  erp    — the panorama's own tokens; placement after matching (Loc²)     [task 03, Task 6]
 """
 from __future__ import annotations
 
@@ -58,6 +59,9 @@ def build_query(cfg, mode):
     if mode == "hybrid":
         from bevloc.model.hybrid_query import HybridQuery
         return HybridQuery(cfg)
+    if mode == "erp":
+        from bevloc.model.erp_query import ErpQuery
+        return ErpQuery(cfg)
     raise ValueError(f"unknown query mode {mode!r}")
 
 

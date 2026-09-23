@@ -26,9 +26,10 @@ from bevloc.model.query import build_query, load_query_state
 def step(query, matcher, batch, cfg, min_patch, local_radius, neighbour_radius, neighbour_weight,
          certainty_weight=0.01, pose_nll_weight=0.0):
     ref = batch["ref"]
-    f_q, patch_frac = query(batch, matcher)          # lift | ipm | hybrid, see bevloc.model.query
-    out = matcher.model.decoder({16: f_q}, matcher.reference_features(ref),
-                                scale_factor=matcher.wrapper.im_a_size / 560.0)
+    f_q, patch_frac = query(batch, matcher)          # lift | ipm | hybrid | erp, see bevloc.model.query
+    # scale_factor = sqrt(query px area) / 560: 0.4 for the 224 px BEV queries, 1.13 for a 448x896 ERP grid
+    sf = float(((f_q.shape[-2] * 16) * (f_q.shape[-1] * 16)) ** 0.5 / 560.0)
+    out = matcher.model.decoder({16: f_q}, matcher.reference_features(ref), scale_factor=sf)
     gm = out[16]["gm_cls"]
     cert = out[16].get("gm_certainty")
     # Decoder always classifies over a fixed K×K grid (K=56 → 3136 for sat493m),
@@ -36,8 +37,11 @@ def step(query, matcher, batch, cfg, min_patch, local_radius, neighbour_radius, 
     ref_size = int(ref.shape[-1])
     cells = int(round(gm.shape[1] ** 0.5))
     rv = ref_cell_validity(ref, cells=cells, min_frac=cfg.train.min_ref_cell_valid)
+    # ERP-token query: tokens are placed on the virtual BEV after matching, so their GT cell is
+    # where the placed point lands (plan Task 6); other queries use the patch-centre grid.
+    query_xy = query.placement(batch)[0] if hasattr(query, "placement") else None
     idx, use = coarse_targets(batch["H"], patch_frac >= min_patch, ref_valid=rv,
-                              ref_size=ref_size, cells=cells)
+                              ref_size=ref_size, cells=cells, query_xy=query_xy)
     # No-match pairs: GT pose is off the crop. Sat-RoMa has no unmatched class bin —
     # drop CE for the whole sample and train certainty toward "not matchable".
     neg = batch.get("negative")

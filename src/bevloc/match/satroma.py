@@ -26,6 +26,8 @@ sys.path.insert(0, PACKAGE_DIR)
 
 from sat_roma import SatRoMaMatcher  # noqa: E402
 from sat_roma.ransac import estimate_homography  # noqa: E402
+from sat_roma.ransac.correspondence import find_gaussians  # noqa: E402
+from sat_roma.ransac.ransac_init import ransac_init  # noqa: E402
 from sat_roma.ransac.transforms import convert_to_pixel_homography  # noqa: E402
 
 
@@ -115,6 +117,72 @@ class SatRoMa:
         with torch.no_grad():
             f_q, f_s = m.model.encoder(a)[16], m.model.encoder(b)[16]
         return self.match_encoded(f_q, f_s, sf, mask, H_gt)
+
+    # ---- ERP-token query: placement after matching (task 03, Task 6) -------------------------------
+
+    def match_placed(self, f_q, f_s, xy, valid, scale_factor, H_gt=None) -> Match:
+        """Decoder on an ERP token map, then consensus on the tokens' placed ground points.
+
+        xy (h, w, 2): each token's placed point in virtual query pixels (224 px BEV); valid (h, w) bool.
+        Returns the same Match as `match_encoded`: H maps virtual query px -> reference px."""
+        import torch
+        m = self.m
+        with m.model.exposed_intermediates(), torch.no_grad():
+            out = m.model.decoder({16: f_q}, {16: f_s}, scale_factor=float(scale_factor))
+        gm = out[16]["gm_cls"][0].clone()
+        return SatRoMa.consensus_from_gm(self, gm, xy, valid, H_gt=H_gt)
+
+    @staticmethod
+    def consensus_from_gm(self, gm, xy, valid, H_gt=None) -> Match:
+        """gm (K*K, h, w) logits; xy (h, w, 2) placed query px; valid (h, w).
+
+        Static with an explicit ``self`` so a test can pass a stub carrying only
+        m.im_a_size / m.im_b_size, use_means, reproj, seed and solver."""
+        import torch
+        valid_t = torch.as_tensor(valid, dtype=torch.bool, device=gm.device)
+        gm = gm.clone()
+        gm[:, ~valid_t] = 0.0                                          # invalid tokens contribute no mode
+        pts_A, means_B, peaks_B, covs_B = find_gaussians(
+            gm.detach().float().cpu(), adaptive_gauss_fit=False, log_missing_gaussians=False,
+            fixed_threshold=0.008, fixed_window_size=4)
+        n_modes = int(pts_A.shape[0])
+        argmax_cells = None
+        if n_modes == 0:
+            return Match(None, None, 0, 0, 0, 0.0, argmax_cells)
+        xy_np = torch.as_tensor(xy).detach().float().cpu().numpy()
+        cols, rows = pts_A[:, 0].astype(int), pts_A[:, 1].astype(int)
+        placed_px = xy_np[rows, cols]                                  # (N, 2) virtual query pixels
+        s = float(self.m.im_a_size) / 14.0                             # 16 px per virtual patch
+        placed = ((placed_px - (s / 2 - 0.5)) / s).astype(np.float64)  # cell-centre convention of convert_to_pixel_homography
+        _, counts = np.unique(np.round(pts_A, 3), axis=0, return_counts=True)
+        n_patches, n_multi = int(len(counts)), int((counts > 1).sum())
+        tgt = np.asarray(means_B if self.use_means else peaks_B, np.float64)
+        cv2.setRNGSeed(self.seed)
+        if self.solver == "se2":
+            from bevloc.match.se2 import se2_ransac
+            if n_modes < 2:
+                return Match(None, None, n_modes, n_patches, n_multi, 0.0, argmax_cells)
+            Hf, _ = se2_ransac(placed, tgt, thresh=self.reproj, n_iter=500, seed=self.seed)
+        else:
+            if n_modes < 4:
+                return Match(None, None, n_modes, n_patches, n_multi, 0.0, argmax_cells)
+            Hf, _, _ = ransac_init(placed, tgt, method=cv2.RANSAC, reproj_threshold=self.reproj,
+                                   max_iters=5000, confidence=0.995, quiet=True, estimator="similarity")
+            Hf = None if Hf is None else np.asarray(Hf, np.float64)
+            if Hf is not None and (not np.isfinite(Hf).all() or np.array_equal(Hf, np.eye(3))):
+                Hf = None
+        if Hf is None:
+            return Match(None, None, n_modes, n_patches, n_multi, 0.0, argmax_cells)
+        p = np.c_[placed, np.ones(n_modes)] @ Hf.T
+        err = np.linalg.norm(p[:, :2] / p[:, 2:3] - tgt, axis=1)
+        inl = float((err <= self.reproj).mean())
+        ha = wa = int(self.m.im_a_size)
+        hb = wb = int(self.m.im_b_size)
+        H = np.asarray(convert_to_pixel_homography(
+            Hf, in_patch_dim=14, out_patch_dim=int(round(gm.shape[0] ** 0.5)),
+            crop_res=(ha, wa), map_res=(hb, wb), cell_convention="center"), dtype=np.float64)
+        c = np.array([[0, 0, 1], [wa - 1, 0, 1], [wa - 1, ha - 1, 1], [0, ha - 1, 1]], float) @ H.T
+        return Match(H, c[:, :2] / c[:, 2:3], n_modes, n_patches, n_multi, inl, argmax_cells)
 
     def _argmax_cells(self, gm, mask, H_gt):
         """Mean coarse-cell error of the per-patch argmax against H_gt (query px -> ref px)."""

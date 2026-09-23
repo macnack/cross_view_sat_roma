@@ -92,8 +92,13 @@ def main():
         mask = (mask >= L.min_patch_valid).cpu().numpy()
         row = dict(frame_id=e["frame_id"], year=int(e["year"]),
                    centre_guess_m=float(np.hypot(*e["crop_offset_m"])), argmax_m=None)
+        placed = query.placement(batch) if hasattr(query, "placement") else None
+        sf = float(((f_q.shape[-2] * 16) * (f_q.shape[-1] * 16)) ** 0.5 / 560.0)
         for tag, w in wraps.items():
-            m = w.match_encoded(f_q, f_s[16], scale_factor=0.4, mask=mask, H_gt=H)
+            if placed is not None:
+                m = w.match_placed(f_q, f_s[16], placed[0][0], placed[1][0], scale_factor=sf, H_gt=H)
+            else:
+                m = w.match_encoded(f_q, f_s[16], scale_factor=0.4, mask=mask, H_gt=H)
             err = pose_errors(m.H, H, cfg.grid.n, cfg.grid.cell_m) if m.H is not None else None
             row[f"pose_{tag}_m"] = None if err is None else err["position_m"]
             row[f"yaw_{tag}_deg"] = None if err is None else err["yaw_deg"]

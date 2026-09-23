@@ -107,6 +107,9 @@ lift:                              # camera-only spherical Lift-Splat (scripts/t
   min_elev_deg: -3.5              # hybrid: rays below this hit ground inside ground_max_range_m and are placed by IPM
   ground_max_range_m: 28.0
 
+erp_query:                        # ERP-token query, placement after matching (task 03, Task 6)
+  max_range_m: 40.0               # ground tokens beyond this are not placed (IPM too coarse there)
+
 ipm:                              # camera-only flat-ground query on Mapillary (task 03, Task 2)
   height_m: 1.7                   # Mapillary rig height above the road, assumed (not in the files)
   blind_radius_m: 1.2             # disc under the camera (rig / vehicle roof)

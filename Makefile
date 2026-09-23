@@ -167,6 +167,11 @@ ipm-train: ## camera-only RGB-IPM query (frozen encoder, decoder fine-tune) with
 		--years 2025,2024,2021 --val-year 2025 --steps 3000 \
 		--neighbour-radius 4 --neighbour-weight 0.5 --pose-nll-weight 0.5
 
+erp-train: ## ERP-token query (Loc²-style: match the panorama's tokens, place after matching); task 03 Task 6
+	$(RUN) scripts/train_lift_splat.py --config $(CONFIG) --query erp --out experiments/05_lift_splat/fixtor_erp \
+		--years 2025,2024,2021 --val-year 2025 --steps 3000 \
+		--neighbour-radius 4 --neighbour-weight 0.5 --pose-nll-weight 0.5
+
 lift-splat-pose-nll-only: ## A alone: pose-heatmap NLL, single frame, from aug best (separates A from B); task 03 Task 1
 	$(RUN) scripts/train_lift_splat.py --config $(CONFIG) --out experiments/05_lift_splat/fixtor_pose_nll \
 		--ckpt checkpoints/05_lift_splat_fixtor_aug_best.pt \
