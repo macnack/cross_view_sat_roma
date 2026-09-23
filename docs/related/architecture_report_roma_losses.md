@@ -1,6 +1,6 @@
 # Which lifting architecture to extend with RoMa losses and the Sat-RoMa matcher
 
-Report, 2026-09-23. Sources: the PDFs in `docs/related/` (FG² 2503.18725v1, BevSplat 2502.09080v4,
+Report, 2026-09-23 (§6 added the same evening). Sources: the PDFs in `docs/related/` (FG² 2503.18725v1, BevSplat 2502.09080v4, Loc² 2509.09792v3,
 BEV-Patch-PF 2512.15111v2, RoMa 2305.15404v2), the read-only code under `third_party/`, and today's
 evaluation in `experiments/05_lift_splat/REPORT.md`. Page numbers are PDF pages. Code lines were
 checked against the checked-out third_party trees.
@@ -146,3 +146,61 @@ puts different content into different patches. The choice below is therefore abo
    (Task 5), reporting median, p95 and the ≤5 m fraction against dead reckoning and per-frame RANSAC.
 5. Only if 3 lands within a few metres of BevSplat's VIGOR medians on our data, consider its
    Gaussian front-end as an ablation row; otherwise leave it as related work.
+
+## 6. Addendum: Loc² (ICLR 2026, 2509.09792v3) — the closest relative, and it changes the ranking
+
+Read after the sections above; the PDF is now in `docs/related/`.
+
+What it does (§3, Fig. 2). No BEV is built before matching. A frozen DINOv2 plus a light projection
+head encodes the ground panorama and the aerial crop; the two token sets are matched directly in the
+image plane with cosine/τ, a learnable dustbin and dual softmax (Eq. 1); N = 1024 correspondences are
+sampled with their probabilities as weights. Only then are the matched ground points lifted: each
+gets a 3D coordinate from a monocular depth map along its ray (Unik3D metric depth for panoramas,
+DepthAnythingV2 for KITTI), and a scale-aware weighted Procrustes (Umeyama, Eq. 2–5) solves rotation,
+translation and the depth scale s jointly, so relative depth is enough at inference (Tab. 2, rows
+"Ours-Unik3D_rel", "Ours-BiFuse++", "Ours-UniFuse": < 0.2 m change). Supervision is pose only (VCE,
+Eq. 6) plus symmetric InfoNCE on pose-derived pseudo-correspondences (§3.3). RANSAC over the sampled
+correspondences cuts the mean error from 4.60 to 3.86 m (Tab. 7), and the inlier ratio tracks the pose
+error (Fig. 4), which is the same "confidence from consensus" reading Sat-RoMa takes from its modes.
+
+Numbers (mean / median m). VIGOR cross-area, unknown orientation: 4.23 / 2.09 against FG² 10.02 / 8.14
+and CCVPE 5.41 / 1.89; known orientation cross-area 3.43 / 1.90 (FG² 2.41 / 1.37 is better there);
+same-area known 3.06 / 1.59 (Tab. 2). KITTI cross-area ±10°: 5.60 / 3.01, ±180°: 11.71 / 9.11 (Tab. 1).
+Ablations: keeping all matched points beats "topmost point only" (3.86 / 1.75 vs 3.95 / 1.78, Tab. 3);
+dropping the scale term is much worse (5.47 / 2.75); more aerial points help slightly (56×56: 3.70 / 1.65,
+Tab. 9); and the one that matters most for us, App. A.2 "BEV-plane matching": transforming the ground
+image into a BEV first (HC-Net's homography) and running the same extractor, matcher and solver is
+"substantially worse" (Tab. 12, on a page the arXiv file cuts off), because the warp distorts every
+above-ground structure and confines the matchable region.
+
+Why this is our idea, one step further. Sat-RoMa already is a per-patch classifier with modes and
+consensus; Loc² shows that the query patches should be the panorama's own tokens, not a lifted BEV,
+and that placement (depth, scale) belongs after matching, inside the solver. That is the kick-off's
+H2 ("depth is placement, not signal") in its purest form, and it dissolves the starved-query problem
+measured today: the query would be the full 28×56 ERP token grid (1568 patches with real content)
+instead of 196 BEV tokens produced by a lift. Concretely, "Loc² with our matcher" means:
+
+- `f_q` = frozen `sat493m` tokens of the ERP, straight into the fine-tuned decoder; `gm_cls` becomes a
+  categorical over reference cells for every ERP patch, with GMM modes as now. The RoMa decoder has no
+  positional encoding and the GP encoder is grid-agnostic, so a non-square 28×56 query is a matter of
+  checking `scale_factor` in the wrapper, not an architecture change.
+- Placement of each matched ERP patch into ego metres: ground patches (below the horizon, inside
+  range) by exact IPM from the camera height, which is depth-free and what `ipm_sphere` already
+  computes; above-horizon patches by a relative-depth model with Loc²'s scale-aware solver, or simply
+  dropped for the camera-only claim (Tab. 3 says restricting to top points costs little, and ground
+  dominates a street panorama).
+- Solver: our multi-hypothesis RANSAC on (ego-metric point, reference mode) pairs. With IPM placement
+  the scale is known and the fixed-scale SE(2) solver of Task 4 applies; with relative depth the
+  existing sRT solver is exactly Loc²'s scale-aware Procrustes plus consensus.
+- The comparison the hypothesis asks for falls out for free: Loc²'s dual-softmax + InfoNCE against our
+  categorical + certainty + mode retention, on the same tokens and the same solver.
+
+Revised ranking. This "ERP-token query" moves to first place: it is the cheapest option (no lift module
+at all, 2–3 days: a `--query erp` mode, a placement step in the matcher wrapper, evaluation on both
+manifests), it is the direct test of the hypothesis, and Loc²'s own ablation says the BEV-plane
+alternatives we were ranking are the wrong side of the comparison. FG²'s pillar lift becomes second,
+the hybrid IPM query stays as the control, BevSplat drops to an ablation row. Caveats: unknown
+orientation is where Loc² beats FG² but our compass proxy already gives ±10°; the orthophoto
+relief-displacement issue Loc² discusses in App. I is the kick-off's Fig. 6 and applies equally to
+every option; and the decoder was trained overhead-to-overhead, so the first run must be the
+fine-tuned decoder, never the frozen H1 setting (decision 2026-09-19 still holds for the frozen case).
