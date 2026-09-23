@@ -68,6 +68,15 @@ $X python -c "import timm; timm.create_model('vit_large_patch16_dinov3.sat493m',
 PYTHONPATH=src:.pydeps SATROMA_INFER_DIR=$PWD/third_party/sat_roma_infer $X python -m pytest tests -q   # 61 passed
 ```
 
+## Syncing the checkout: `make eagle-pull`, not `git pull`
+
+Jobs write result files (`experiments/**/*.json`) that are later committed from the laptop; a plain
+`git pull` then refuses ("untracked working tree files would be overwritten"). `make eagle-pull` does
+`git fetch` + `git reset --hard origin/<branch>`, which is safe because the cluster checkout never
+carries local commits. Always run it before submitting, and check `git log -1` matches the laptop.
+`bash slurm/watch.sh <name>_<jobid> ...` prints one line per finished job (exit status, errors,
+evaluation summary) and the number still queued; poll it from a monitor loop.
+
 ## Pitfall: commas in CMD
 
 `sbatch --export=ALL,CMD="..."` splits the `--export` list on commas, so a CMD containing
