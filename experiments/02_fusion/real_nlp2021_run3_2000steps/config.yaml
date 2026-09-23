@@ -1,0 +1,93 @@
+run:
+  command: scripts/train_fusion.py --ortho data/ortho/durham/2021_nlp/durham_2021_nlp_intensity_1m_uint8.tif
+    --val-range 6000 7500 --out experiments/02_fusion/real_nlp2021_run3_2000steps
+  time: '2026-09-20 16:24:27'
+  git: '9604087'
+  ortho: /home/maciej/Github/cross_view_sat_roma/data/ortho/durham/2021_nlp/durham_2021_nlp_intensity_1m_uint8.tif
+  n_train: 1760
+  n_val: 32
+  overfit: 0
+  val_ranges:
+  - - 6000
+    - 7500
+config:
+  data:
+    root: data/dur360bev
+    ortho: data/ortho/durham/2009_ea_irrgb/durham_2009_25cm.vrt
+  erp:
+    size:
+    - 1280
+    - 640
+    lens: dur360
+    lens_params:
+      fov_inner_deg: 196.0
+      fov_outer_deg: 203.0
+      alpha: 1.0
+    valid_mask: experiments/00_calib/erp_valid_1280x640.npy
+  calib:
+    cam_from_lidar_rpy_deg:
+    - 0.0
+    - 0.0
+    - 0.0
+    cam_from_lidar_t_m:
+    - 0.0
+    - 0.0
+    - -0.27
+    lidar_height_m: 1.57
+  grid:
+    n: 224
+    cell_m: 0.25
+  ground:
+    floor_cell_m: 0.5
+    ground_tol_m: 0.2
+    max_floor_dev_m: 1.2
+    max_range_m: 40.0
+    contact_max_height_m: 0.7
+  edges:
+    min_obj_height_m: 1.5
+    max_jump_m: 0.75
+  mask:
+    frames:
+      ranges:
+      - - 500
+        - 1450
+      - - 1900
+        - 2700
+      stride: 10
+    std_thresh: 5.0
+    meanhp_thresh: 6.0
+    min_blob_px: 80
+    margin_px: 6
+    seam_halfwidth_px: 4
+    horizon_frac: 0.53
+  oxts:
+    convention: ccw_from_east
+    min_speed_mps: 2.0
+    smooth: 2
+  matcher:
+    checkpoint: 0t1q66hy
+    use_means: false
+    min_valid_frac: 0.5
+    reproj_cells: 3.0
+    seed: 0
+  fusion:
+    backbone: convnext_tiny.dinov3_lvd1689m
+    dim: 128
+  train:
+    steps: 2000
+    batch: 2
+    lr_bev: 0.0002
+    lr_decoder: 1.0e-05
+    weight_decay: 0.01
+    min_patch_valid: 0.25
+    min_ref_cell_valid: 0.5
+    val_ranges:
+    - - 710
+      - 2400
+    val_every: 250
+    val_frames: 32
+    seed: 0
+  reference:
+    scale: 4
+    max_offset_frac: 0.3
+    max_rot_deg: 55.0

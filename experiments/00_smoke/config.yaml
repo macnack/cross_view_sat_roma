@@ -1,7 +1,7 @@
 run:
   command: scripts/smoke_satroma.py --config configs/default.yaml
-  time: '2026-09-17 16:57:39'
-  git: uncommitted
+  time: '2026-09-19 22:36:19'
+  git: '9604087'
 config:
   data:
     root: data/dur360bev
@@ -52,8 +52,12 @@ config:
     margin_px: 6
     seam_halfwidth_px: 4
     horizon_frac: 0.53
+  oxts:
+    convention: ccw_from_east
+    min_speed_mps: 2.0
+    smooth: 2
   matcher:
-    checkpoint: 4adxis71
+    checkpoint: 0t1q66hy
     use_means: false
     min_valid_frac: 0.5
     reproj_cells: 3.0

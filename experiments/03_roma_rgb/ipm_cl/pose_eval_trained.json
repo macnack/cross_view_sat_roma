@@ -1,0 +1,290 @@
+[
+  {
+    "name": "0000000710",
+    "split": "val",
+    "position_m": 3.2372564670557975,
+    "yaw_deg": 75.60595932272881,
+    "argmax_m": 9.3130521774292,
+    "modes": 6
+  },
+  {
+    "name": "0000000780",
+    "split": "val",
+    "position_m": null,
+    "yaw_deg": null,
+    "argmax_m": 22.725181579589844,
+    "modes": 5
+  },
+  {
+    "name": "0000000850",
+    "split": "val",
+    "position_m": 40.43584812241509,
+    "yaw_deg": 73.36330991239716,
+    "argmax_m": 22.278003692626953,
+    "modes": 10
+  },
+  {
+    "name": "0000000920",
+    "split": "val",
+    "position_m": null,
+    "yaw_deg": null,
+    "argmax_m": 7.300562858581543,
+    "modes": 2
+  },
+  {
+    "name": "0000000990",
+    "split": "val",
+    "position_m": null,
+    "yaw_deg": null,
+    "argmax_m": 38.35107421875,
+    "modes": 7
+  },
+  {
+    "name": "0000001060",
+    "split": "val",
+    "position_m": null,
+    "yaw_deg": null,
+    "argmax_m": 70.72001647949219,
+    "modes": 2
+  },
+  {
+    "name": "0000001130",
+    "split": "val",
+    "position_m": 59.76071433630178,
+    "yaw_deg": 171.3184675155335,
+    "argmax_m": 45.981300354003906,
+    "modes": 8
+  },
+  {
+    "name": "0000001200",
+    "split": "val",
+    "position_m": 41.321350271101785,
+    "yaw_deg": 115.8687931380169,
+    "argmax_m": 30.29389762878418,
+    "modes": 9
+  },
+  {
+    "name": "0000001270",
+    "split": "val",
+    "position_m": null,
+    "yaw_deg": null,
+    "argmax_m": 12.514511108398438,
+    "modes": 2
+  },
+  {
+    "name": "0000001340",
+    "split": "val",
+    "position_m": 44.645551188904584,
+    "yaw_deg": 2.5334700789824356,
+    "argmax_m": 48.5015754699707,
+    "modes": 21
+  },
+  {
+    "name": "0000001410",
+    "split": "val",
+    "position_m": 126.20436066045595,
+    "yaw_deg": 48.80008297413104,
+    "argmax_m": 107.9760971069336,
+    "modes": 18
+  },
+  {
+    "name": "0000001480",
+    "split": "val",
+    "position_m": 40.46218958154197,
+    "yaw_deg": 17.21559618415675,
+    "argmax_m": 33.154090881347656,
+    "modes": 36
+  },
+  {
+    "name": "0000001550",
+    "split": "val",
+    "position_m": 27.580920967960573,
+    "yaw_deg": 42.704549117723026,
+    "argmax_m": 27.24630355834961,
+    "modes": 22
+  },
+  {
+    "name": "0000001620",
+    "split": "val",
+    "position_m": 22.385210976835868,
+    "yaw_deg": 16.62829191822608,
+    "argmax_m": 27.305452346801758,
+    "modes": 38
+  },
+  {
+    "name": "0000001690",
+    "split": "val",
+    "position_m": 28.71305289345522,
+    "yaw_deg": 33.10604189162901,
+    "argmax_m": 28.864965438842773,
+    "modes": 42
+  },
+  {
+    "name": "0000001760",
+    "split": "val",
+    "position_m": 24.636580564561783,
+    "yaw_deg": 8.825170484639738,
+    "argmax_m": 28.84178352355957,
+    "modes": 39
+  },
+  {
+    "name": "0000001830",
+    "split": "val",
+    "position_m": 3.231596944732232,
+    "yaw_deg": 13.285229432324403,
+    "argmax_m": 6.435061931610107,
+    "modes": 26
+  },
+  {
+    "name": "0000001900",
+    "split": "val",
+    "position_m": 60.38878443019383,
+    "yaw_deg": 22.384491560083013,
+    "argmax_m": 63.35958480834961,
+    "modes": 14
+  },
+  {
+    "name": "0000001970",
+    "split": "val",
+    "position_m": 50.995669700301555,
+    "yaw_deg": 91.03496807557633,
+    "argmax_m": 11.41076946258545,
+    "modes": 8
+  },
+  {
+    "name": "0000002040",
+    "split": "val",
+    "position_m": 57.30191371254824,
+    "yaw_deg": 48.68135356115896,
+    "argmax_m": 95.22171020507812,
+    "modes": 12
+  },
+  {
+    "name": "0000002110",
+    "split": "val",
+    "position_m": 47.26371636646846,
+    "yaw_deg": 12.095200328875931,
+    "argmax_m": 40.674591064453125,
+    "modes": 15
+  },
+  {
+    "name": "0000002180",
+    "split": "val",
+    "position_m": 39.346358328388064,
+    "yaw_deg": 14.285559251874078,
+    "argmax_m": 27.000123977661133,
+    "modes": 15
+  },
+  {
+    "name": "0000002250",
+    "split": "val",
+    "position_m": 15.268420492612522,
+    "yaw_deg": 53.367144513330985,
+    "argmax_m": 9.901086807250977,
+    "modes": 10
+  },
+  {
+    "name": "0000002320",
+    "split": "val",
+    "position_m": null,
+    "yaw_deg": null,
+    "argmax_m": 21.52284812927246,
+    "modes": 3
+  },
+  {
+    "name": "0000000000",
+    "split": "train",
+    "position_m": 73.16066928695201,
+    "yaw_deg": 47.712085107299764,
+    "argmax_m": 43.32604217529297,
+    "modes": 16
+  },
+  {
+    "name": "0000000043",
+    "split": "train",
+    "position_m": null,
+    "yaw_deg": null,
+    "argmax_m": 36.06533432006836,
+    "modes": 0
+  },
+  {
+    "name": "0000000086",
+    "split": "train",
+    "position_m": null,
+    "yaw_deg": null,
+    "argmax_m": 33.39295196533203,
+    "modes": 0
+  },
+  {
+    "name": "0000000129",
+    "split": "train",
+    "position_m": 25.251094743452914,
+    "yaw_deg": 42.970143188587734,
+    "argmax_m": 31.24453353881836,
+    "modes": 5
+  },
+  {
+    "name": "0000000172",
+    "split": "train",
+    "position_m": 57.27942884571208,
+    "yaw_deg": 0.4065533993089801,
+    "argmax_m": 53.21393966674805,
+    "modes": 26
+  },
+  {
+    "name": "0000000215",
+    "split": "train",
+    "position_m": 8.647649281049569,
+    "yaw_deg": 111.41625607323606,
+    "argmax_m": 17.142566680908203,
+    "modes": 9
+  },
+  {
+    "name": "0000000258",
+    "split": "train",
+    "position_m": 1.540675573833175,
+    "yaw_deg": 3.9494444935899233,
+    "argmax_m": 7.830172538757324,
+    "modes": 37
+  },
+  {
+    "name": "0000000310",
+    "split": "train",
+    "position_m": 1.445613393558179,
+    "yaw_deg": 4.414394123446183,
+    "argmax_m": 4.397741317749023,
+    "modes": 29
+  },
+  {
+    "name": "0000002820",
+    "split": "train",
+    "position_m": null,
+    "yaw_deg": null,
+    "argmax_m": 46.12712478637695,
+    "modes": 0
+  },
+  {
+    "name": "0000003960",
+    "split": "train",
+    "position_m": 53.21774884609074,
+    "yaw_deg": 111.33124183656551,
+    "argmax_m": 29.183792114257812,
+    "modes": 12
+  },
+  {
+    "name": "0000015360",
+    "split": "train",
+    "position_m": null,
+    "yaw_deg": null,
+    "argmax_m": 16.124515533447266,
+    "modes": 1
+  },
+  {
+    "name": "0000015790",
+    "split": "train",
+    "position_m": 74.05661085147271,
+    "yaw_deg": 49.42320967980231,
+    "argmax_m": 62.845638275146484,
+    "modes": 14
+  }
+]

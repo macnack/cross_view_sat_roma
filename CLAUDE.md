@@ -29,7 +29,9 @@ baseline, particle filter) until 01 is reported and reviewed.
   model (`bevloc.bev.fisheye`), NOT fisheye_tools' 203° equidistant remap (~6 px off). Axis convention VERIFIED: forward = ERP
   centre, azimuth to the right, z up. Camera←LiDAR: R = I, t = (0, 0, −0.27) m (provisional, see `bevloc.data.calib`).
   Car body hides everything below ≈ −25° elevation.
-- INS (OxTS RT3000): lat/lon/alt, roll/pitch/yaw. Heading NED (0 = north, clockwise, deg) — UNVERIFIED, check manual.
+- INS (OxTS RT3000v3): lat/lon/alt, roll/pitch/yaw. Stored yaw VERIFIED as radians CCW from east (bearing
+  cw from north = 90° − yaw°; residual σ 2.5° vs direction of travel, `make oxts`) — NOT the NED device
+  convention. Roll and pitch are identically zero in every file: no IMU attitude in this dataset.
   INS→LiDAR lever arm unknown; estimate from data.
 - Map: British National Grid EPSG:27700; orthophoto GeoTIFFs under data/ortho/durham/<year>/.
 - BEV grid: metric, ego-centred, x forward / y left, gravity-aligned; 224×224 cells at 0.25 m (56 m extent, radius 28 m),
@@ -37,9 +39,13 @@ baseline, particle filter) until 01 is reported and reviewed.
 
 ## Compute
 - Local: 12 GB GPU → smoke tests, ≤ batch 2, ≤ 20 frames.
-- Eagle cluster: all real runs. Submit: `<FILL IN sbatch command / partition / account>`. GPU time is free; optimize for correctness.
-- Environment: environment.yml is for Eagle only (pinned; do not upgrade torch/CUDA). Locally use the existing conda env
-  `bev-patch-pf` (torch 2.13+cu130; the laptop's Blackwell GPU cannot run torch 2.4/cu121).
+- Eagle cluster: all real runs. `eagle.man.poznan.pl`, SLURM, proxima partition, H100 GPUs, account `pl1269-01`
+  (or `pl0467-01`). Submit: `sbatch slurm/train_fusion.sbatch` (see `slurm/README.md` — container-based, UNTESTED,
+  built from ~/Github/sat_roma's verified pattern; no Eagle access from this session to confirm it). GPU time is free;
+  optimize for correctness.
+- Environment: environment.yml is for Eagle only (pinned; do not upgrade torch/CUDA) — but its 2.4/cu121 pin predates
+  knowing Eagle's real target is H100 (sm_90); see slurm/README.md's "Torch pin" note before relying on it. Locally
+  use the existing conda env `bev-patch-pf` (torch 2.13+cu130; the laptop's Blackwell GPU cannot run torch 2.4/cu121).
 
 ## Working rules
 - Run things through the Makefile (`make help`); new steps get a script + target + config entry, not a one-off snippet.

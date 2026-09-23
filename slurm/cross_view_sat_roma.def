@@ -1,0 +1,20 @@
+# Converts the Docker Hub image to .sif for Eagle's pyxis/Singularity runtime
+# (Docker itself needs root, which Eagle disallows for regular users) -- see
+# slurm/build_container.sh and docs/eagle_hpc_slurm_ssh_guide.md in ~/Github/sat_roma
+# for the general pattern this mirrors.
+#
+# <DOCKERHUB_USER>/cross_view_sat_roma:latest is manually built + pushed
+# (`docker build` + `docker push`, from the repo root Dockerfile) -- there is no
+# CI here, unlike sat_roma's auto-built ghcr.io image (which is also reportedly
+# broken by an org billing issue as of the sat_roma memory this was copied from;
+# do not assume any equivalent auto-build exists for this repo). Keep the pushed
+# image in sync with the Dockerfile by hand.
+Bootstrap: docker
+From: <DOCKERHUB_USER>/cross_view_sat_roma:latest
+
+%post
+    chmod -R a+rX /opt/venv || true
+
+%environment
+    export PYTHONPATH=/app/src:/app
+    export SATROMA_INFER_DIR=/app/third_party/sat_roma_infer

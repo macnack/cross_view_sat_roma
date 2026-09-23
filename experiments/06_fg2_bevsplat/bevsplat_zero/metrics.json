@@ -1,0 +1,21 @@
+{
+  "status": "blocked",
+  "stage": "checkpoints",
+  "bevsplat": {
+    "repo": "third_party/BevSplat",
+    "commit": "92bebde1be2d50da5c679e11cb43c14ddc70544a",
+    "checkpoints_dir": "checkpoints/baselines/bevsplat",
+    "available": {},
+    "missing": [
+      "VIGOR_same_no_GPS.pth",
+      "VIGOR_same_GPS.pth.pth",
+      "VIGOR_cross_no_GPS.pth.pth",
+      "VIGOR_cross_GPS.pth.pth"
+    ],
+    "onedrive": "https://1drv.ms/f/c/86d953bfc66eb903/IgAP7P2tFzChR7rHeMuXIOq8AakOxR02eKMyI2Z7qsMjLxo?e=zaD0Fb",
+    "license": "MIT (third_party/BevSplat/LICENSE)"
+  },
+  "manifest": "experiments/06_fg2_bevsplat/manifest.json",
+  "n_smoke": 20,
+  "blocker": "BevSplat VIGOR checkpoints are on OneDrive and were not downloadable non-interactively (https://1drv.ms/f/c/86d953bfc66eb903/IgAP7P2tFzChR7rHeMuXIOq8AakOxR02eKMyI2Z7qsMjLxo?e=zaD0Fb; HTTP 403 / reauth). Missing: ['VIGOR_same_no_GPS.pth', 'VIGOR_same_GPS.pth.pth', 'VIGOR_cross_no_GPS.pth.pth', 'VIGOR_cross_GPS.pth.pth']. Also needs CUDA rasterizer build (bash third_party/BevSplat/scripts/bootstrap_cuda.sh) and the VIGOR dataset for native reproduction (task \u00a71 stop rule)."
+}

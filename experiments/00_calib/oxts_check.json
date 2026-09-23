@@ -1,0 +1,55 @@
+{
+  "n_frames": 16407,
+  "roll_pitch": {
+    "roll_abs_max_deg": 0.0,
+    "pitch_abs_max_deg": 0.0,
+    "n_unique": [
+      1,
+      1
+    ]
+  },
+  "slope_from_altitude_deg": {
+    "p5": -5.104561054126951,
+    "p50": 0.2867159225377873,
+    "p95": 5.20884622332183,
+    "alt_range_m": 71.692311
+  },
+  "yaw": {
+    "n_moving_frames": 11241,
+    "scores": {
+      "ccw_from_east": {
+        "mean_deg": 0.3314435287878448,
+        "std_deg": 2.5170470362523276,
+        "within_10deg": 0.9963526376656882
+      },
+      "ccw_from_north": {
+        "mean_deg": -89.66855647121216,
+        "std_deg": 2.5170470362523276,
+        "within_10deg": 0.9963526376656882
+      },
+      "cw_from_north": {
+        "mean_deg": 126.26436552677218,
+        "std_deg": 124.04221825625555,
+        "within_10deg": 0.11760519526732498
+      },
+      "cw_from_east": {
+        "mean_deg": -143.73563447322778,
+        "std_deg": 124.04221825625555,
+        "within_10deg": 0.11760519526732498
+      }
+    },
+    "best": "ccw_from_east",
+    "header_claims": "ccw_from_east (oxts/dataformat.txt)"
+  },
+  "sync_ms": {
+    "image": {
+      "median": -1.0669231414794922,
+      "abs_max": 29.999256134033203
+    },
+    "ouster_points": {
+      "median": 0.2627372741699219,
+      "abs_max": 29.996871948242188
+    }
+  },
+  "oxts_rate_hz": 9.996672784040804
+}

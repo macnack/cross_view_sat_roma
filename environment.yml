@@ -1,8 +1,13 @@
 name: bevloc
+# NOTE 2026-09-21: this pin predates confirming Eagle's real GPU target is H100 (sm_90) on
+# proxima (~/Github/sat_roma's docs/eagle_hpc_slurm_ssh_guide.md, verified 2026-09-01). That
+# project's own lock floats torch forward and resolves 2.13.0+cu130 there, not 2.4/cu121.
+# slurm/Dockerfile (this repo's Eagle path) leaves torch unpinned for the same reason. Re-check
+# this pin against real H100 throughput before using this conda env for a real run — not done here.
 channels: [conda-forge, pytorch, nvidia]
 dependencies:
   - python=3.11
-  - pytorch=2.4.*        # pin to the Eagle CUDA driver — CHECK before first run
+  - pytorch=2.4.*        # pin to the Eagle CUDA driver — CHECK before first run (see NOTE above)
   - pytorch-cuda=12.1
   - torchvision
   - numpy<2

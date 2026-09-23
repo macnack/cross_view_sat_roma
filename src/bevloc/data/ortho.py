@@ -99,3 +99,27 @@ def sample_reference(query: Oriented, rng, scale=4, max_offset_frac=0.30, max_ro
     right, up = np.array([np.cos(b), -np.sin(b)]), np.array([np.sin(b), np.cos(b)])
     centre = np.asarray(query.centre_en) - (off[0] * right + off[1] * up)
     return Oriented(tuple(centre), up_b, size, query.gsd)
+
+
+def sample_negative_reference(query: Oriented, rng, scale=4, sep_frac=(0.70, 1.40),
+                              max_rot_deg=20.0) -> Oriented:
+    """Reference crop that deliberately does NOT contain the query pose.
+
+    Offset magnitude is ``sep_frac * ref_edge`` along a random direction in the
+    reference axes — beyond half-edge so the vehicle centre (and typically the
+    whole ±28 m query footprint) lands outside the crop. Orthophoto content is
+    still real; only the GT pose is absent. Sat-RoMa has no unmatched class in
+    ``gm_cls``; these pairs train the certainty head toward "not matchable".
+    """
+    size = query.size * scale
+    edge = size * query.gsd
+    lo, hi = float(sep_frac[0]), float(sep_frac[1])
+    sep = float(rng.uniform(lo, hi)) * edge
+    ang = float(rng.uniform(0.0, 2.0 * np.pi))
+    off = np.array([np.cos(ang), np.sin(ang)]) * sep
+    rot = float(rng.uniform(-max_rot_deg, max_rot_deg))
+    up_b = query.up_bearing_deg + rot
+    b = np.radians(up_b)
+    right, up = np.array([np.cos(b), -np.sin(b)]), np.array([np.sin(b), np.cos(b)])
+    centre = np.asarray(query.centre_en) - (off[0] * right + off[1] * up)
+    return Oriented(tuple(centre), up_b, size, query.gsd)

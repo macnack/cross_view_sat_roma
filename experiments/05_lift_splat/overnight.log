@@ -1,0 +1,431 @@
+=== 2026-09-22T23:08:37+02:00 POSE EVAL same-year 2025 ===
+  IcRzj0wTLZX874qitxVsQa: 1980/2186 frames inside ortho (margin 120 m)
+Using Dinov3 as Sat Encoder, model: vit_large_patch16_dinov3.sat493m
+Using Dinov3 as Sat Encoder, model: vit_large_patch16_dinov3.sat493m
+Using Dinov3 as Sat Encoder, model: vit_large_patch16_dinov3.sat493m
+  2095057974553082  arg 16.5  peak 16.0  means 16.1  modes 191/191
+  1378496074369409  arg 20.4  peak 22.1  means 21.5  modes 176/176
+  1142872331601507  arg 40.0  peak 41.2  means 40.5  modes 217/217
+  978411255289595  arg 8.9  peak 6.4  means 7.7  modes 166/166
+  1019550914472816  arg 32.0  peak 32.0  means 29.9  modes 175/175
+  953363284488701  arg 20.0  peak 20.0  means 19.6  modes 206/206
+  2152059425343476  arg 32.2  peak 33.2  means 36.5  modes 225/225
+  2156246585246250  arg 4.0  peak 1.9  means 1.9  modes 167/167
+  3987512878222694  arg 16.5  peak 15.7  means 15.2  modes 173/173
+  2617877615312525  arg 16.5  peak 13.7  means 17.7  modes 219/219
+  1103726585498561  arg 20.4  peak 21.7  means 22.3  modes 220/220
+  28353982287585850  arg 8.0  peak 4.5  means 3.6  modes 205/205
+  1100677129568395  arg 8.9  peak 8.2  means 7.8  modes 219/219
+  1634811391600888  arg 12.6  peak 12.5  means 16.9  modes 170/170
+  1788609642332461  arg 8.9  peak 8.0  means 8.5  modes 151/151
+  1492850022680483  arg 8.9  peak 4.5  means 4.3  modes 200/200
+  2307381062999983  arg 8.0  peak 3.1  means 3.3  modes 209/209
+  1404836450974786  arg 24.0  peak 18.1  means 20.2  modes 173/173
+  875121085565340  arg 16.5  peak 11.1  means 14.3  modes 222/222
+  1110321861631012  arg 8.9  peak 5.3  means 14.6  modes 254/254
+  1555505762546802  arg 12.0  peak 6.1  means 11.1  modes 226/226
+  1327926909237721  arg 5.7  peak 5.6  means 1.7  modes 210/210
+  2280589716022436  arg 24.3  peak 26.3  means 25.7  modes 181/181
+  1757450898675122  arg 12.6  peak 12.6  means 9.5  modes 195/195
+  1113524811360636  arg 16.0  peak 12.1  means 9.9  modes 191/191
+  1117850284013533  arg 36.2  peak 36.8  means 34.4  modes 167/167
+  1046793441453437  arg 23.3  peak 22.8  means 25.6  modes 211/211
+  1717358659338787  arg 20.0  peak 22.3  means 20.5  modes 246/246
+  1600448215153510  arg 5.7  peak 2.0  means 3.7  modes 167/167
+  1388036546256933  arg 12.0  peak 10.3  means 5.6  modes 154/154
+  941258575171189  arg 20.4  peak 21.8  means 17.7  modes 200/200
+  1642777094174373  arg 20.4  peak 21.0  means 16.0  modes 193/193
+  2225144508332803  arg 8.9  peak 7.5  means 8.8  modes 202/202
+  1445870540781253  arg 8.9  peak 6.6  means 8.4  modes 160/160
+  2180206842898875  arg 24.0  peak 24.9  means 23.1  modes 193/193
+  4383937145252600  arg 16.0  peak 17.4  means 18.1  modes 206/206
+  1395053232186208  arg 8.9  peak 6.5  means 8.8  modes 204/204
+  1640116454223707  arg 21.5  peak 24.1  means 25.0  modes 184/184
+  28232267553098001  arg 36.9  peak 37.4  means 37.4  modes 199/199
+  29263406316595392  arg 36.0  peak 40.1  means 37.6  modes 267/267
+  2664235027388592  arg 8.9  peak 6.2  means 13.2  modes 247/247
+  965788772472679  arg 12.6  peak 14.8  means 13.1  modes 150/150
+  1636164264528073  arg 28.3  peak 31.6  means 30.7  modes 176/176
+  1406253228277001  arg 8.9  peak 6.1  means 7.6  modes 218/218
+  1121290083804491  arg 24.0  peak 23.9  means 22.5  modes 179/179
+  28240444558956519  arg 12.0  peak 3.5  means 4.8  modes 175/175
+  2677328439391773  arg 25.3  peak 28.1  means 24.4  modes 168/168
+  1613960070127571  arg 8.9  peak 9.2  means 4.9  modes 183/183
+EVAL peak  n 48  {'recall@1m': 0.0, 'recall@5m': 0.125, 'recall@10m': 0.375}  median_pose 14.3 m  median_argmax 16.2 m  matched 48/48
+EVAL means  n 48  {'recall@1m': 0.0, 'recall@5m': 0.16666666666666666, 'recall@10m': 0.375}  median_pose 15.6 m  median_argmax 16.2 m  matched 48/48
+wrote experiments/05_lift_splat/fixtor_multi/pose_eval_y2025.json
+=== 2026-09-22T23:09:36+02:00 POSE EVAL appearance 2024 ===
+  IcRzj0wTLZX874qitxVsQa: 1980/2186 frames inside ortho (margin 120 m)
+Using Dinov3 as Sat Encoder, model: vit_large_patch16_dinov3.sat493m
+Using Dinov3 as Sat Encoder, model: vit_large_patch16_dinov3.sat493m
+Using Dinov3 as Sat Encoder, model: vit_large_patch16_dinov3.sat493m
+  2095057974553082  arg 21.5  peak 24.0  means 19.2  modes 213/213
+  1378496074369409  arg 36.2  peak 36.7  means 33.6  modes 194/194
+  1142872331601507  arg 20.0  peak 17.4  means 17.7  modes 171/171
+  978411255289595  arg 8.9  peak 7.9  means 8.1  modes 148/148
+  1019550914472816  arg 24.0  peak 24.4  means 24.0  modes 172/172
+  953363284488701  arg 8.9  peak 12.4  means 8.5  modes 270/270
+  2152059425343476  arg 11.3  peak 6.6  means 3.4  modes 199/199
+  2156246585246250  arg 8.9  peak 9.6  means 9.1  modes 202/202
+  3987512878222694  arg 5.7  peak 5.7  means 5.8  modes 158/158
+  2617877615312525  arg 8.9  peak 6.8  means 9.9  modes 207/207
+  1103726585498561  arg 8.0  peak 7.4  means 8.5  modes 168/168
+  28353982287585850  arg 12.6  peak 15.2  means 14.2  modes 203/203
+  1100677129568395  arg 11.3  peak 8.4  means 8.5  modes 151/151
+  1634811391600888  arg 5.7  peak 6.2  means 5.7  modes 151/151
+  1788609642332461  arg 16.5  peak 13.3  means 15.4  modes 160/160
+  1492850022680483  arg 5.7  peak 4.8  means 7.8  modes 170/170
+  2307381062999983  arg 28.0  peak 25.4  means 25.5  modes 156/156
+  1404836450974786  arg 36.9  peak 37.7  means 38.1  modes 291/291
+  875121085565340  arg 20.0  peak 11.6  means 20.4  modes 218/218
+  1110321861631012  arg 5.7  peak 4.9  means 5.2  modes 184/184
+  1555505762546802  arg 12.0  peak 20.4  means 9.4  modes 197/197
+  1327926909237721  arg 33.0  peak 33.2  means 32.5  modes 144/144
+  2280589716022436  arg 12.0  peak 6.0  means 7.5  modes 221/221
+  1757450898675122  arg 16.5  peak 13.1  means 14.6  modes 232/232
+  1113524811360636  arg 12.0  peak 1.3  means 6.0  modes 194/194
+  1117850284013533  arg 21.5  peak 20.5  means 19.9  modes 141/141
+  1046793441453437  arg 14.4  peak 16.2  means 7.2  modes 223/223
+  1717358659338787  arg 20.0  peak 20.3  means 19.6  modes 195/195
+  1600448215153510  arg 8.9  peak 5.4  means 6.3  modes 159/159
+  1388036546256933  arg 5.7  peak 2.8  means 1.2  modes 178/178
+  941258575171189  arg 24.3  peak 26.1  means 25.3  modes 222/222
+  1642777094174373  arg 25.3  peak 33.0  means 20.7  modes 223/223
+  2225144508332803  arg 24.3  peak 25.2  means 24.0  modes 157/157
+  1445870540781253  arg 5.7  peak 4.2  means 6.6  modes 170/170
+  2180206842898875  arg 11.3  peak 10.9  means 11.5  modes 171/171
+  4383937145252600  arg 8.9  peak 9.1  means 10.8  modes 141/141
+  1395053232186208  arg 8.0  peak 8.0  means 8.6  modes 154/154
+  1640116454223707  arg 36.2  peak 36.2  means 33.5  modes 207/207
+  28232267553098001  arg 25.3  peak 28.9  means 26.3  modes 187/187
+  29263406316595392  arg 8.9  peak 4.8  means 5.5  modes 185/185
+  2664235027388592  arg 8.0  peak 6.0  means 7.0  modes 160/160
+  965788772472679  arg 20.4  peak 26.0  means 14.0  modes 178/178
+  1636164264528073  arg 5.7  peak 3.5  means 3.6  modes 153/153
+  1406253228277001  arg 16.0  peak 14.2  means 19.9  modes 197/197
+  1121290083804491  arg 32.2  peak 34.2  means 32.2  modes 196/196
+  28240444558956519  arg 5.7  peak 1.5  means 1.4  modes 188/188
+  2677328439391773  arg 11.3  peak 7.4  means 7.3  modes 168/168
+  1613960070127571  arg 5.7  peak 4.5  means 1.6  modes 194/194
+EVAL peak  n 48  {'recall@1m': 0.0, 'recall@5m': 0.1875, 'recall@10m': 0.4791666666666667}  median_pose 11.2 m  median_argmax 12.0 m  matched 48/48
+EVAL means  n 48  {'recall@1m': 0.0, 'recall@5m': 0.10416666666666667, 'recall@10m': 0.5208333333333334}  median_pose 9.7 m  median_argmax 12.0 m  matched 48/48
+wrote experiments/05_lift_splat/fixtor_multi/pose_eval_y2024.json
+=== 2026-09-22T23:11:29+02:00 CROSS-YEAR TRAIN 3000 steps ===
+ortho years [2021, 2024, 2025]  train-sample [2025, 2024, 2021]  val-year 2025
+train sequences:
+  iHfmEq03Tc6752Y4Ke8wlC: 2143/2202 frames inside ortho (margin 120 m)
+  NWVA14Y83pMRsijaGFkmQS: 765/765 frames inside ortho (margin 120 m)
+  gXabFhpwk2dcl0i4518mDQ: 657/717 frames inside ortho (margin 120 m)
+  doQ3OhJBKe56c8UxjAFmat: 1145/2882 frames inside ortho (margin 120 m)
+val sequences:
+  IcRzj0wTLZX874qitxVsQa: 1980/2186 frames inside ortho (margin 120 m)
+train 4710  val 48  local_radius 6  neigh 4/0.5  offset 0.1  rot 10.0
+Using Dinov3 as Sat Encoder, model: vit_large_patch16_dinov3.sat493m
+warm-start checkpoints/05_lift_splat_fixtor_multi_best.pt (step 2000)
+Warning 1: JPEGFixupTagsSubsamplingSec:Auto-corrected former TIFF subsampling values [2,2] to match subsampling values inside JPEG compressed data [1,1]
+Warning 1: JPEGFixupTagsSubsamplingSec:Auto-corrected former TIFF subsampling values [2,2] to match subsampling values inside JPEG compressed data [1,1]
+Warning 1: JPEGFixupTagsSubsamplingSec:Auto-corrected former TIFF subsampling values [2,2] to match subsampling values inside JPEG compressed data [1,1]
+Warning 1: JPEGFixupTagsSubsamplingSec:Auto-corrected former TIFF subsampling values [2,2] to match subsampling values inside JPEG compressed data [1,1]
+Warning 1: JPEGFixupTagsSubsamplingSec:Auto-corrected former TIFF subsampling values [2,2] to match subsampling values inside JPEG compressed data [1,1]
+Warning 1: JPEGFixupTagsSubsamplingSec:Auto-corrected former TIFF subsampling values [2,2] to match subsampling values inside JPEG compressed data [1,1]
+Warning 1: JPEGFixupTagsSubsamplingSec:Auto-corrected former TIFF subsampling values [2,2] to match subsampling values inside JPEG compressed data [1,1]
+Warning 1: JPEGFixupTagsSubsamplingSec:Auto-corrected former TIFF subsampling values [2,2] to match subsampling values inside JPEG compressed data [1,1]
+Warning 1: JPEGFixupTagsSubsamplingSec:Auto-corrected former TIFF subsampling values [2,2] to match subsampling values inside JPEG compressed data [1,1]
+Warning 1: JPEGFixupTagsSubsamplingSec:Auto-corrected former TIFF subsampling values [2,2] to match subsampling values inside JPEG compressed data [1,1]
+Warning 1: JPEGFixupTagsSubsamplingSec:Auto-corrected former TIFF subsampling values [2,2] to match subsampling values inside JPEG compressed data [1,1]
+step 2001 TRAIN  CE 3.824  top1 1.3%  top5 13.8%  arg 13.7 m  n 160  (3s)
+Warning 1: JPEGFixupTagsSubsamplingSec:Auto-corrected former TIFF subsampling values [2,2] to match subsampling values inside JPEG compressed data [1,1]
+Warning 1: JPEGFixupTagsSubsamplingSec:Auto-corrected former TIFF subsampling values [2,2] to match subsampling values inside JPEG compressed data [1,1]
+Warning 1: JPEGFixupTagsSubsamplingSec:Auto-corrected former TIFF subsampling values [2,2] to match subsampling values inside JPEG compressed data [1,1]
+Warning 1: JPEGFixupTagsSubsamplingSec:Auto-corrected former TIFF subsampling values [2,2] to match subsampling values inside JPEG compressed data [1,1]
+Warning 1: JPEGFixupTagsSubsamplingSec:Auto-corrected former TIFF subsampling values [2,2] to match subsampling values inside JPEG compressed data [1,1]
+Warning 1: JPEGFixupTagsSubsamplingSec:Auto-corrected former TIFF subsampling values [2,2] to match subsampling values inside JPEG compressed data [1,1]
+Warning 1: JPEGFixupTagsSubsamplingSec:Auto-corrected former TIFF subsampling values [2,2] to match subsampling values inside JPEG compressed data [1,1]
+Warning 1: JPEGFixupTagsSubsamplingSec:Auto-corrected former TIFF subsampling values [2,2] to match subsampling values inside JPEG compressed data [1,1]
+Warning 1: JPEGFixupTagsSubsamplingSec:Auto-corrected former TIFF subsampling values [2,2] to match subsampling values inside JPEG compressed data [1,1]
+Warning 1: JPEGFixupTagsSubsamplingSec:Auto-corrected former TIFF subsampling values [2,2] to match subsampling values inside JPEG compressed data [1,1]
+Warning 1: JPEGFixupTagsSubsamplingSec:Auto-corrected former TIFF subsampling values [2,2] to match subsampling values inside JPEG compressed data [1,1]
+step 2020 TRAIN  CE 4.407  top1 0.6%  top5 3.8%  arg 15.5 m  n 158  (2s)
+step 2040 TRAIN  CE 4.094  top1 0.6%  top5 16.8%  arg 16.2 m  n 155  (2s)
+step 2060 TRAIN  CE 3.863  top1 0.6%  top5 5.7%  arg 15.6 m  n 159  (1s)
+step 2080 TRAIN  CE 3.721  top1 0.0%  top5 0.0%  arg 31.1 m  n 158  (2s)
+step 2100 TRAIN  CE 3.583  top1 3.2%  top5 29.7%  arg 10.0 m  n 155  (2s)
+step 2120 TRAIN  CE 3.944  top1 1.3%  top5 5.3%  arg 17.8 m  n 150  (2s)
+step 2140 TRAIN  CE 3.487  top1 4.4%  top5 31.0%  arg 12.1 m  n 158  (2s)
+step 2160 TRAIN  CE 4.211  top1 0.6%  top5 4.3%  arg 18.7 m  n 162  (1s)
+step 2180 TRAIN  CE 3.395  top1 6.9%  top5 28.5%  arg 15.4 m  n 144  (1s)
+step 2200 TRAIN  CE 4.064  top1 0.0%  top5 0.0%  arg 31.2 m  n 164  (2s)
+step 2200 VAL    CE 4.231  top1 2.6%  top5 13.4%  arg 18.2 m  n 6984
+  best -> /home/maciej/Github/cross_view_sat_roma/checkpoints/05_lift_splat_fixtor_years_best.pt
+step 2220 TRAIN  CE 3.511  top1 1.9%  top5 6.9%  arg 22.7 m  n 159  (2s)
+step 2240 TRAIN  CE 4.242  top1 1.8%  top5 9.1%  arg 20.0 m  n 164  (1s)
+step 2260 TRAIN  CE 3.802  top1 0.0%  top5 2.5%  arg 18.5 m  n 161  (2s)
+step 2280 TRAIN  CE 3.975  top1 6.3%  top5 27.7%  arg 12.4 m  n 159  (2s)
+step 2300 TRAIN  CE 3.879  top1 0.6%  top5 4.4%  arg 11.2 m  n 160  (2s)
+step 2320 TRAIN  CE 3.828  top1 0.0%  top5 0.0%  arg 23.5 m  n 157  (2s)
+step 2340 TRAIN  CE 4.205  top1 0.6%  top5 0.6%  arg 15.1 m  n 159  (2s)
+step 2360 TRAIN  CE 3.411  top1 6.7%  top5 27.3%  arg 19.3 m  n 150  (1s)
+step 2380 TRAIN  CE 5.015  top1 2.5%  top5 5.0%  arg 18.1 m  n 159  (1s)
+step 2400 TRAIN  CE 3.210  top1 3.8%  top5 23.7%  arg 16.4 m  n 160  (2s)
+step 2400 VAL    CE 4.252  top1 2.4%  top5 11.4%  arg 18.3 m  n 6984
+step 2420 TRAIN  CE 3.670  top1 4.5%  top5 15.9%  arg 12.8 m  n 157  (1s)
+step 2440 TRAIN  CE 3.510  top1 6.4%  top5 20.6%  arg 19.0 m  n 141  (1s)
+step 2460 TRAIN  CE 3.742  top1 2.5%  top5 17.0%  arg 21.3 m  n 159  (2s)
+step 2480 TRAIN  CE 3.777  top1 1.3%  top5 10.1%  arg 20.4 m  n 158  (1s)
+step 2500 TRAIN  CE 3.922  top1 5.4%  top5 22.1%  arg 8.5 m  n 149  (1s)
+step 2520 TRAIN  CE 3.882  top1 0.7%  top5 3.4%  arg 33.5 m  n 145  (1s)
+step 2540 TRAIN  CE 3.803  top1 4.5%  top5 15.4%  arg 22.2 m  n 156  (1s)
+step 2560 TRAIN  CE 3.123  top1 15.4%  top5 44.4%  arg 6.7 m  n 162  (2s)
+step 2580 TRAIN  CE 3.525  top1 16.9%  top5 43.1%  arg 8.9 m  n 160  (2s)
+step 2600 TRAIN  CE 3.539  top1 0.0%  top5 3.1%  arg 22.7 m  n 160  (1s)
+step 2600 VAL    CE 4.193  top1 3.5%  top5 15.1%  arg 17.0 m  n 6984
+  best -> /home/maciej/Github/cross_view_sat_roma/checkpoints/05_lift_splat_fixtor_years_best.pt
+step 2620 TRAIN  CE 6.729  top1 0.0%  top5 0.0%  arg 21.6 m  n 163  (2s)
+step 2640 TRAIN  CE 3.654  top1 0.0%  top5 0.7%  arg 17.3 m  n 152  (2s)
+step 2660 TRAIN  CE 4.847  top1 0.0%  top5 0.0%  arg 13.4 m  n 153  (1s)
+step 2680 TRAIN  CE 4.121  top1 1.3%  top5 4.0%  arg 26.2 m  n 149  (2s)
+step 2700 TRAIN  CE 3.554  top1 5.8%  top5 21.3%  arg 19.0 m  n 155  (2s)
+step 2720 TRAIN  CE 3.052  top1 9.7%  top5 52.9%  arg 6.3 m  n 155  (2s)
+step 2740 TRAIN  CE 4.072  top1 0.0%  top5 2.5%  arg 18.4 m  n 163  (2s)
+step 2760 TRAIN  CE 5.079  top1 0.6%  top5 5.1%  arg 15.6 m  n 156  (1s)
+step 2780 TRAIN  CE 3.228  top1 1.3%  top5 7.4%  arg 27.1 m  n 149  (2s)
+step 2800 TRAIN  CE 3.274  top1 15.4%  top5 53.1%  arg 7.7 m  n 162  (2s)
+step 2800 VAL    CE 4.020  top1 4.2%  top5 18.2%  arg 16.9 m  n 6984
+  best -> /home/maciej/Github/cross_view_sat_roma/checkpoints/05_lift_splat_fixtor_years_best.pt
+step 2820 TRAIN  CE 3.571  top1 3.8%  top5 21.4%  arg 11.3 m  n 159  (2s)
+step 2840 TRAIN  CE 7.768  top1 0.0%  top5 0.0%  arg 37.4 m  n 160  (2s)
+step 2860 TRAIN  CE 3.081  top1 22.4%  top5 81.6%  arg 4.6 m  n 152  (2s)
+step 2880 TRAIN  CE 5.370  top1 0.0%  top5 0.0%  arg 13.0 m  n 158  (1s)
+step 2900 TRAIN  CE 2.842  top1 26.7%  top5 81.4%  arg 6.4 m  n 161  (2s)
+step 2920 TRAIN  CE 4.099  top1 0.0%  top5 1.9%  arg 25.5 m  n 156  (2s)
+step 2940 TRAIN  CE 3.333  top1 5.1%  top5 32.9%  arg 11.6 m  n 158  (2s)
+step 2960 TRAIN  CE 3.633  top1 0.0%  top5 6.6%  arg 29.8 m  n 152  (2s)
+step 2980 TRAIN  CE 3.356  top1 9.9%  top5 34.2%  arg 5.8 m  n 152  (1s)
+step 3000 TRAIN  CE 3.246  top1 3.2%  top5 34.2%  arg 12.1 m  n 158  (2s)
+step 3000 VAL    CE 4.203  top1 3.6%  top5 14.1%  arg 18.6 m  n 6984
+step 3020 TRAIN  CE 4.011  top1 0.0%  top5 5.8%  arg 21.2 m  n 156  (1s)
+step 3040 TRAIN  CE 3.827  top1 1.2%  top5 8.1%  arg 26.7 m  n 161  (1s)
+step 3060 TRAIN  CE 3.633  top1 0.0%  top5 3.9%  arg 16.9 m  n 152  (1s)
+step 3080 TRAIN  CE 4.825  top1 0.0%  top5 0.0%  arg 19.4 m  n 160  (1s)
+step 3100 TRAIN  CE 3.136  top1 5.0%  top5 35.0%  arg 16.6 m  n 160  (2s)
+step 3120 TRAIN  CE 3.095  top1 22.1%  top5 54.5%  arg 4.9 m  n 154  (2s)
+step 3140 TRAIN  CE 3.647  top1 1.3%  top5 12.9%  arg 20.0 m  n 155  (1s)
+step 3160 TRAIN  CE 3.020  top1 18.8%  top5 55.6%  arg 5.9 m  n 160  (2s)
+step 3180 TRAIN  CE 3.650  top1 0.6%  top5 18.0%  arg 15.5 m  n 161  (2s)
+step 3200 TRAIN  CE 2.702  top1 27.8%  top5 75.3%  arg 4.6 m  n 158  (1s)
+step 3200 VAL    CE 4.081  top1 3.7%  top5 15.5%  arg 18.3 m  n 6984
+step 3220 TRAIN  CE 3.085  top1 3.2%  top5 27.9%  arg 13.3 m  n 154  (2s)
+step 3240 TRAIN  CE 4.086  top1 0.6%  top5 5.0%  arg 30.7 m  n 159  (2s)
+step 3260 TRAIN  CE 3.572  top1 1.2%  top5 11.7%  arg 23.8 m  n 162  (1s)
+step 3280 TRAIN  CE 3.542  top1 1.2%  top5 19.1%  arg 9.6 m  n 162  (1s)
+step 3300 TRAIN  CE 5.477  top1 0.0%  top5 0.0%  arg 19.2 m  n 147  (2s)
+step 3320 TRAIN  CE 3.395  top1 1.2%  top5 19.3%  arg 15.9 m  n 161  (2s)
+step 3340 TRAIN  CE 4.567  top1 0.0%  top5 1.3%  arg 17.8 m  n 153  (1s)
+step 3360 TRAIN  CE 3.386  top1 4.4%  top5 23.9%  arg 11.6 m  n 159  (2s)
+step 3380 TRAIN  CE 3.344  top1 3.1%  top5 19.3%  arg 10.4 m  n 161  (2s)
+step 3400 TRAIN  CE 5.690  top1 0.0%  top5 0.0%  arg 21.4 m  n 153  (2s)
+step 3400 VAL    CE 4.113  top1 3.4%  top5 14.4%  arg 17.6 m  n 6984
+step 3420 TRAIN  CE 4.202  top1 0.7%  top5 0.7%  arg 13.9 m  n 148  (2s)
+step 3440 TRAIN  CE 3.087  top1 4.4%  top5 41.8%  arg 13.6 m  n 158  (2s)
+step 3460 TRAIN  CE 3.931  top1 1.9%  top5 9.6%  arg 9.2 m  n 157  (1s)
+step 3480 TRAIN  CE 5.426  top1 0.0%  top5 0.0%  arg 11.1 m  n 153  (1s)
+step 3500 TRAIN  CE 3.478  top1 1.9%  top5 13.8%  arg 13.0 m  n 159  (2s)
+step 3520 TRAIN  CE 3.262  top1 7.5%  top5 35.8%  arg 14.4 m  n 159  (2s)
+step 3540 TRAIN  CE 4.252  top1 0.0%  top5 0.0%  arg 10.0 m  n 152  (2s)
+step 3560 TRAIN  CE 3.590  top1 3.1%  top5 24.7%  arg 6.5 m  n 162  (2s)
+step 3580 TRAIN  CE 4.730  top1 0.0%  top5 0.7%  arg 13.3 m  n 150  (2s)
+step 3600 TRAIN  CE 3.280  top1 16.6%  top5 64.3%  arg 8.2 m  n 157  (1s)
+step 3600 VAL    CE 4.050  top1 3.9%  top5 16.2%  arg 16.7 m  n 6984
+step 3620 TRAIN  CE 3.313  top1 1.3%  top5 23.5%  arg 12.1 m  n 153  (1s)
+step 3640 TRAIN  CE 4.437  top1 0.0%  top5 0.6%  arg 15.1 m  n 160  (1s)
+step 3660 TRAIN  CE 2.991  top1 19.7%  top5 56.1%  arg 8.2 m  n 157  (1s)
+step 3680 TRAIN  CE 3.382  top1 7.3%  top5 31.3%  arg 12.4 m  n 150  (2s)
+step 3700 TRAIN  CE 3.201  top1 9.3%  top5 42.2%  arg 9.5 m  n 161  (2s)
+step 3720 TRAIN  CE 4.009  top1 0.7%  top5 2.0%  arg 20.0 m  n 149  (2s)
+step 3740 TRAIN  CE 3.146  top1 16.0%  top5 72.7%  arg 5.2 m  n 150  (1s)
+step 3760 TRAIN  CE 3.544  top1 5.2%  top5 31.2%  arg 10.5 m  n 154  (1s)
+step 3780 TRAIN  CE 3.196  top1 1.3%  top5 11.9%  arg 23.9 m  n 160  (1s)
+step 3800 TRAIN  CE 2.944  top1 16.9%  top5 52.5%  arg 12.3 m  n 160  (1s)
+step 3800 VAL    CE 4.144  top1 3.2%  top5 13.4%  arg 18.5 m  n 6984
+step 3820 TRAIN  CE 4.690  top1 0.0%  top5 0.0%  arg 30.4 m  n 159  (2s)
+step 3840 TRAIN  CE 2.659  top1 22.2%  top5 69.8%  arg 4.4 m  n 162  (2s)
+step 3860 TRAIN  CE 3.378  top1 3.1%  top5 32.1%  arg 10.6 m  n 159  (1s)
+step 3880 TRAIN  CE 3.361  top1 3.1%  top5 26.4%  arg 13.0 m  n 159  (2s)
+step 3900 TRAIN  CE 3.827  top1 12.4%  top5 34.8%  arg 15.3 m  n 161  (1s)
+step 3920 TRAIN  CE 3.544  top1 5.5%  top5 30.7%  arg 14.4 m  n 163  (1s)
+step 3940 TRAIN  CE 2.954  top1 24.2%  top5 68.2%  arg 3.9 m  n 157  (2s)
+step 3960 TRAIN  CE 4.382  top1 0.0%  top5 0.0%  arg 32.0 m  n 150  (2s)
+step 3980 TRAIN  CE 2.961  top1 11.9%  top5 43.1%  arg 11.4 m  n 160  (1s)
+step 4000 TRAIN  CE 2.927  top1 24.1%  top5 63.9%  arg 4.6 m  n 158  (2s)
+step 4000 VAL    CE 4.004  top1 3.3%  top5 14.9%  arg 17.5 m  n 6984
+  best -> /home/maciej/Github/cross_view_sat_roma/checkpoints/05_lift_splat_fixtor_years_best.pt
+step 4020 TRAIN  CE 3.463  top1 2.6%  top5 18.2%  arg 16.7 m  n 154  (1s)
+step 4040 TRAIN  CE 4.071  top1 1.3%  top5 9.4%  arg 10.2 m  n 159  (1s)
+step 4060 TRAIN  CE 5.079  top1 0.6%  top5 0.6%  arg 24.1 m  n 158  (2s)
+step 4080 TRAIN  CE 3.986  top1 0.0%  top5 0.0%  arg 34.8 m  n 159  (2s)
+step 4100 TRAIN  CE 3.088  top1 5.6%  top5 60.2%  arg 6.3 m  n 161  (2s)
+step 4120 TRAIN  CE 4.180  top1 0.0%  top5 1.2%  arg 14.5 m  n 163  (2s)
+step 4140 TRAIN  CE 3.763  top1 0.0%  top5 0.0%  arg 29.2 m  n 161  (1s)
+step 4160 TRAIN  CE 4.475  top1 4.4%  top5 18.1%  arg 7.3 m  n 160  (2s)
+step 4180 TRAIN  CE 4.007  top1 0.0%  top5 2.9%  arg 13.9 m  n 140  (2s)
+step 4200 TRAIN  CE 2.828  top1 22.1%  top5 77.9%  arg 4.3 m  n 163  (1s)
+step 4200 VAL    CE 4.026  top1 4.0%  top5 15.5%  arg 17.2 m  n 6984
+step 4220 TRAIN  CE 2.806  top1 18.2%  top5 51.6%  arg 13.2 m  n 159  (2s)
+step 4240 TRAIN  CE 3.373  top1 0.6%  top5 21.9%  arg 8.5 m  n 160  (1s)
+step 4260 TRAIN  CE 3.099  top1 4.4%  top5 29.6%  arg 15.8 m  n 159  (1s)
+step 4280 TRAIN  CE 3.521  top1 0.6%  top5 18.5%  arg 10.0 m  n 162  (1s)
+step 4300 TRAIN  CE 3.620  top1 0.0%  top5 7.5%  arg 12.6 m  n 160  (1s)
+step 4320 TRAIN  CE 4.951  top1 0.0%  top5 0.6%  arg 31.8 m  n 158  (2s)
+step 4340 TRAIN  CE 3.051  top1 3.2%  top5 38.6%  arg 16.3 m  n 158  (2s)
+step 4360 TRAIN  CE 3.573  top1 0.6%  top5 1.9%  arg 31.2 m  n 161  (2s)
+step 4380 TRAIN  CE 3.076  top1 0.6%  top5 18.8%  arg 24.6 m  n 154  (2s)
+step 4400 TRAIN  CE 5.820  top1 0.0%  top5 0.0%  arg 29.1 m  n 146  (2s)
+step 4400 VAL    CE 3.998  top1 4.3%  top5 16.8%  arg 17.2 m  n 6984
+  best -> /home/maciej/Github/cross_view_sat_roma/checkpoints/05_lift_splat_fixtor_years_best.pt
+step 4420 TRAIN  CE 5.192  top1 0.0%  top5 1.9%  arg 11.3 m  n 162  (2s)
+step 4440 TRAIN  CE 3.797  top1 0.0%  top5 0.0%  arg 27.2 m  n 135  (2s)
+step 4460 TRAIN  CE 4.115  top1 0.0%  top5 1.3%  arg 28.0 m  n 159  (2s)
+step 4480 TRAIN  CE 3.781  top1 0.0%  top5 0.6%  arg 18.5 m  n 162  (2s)
+step 4500 TRAIN  CE 2.987  top1 10.8%  top5 59.5%  arg 5.2 m  n 158  (2s)
+step 4520 TRAIN  CE 4.798  top1 0.0%  top5 0.7%  arg 15.9 m  n 148  (2s)
+step 4540 TRAIN  CE 4.170  top1 0.0%  top5 7.6%  arg 15.1 m  n 158  (2s)
+step 4560 TRAIN  CE 3.466  top1 10.3%  top5 26.3%  arg 10.2 m  n 156  (1s)
+step 4580 TRAIN  CE 5.322  top1 0.0%  top5 0.0%  arg 30.2 m  n 162  (1s)
+step 4600 TRAIN  CE 3.319  top1 0.0%  top5 31.5%  arg 9.7 m  n 146  (1s)
+step 4600 VAL    CE 4.171  top1 4.2%  top5 15.0%  arg 17.8 m  n 6984
+step 4620 TRAIN  CE 4.838  top1 0.0%  top5 4.8%  arg 24.9 m  n 146  (1s)
+step 4640 TRAIN  CE 5.008  top1 0.0%  top5 1.9%  arg 17.3 m  n 159  (2s)
+step 4660 TRAIN  CE 3.567  top1 1.3%  top5 18.9%  arg 9.6 m  n 159  (1s)
+step 4680 TRAIN  CE 3.867  top1 0.0%  top5 4.7%  arg 14.0 m  n 149  (2s)
+step 4700 TRAIN  CE 3.667  top1 7.3%  top5 39.7%  arg 7.9 m  n 151  (2s)
+step 4720 TRAIN  CE 3.724  top1 3.2%  top5 19.4%  arg 12.5 m  n 155  (2s)
+step 4740 TRAIN  CE 2.768  top1 22.8%  top5 74.1%  arg 5.8 m  n 158  (1s)
+step 4760 TRAIN  CE 6.020  top1 0.0%  top5 0.0%  arg 18.6 m  n 148  (1s)
+step 4780 TRAIN  CE 3.041  top1 10.3%  top5 51.0%  arg 6.3 m  n 145  (2s)
+step 4800 TRAIN  CE 5.550  top1 0.0%  top5 0.0%  arg 24.5 m  n 152  (2s)
+step 4800 VAL    CE 4.117  top1 3.8%  top5 16.4%  arg 15.9 m  n 6979
+step 4820 TRAIN  CE 3.502  top1 0.6%  top5 15.4%  arg 13.0 m  n 162  (2s)
+step 4840 TRAIN  CE 4.355  top1 0.0%  top5 2.5%  arg 23.1 m  n 163  (1s)
+step 4860 TRAIN  CE 3.291  top1 1.9%  top5 23.1%  arg 10.4 m  n 160  (2s)
+step 4880 TRAIN  CE 2.848  top1 17.9%  top5 70.4%  arg 6.4 m  n 162  (1s)
+step 4900 TRAIN  CE 2.850  top1 10.0%  top5 50.7%  arg 14.1 m  n 150  (2s)
+step 4920 TRAIN  CE 3.372  top1 2.5%  top5 25.6%  arg 14.2 m  n 160  (2s)
+step 4940 TRAIN  CE 3.287  top1 9.9%  top5 43.8%  arg 9.5 m  n 162  (2s)
+step 4960 TRAIN  CE 3.088  top1 11.7%  top5 49.7%  arg 15.2 m  n 163  (1s)
+step 4980 TRAIN  CE 3.071  top1 10.0%  top5 44.4%  arg 5.9 m  n 160  (2s)
+step 5000 TRAIN  CE 3.336  top1 1.3%  top5 17.3%  arg 12.7 m  n 156  (2s)
+step 5000 VAL    CE 4.008  top1 4.6%  top5 17.5%  arg 16.8 m  n 6907
+wrote /home/maciej/Github/cross_view_sat_roma/checkpoints/05_lift_splat_fixtor_years.pt
+=== 2026-09-23T00:32:26+02:00 POSE EVAL after cross-year (2025) ===
+  IcRzj0wTLZX874qitxVsQa: 1980/2186 frames inside ortho (margin 120 m)
+Using Dinov3 as Sat Encoder, model: vit_large_patch16_dinov3.sat493m
+Using Dinov3 as Sat Encoder, model: vit_large_patch16_dinov3.sat493m
+Using Dinov3 as Sat Encoder, model: vit_large_patch16_dinov3.sat493m
+  2095057974553082  arg 14.4  peak 15.6  means 14.5  modes 265/265
+  1378496074369409  arg 24.0  peak 22.7  means 22.4  modes 187/187
+  1142872331601507  arg 20.4  peak 20.6  means 20.8  modes 236/236
+  978411255289595  arg 5.7  peak 4.2  means 4.0  modes 140/140
+  1019550914472816  arg 29.1  peak 31.1  means 30.2  modes 212/212
+  953363284488701  arg 20.0  peak 17.9  means 17.6  modes 223/223
+  2152059425343476  arg 8.0  peak 6.2  means 6.6  modes 191/191
+  2156246585246250  arg 32.2  peak 32.9  means 32.1  modes 281/281
+  3987512878222694  arg 5.7  peak 3.6  means 3.4  modes 234/234
+  2617877615312525  arg 28.0  peak 26.5  means 25.7  modes 224/224
+  1103726585498561  arg 26.8  peak 30.0  means 17.6  modes 288/288
+  28353982287585850  arg 36.0  peak 35.3  means 34.8  modes 249/249
+  1100677129568395  arg 8.9  peak 7.0  means 11.3  modes 198/198
+  1634811391600888  arg 32.0  peak 32.8  means 19.9  modes 259/259
+  1788609642332461  arg 8.9  peak 7.8  means 8.6  modes 164/164
+  1492850022680483  arg 8.9  peak 7.9  means 6.7  modes 217/217
+  2307381062999983  arg 24.3  peak 25.5  means 24.2  modes 178/178
+  1404836450974786  arg 8.0  peak 7.9  means 9.1  modes 244/244
+  875121085565340  arg 8.9  peak 10.2  means 2.0  modes 212/212
+  1110321861631012  arg 14.4  peak 9.1  means 9.9  modes 260/260
+  1555505762546802  arg 20.0  peak 18.7  means 18.0  modes 272/272
+  1327926909237721  arg 8.0  peak 8.4  means 7.7  modes 245/245
+  2280589716022436  arg 4.0  peak 3.7  means 1.5  modes 283/283
+  1757450898675122  arg 20.4  peak 22.7  means 20.8  modes 225/225
+  1113524811360636  arg 17.9  peak 10.6  means 23.5  modes 346/346
+  1117850284013533  arg 5.7  peak 3.3  means 3.7  modes 185/185
+  1046793441453437  arg 16.5  peak 18.8  means 17.9  modes 280/280
+  1717358659338787  arg 25.6  peak 26.6  means 23.2  modes 247/247
+  1600448215153510  arg 16.0  peak 15.0  means 14.0  modes 191/191
+  1388036546256933  arg 4.0  peak 1.5  means 1.4  modes 202/202
+  941258575171189  arg 5.7  peak 5.7  means 6.1  modes 158/158
+  1642777094174373  arg 8.9  peak 8.3  means 9.1  modes 262/262
+  2225144508332803  arg 8.0  peak 7.4  means 5.9  modes 224/224
+  1445870540781253  arg 8.0  peak 6.1  means 5.0  modes 265/265
+  2180206842898875  arg 12.0  peak 10.9  means 10.5  modes 232/232
+  4383937145252600  arg 16.0  peak 14.9  means 14.1  modes 164/164
+  1395053232186208  arg 4.0  peak 2.8  means 2.9  modes 137/137
+  1640116454223707  arg 32.0  peak 21.7  means 13.9  modes 252/252
+  28232267553098001  arg 36.9  peak 36.5  means 39.3  modes 274/274
+  29263406316595392  arg 24.3  peak 28.0  means 23.1  modes 247/247
+  2664235027388592  arg 12.6  peak 5.1  means 5.3  modes 214/214
+  965788772472679  arg 8.9  peak 6.2  means 25.7  modes 254/254
+  1636164264528073  arg 8.9  peak 7.7  means 6.6  modes 235/235
+  1406253228277001  arg 5.7  peak 1.3  means 2.5  modes 261/261
+  1121290083804491  arg 12.6  peak 6.0  means 32.5  modes 227/227
+  28240444558956519  arg 4.0  peak 1.7  means 3.4  modes 230/230
+  2677328439391773  arg 32.2  peak 33.2  means 32.4  modes 239/239
+  1613960070127571  arg 16.5  peak 18.5  means 17.2  modes 261/261
+EVAL peak  n 48  {'recall@1m': 0.0, 'recall@5m': 0.16666666666666666, 'recall@10m': 0.4791666666666667}  median_pose 10.4 m  median_argmax 13.5 m  matched 48/48
+EVAL means  n 48  {'recall@1m': 0.0, 'recall@5m': 0.1875, 'recall@10m': 0.4375}  median_pose 14.0 m  median_argmax 13.5 m  matched 48/48
+wrote experiments/05_lift_splat/fixtor_years/pose_eval_y2025.json
+=== 2026-09-23T00:33:30+02:00 POSE EVAL after cross-year (2024) ===
+  IcRzj0wTLZX874qitxVsQa: 1980/2186 frames inside ortho (margin 120 m)
+Using Dinov3 as Sat Encoder, model: vit_large_patch16_dinov3.sat493m
+Using Dinov3 as Sat Encoder, model: vit_large_patch16_dinov3.sat493m
+Using Dinov3 as Sat Encoder, model: vit_large_patch16_dinov3.sat493m
+  2095057974553082  arg 20.0  peak 13.0  means 17.1  modes 289/289
+  1378496074369409  arg 20.4  peak 21.1  means 20.4  modes 234/234
+  1142872331601507  arg 20.4  peak 20.1  means 20.5  modes 254/254
+  978411255289595  arg 4.0  peak 3.6  means 2.4  modes 192/192
+  1019550914472816  arg 28.3  peak 27.5  means 27.7  modes 232/232
+  953363284488701  arg 20.0  peak 20.3  means 19.7  modes 248/248
+  2152059425343476  arg 21.5  peak 14.3  means 18.7  modes 277/277
+  2156246585246250  arg 8.9  peak 5.6  means 6.5  modes 276/276
+  3987512878222694  arg 5.7  peak 3.8  means 4.0  modes 258/258
+  2617877615312525  arg 28.0  peak 28.7  means 27.0  modes 272/272
+  1103726585498561  arg 16.5  peak 6.3  means 8.4  modes 373/373
+  28353982287585850  arg 32.0  peak 33.8  means 33.0  modes 290/290
+  1100677129568395  arg 12.0  peak 15.1  means 14.4  modes 194/194
+  1634811391600888  arg 8.9  peak 7.6  means 8.7  modes 216/216
+  1788609642332461  arg 8.9  peak 8.9  means 10.4  modes 168/168
+  1492850022680483  arg 8.9  peak 7.8  means 6.9  modes 263/263
+  2307381062999983  arg 24.0  peak 24.2  means 23.1  modes 233/233
+  1404836450974786  arg 12.0  peak 9.0  means 34.8  modes 290/290
+  875121085565340  arg 12.6  peak 6.9  means 5.0  modes 245/245
+  1110321861631012  arg 11.3  peak 8.5  means 8.8  modes 249/249
+  1555505762546802  arg 16.0  peak 16.9  means 16.5  modes 267/267
+  1327926909237721  arg 12.6  peak 11.9  means 6.7  modes 266/266
+  2280589716022436  arg 4.0  peak 2.3  means 2.7  modes 277/277
+  1757450898675122  arg 20.0  peak 20.7  means 17.0  modes 216/216
+  1113524811360636  arg 5.7  peak 4.6  means 5.3  modes 226/226
+  1117850284013533  arg 8.0  peak 4.2  means 4.2  modes 157/157
+  1046793441453437  arg 16.5  peak 19.6  means 17.6  modes 278/278
+  1717358659338787  arg 16.5  peak 16.6  means 16.2  modes 245/245
+  1600448215153510  arg 12.6  peak 13.7  means 13.1  modes 195/195
+  1388036546256933  arg 4.0  peak 2.2  means 2.3  modes 185/185
+  941258575171189  arg 5.7  peak 5.3  means 6.9  modes 225/225
+  1642777094174373  arg 33.0  peak 36.5  means 34.5  modes 262/262
+  2225144508332803  arg 8.9  peak 8.9  means 7.9  modes 196/196
+  1445870540781253  arg 12.6  peak 10.4  means 3.1  modes 255/255
+  2180206842898875  arg 12.0  peak 10.8  means 10.4  modes 185/185
+  4383937145252600  arg 12.6  peak 15.2  means 2.2  modes 220/220
+  1395053232186208  arg 4.0  peak 5.1  means 5.0  modes 137/137
+  1640116454223707  arg 32.0  peak 24.0  means 12.4  modes 247/247
+  28232267553098001  arg 36.9  peak 37.3  means 39.4  modes 271/271
+  29263406316595392  arg 5.7  peak 4.3  means 5.0  modes 241/241
+  2664235027388592  arg 12.6  peak 13.1  means 11.3  modes 203/203
+  965788772472679  arg 8.9  peak 5.0  means 6.0  modes 257/257
+  1636164264528073  arg 12.0  peak 7.5  means 5.7  modes 202/202
+  1406253228277001  arg 5.7  peak 4.0  means 3.0  modes 226/226
+  1121290083804491  arg 5.7  peak 2.3  means 7.9  modes 249/249
+  28240444558956519  arg 24.0  peak 26.2  means 22.1  modes 257/257
+  2677328439391773  arg 29.1  peak 32.4  means 30.9  modes 246/246
+  1613960070127571  arg 20.0  peak 19.1  means 18.1  modes 226/226
+EVAL peak  n 48  {'recall@1m': 0.0, 'recall@5m': 0.1875, 'recall@10m': 0.4583333333333333}  median_pose 11.4 m  median_argmax 12.6 m  matched 48/48
+EVAL means  n 48  {'recall@1m': 0.0, 'recall@5m': 0.16666666666666666, 'recall@10m': 0.4791666666666667}  median_pose 10.4 m  median_argmax 12.6 m  matched 48/48
+wrote experiments/05_lift_splat/fixtor_years/pose_eval_y2024.json
+=== 2026-09-23T00:35:22+02:00 DONE ===

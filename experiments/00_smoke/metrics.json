@@ -5,9 +5,9 @@
   "multimodal": 0,
   "inlier_ratio": 1.0,
   "error_px": {
-   "corner_m": 3.7279974342102298,
-   "position_m": 1.9398045157677772,
-   "yaw_deg": 1.024062505779788
+   "corner_m": 4.559147046305659,
+   "position_m": 1.9158080309428658,
+   "yaw_deg": 0.09448152032243896
   }
  },
  "use_means=True": {
@@ -16,9 +16,9 @@
   "multimodal": 0,
   "inlier_ratio": 1.0,
   "error_px": {
-   "corner_m": 4.0653095576036575,
-   "position_m": 2.38363712014063,
-   "yaw_deg": 0.9718185700176396
+   "corner_m": 3.956742457819914,
+   "position_m": 2.0250389737208248,
+   "yaw_deg": 0.027291355103102256
   }
  }
 }

@@ -1,5 +1,7 @@
 # Task 01 — Kick-off experiment (tests H1, bounds H2)
 
+**Status (23 Sep 2026):** H1 measured and falsified on Durham EA (IPM 66 m / oracle B 43 m median pose, frozen Sat-RoMa). Camera-only Lift-Splat on Mapillary Fixtor × Poznań Geoportal is the active feasibility track: RANSAC peak **10.4 m @2025** after cross-year train (GO continue). Full plan + tonight deep-dive: [`kickoff_bev_ortho_localization.html`](../../kickoff_bev_ortho_localization.html) §§7–8. H1 report: `experiments/01_kickoff/REPORT.md`.
+
 Goal: does the Sat-RoMa matcher, unchanged, localize a ground BEV against an orthophoto?
 
 ## Inputs
@@ -19,5 +21,7 @@ Goal: does the Sat-RoMa matcher, unchanged, localize a ground BEV against an ort
 5. Matching — run Sat-RoMa (multi-hypothesis refinement, not the ConvNet refiner) on (BEV, ortho) for both variants, no fine-tuning, N≥200 frames.
 6. Report — experiments/01_kickoff/REPORT.md: recall@1/5/10 m, yaw error, corner error, retained GMM modes, inlier ratio; 10 overlays per variant; interpretation against H1 (oracle) and H2 (IPM vs oracle gap). Be explicit about failure modes seen.
 
-## Not in scope
-Geometry head, contrastive loss, Lift-Splat/SI2BEV baseline, particle filter, VIGOR.
+## Not in scope (original week-1)
+Geometry head, contrastive loss, particle filter, VIGOR.
+Lift-Splat was listed out of scope for H1; track `05_lift_splat` is a deliberate later override for camera-only feasibility (see decisions.md).
+Also originally out of scope: lifting DINOv3 features into the BEV instead of RGB — that bypasses the query encoder, so H1 would no longer test the unchanged matcher (docs/decisions.md, 2026-09-19). LSS train *does* lift sat493m ERP features by design (learned path, not frozen H1).

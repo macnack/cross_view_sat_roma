@@ -1,0 +1,265 @@
+=== 2026-09-23T01:32:14+02:00 MULTI-FRAME SEQ TRAIN ===
+ortho years [2021, 2024, 2025]  train-sample [2025, 2024, 2021]  val-year 2025
+train sequences:
+  iHfmEq03Tc6752Y4Ke8wlC: 2143/2202 frames inside ortho (margin 120 m)
+  NWVA14Y83pMRsijaGFkmQS: 765/765 frames inside ortho (margin 120 m)
+  gXabFhpwk2dcl0i4518mDQ: 657/717 frames inside ortho (margin 120 m)
+  doQ3OhJBKe56c8UxjAFmat: 1145/2882 frames inside ortho (margin 120 m)
+val sequences:
+  IcRzj0wTLZX874qitxVsQa: 1980/2186 frames inside ortho (margin 120 m)
+train 4710  val 48  local_radius 6  neigh 4/0.5  offset 0.1  rot 10.0  neg_frac 0.15  cert_w 0.01  pose_nll_w 0.5
+Using Dinov3 as Sat Encoder, model: vit_large_patch16_dinov3.sat493m
+warm-start checkpoints/05_lift_splat_fixtor_aug_best.pt (step 4600)
+/home/maciej/Github/cross_view_sat_roma/src/bevloc/model/coarse.py:118: UserWarning: Converting a tensor with requires_grad=True to a scalar may lead to unexpected behavior.
+Consider using tensor.detach() first. (Triggered internally at /__w/pytorch/pytorch/torch/csrc/autograd/generated/python_variable_methods.cpp:822.)
+  if float(wsum.max()) <= 1e-6 or (matchable is not None and not bool(matchable.any())):
+step 4601 TRAIN  CE 4.395  cert 0.762  poseNLL 4.699  top1 0.0%  arg 44.2 m  pose 42.0 m  n 194  (7s)
+Warning 1: JPEGFixupTagsSubsamplingSec:Auto-corrected former TIFF subsampling values [2,2] to match subsampling values inside JPEG compressed data [1,1]
+Warning 1: JPEGFixupTagsSubsamplingSec:Auto-corrected former TIFF subsampling values [2,2] to match subsampling values inside JPEG compressed data [1,1]
+Warning 1: JPEGFixupTagsSubsamplingSec:Auto-corrected former TIFF subsampling values [2,2] to match subsampling values inside JPEG compressed data [1,1]
+Warning 1: JPEGFixupTagsSubsamplingSec:Auto-corrected former TIFF subsampling values [2,2] to match subsampling values inside JPEG compressed data [1,1]
+Warning 1: JPEGFixupTagsSubsamplingSec:Auto-corrected former TIFF subsampling values [2,2] to match subsampling values inside JPEG compressed data [1,1]
+Warning 1: JPEGFixupTagsSubsamplingSec:Auto-corrected former TIFF subsampling values [2,2] to match subsampling values inside JPEG compressed data [1,1]
+Warning 1: JPEGFixupTagsSubsamplingSec:Auto-corrected former TIFF subsampling values [2,2] to match subsampling values inside JPEG compressed data [1,1]
+Warning 1: JPEGFixupTagsSubsamplingSec:Auto-corrected former TIFF subsampling values [2,2] to match subsampling values inside JPEG compressed data [1,1]
+Warning 1: JPEGFixupTagsSubsamplingSec:Auto-corrected former TIFF subsampling values [2,2] to match subsampling values inside JPEG compressed data [1,1]
+Warning 1: JPEGFixupTagsSubsamplingSec:Auto-corrected former TIFF subsampling values [2,2] to match subsampling values inside JPEG compressed data [1,1]
+Warning 1: JPEGFixupTagsSubsamplingSec:Auto-corrected former TIFF subsampling values [2,2] to match subsampling values inside JPEG compressed data [1,1]
+Warning 1: JPEGFixupTagsSubsamplingSec:Auto-corrected former TIFF subsampling values [2,2] to match subsampling values inside JPEG compressed data [1,1]
+Warning 1: JPEGFixupTagsSubsamplingSec:Auto-corrected former TIFF subsampling values [2,2] to match subsampling values inside JPEG compressed data [1,1]
+Warning 1: JPEGFixupTagsSubsamplingSec:Auto-corrected former TIFF subsampling values [2,2] to match subsampling values inside JPEG compressed data [1,1]
+Warning 1: JPEGFixupTagsSubsamplingSec:Auto-corrected former TIFF subsampling values [2,2] to match subsampling values inside JPEG compressed data [1,1]
+Warning 1: JPEGFixupTagsSubsamplingSec:Auto-corrected former TIFF subsampling values [2,2] to match subsampling values inside JPEG compressed data [1,1]
+Warning 1: JPEGFixupTagsSubsamplingSec:Auto-corrected former TIFF subsampling values [2,2] to match subsampling values inside JPEG compressed data [1,1]
+Warning 1: JPEGFixupTagsSubsamplingSec:Auto-corrected former TIFF subsampling values [2,2] to match subsampling values inside JPEG compressed data [1,1]
+Warning 1: JPEGFixupTagsSubsamplingSec:Auto-corrected former TIFF subsampling values [2,2] to match subsampling values inside JPEG compressed data [1,1]
+Warning 1: JPEGFixupTagsSubsamplingSec:Auto-corrected former TIFF subsampling values [2,2] to match subsampling values inside JPEG compressed data [1,1]
+Warning 1: JPEGFixupTagsSubsamplingSec:Auto-corrected former TIFF subsampling values [2,2] to match subsampling values inside JPEG compressed data [1,1]
+Warning 1: JPEGFixupTagsSubsamplingSec:Auto-corrected former TIFF subsampling values [2,2] to match subsampling values inside JPEG compressed data [1,1]
+step 4620 TRAIN  CE 5.337  cert 2.241  poseNLL 3.862  top1 1.6%  arg 12.3 m  pose 15.0 m  n 193  (2s)
+step 4640 TRAIN  CE 4.228  cert 4.051  poseNLL 4.157  top1 6.7%  arg 14.0 m  pose 30.0 m  n 193  (3s)
+step 4660 TRAIN  CE nan  cert 0.076  poseNLL 0.000  top1 nan%  arg nan m  pose nan m  n 0 NEG  (3s)
+step 4680 TRAIN  CE 4.413  cert 3.904  poseNLL 4.040  top1 1.0%  arg 14.6 m  pose 24.0 m  n 194  (2s)
+step 4700 TRAIN  CE nan  cert 0.224  poseNLL 0.000  top1 nan%  arg nan m  pose nan m  n 0 NEG  (5s)
+step 4720 TRAIN  CE nan  cert 0.079  poseNLL 0.000  top1 nan%  arg nan m  pose nan m  n 0 NEG  (2s)
+step 4740 TRAIN  CE 3.734  cert 3.338  poseNLL 3.500  top1 4.1%  arg 25.0 m  pose 19.0 m  n 194  (6s)
+step 4760 TRAIN  CE 4.174  cert 4.093  poseNLL 3.995  top1 4.1%  arg 37.5 m  pose 43.7 m  n 194  (7s)
+step 4780 TRAIN  CE 4.465  cert 4.051  poseNLL 4.487  top1 0.0%  arg 48.7 m  pose 31.6 m  n 194  (2s)
+step 4800 TRAIN  CE 3.608  cert 3.073  poseNLL 3.396  top1 6.7%  arg 8.3 m  pose 8.0 m  n 194  (3s)
+step 4800 VAL    CE 4.315  poseNLL 4.177  top1 2.5%  arg 18.5 m  pose 19.6 m  n 7021
+  best -> /home/maciej/Github/cross_view_sat_roma/checkpoints/05_lift_splat_fixtor_seq_best.pt
+step 4820 TRAIN  CE 3.773  cert 3.494  poseNLL 3.490  top1 1.6%  arg 12.9 m  pose 16.0 m  n 193  (2s)
+step 4840 TRAIN  CE 4.905  cert 3.973  poseNLL 4.600  top1 0.0%  arg 44.2 m  pose 45.6 m  n 194  (3s)
+step 4860 TRAIN  CE 3.969  cert 4.314  poseNLL 3.301  top1 1.0%  arg 16.6 m  pose 12.0 m  n 194  (2s)
+step 4880 TRAIN  CE 3.987  cert 4.569  poseNLL 4.224  top1 4.1%  arg 9.2 m  pose 8.9 m  n 193  (2s)
+step 4900 TRAIN  CE 3.801  cert 3.665  poseNLL 4.161  top1 0.0%  arg 57.9 m  pose 78.9 m  n 192  (6s)
+step 4920 TRAIN  CE 4.310  cert 3.605  poseNLL 3.744  top1 1.0%  arg 36.2 m  pose 36.2 m  n 193  (2s)
+step 4940 TRAIN  CE 4.597  cert 4.945  poseNLL 4.962  top1 0.0%  arg 36.0 m  pose 42.4 m  n 194  (6s)
+step 4960 TRAIN  CE 3.836  cert 4.610  poseNLL 3.591  top1 1.6%  arg 14.7 m  pose 20.0 m  n 193  (3s)
+step 4980 TRAIN  CE 3.763  cert 3.760  poseNLL 3.135  top1 4.6%  arg 19.5 m  pose 18.0 m  n 194  (3s)
+step 5000 TRAIN  CE 3.945  cert 2.835  poseNLL 3.517  top1 2.6%  arg 14.3 m  pose 12.6 m  n 193  (3s)
+step 5000 VAL    CE 4.266  poseNLL 4.145  top1 2.1%  arg 17.9 m  pose 15.7 m  n 6973
+  best -> /home/maciej/Github/cross_view_sat_roma/checkpoints/05_lift_splat_fixtor_seq_best.pt
+step 5020 TRAIN  CE 4.852  cert 4.708  poseNLL 4.377  top1 0.0%  arg 22.5 m  pose 21.2 m  n 194  (2s)
+step 5040 TRAIN  CE 3.645  cert 3.862  poseNLL 3.708  top1 2.6%  arg 14.0 m  pose 24.0 m  n 194  (2s)
+step 5060 TRAIN  CE 4.502  cert 4.214  poseNLL 4.679  top1 1.0%  arg 23.1 m  pose 14.1 m  n 194  (4s)
+step 5080 TRAIN  CE nan  cert 0.204  poseNLL 0.000  top1 nan%  arg nan m  pose nan m  n 0 NEG  (2s)
+step 5100 TRAIN  CE 4.148  cert 3.934  poseNLL 4.282  top1 3.1%  arg 10.8 m  pose 4.0 m  n 192  (3s)
+step 5120 TRAIN  CE 4.989  cert 4.325  poseNLL 4.452  top1 0.0%  arg 37.1 m  pose 36.2 m  n 194  (2s)
+step 5140 TRAIN  CE 5.253  cert 3.729  poseNLL 4.883  top1 0.0%  arg 46.9 m  pose 50.9 m  n 194  (2s)
+step 5160 TRAIN  CE 4.171  cert 3.121  poseNLL 4.141  top1 3.1%  arg 18.2 m  pose 20.4 m  n 194  (2s)
+step 5180 TRAIN  CE 4.139  cert 3.839  poseNLL 3.784  top1 2.6%  arg 13.8 m  pose 6.7 m  n 194  (3s)
+step 5200 TRAIN  CE 4.145  cert 2.798  poseNLL 3.818  top1 0.5%  arg 36.5 m  pose 42.4 m  n 194  (6s)
+step 5200 VAL    CE 4.178  poseNLL 4.109  top1 2.9%  arg 17.4 m  pose 16.6 m  n 6820
+step 5220 TRAIN  CE 4.373  cert 4.341  poseNLL 3.744  top1 0.5%  arg 27.4 m  pose 35.4 m  n 194  (2s)
+step 5240 TRAIN  CE nan  cert 0.123  poseNLL 0.000  top1 nan%  arg nan m  pose nan m  n 0 NEG  (6s)
+step 5260 TRAIN  CE nan  cert 0.173  poseNLL 0.000  top1 nan%  arg nan m  pose nan m  n 0 NEG  (3s)
+step 5280 TRAIN  CE 4.638  cert 5.077  poseNLL 5.338  top1 2.1%  arg 10.0 m  pose 6.7 m  n 194  (1s)
+step 5300 TRAIN  CE nan  cert 0.217  poseNLL 0.000  top1 nan%  arg nan m  pose nan m  n 0 NEG  (6s)
+step 5320 TRAIN  CE 4.176  cert 4.267  poseNLL 3.689  top1 1.6%  arg 12.7 m  pose 12.0 m  n 192  (2s)
+step 5340 TRAIN  CE 4.600  cert 5.293  poseNLL 4.524  top1 3.6%  arg 21.9 m  pose 32.3 m  n 193  (7s)
+step 5360 TRAIN  CE 4.993  cert 4.261  poseNLL 5.538  top1 0.0%  arg 25.4 m  pose 19.0 m  n 193  (4s)
+step 5380 TRAIN  CE 4.464  cert 4.183  poseNLL 4.797  top1 2.1%  arg 25.6 m  pose 20.4 m  n 192  (2s)
+step 5400 TRAIN  CE 3.989  cert 2.474  poseNLL 4.053  top1 2.6%  arg 26.5 m  pose 24.7 m  n 194  (3s)
+step 5400 VAL    CE 4.165  poseNLL 3.992  top1 3.6%  arg 15.6 m  pose 13.1 m  n 6865
+  best -> /home/maciej/Github/cross_view_sat_roma/checkpoints/05_lift_splat_fixtor_seq_best.pt
+step 5420 TRAIN  CE nan  cert 0.404  poseNLL 0.000  top1 nan%  arg nan m  pose nan m  n 0 NEG  (2s)
+step 5440 TRAIN  CE 8.455  cert 3.735  poseNLL 8.961  top1 0.0%  arg 37.5 m  pose 37.9 m  n 194  (5s)
+step 5460 TRAIN  CE 4.475  cert 3.055  poseNLL 3.990  top1 3.1%  arg 32.5 m  pose 0.0 m  n 193  (4s)
+step 5480 TRAIN  CE 3.669  cert 3.295  poseNLL 3.740  top1 7.7%  arg 14.3 m  pose 11.2 m  n 194  (4s)
+step 5500 TRAIN  CE 3.142  cert 3.707  poseNLL 2.718  top1 10.9%  arg 10.1 m  pose 10.0 m  n 193  (2s)
+step 5520 TRAIN  CE 3.724  cert 4.953  poseNLL 3.418  top1 1.0%  arg 14.1 m  pose 20.0 m  n 193  (4s)
+step 5540 TRAIN  CE nan  cert 0.302  poseNLL 0.000  top1 nan%  arg nan m  pose nan m  n 0 NEG  (6s)
+step 5560 TRAIN  CE nan  cert 0.257  poseNLL 0.000  top1 nan%  arg nan m  pose nan m  n 0 NEG  (4s)
+step 5580 TRAIN  CE 3.852  cert 4.092  poseNLL 3.228  top1 2.1%  arg 15.1 m  pose 28.3 m  n 194  (1s)
+step 5600 TRAIN  CE 3.192  cert 4.547  poseNLL 2.860  top1 1.5%  arg 26.7 m  pose 15.0 m  n 194  (3s)
+step 5600 VAL    CE 4.164  poseNLL 3.928  top1 3.5%  arg 16.2 m  pose 15.3 m  n 6862
+step 5620 TRAIN  CE nan  cert 0.231  poseNLL 0.000  top1 nan%  arg nan m  pose nan m  n 0 NEG  (5s)
+step 5640 TRAIN  CE 5.302  cert 4.535  poseNLL 5.074  top1 0.0%  arg 28.8 m  pose 30.0 m  n 194  (6s)
+step 5660 TRAIN  CE 3.588  cert 4.882  poseNLL 3.261  top1 1.0%  arg 29.6 m  pose 45.0 m  n 193  (3s)
+step 5680 TRAIN  CE 3.978  cert 4.494  poseNLL 3.913  top1 3.6%  arg 10.3 m  pose 9.0 m  n 194  (2s)
+step 5700 TRAIN  CE 3.478  cert 3.727  poseNLL 2.852  top1 5.7%  arg 10.8 m  pose 5.0 m  n 193  (2s)
+step 5720 TRAIN  CE 4.053  cert 3.738  poseNLL 3.990  top1 1.0%  arg 31.9 m  pose 40.3 m  n 193  (4s)
+step 5740 TRAIN  CE 4.490  cert 3.410  poseNLL 4.206  top1 0.0%  arg 27.1 m  pose 36.9 m  n 194  (3s)
+step 5760 TRAIN  CE nan  cert 0.672  poseNLL 0.000  top1 nan%  arg nan m  pose nan m  n 0 NEG  (5s)
+step 5780 TRAIN  CE 3.837  cert 2.847  poseNLL 3.270  top1 3.1%  arg 20.8 m  pose 8.5 m  n 194  (6s)
+step 5800 TRAIN  CE 3.301  cert 2.548  poseNLL 3.170  top1 9.4%  arg 8.9 m  pose 5.7 m  n 192  (2s)
+step 5800 VAL    CE 4.311  poseNLL 4.108  top1 2.8%  arg 16.7 m  pose 14.5 m  n 6915
+step 5820 TRAIN  CE 3.397  cert 3.075  poseNLL 2.735  top1 6.8%  arg 12.5 m  pose 10.0 m  n 192  (2s)
+step 5840 TRAIN  CE 4.574  cert 5.303  poseNLL 4.410  top1 0.0%  arg 28.3 m  pose 33.5 m  n 194  (2s)
+step 5860 TRAIN  CE 4.919  cert 6.039  poseNLL 4.328  top1 0.0%  arg 28.7 m  pose 18.2 m  n 194  (2s)
+step 5880 TRAIN  CE 3.591  cert 4.572  poseNLL 2.975  top1 11.9%  arg 13.3 m  pose 6.0 m  n 193  (2s)
+step 5900 TRAIN  CE 4.600  cert 4.369  poseNLL 3.930  top1 0.0%  arg 42.1 m  pose 36.0 m  n 189  (5s)
+step 5920 TRAIN  CE 4.744  cert 5.932  poseNLL 4.331  top1 0.0%  arg 20.2 m  pose 12.0 m  n 194  (1s)
+step 5940 TRAIN  CE 4.838  cert 5.259  poseNLL 5.641  top1 0.5%  arg 21.2 m  pose 29.1 m  n 193  (2s)
+step 5960 TRAIN  CE 3.944  cert 4.164  poseNLL 3.766  top1 3.1%  arg 9.8 m  pose 15.3 m  n 194  (2s)
+step 5980 TRAIN  CE 3.590  cert 5.389  poseNLL 2.661  top1 2.6%  arg 12.7 m  pose 0.0 m  n 194  (1s)
+step 6000 TRAIN  CE 5.791  cert 3.259  poseNLL 5.288  top1 0.0%  arg 14.0 m  pose 10.8 m  n 194  (1s)
+step 6000 VAL    CE 4.160  poseNLL 4.057  top1 3.7%  arg 17.2 m  pose 16.5 m  n 6827
+step 6020 TRAIN  CE 4.576  cert 2.948  poseNLL 5.008  top1 0.0%  arg 17.6 m  pose 8.5 m  n 194  (1s)
+step 6040 TRAIN  CE 4.036  cert 3.508  poseNLL 3.090  top1 2.1%  arg 10.7 m  pose 4.2 m  n 194  (2s)
+step 6060 TRAIN  CE 3.740  cert 2.914  poseNLL 3.876  top1 2.1%  arg 30.7 m  pose 24.7 m  n 194  (2s)
+step 6080 TRAIN  CE 4.803  cert 3.045  poseNLL 5.132  top1 0.0%  arg 38.9 m  pose 53.9 m  n 194  (4s)
+step 6100 TRAIN  CE 4.004  cert 4.363  poseNLL 4.036  top1 0.0%  arg 30.7 m  pose 40.2 m  n 194  (2s)
+step 6120 TRAIN  CE 4.766  cert 1.776  poseNLL 4.827  top1 0.5%  arg 22.2 m  pose 17.9 m  n 192  (2s)
+step 6140 TRAIN  CE 4.007  cert 3.869  poseNLL 5.016  top1 1.0%  arg 13.0 m  pose 14.4 m  n 194  (2s)
+step 6160 TRAIN  CE nan  cert 0.098  poseNLL 0.000  top1 nan%  arg nan m  pose nan m  n 0 NEG  (2s)
+step 6180 TRAIN  CE 4.403  cert 4.481  poseNLL 4.616  top1 3.1%  arg 27.7 m  pose 14.4 m  n 193  (1s)
+step 6200 TRAIN  CE 3.538  cert 4.940  poseNLL 2.950  top1 8.2%  arg 8.0 m  pose 4.0 m  n 194  (1s)
+step 6200 VAL    CE 4.204  poseNLL 4.059  top1 3.5%  arg 17.8 m  pose 17.8 m  n 6649
+step 6220 TRAIN  CE 2.961  cert 3.415  poseNLL 2.506  top1 13.9%  arg 8.5 m  pose 0.0 m  n 194  (2s)
+step 6240 TRAIN  CE 4.877  cert 4.439  poseNLL 5.448  top1 1.5%  arg 14.3 m  pose 8.5 m  n 194  (2s)
+step 6260 TRAIN  CE 4.321  cert 2.472  poseNLL 3.832  top1 0.0%  arg 45.1 m  pose 48.0 m  n 194  (2s)
+step 6280 TRAIN  CE 3.702  cert 3.470  poseNLL 3.724  top1 4.2%  arg 7.7 m  pose 4.2 m  n 192  (1s)
+step 6300 TRAIN  CE nan  cert 0.221  poseNLL 0.000  top1 nan%  arg nan m  pose nan m  n 0 NEG  (4s)
+step 6320 TRAIN  CE 4.427  cert 3.369  poseNLL 4.301  top1 0.0%  arg 53.2 m  pose 46.1 m  n 148  (3s)
+step 6340 TRAIN  CE 3.315  cert 3.230  poseNLL 2.781  top1 6.7%  arg 14.0 m  pose 18.0 m  n 194  (2s)
+step 6360 TRAIN  CE 3.807  cert 3.694  poseNLL 3.537  top1 4.1%  arg 10.4 m  pose 4.2 m  n 193  (1s)
+step 6380 TRAIN  CE 3.598  cert 1.323  poseNLL 3.718  top1 2.1%  arg 21.2 m  pose 13.4 m  n 194  (5s)
+step 6400 TRAIN  CE 3.450  cert 3.728  poseNLL 3.890  top1 4.1%  arg 25.4 m  pose 30.6 m  n 193  (5s)
+step 6400 VAL    CE 4.182  poseNLL 4.108  top1 3.6%  arg 16.4 m  pose 17.7 m  n 6584
+step 6420 TRAIN  CE 5.092  cert 4.056  poseNLL 6.149  top1 0.0%  arg 33.7 m  pose 40.8 m  n 194  (2s)
+step 6440 TRAIN  CE 3.266  cert 2.361  poseNLL 3.101  top1 9.3%  arg 11.6 m  pose 10.0 m  n 194  (3s)
+step 6460 TRAIN  CE 3.460  cert 3.074  poseNLL 3.162  top1 8.8%  arg 13.1 m  pose 12.0 m  n 194  (5s)
+step 6480 TRAIN  CE 4.326  cert 3.679  poseNLL 4.066  top1 0.0%  arg 31.0 m  pose 28.0 m  n 194  (2s)
+step 6500 TRAIN  CE 5.844  cert 4.976  poseNLL 6.469  top1 0.0%  arg 23.8 m  pose 15.3 m  n 193  (1s)
+step 6520 TRAIN  CE 4.561  cert 3.816  poseNLL 4.534  top1 2.1%  arg 21.4 m  pose 28.3 m  n 193  (2s)
+step 6540 TRAIN  CE 4.877  cert 4.353  poseNLL 5.480  top1 0.5%  arg 19.2 m  pose 13.4 m  n 194  (1s)
+step 6560 TRAIN  CE nan  cert 0.136  poseNLL 0.000  top1 nan%  arg nan m  pose nan m  n 0 NEG  (1s)
+step 6580 TRAIN  CE 3.452  cert 3.380  poseNLL 3.158  top1 7.7%  arg 10.0 m  pose 5.0 m  n 194  (2s)
+step 6600 TRAIN  CE nan  cert 0.174  poseNLL 0.000  top1 nan%  arg nan m  pose nan m  n 0 NEG  (2s)
+step 6600 VAL    CE 4.146  poseNLL 3.947  top1 3.0%  arg 17.2 m  pose 16.5 m  n 6576
+wrote /home/maciej/Github/cross_view_sat_roma/checkpoints/05_lift_splat_fixtor_seq.pt
+=== 2026-09-23T03:18:33+02:00 SEQ EVAL 2025 ===
+  IcRzj0wTLZX874qitxVsQa: 1980/2186 frames inside ortho (margin 120 m)
+Using Dinov3 as Sat Encoder, model: vit_large_patch16_dinov3.sat493m
+Using Dinov3 as Sat Encoder, model: vit_large_patch16_dinov3.sat493m
+Using Dinov3 as Sat Encoder, model: vit_large_patch16_dinov3.sat493m
+  2095057974553082  arg 12.6  peak 9.4  means 3.1  modes 219/219
+  1378496074369409  arg 16.5  peak 18.9  means 17.8  modes 200/200
+  1142872331601507  arg 21.5  peak 20.1  means 20.5  modes 173/173
+  978411255289595  arg 5.7  peak 4.8  means 5.2  modes 149/149
+  1019550914472816  arg 32.2  peak 29.6  means 29.4  modes 161/161
+  953363284488701  arg 12.6  peak 3.4  means 4.6  modes 216/216
+  2152059425343476  arg 8.9  peak 3.7  means 4.6  modes 116/116
+  2156246585246250  arg 16.0  peak 15.2  means 11.8  modes 198/198
+  3987512878222694  arg 8.9  peak 8.6  means 7.6  modes 187/187
+  2617877615312525  arg 24.0  peak 25.4  means 24.3  modes 183/183
+  1103726585498561  arg 32.2  peak 33.4  means 34.5  modes 170/170
+  28353982287585850  arg 20.0  peak 28.2  means 30.3  modes 214/214
+  1100677129568395  arg 12.6  peak 7.4  means 7.9  modes 172/172
+  1634811391600888  arg 23.3  peak 19.8  means 19.4  modes 184/184
+  1788609642332461  arg 8.9  peak 7.0  means 6.2  modes 168/168
+  1492850022680483  arg 20.4  peak 15.5  means 18.5  modes 146/146
+  2307381062999983  arg 16.5  peak 18.5  means 20.1  modes 179/179
+  1404836450974786  arg 8.0  peak 5.5  means 6.0  modes 172/172
+  875121085565340  arg 12.6  peak 1.8  means 3.4  modes 69/69
+  1110321861631012  arg 32.2  peak 29.6  means 30.8  modes 172/172
+  1555505762546802  arg 12.6  peak 2.6  means 16.1  modes 220/220
+  1327926909237721  arg 12.0  peak 12.3  means 11.4  modes 169/169
+  2280589716022436  arg 8.0  peak 7.2  means 5.8  modes 242/242
+  1757450898675122  arg 5.7  peak 2.6  means 8.5  modes 172/172
+  1113524811360636  arg 8.9  peak 6.5  means 4.0  modes 194/194
+  1117850284013533  arg 8.9  peak 3.1  means 3.3  modes 147/147
+  1046793441453437  arg 12.6  peak 1.9  means 5.5  modes 195/195
+  1717358659338787  arg 22.6  peak 21.6  means 23.3  modes 183/183
+  1600448215153510  arg 20.0  peak 19.1  means 19.1  modes 189/189
+  1388036546256933  arg 4.0  peak 0.5  means 1.1  modes 185/185
+  941258575171189  arg 8.0  peak 5.8  means 6.9  modes 179/179
+  1642777094174373  arg 16.5  peak 12.0  means 16.0  modes 194/194
+  2225144508332803  arg 11.3  peak 9.1  means 9.2  modes 86/86
+  1445870540781253  arg 8.9  peak 3.9  means 3.9  modes 196/196
+  2180206842898875  arg 8.9  peak 7.0  means 5.8  modes 218/218
+  4383937145252600  arg 20.4  peak 19.3  means 20.4  modes 167/167
+  1395053232186208  arg 5.7  peak 1.3  means 0.2  modes 146/146
+  1640116454223707  arg 8.9  peak 8.8  means 8.8  modes 190/190
+  28232267553098001  arg 25.3  peak 38.6  means 12.4  modes 208/208
+  29263406316595392  arg 8.9  peak 8.5  means 8.5  modes 174/174
+  2664235027388592  arg 12.6  peak 12.6  means 13.1  modes 149/149
+  965788772472679  arg 11.3  peak 9.9  means 12.9  modes 170/170
+  1636164264528073  arg 8.9  peak 8.7  means 8.0  modes 182/182
+  1406253228277001  arg 5.7  peak 3.3  means 2.3  modes 165/165
+  1121290083804491  arg 28.0  peak 16.5  means 9.2  modes 49/49
+  28240444558956519  arg 8.0  peak 2.7  means 3.0  modes 220/220
+  2677328439391773  arg 14.4  peak 12.5  means 8.9  modes 197/197
+  1613960070127571  arg 12.6  peak 6.2  means 15.3  modes 234/234
+EVAL peak  n 48  {'recall@1m': 0.020833333333333332, 'recall@5m': 0.2708333333333333, 'recall@10m': 0.5833333333333334}  median_pose 8.7 m  median_argmax 12.6 m  matched 48/48
+EVAL means  n 48  {'recall@1m': 0.020833333333333332, 'recall@5m': 0.22916666666666666, 'recall@10m': 0.5625}  median_pose 8.9 m  median_argmax 12.6 m  matched 48/48
+wrote experiments/05_lift_splat/fixtor_seq/pose_eval_y2025.json
+=== 2026-09-23T03:19:32+02:00 SEQ EVAL 2024 ===
+  IcRzj0wTLZX874qitxVsQa: 1980/2186 frames inside ortho (margin 120 m)
+Using Dinov3 as Sat Encoder, model: vit_large_patch16_dinov3.sat493m
+Using Dinov3 as Sat Encoder, model: vit_large_patch16_dinov3.sat493m
+Using Dinov3 as Sat Encoder, model: vit_large_patch16_dinov3.sat493m
+  2095057974553082  arg 12.6  peak 11.9  means 10.5  modes 172/172
+  1378496074369409  arg 12.6  peak 8.8  means 16.0  modes 242/242
+  1142872331601507  arg 23.3  peak 21.1  means 21.9  modes 167/167
+  978411255289595  arg 5.7  peak 3.6  means 4.0  modes 156/156
+  1019550914472816  arg 28.3  peak 26.9  means 26.4  modes 156/156
+  953363284488701  arg 12.6  peak 12.2  means 4.1  modes 208/208
+  2152059425343476  arg 8.9  peak 3.8  means 4.3  modes 126/126
+  2156246585246250  arg 16.0  peak 10.2  means 12.3  modes 202/202
+  3987512878222694  arg 8.9  peak 6.8  means 6.5  modes 174/174
+  2617877615312525  arg 12.6  peak 12.3  means 4.1  modes 215/215
+  1103726585498561  arg 28.0  peak 18.3  means 30.6  modes 227/227
+  28353982287585850  arg 16.5  peak 22.3  means 27.6  modes 218/218
+  1100677129568395  arg 11.3  peak 9.5  means 10.0  modes 155/155
+  1634811391600888  arg 21.5  peak 20.1  means 15.1  modes 182/182
+  1788609642332461  arg 12.6  peak 13.9  means 12.6  modes 147/147
+  1492850022680483  arg 16.5  peak 4.1  means 14.8  modes 156/156
+  2307381062999983  arg 16.0  peak 17.0  means 15.3  modes 181/181
+  1404836450974786  arg 8.0  peak 6.4  means 12.7  modes 182/182
+  875121085565340  arg 16.5  peak 15.3  means 13.3  modes 130/130
+  1110321861631012  arg 25.3  peak 31.7  means 29.4  modes 176/176
+  1555505762546802  arg 12.6  peak 14.9  means 10.5  modes 207/207
+  1327926909237721  arg 8.9  peak 9.6  means 9.6  modes 180/180
+  2280589716022436  arg 8.9  peak 5.8  means 3.7  modes 241/241
+  1757450898675122  arg 5.7  peak 2.0  means 2.2  modes 186/186
+  1113524811360636  arg 5.7  peak 3.0  means 2.4  modes 206/206
+  1117850284013533  arg 8.9  peak 4.1  means 3.2  modes 153/153
+  1046793441453437  arg 11.3  peak 4.5  means 7.2  modes 206/206
+  1717358659338787  arg 17.9  peak 22.2  means 21.0  modes 218/218
+  1600448215153510  arg 12.6  peak 13.7  means 12.6  modes 171/171
+  1388036546256933  arg 5.7  peak 0.8  means 1.2  modes 164/164
+  941258575171189  arg 25.3  peak 29.7  means 27.9  modes 185/185
+  1642777094174373  arg 25.3  peak 23.8  means 30.8  modes 194/194
+  2225144508332803  arg 14.4  peak 12.2  means 12.9  modes 45/45
+  1445870540781253  arg 8.9  peak 3.8  means 15.3  modes 182/182
+  2180206842898875  arg 8.0  peak 7.2  means 4.7  modes 177/177
+  4383937145252600  arg 20.0  peak 19.8  means 19.2  modes 143/143
+  1395053232186208  arg 5.7  peak 2.9  means 3.7  modes 168/168
+  1640116454223707  arg 12.0  peak 8.7  means 10.7  modes 193/193
+  28232267553098001  arg 20.0  peak 34.6  means 11.1  modes 208/208
+  29263406316595392  arg 8.0  peak 5.9  means 7.2  modes 199/199
+  2664235027388592  arg 14.4  peak 13.5  means 14.4  modes 143/143
+  965788772472679  arg 12.6  peak 11.1  means 22.5  modes 195/195
+  1636164264528073  arg 8.9  peak 11.3  means 4.4  modes 190/190
+  1406253228277001  arg 12.0  peak 10.6  means 10.0  modes 120/120
+  1121290083804491  arg 8.0  peak 1.4  means 12.5  modes 167/167
+  28240444558956519  arg 17.9  peak 17.5  means 19.2  modes 195/195
+  2677328439391773  arg 14.4  peak 8.5  means 8.9  modes 192/192
+  1613960070127571  arg 17.9  peak 19.2  means 19.2  modes 192/192
+EVAL peak  n 48  {'recall@1m': 0.020833333333333332, 'recall@5m': 0.22916666666666666, 'recall@10m': 0.4375}  median_pose 11.2 m  median_argmax 12.6 m  matched 48/48
+EVAL means  n 48  {'recall@1m': 0.0, 'recall@5m': 0.25, 'recall@10m': 0.3541666666666667}  median_pose 12.4 m  median_argmax 12.6 m  matched 48/48
+wrote experiments/05_lift_splat/fixtor_seq/pose_eval_y2024.json
+SEQ_CHAIN_DONE 2026-09-23T03:21:24+02:00

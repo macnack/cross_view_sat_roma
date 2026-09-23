@@ -1,0 +1,78 @@
+# Eagle override of configs/default.yaml -- the ONLY intended diff is data.root.
+# Everything else is copied verbatim; if default.yaml changes, mirror it here or the
+# two configs silently diverge. UNTESTED on Eagle (no cluster access from this session).
+# Single source of parameters for task 01 (kick-off). Every script takes --config and
+# writes a snapshot of the resolved config next to its outputs.
+data:
+  root: /data/dur360bev            # Eagle: bind-mounted, see slurm/train_fusion.sbatch
+  ortho: data/ortho/durham/2009_ea_irrgb/durham_2009_25cm.vrt   # PARTIAL: 6 of 122 EA 2009 tiles, ~36% of frames fully covered (docs/decisions.md)
+
+erp:
+  size: [1280, 640]                # width, height
+  lens: dur360                     # dur360 (196/203 piecewise, verified) | equidistant203 (fisheye_tools remap)
+  lens_params: {fov_inner_deg: 196.0, fov_outer_deg: 203.0, alpha: 1.0}
+  valid_mask: experiments/00_calib/erp_valid_1280x640.npy
+
+calib:                             # see docs/decisions.md; all provisional until cross-checked
+  cam_from_lidar_rpy_deg: [0.0, 0.0, 0.0]
+  cam_from_lidar_t_m: [0.0, 0.0, -0.27]      # camera 0.27 m above the LiDAR origin
+  lidar_height_m: 1.57                        # above road; preliminary (5 frames)
+
+grid:
+  n: 224
+  cell_m: 0.25
+
+ground:
+  floor_cell_m: 0.5
+  ground_tol_m: 0.20
+  max_floor_dev_m: 1.2
+  max_range_m: 40.0
+  contact_max_height_m: 0.7        # only returns this close to the floor define a contact (not canopy/signs)
+
+edges:
+  min_obj_height_m: 1.5
+  max_jump_m: 0.75
+
+mask:                              # ego-vehicle / seam mask estimation (scripts/calib_erp_mask.py)
+  frames: {ranges: [[500, 1450], [1900, 2700]], stride: 10}   # moving frames only
+  std_thresh: 5.0
+  meanhp_thresh: 6.0
+  min_blob_px: 80
+  margin_px: 6
+  seam_halfwidth_px: 4
+  horizon_frac: 0.53
+
+oxts:                              # scripts/oxts_check.py
+  convention: ccw_from_east        # VERIFIED on data (scripts/oxts_check.py): std 2.5 deg vs 124 deg for cw
+  min_speed_mps: 2.0               # GNSS jitter has no direction below this
+  smooth: 2                        # +-samples for the travel-direction difference (10 Hz)
+
+matcher:
+  checkpoint: 0t1q66hy             # aerial cross-scale search; same 224/896/4x geometry as 4adxis71
+  use_means: false                 # false = published config (one peak per patch)
+  min_valid_frac: 0.5              # PROPOSED, not yet agreed (package default 1.0)
+  reproj_cells: 3.0
+  seed: 0
+
+fusion:                            # camera + LiDAR fusion BEV (src/bevloc/model/fusion_bev.py)
+  backbone: convnext_tiny.dinov3_lvd1689m     # frozen; same ground backbone as BEV-Patch-PF
+  dim: 128
+  ground_fill: true                # camera-visible ground (flat-ground projection up to the first LiDAR obstacle)
+
+train:                             # scripts/train_fusion.py
+  steps: 2000
+  batch: 2                         # 12 GB laptop; raise on Eagle
+  lr_bev: 2.0e-4
+  lr_decoder: 1.0e-5               # 0 = keep the released Sat-RoMa decoder frozen
+  weight_decay: 0.01
+  min_patch_valid: 0.25            # a query patch is supervised if this fraction of its cells has LiDAR returns
+  min_ref_cell_valid: 0.5          # a query patch's TARGET is usable if this fraction of that reference cell is non-black
+  val_ranges: [[710, 2400]]        # contiguous block held out, inside the EA-2009-covered corridor (not random frames: neighbours overlap)
+  val_every: 250
+  val_frames: 32
+  seed: 0
+
+reference:
+  scale: 4
+  max_offset_frac: 0.30
+  max_rot_deg: 55.0

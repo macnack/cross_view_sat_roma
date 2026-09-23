@@ -31,6 +31,25 @@ def pose_errors(H_est, H_gt, query_size: int, gsd_m: float) -> dict:
     return out
 
 
+def mean_removed_cosine(query_tokens, ref_tokens) -> float:
+    """Mean cosine after subtracting each side's mean token.
+
+    query_tokens, ref_tokens: (N, C). A shared mean makes plain cosine high
+    even when the residual that identifies a cell is unrelated. Rows whose
+    residual is ~0 (a constant token) are dropped.
+    """
+    q = np.asarray(query_tokens, np.float64)
+    r = np.asarray(ref_tokens, np.float64)
+    q = q - q.mean(0, keepdims=True)
+    r = r - r.mean(0, keepdims=True)
+    qn = np.linalg.norm(q, axis=1)
+    rn = np.linalg.norm(r, axis=1)
+    ok = (qn > 1e-8) & (rn > 1e-8)
+    if not np.any(ok):
+        return float("nan")
+    return float(np.mean(np.sum(q[ok] * r[ok], axis=1) / (qn[ok] * rn[ok])))
+
+
 def recall(position_errors_m, thresholds=(1.0, 5.0, 10.0), n_total=None) -> dict:
     """Recall over ALL pairs: failed matches (None/NaN) count as misses."""
     e = np.asarray([np.inf if (x is None or not np.isfinite(x)) else x for x in position_errors_m])

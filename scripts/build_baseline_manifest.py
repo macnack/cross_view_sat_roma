@@ -1,0 +1,195 @@
+"""Build the immutable ≥200-frame Fixtor held-out manifest for baseline comparison.
+
+Uses the same route split and local prior as ``05_lift_splat``:
+  held-out ``IcRzj0wTLZX874qitxVsQa``, ±10% of the 224 m reference edge / ±10°,
+  primary year 2025 + cross-year 2024 entries for the same frame IDs.
+
+  make baselines-manifest
+"""
+from __future__ import annotations
+
+import argparse
+import json
+from pathlib import Path
+
+import matplotlib
+
+matplotlib.use("Agg")
+import matplotlib.pyplot as plt
+import numpy as np
+
+from bevloc import config as C
+from bevloc.baselines.common import ManifestFrame, frame_pose_proxy, write_manifest
+from bevloc.data.mapillary import PoznanOrtho, load_frames
+from bevloc.data.ortho import Oriented, gt_homography, sample_reference
+
+MAP_ROOT = C.REPO / "data/mapillary"
+VAL_SEQ = MAP_ROOT / "Fixtor/IcRzj0wTLZX874qitxVsQa"
+RESERVED = "irAsBUKtGCfhPHuMbmOcLd"
+
+
+def open_year(year: int) -> PoznanOrtho:
+    paths = sorted(Path.home().glob(f"Github/sat_data/geoportal_poznan_15km2_*/year_{year}.tif"))
+    if len(paths) < 9:
+        raise SystemExit(f"expected ≥9 Poznań tiles for {year}, found {len(paths)}")
+    return PoznanOrtho(paths)
+
+
+def uniform_along_route(frames, n, seed=0):
+    """Pick ``n`` frames spread uniformly by path length (not by list index)."""
+    if len(frames) <= n:
+        return list(frames)
+    ens = np.asarray([fr["_en"] for fr in frames], float)
+    # sort by capture time when present so path order matches driving
+    order = sorted(range(len(frames)),
+                   key=lambda i: frames[i].get("captured_at", i))
+    cum = np.zeros(len(order), float)
+    for k in range(1, len(order)):
+        cum[k] = cum[k - 1] + float(np.linalg.norm(ens[order[k]] - ens[order[k - 1]]))
+    targets = np.linspace(0.0, cum[-1], n)
+    chosen, used = [], set()
+    for t in targets:
+        k = int(np.searchsorted(cum, t))
+        k = min(max(k, 0), len(order) - 1)
+        # walk to nearest unused
+        for d in range(len(order)):
+            for cand in (k - d, k + d):
+                if 0 <= cand < len(order) and order[cand] not in used:
+                    used.add(order[cand])
+                    chosen.append(frames[order[cand]])
+                    break
+            else:
+                continue
+            break
+    return chosen
+
+
+def build_entries(frames, years, cfg, seed=0):
+    g = cfg.grid
+    scale = int(cfg.reference.scale)
+    # Task protocol: local prior ±10% of 224 m edge / ±10° (lift val defaults).
+    max_off = float(getattr(cfg.lift, "max_offset_frac", 0.10))
+    max_rot = float(getattr(cfg.lift, "max_rot_deg", 10.0))
+    out = []
+    for fr in frames:
+        en, up = frame_pose_proxy(fr)
+        query = Oriented(en, up, g.n, g.cell_m)
+        # Per-frame RNG from matcher seed + id so years share the same crop
+        # geometry (fair cross-year comparison).
+        rng = np.random.default_rng([int(cfg.matcher.seed) + int(seed),
+                                     int(fr["id"]) % (2**32)])
+        ref = sample_reference(query, rng, scale=scale,
+                               max_offset_frac=max_off, max_rot_deg=max_rot)
+        # Recover the (right, up) offset that sample_reference applied.
+        b = np.radians(ref.up_bearing_deg)
+        right = np.array([np.cos(b), -np.sin(b)])
+        up_v = np.array([np.sin(b), np.cos(b)])
+        d = np.asarray(query.centre_en) - np.asarray(ref.centre_en)
+        off = (float(d @ right), float(d @ up_v))
+        rot = float(ref.up_bearing_deg - query.up_bearing_deg)
+        H = gt_homography(query, ref)
+        lon, lat = fr["computed_geometry"]["coordinates"]
+        panorama = str(Path(fr["_seq"]) / "images" / f"{fr['id']}.jpg")
+        for year in years:
+            out.append(ManifestFrame(
+                frame_id=str(fr["id"]),
+                seq=Path(fr["_seq"]).name,
+                panorama=panorama,
+                lon=float(lon),
+                lat=float(lat),
+                en=(float(en[0]), float(en[1])),
+                up_bearing_deg=float(up),
+                compass_angle=float(fr["computed_compass_angle"]),
+                year=int(year),
+                crop_centre_en=(float(ref.centre_en[0]), float(ref.centre_en[1])),
+                crop_up_bearing_deg=float(ref.up_bearing_deg),
+                crop_offset_m=off,
+                crop_rot_deg=rot,
+                query_size=int(g.n),
+                ref_size=int(g.n * scale),
+                gsd_m=float(g.cell_m),
+                H_gt=H.tolist(),
+            ))
+    return out
+
+
+def overview_plot(entries, out_path: Path):
+    """Map overview of selected held-out frames (2025 entries only)."""
+    rows = [e for e in entries if e.year == 2025]
+    e = np.array([r.en[0] for r in rows])
+    n = np.array([r.en[1] for r in rows])
+    fig, ax = plt.subplots(figsize=(7, 7))
+    ax.scatter(e, n, s=8, c="C0", alpha=0.8, label=f"n={len(rows)}")
+    ax.set_aspect("equal")
+    ax.set_xlabel("E (EPSG:2180)")
+    ax.set_ylabel("N (EPSG:2180)")
+    ax.set_title("Fixtor held-out manifest (IcRzj)")
+    ax.legend(loc="best")
+    fig.tight_layout()
+    out_path.parent.mkdir(parents=True, exist_ok=True)
+    fig.savefig(out_path, dpi=120)
+    plt.close(fig)
+
+
+def main():
+    ap = C.add_args(argparse.ArgumentParser(description=__doc__))
+    ap.add_argument("--out", default="experiments/06_fg2_bevsplat/manifest.json")
+    ap.add_argument("--n", type=int, default=200, help="held-out frames (≥200)")
+    ap.add_argument("--years", default="2025,2024")
+    ap.add_argument("--seed", type=int, default=0)
+    a = ap.parse_args()
+    cfg = C.load(a.config)
+    years = [int(y) for y in a.years.split(",") if y.strip()]
+    if RESERVED in str(VAL_SEQ):
+        raise SystemExit("held-out path collides with reserved sequence")
+    ortho = open_year(years[0])
+    margin = float(getattr(cfg.lift, "margin_m", 120.0))
+    all_frames = load_frames([VAL_SEQ], ortho, margin_m=margin)
+    # Also require coverage on every other year.
+    for y in years[1:]:
+        o = open_year(y)
+        keep = []
+        for fr in all_frames:
+            if o.tile_for(fr["_en"], margin=margin) is not None:
+                keep.append(fr)
+        print(f"  year {y}: {len(keep)}/{len(all_frames)} still covered", flush=True)
+        all_frames = keep
+        o.close()
+    ortho.close()
+    if len(all_frames) < a.n:
+        raise SystemExit(f"only {len(all_frames)} covered frames, need ≥{a.n}")
+    picked = uniform_along_route(all_frames, a.n, seed=a.seed)
+    entries = build_entries(picked, years, cfg, seed=a.seed)
+    meta = {
+        "protocol": "docs/tasks/02_fg2_bevsplat.md",
+        "held_out_seq": VAL_SEQ.name,
+        "reserved_untouched": RESERVED,
+        "n_frames": a.n,
+        "years": years,
+        "seed": a.seed,
+        "max_offset_frac": float(cfg.lift.max_offset_frac),
+        "max_rot_deg": float(cfg.lift.max_rot_deg),
+        "query_size": int(cfg.grid.n),
+        "ref_scale": int(cfg.reference.scale),
+        "gsd_m": float(cfg.grid.cell_m),
+        "pose_proxy": "Mapillary computed_geometry + computed_compass_angle",
+        "note": "Footprint overlay is approximate; do not call it survey GT.",
+    }
+    out = Path(a.out)
+    write_manifest(entries, out, meta)
+    overview_plot(entries, out.parent / "manifest_overview.jpg")
+    # Snapshot config
+    snap = out.parent / "config.yaml"
+    if not snap.exists():
+        snap.write_text(Path(a.config).read_text())
+    print(json.dumps({
+        "manifest": str(out),
+        "n_entries": len(entries),
+        "n_unique_frames": a.n,
+        "years": years,
+        "overview": str(out.parent / "manifest_overview.jpg"),
+    }, indent=2))
+
+
+if __name__ == "__main__":
+    main()

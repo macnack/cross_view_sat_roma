@@ -17,7 +17,7 @@ dur360bev/
   image/data/<frame>.png            1280x720 DUAL FISHEYE (not ERP), Ricoh Theta S
   image/timestamps.txt              one ISO timestamp per frame of the FULL dataset (line k = frame k)
   ouster_points/data/<frame>.bin    Ouster OS1-128 sweep, 128 x 2048 points, 36 bytes each
-  oxts/data/<frame>.txt             lat lon alt roll pitch yaw        (NOT YET DOWNLOADED - last in the archive)
+  oxts/data/<frame>.txt             lat lon alt roll pitch yaw        (roll/pitch are always 0, see below)
   labels/data/<frame>.txt           3D boxes (unused here)
   metadata/os1.json                 Ouster beam angles etc.; contains NO camera or INS extrinsics
 ```
@@ -48,9 +48,19 @@ Parser: `bevloc.data.dur360.read_scan`.
 - **LiDAR height above road**: 1.57 m (6 near-level frames, σ 0.02 m) → camera height 1.84 m. Preliminary:
   wet asphalt returns almost nothing (median 21 % return rate in the fore/aft road sectors).
 - **Ego vehicle** hides 30 % of the ERP; ground first visible ≈3.1 m ahead, 1.8 m to the sides, 7.1 m behind.
-- **OxTS**: device convention per RT3000 manual is x fwd / y right / z down, heading clockwise from north.
-  The STORED convention is UNVERIFIED: Dur360BEV's `map_api` treats yaw as radians CCW from east.
-  To be settled by direction of travel once the files are on disk. INS→LiDAR lever arm unknown.
+- **OxTS**: the stored yaw is **radians counter-clockwise from east** — VERIFIED on data against the
+  direction of travel over 11 241 moving frames (`make oxts`): residual mean +0.33°, σ 2.5°, versus
+  σ 124° for either clockwise reading. This confirms `oxts/dataformat.txt` and Dur360BEV's `map_api`,
+  and it is NOT the RT3000 device convention (x fwd / y right / z down, heading clockwise from north):
+  the export already re-expressed it. Bearing clockwise from north = 90° − yaw°. The +0.33° residual
+  mean bounds the INS-to-vehicle yaw mounting offset; BNG grid convergence at Durham is +0.35°.
+- **OxTS roll and pitch are identically 0.000000 in all 16 407 files** (one unique value each) — they were
+  not exported, although the RT3000v3 measures them and the altitude track implies real road slopes of
+  ±5° (5th–95th percentile) over a 72 m altitude range. Gravity alignment must come from somewhere else;
+  see docs/decisions.md. INS→LiDAR lever arm still unknown.
+- **Synchronisation**: `image`, `ouster_points` and `oxts` all have 16 407 timestamps, so frame index
+  pairs them directly. Median offset from OxTS: image −1 ms, LiDAR +0 ms; worst case 30 ms, i.e. the
+  0.03 s tolerance of the dataset (0.3 m at 10 m/s). OxTS rate 10.0 Hz.
 
 ## ortho/durham/<year>/ — orthophoto reference (NOT YET AVAILABLE)
 Environment Agency Vertical Aerial Photography (OGL v3), EPSG:27700. Build one VRT over the tiles

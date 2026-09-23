@@ -10,3 +10,4 @@ experiments/**/attic/
 experiments/**/*.npy
 experiments/**/*.html
 experiments/**/queries/
+experiments/**/*.tif
