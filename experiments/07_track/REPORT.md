@@ -10,6 +10,7 @@ Errors are against the Mapillary pose proxy, not survey GT. Every frame of the r
 | route | frames | PF median | PF p95 | PF ≤5 m | PF ≤10 m | per-frame RANSAC median / p95 / ≤10 m | prior (prediction) median |
 |---|---|---|---|---|---|---|---|
 | irAsBUK (test, 2025) | 1265 | **4.4 m** | 21.6 m | 0.56 | 0.83 | 4.5 m / 26.3 m / 0.77 | 4.6 m |
+| IcRzj (validation, 2025) | 1980 | **4.2 m** | 14.1 m | 0.59 | 0.88 | 5.1 m / 19.5 m / 0.78 | 4.5 m |
 
 Files: `track_<route>_ipm_y2025.json` (per-frame errors and positions), `track_<route>_ipm_y2025.jpg`
 (trajectory over EN with proxy, filter, per-frame RANSAC and dead reckoning; error vs frame).
