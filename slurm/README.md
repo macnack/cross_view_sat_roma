@@ -68,6 +68,14 @@ $X python -c "import timm; timm.create_model('vit_large_patch16_dinov3.sat493m',
 PYTHONPATH=src:.pydeps SATROMA_INFER_DIR=$PWD/third_party/sat_roma_infer $X python -m pytest tests -q   # 61 passed
 ```
 
+## Pitfall: commas in CMD
+
+`sbatch --export=ALL,CMD="..."` splits the `--export` list on commas, so a CMD containing
+`--years 2025,2024,2021` or `--seq-dists 0,2,5` is silently truncated at the first comma and the
+job runs with defaults. `make eagle-submit` therefore passes `CMD` through the environment
+(`CMD=... sbatch --export=ALL`). Always check the first log lines (`pose_nll_w`, `neigh`, `ortho
+years`) against what you meant to submit.
+
 ## storage_5 (Lustre scratch): do not use it for this repo
 
 On 2026-09-23 `/mnt/storage_5/scratch/pl0467-01/mackop` gave `Input/output error` while cloning,
