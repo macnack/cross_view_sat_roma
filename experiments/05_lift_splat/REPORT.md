@@ -140,6 +140,13 @@ Sources: eval_aug_manifest.json, eval_aug_manifest_test.json, eval_erp_long_se2_
 
 ## Verdict (running notes; newest first)
 
+**2026-09-24, ERP-token query, 10 000 steps (`erp_long`).** Validation 12.3 m [10.6, 14.4], R@5 0.20;
+test 13.6 m [11.4, 15.0], R@5 0.15, >30 m 0.15 (2024: 11.8 m, R@5 0.21); SE(2) solver identical
+within noise. Tripling the schedule moved the test median by 0.7 m. Schedule is not the explanation;
+the decoder-only fine-tune cannot turn ground-view tokens into overhead-matchable ones. Task 6's gate
+fails as specified. A Loc²-style query-side projection head (trained, on top of the frozen encoder)
+is the remaining variant of this idea and is a design decision (OPEN in docs/decisions.md).
+
 **2026-09-24, ERP-token query (Task 6), 3000 steps.** Validation 13.5 m [10.6, 17.4], R@5 0.14;
 test 14.3 m [11.7, 18.3], R@5 0.10, >30 m 0.22, 192/200 matched. Same band as the lifted queries,
 three times worse than `ipm`. With the decoder fine-tuned alone (no query-side head), the ground-view
