@@ -52,8 +52,13 @@ class SatRoMa:
         "se2" = fixed-scale 2-point SE(2) RANSAC on the same hypothesis set (kick-off H7)."""
         self.m = SatRoMaMatcher.from_pretrained(checkpoint, device=device)
         self.use_means = use_means
-        if solver not in ("srt", "se2"):
-            raise ValueError(f"solver must be 'srt' or 'se2', got {solver!r}")
+        # NOTE (2026-09-23): with the published refine=False configuration the package's model="sRT"
+        # never reaches a solver: pipeline.estimate_homography returns the cv2.findHomography RANSAC
+        # init, i.e. an 8-DoF homography. "srt" here therefore means "package default = homography";
+        # "sim" is a 4-DoF similarity RANSAC (cv2.estimateAffinePartial2D via ransac_init) and "se2"
+        # the 3-DoF fixed-scale solver of bevloc.match.se2 (kick-off H7).
+        if solver not in ("srt", "sim", "se2"):
+            raise ValueError(f"solver must be 'srt', 'sim' or 'se2', got {solver!r}")
         self.solver = solver
         self.reproj = float(reproj_cells)
         self.seed = seed
@@ -166,8 +171,10 @@ class SatRoMa:
         else:
             if n_modes < 4:
                 return Match(None, None, n_modes, n_patches, n_multi, 0.0, argmax_cells)
+            # "srt" mirrors the package default on grid points (cv2.findHomography); "sim" is 4-DoF
             Hf, _, _ = ransac_init(placed, tgt, method=cv2.RANSAC, reproj_threshold=self.reproj,
-                                   max_iters=5000, confidence=0.995, quiet=True, estimator="similarity")
+                                   max_iters=5000, confidence=0.995, quiet=True,
+                                   estimator="homography" if self.solver == "srt" else "similarity")
             Hf = None if Hf is None else np.asarray(Hf, np.float64)
             if Hf is not None and (not np.isfinite(Hf).all() or np.array_equal(Hf, np.eye(3))):
                 Hf = None
@@ -217,7 +224,16 @@ class SatRoMa:
             n_patches = n_multi = 0
         Hf = np.asarray(r.H, dtype=np.float64)
         tgt = r.means_B if self.use_means else r.peaks_B
-        if self.solver == "se2":
+        if self.solver == "sim":
+            if n_modes < 4:
+                return Match(None, None, n_modes, n_patches, n_multi, 0.0, argmax_cells)
+            Hs, _, _ = ransac_init(np.asarray(r.pts_A, np.float64), np.asarray(tgt, np.float64),
+                                   method=cv2.RANSAC, reproj_threshold=self.reproj, max_iters=5000,
+                                   confidence=0.995, quiet=True, estimator="similarity")
+            if Hs is None or not np.isfinite(np.asarray(Hs)).all():
+                return Match(None, None, n_modes, n_patches, n_multi, 0.0, argmax_cells)
+            Hf = np.asarray(Hs, np.float64)
+        elif self.solver == "se2":
             # Same hypothesis set, but the consensus model has no scale (metric query, shared GSD).
             from bevloc.match.se2 import se2_ransac
             if n_modes < 2:
