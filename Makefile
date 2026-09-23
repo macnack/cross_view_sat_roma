@@ -156,11 +156,11 @@ eval-pose: ## score CKPT on MANIFEST with bootstrap CIs and a centre-guess chanc
 pose-report: ## experiments/05_lift_splat/REPORT.md from every eval_*.json
 	$(RUN) scripts/report_pose.py
 
-eagle-submit: ## submit CMD="scripts/x.py ..." JOB=name as one H100 job (run on Eagle, repo root)
+eagle-submit: ## submit CMD="scripts/x.py ..." JOB=name as one H100 job (run on Eagle, repo root); SBATCH_ARGS="--dependency=afterok:<id>" to chain
 	mkdir -p slurm/logs   # SLURM does not create the --output directory itself
 	@# CMD goes through the environment, NOT --export=ALL,CMD=...: sbatch splits --export on commas,
 	@# which silently truncated "--years 2025,2024,2021 ..." and "--seq-dists 0,2,5" (2026-09-23).
-	CMD="$(CMD)" sbatch --job-name=$(JOB) --export=ALL slurm/run.sbatch
+	CMD="$(CMD)" sbatch --job-name=$(JOB) --export=ALL $(SBATCH_ARGS) slurm/run.sbatch
 
 ipm-train: ## camera-only RGB-IPM query (frozen encoder, decoder fine-tune) with the Lift-Splat recipe; task 03 Task 2
 	$(RUN) scripts/train_lift_splat.py --config $(CONFIG) --query ipm --out experiments/05_lift_splat/fixtor_ipm \
