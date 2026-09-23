@@ -15,7 +15,7 @@ import torch
 from torch.utils.data import DataLoader
 
 from bevloc import config as C
-from bevloc.data.mapillary import MapillaryPairs, PoznanOrtho, collate, load_frames
+from bevloc.data.mapillary import MapillaryPairs, PoznanOrtho, collate, load_frames, poznan_tiles
 from bevloc.model.coarse import (
     FeatureQueryMatcher, coarse_targets, pose_heatmap_nll, ref_cell_validity, roma_coarse_loss,
 )
@@ -116,10 +116,7 @@ def validate(lift, matcher, loader, cfg, min_patch, local_radius, device, max_ba
 def open_years(years):
     out = {}
     for y in years:
-        paths = sorted(Path.home().glob(f"Github/sat_data/geoportal_poznan_15km2_*/year_{y}.tif"))
-        if len(paths) < 9:
-            raise SystemExit(f"expected 9 Poznań tiles for {y}, found {len(paths)}")
-        out[int(y)] = PoznanOrtho(paths)
+        out[int(y)] = PoznanOrtho(poznan_tiles(y))
     return out
 
 

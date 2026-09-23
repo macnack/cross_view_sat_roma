@@ -2,6 +2,7 @@
 from __future__ import annotations
 
 import json
+import os
 from pathlib import Path
 
 import cv2
@@ -16,6 +17,21 @@ from bevloc.data.ortho import Oriented, gt_homography, sample_negative_reference
 
 CS92 = "EPSG:2180"
 _TO_CS92 = Transformer.from_crs("EPSG:4326", CS92, always_xy=True)
+
+
+def sat_data_root() -> Path:
+    """Root of the geoportal / lantmäteriet tile folders.
+
+    Overridable with SAT_DATA_DIR for Eagle, where $HOME is not mounted on compute nodes."""
+    return Path(os.environ.get("SAT_DATA_DIR", str(Path.home() / "Github/sat_data")))
+
+
+def poznan_tiles(year: int) -> list[Path]:
+    paths = sorted(sat_data_root().glob(f"geoportal_poznan_15km2_*/year_{int(year)}.tif"))
+    if len(paths) < 9:
+        raise FileNotFoundError(
+            f"expected >= 9 Poznań tiles for {year} under {sat_data_root()}, found {len(paths)}")
+    return paths
 
 
 def rodrigues(r):

@@ -10,7 +10,7 @@ RUN      = PYTHONPATH=src:.pydeps $(PY)
 
 .PHONY: help deps test fetch stats mask lens viewer oxts odometry bevs mosaic smoke h1 targets overfit train calib all roma-viz mapillary mapillary-scan mapillary-sample ipm-smoke lift-overfit lift-splat lift-eval lift-splat-years lift-aug-viz lift-layers-viz lift-splat-aug lift-splat-pose-nll lift-splat-seq baselines-manifest fg2-smoke fg2-eval fg2-train bevsplat-smoke bevsplat-eval bevsplat-train baselines-report
 help:
-	@grep -E '^[a-z]+:.*##' $(MAKEFILE_LIST) | sed -E 's/:.*## /\t/' | expand -t 12
+	@grep -E '^[a-z0-9_-]+:.*##' $(MAKEFILE_LIST) | sed -E 's/:.*## /\t/' | expand -t 12
 
 deps:      ## install pure-python extras into ./.pydeps (does not touch the conda env)
 	$(PY) -m pip install -q --target .pydeps --no-deps einops
@@ -128,6 +128,18 @@ lift-splat-seq: ## multi-frame Mapillary splat (0/2/5 m) + pose NLL; prefers pos
 		--neighbour-radius 4 --neighbour-weight 0.5 \
 		--pose-nll-weight 0.5 \
 		--seq-dists 0,2,5
+
+# --- Eagle (docs/tasks/03_eval_density_solver_pf.md Task 0; slurm/README.md) ---
+EAGLE_DIR ?= /mnt/storage_5/scratch/pl0467-01/mackop/cross_view_sat_roma
+
+eagle-sync: ## push Fixtor panoramas, manifests and best checkpoints to Eagle scratch (13 GB first time)
+	rsync -avP data/mapillary/Fixtor eagle:$(EAGLE_DIR)/data/mapillary/
+	rsync -avP experiments/06_fg2_bevsplat/manifest*.json eagle:$(EAGLE_DIR)/experiments/06_fg2_bevsplat/
+	rsync -avP checkpoints/05_lift_splat_fixtor_*_best.pt eagle:$(EAGLE_DIR)/checkpoints/
+
+eagle-submit: ## submit CMD="scripts/x.py ..." JOB=name as one H100 job (run on Eagle, repo root)
+	mkdir -p slurm/logs   # SLURM does not create the --output directory itself
+	sbatch --job-name=$(JOB) --export=ALL,CMD="$(CMD)" slurm/run.sbatch
 
 # --- Task 02: FG² / BevSplat transfer (docs/tasks/02_fg2_bevsplat.md) ---
 baselines-manifest: ## immutable ≥200-frame Fixtor held-out manifest (2025+2024)

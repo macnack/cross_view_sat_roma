@@ -20,7 +20,7 @@ import numpy as np
 
 from bevloc import config as C
 from bevloc.baselines.common import ManifestFrame, frame_pose_proxy, write_manifest
-from bevloc.data.mapillary import PoznanOrtho, load_frames
+from bevloc.data.mapillary import PoznanOrtho, load_frames, poznan_tiles
 from bevloc.data.ortho import Oriented, gt_homography, sample_reference
 
 MAP_ROOT = C.REPO / "data/mapillary"
@@ -29,10 +29,7 @@ RESERVED = "irAsBUKtGCfhPHuMbmOcLd"
 
 
 def open_year(year: int) -> PoznanOrtho:
-    paths = sorted(Path.home().glob(f"Github/sat_data/geoportal_poznan_15km2_*/year_{year}.tif"))
-    if len(paths) < 9:
-        raise SystemExit(f"expected ≥9 Poznań tiles for {year}, found {len(paths)}")
-    return PoznanOrtho(paths)
+    return PoznanOrtho(poznan_tiles(year))
 
 
 def uniform_along_route(frames, n, seed=0):

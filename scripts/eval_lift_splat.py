@@ -15,7 +15,7 @@ import numpy as np
 import torch
 
 from bevloc import config as C
-from bevloc.data.mapillary import MapillaryPairs, PoznanOrtho, load_frames
+from bevloc.data.mapillary import MapillaryPairs, PoznanOrtho, load_frames, poznan_tiles
 from bevloc.eval.metrics import pose_errors, recall
 from bevloc.match.satroma import SatRoMa
 from bevloc.model.coarse import FeatureQueryMatcher, coarse_targets, ref_cell_validity
@@ -41,8 +41,7 @@ def main():
     L = cfg.lift
     dev = "cuda" if torch.cuda.is_available() else "cpu"
 
-    ortho_paths = sorted(Path.home().glob(f"Github/sat_data/geoportal_poznan_15km2_*/year_{a.year}.tif"))
-    ortho = PoznanOrtho(ortho_paths)
+    ortho = PoznanOrtho(poznan_tiles(a.year))
     frames = load_frames(VAL_SEQS, ortho, margin_m=L.margin_m)
     stride = max(1, len(frames) // a.n)
     frames = frames[::stride][: a.n]

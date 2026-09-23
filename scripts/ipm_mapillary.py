@@ -18,12 +18,13 @@ from pyproj import Geod, Transformer
 from rasterio.windows import Window
 
 from bevloc.bev.grid import BevGrid
+from bevloc.data.mapillary import sat_data_root
 
 ROOT = Path(__file__).resolve().parents[1]
 SEQ = ROOT / "data/mapillary/Fixtor/gXabFhpwk2dcl0i4518mDQ"
 ORTHO = {
-    "e357585_n505324": Path.home() / "Github/sat_data/geoportal_poznan_15km2_e357585_n505324_gmix/year_2025.tif",
-    "e359710_n505264": Path.home() / "Github/sat_data/geoportal_poznan_15km2_e359710_n505264_gmix/year_2025.tif",
+    "e357585_n505324": sat_data_root() / "geoportal_poznan_15km2_e357585_n505324_gmix/year_2025.tif",
+    "e359710_n505264": sat_data_root() / "geoportal_poznan_15km2_e359710_n505264_gmix/year_2025.tif",
 }
 
 
