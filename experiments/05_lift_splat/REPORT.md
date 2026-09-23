@@ -19,6 +19,22 @@ per-patch RANSAC, "means" = distinct GMM means.
 | aug | manifest_test | 2025 | srt | means | 16.5 [12.8, 18.7] | 0.12 [0.08, 0.17] | 0.34 | 0.15 | 200/200 |
 | aug | manifest_test | 2024 | srt | peak | 16.0 [13.1, 18.4] | 0.16 [0.11, 0.21] | 0.35 | 0.19 | 200/200 |
 | aug | manifest_test | 2024 | srt | means | 16.0 [12.1, 19.1] | 0.14 [0.09, 0.19] | 0.35 | 0.16 | 200/200 |
+| hybrid_warm | manifest | 2025 | srt | peak | 11.3 [10.5, 13.0] | 0.18 [0.14, 0.24] | 0.41 | 0.10 | 200/200 |
+| hybrid_warm | manifest | 2025 | srt | means | 10.5 [8.9, 11.9] | 0.17 [0.12, 0.22] | 0.47 | 0.10 | 200/200 |
+| hybrid_warm | manifest | 2024 | srt | peak | 10.4 [8.9, 13.0] | 0.18 [0.14, 0.24] | 0.49 | 0.10 | 199/200 |
+| hybrid_warm | manifest | 2024 | srt | means | 11.6 [9.4, 13.2] | 0.21 [0.16, 0.28] | 0.45 | 0.11 | 199/200 |
+| hybrid_warm | manifest_test | 2025 | srt | peak | 15.9 [13.4, 18.4] | 0.14 [0.09, 0.18] | 0.34 | 0.14 | 196/200 |
+| hybrid_warm | manifest_test | 2025 | srt | means | 15.1 [12.8, 17.9] | 0.15 [0.10, 0.20] | 0.36 | 0.13 | 198/200 |
+| hybrid_warm | manifest_test | 2024 | srt | peak | 16.4 [13.7, 20.4] | 0.14 [0.10, 0.20] | 0.34 | 0.17 | 199/200 |
+| hybrid_warm | manifest_test | 2024 | srt | means | 16.0 [13.4, 19.4] | 0.17 [0.11, 0.21] | 0.33 | 0.17 | 199/200 |
+| ipm | manifest | 2025 | srt | peak | 5.5 [4.3, 6.9] | 0.46 [0.39, 0.53] | 0.72 | 0.06 | 200/200 |
+| ipm | manifest | 2025 | srt | means | 5.9 [4.6, 7.0] | 0.45 [0.38, 0.52] | 0.71 | 0.04 | 200/200 |
+| ipm | manifest | 2024 | srt | peak | 5.9 [4.8, 6.7] | 0.45 [0.39, 0.52] | 0.71 | 0.05 | 199/200 |
+| ipm | manifest | 2024 | srt | means | 5.8 [5.0, 6.6] | 0.43 [0.37, 0.50] | 0.72 | 0.04 | 199/200 |
+| ipm | manifest_test | 2025 | srt | peak | 4.6 [3.9, 6.5] | 0.53 [0.45, 0.59] | 0.67 | 0.07 | 200/200 |
+| ipm | manifest_test | 2025 | srt | means | 4.5 [3.9, 5.9] | 0.52 [0.45, 0.59] | 0.69 | 0.07 | 200/200 |
+| ipm | manifest_test | 2024 | srt | peak | 5.7 [3.9, 7.5] | 0.48 [0.41, 0.56] | 0.66 | 0.11 | 200/200 |
+| ipm | manifest_test | 2024 | srt | means | 5.6 [4.1, 7.7] | 0.46 [0.39, 0.53] | 0.66 | 0.10 | 200/200 |
 | multi | manifest | 2025 | srt | peak | 11.9 [10.7, 14.6] | 0.15 [0.10, 0.20] | 0.40 | 0.12 | 200/200 |
 | multi | manifest | 2025 | srt | means | 11.5 [10.2, 13.4] | 0.15 [0.10, 0.20] | 0.41 | 0.12 | 200/200 |
 | multi | manifest | 2024 | srt | peak | 13.5 [11.6, 15.4] | 0.14 [0.09, 0.18] | 0.37 | 0.12 | 200/200 |
@@ -64,9 +80,22 @@ per-patch RANSAC, "means" = distinct GMM means.
 | centre guess | manifest_test | 2024 | – | chance | 18.3 [16.9, 19.4] | 0.04 [0.01, 0.07] | 0.15 | 0.01 | 200/200 |
 | centre guess | manifest_test | 2025 | – | chance | 18.3 [16.9, 19.4] | 0.04 [0.01, 0.07] | 0.15 | 0.01 | 200/200 |
 
-Sources: eval_aug_manifest.json, eval_aug_manifest_test.json, eval_multi_manifest.json, eval_multi_manifest_test.json, eval_pose_nll_manifest.json, eval_pose_nll_manifest_test.json, eval_seq_manifest.json, eval_seq_manifest_test.json, eval_seq_single_manifest.json, eval_seq_single_manifest_test.json, eval_years_manifest.json, eval_years_manifest_test.json.
+Sources: eval_aug_manifest.json, eval_aug_manifest_test.json, eval_hybrid_warm_manifest.json, eval_hybrid_warm_manifest_test.json, eval_ipm_manifest.json, eval_ipm_manifest_test.json, eval_multi_manifest.json, eval_multi_manifest_test.json, eval_pose_nll_manifest.json, eval_pose_nll_manifest_test.json, eval_seq_manifest.json, eval_seq_manifest_test.json, eval_seq_single_manifest.json, eval_seq_single_manifest_test.json, eval_years_manifest.json, eval_years_manifest_test.json.
 
 ## Verdict (running notes; newest first)
+
+**2026-09-23, Task 2 gate: the camera-only RGB-IPM query wins by a wide margin.** Flat-ground IPM of
+the panorama (camera height 1.7 m, no depth, no LiDAR, no learned lift) pushed through the frozen
+`sat493m` encoder with the decoder fine-tuned by the same recipe as every other run (3000 steps,
+cross-year references, hinge, pose NLL): validation 5.5 m median [4.3, 6.9], R@5 0.46, R@10 0.72;
+**test route 4.6 m [3.9, 6.5], R@5 0.53, R@10 0.67, >30 m 0.07**, cross-year 2024 5.7 m. Every lifted
+query sits at 15–18 m on the same test frames (chance 18.3 m). The intervals do not overlap; the
+median is a factor three to four lower; and the number holds on the route no training or selection
+saw, which the lifted queries' validation numbers did not. This reproduces BevSplat's Tab. 3 ordering
+(IPM ≫ Lift-Splat-Shoot under a fixed matcher) on our data. Consequences: the learned depth-bin lift
+is retired as the camera-only method; the "hybrid" reduces to "IPM + something for above-horizon
+content", and the question becomes what that something is (ERP-token query, plan Task 6, running);
+the training-time proxies (windowed CE 3.47, top-1 12.6 %) were the right early signal.
 
 **2026-09-23, TEST manifest (irAsBUK, reserved route, 200 frames × 2025/2024).** The six lifted-BEV
 checkpoints (`multi`, `years`, `aug`, `seq`, `seq_single`, `pose_nll`) score 14.9–17.5 m median at 2025

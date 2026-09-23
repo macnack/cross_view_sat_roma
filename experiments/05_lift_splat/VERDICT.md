@@ -1,5 +1,18 @@
 ## Verdict (running notes; newest first)
 
+**2026-09-23, Task 2 gate: the camera-only RGB-IPM query wins by a wide margin.** Flat-ground IPM of
+the panorama (camera height 1.7 m, no depth, no LiDAR, no learned lift) pushed through the frozen
+`sat493m` encoder with the decoder fine-tuned by the same recipe as every other run (3000 steps,
+cross-year references, hinge, pose NLL): validation 5.5 m median [4.3, 6.9], R@5 0.46, R@10 0.72;
+**test route 4.6 m [3.9, 6.5], R@5 0.53, R@10 0.67, >30 m 0.07**, cross-year 2024 5.7 m. Every lifted
+query sits at 15–18 m on the same test frames (chance 18.3 m). The intervals do not overlap; the
+median is a factor three to four lower; and the number holds on the route no training or selection
+saw, which the lifted queries' validation numbers did not. This reproduces BevSplat's Tab. 3 ordering
+(IPM ≫ Lift-Splat-Shoot under a fixed matcher) on our data. Consequences: the learned depth-bin lift
+is retired as the camera-only method; the "hybrid" reduces to "IPM + something for above-horizon
+content", and the question becomes what that something is (ERP-token query, plan Task 6, running);
+the training-time proxies (windowed CE 3.47, top-1 12.6 %) were the right early signal.
+
 **2026-09-23, TEST manifest (irAsBUK, reserved route, 200 frames × 2025/2024).** The six lifted-BEV
 checkpoints (`multi`, `years`, `aug`, `seq`, `seq_single`, `pose_nll`) score 14.9–17.5 m median at 2025
 against a centre-guess of 18.3 m; R@5 0.11–0.17 against 0.04; R@10 0.29–0.38 against 0.15; the `>30 m`
