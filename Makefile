@@ -63,8 +63,10 @@ bevs:      ## BEV variant panels; FRAMES="1000 2000" or ranges "500:1400:100"
 mosaic:    ## BEV mosaic at 0/1/5/10 m from REF (needs `make odometry`)
 	$(RUN) scripts/make_mosaic.py --config $(CONFIG) --ref $(REF)
 
-smoke:     ## Sat-RoMa wrapper end-to-end on a synthetic pair
-	$(RUN) scripts/smoke_satroma.py --config $(CONFIG)
+SOLVER ?=
+
+smoke:     ## Sat-RoMa wrapper end-to-end on a synthetic pair; SOLVER=se2 for the fixed-scale solver
+	$(RUN) scripts/smoke_satroma.py --config $(CONFIG) $(if $(SOLVER),--solver $(SOLVER),) --out experiments/00_smoke$(if $(SOLVER),_$(SOLVER),)
 
 h1:        ## zero-shot Sat-RoMa on EA-covered frames, plus the token cosine probe
 	$(RUN) scripts/h1_ea.py --config $(CONFIG)
@@ -168,6 +170,9 @@ lift-splat-pose-nll-only: ## A alone: pose-heatmap NLL, single frame, from aug b
 		--ckpt checkpoints/05_lift_splat_fixtor_aug_best.pt \
 		--years 2025,2024,2021 --val-year 2025 --steps 2000 \
 		--neighbour-radius 4 --neighbour-weight 0.5 --pose-nll-weight 0.5
+
+hybrid-viz: ## ERP | IPM ground mask | dense ground PCA | f_q PCA | pose boxes for a hybrid checkpoint (CKPT=, TAG=)
+	$(RUN) scripts/viz_hybrid.py --config $(CONFIG) --ckpt $(CKPT) --tag $(TAG)
 
 # --- Task 02: FG² / BevSplat transfer (docs/tasks/02_fg2_bevsplat.md) ---
 baselines-manifest: ## immutable ≥200-frame Fixtor held-out manifest (2025+2024)
