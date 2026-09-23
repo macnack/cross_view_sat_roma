@@ -115,3 +115,12 @@ reference:
   scale: 4
   max_offset_frac: 0.30
   max_rot_deg: 55.0
+
+pf:                               # scripts/track_route.py (task 03, Task 5): SE(2) particle filter
+  n: 512
+  init_sigma_xy: 10.0             # m, initial spread around the first proxy pose
+  init_sigma_yaw: 5.0             # deg
+  sigma_xy: 1.0                   # m per frame: injected motion noise = process noise
+  sigma_yaw: 1.0                  # deg per frame
+  sigma_yaw_obs: 5.0              # deg, compass observation
+  temperature: 1.0                # multiplies the heatmap log-likelihood (< 1 tempers over-confidence)

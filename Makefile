@@ -174,6 +174,12 @@ lift-splat-pose-nll-only: ## A alone: pose-heatmap NLL, single frame, from aug b
 hybrid-viz: ## ERP | IPM ground mask | dense ground PCA | f_q PCA | pose boxes for a hybrid checkpoint (CKPT=, TAG=)
 	$(RUN) scripts/viz_hybrid.py --config $(CONFIG) --ckpt $(CKPT) --tag $(TAG)
 
+ROUTE ?= Fixtor/IcRzj0wTLZX874qitxVsQa
+YEAR ?= 2025
+
+track-route: ## particle filter along ROUTE with CKPT's heatmap as observation (TAG=, YEAR=, TRACK_ARGS=)
+	$(RUN) scripts/track_route.py --config $(CONFIG) --ckpt $(CKPT) --route $(ROUTE) --year $(YEAR) --tag $(TAG) $(TRACK_ARGS)
+
 # --- Task 02: FG² / BevSplat transfer (docs/tasks/02_fg2_bevsplat.md) ---
 baselines-manifest: ## immutable ≥200-frame Fixtor held-out manifest (2025+2024)
 	$(RUN) scripts/build_baseline_manifest.py --out experiments/06_fg2_bevsplat/manifest.json --n 200
