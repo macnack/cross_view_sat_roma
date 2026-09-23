@@ -22,3 +22,9 @@
 [submodule "third_party/sat_roma_infer"]
 	path = third_party/sat_roma_infer
 	url = git@github.com:macnack/sat_roma_infer.git
+[submodule "third_party/BevSplat"]
+	path = third_party/BevSplat
+	url = https://github.com/wangqww/BevSplat.git
+[submodule "third_party/OrienterNet"]
+	path = third_party/OrienterNet
+	url = https://github.com/facebookresearch/OrienterNet.git
