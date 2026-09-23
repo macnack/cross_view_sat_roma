@@ -52,6 +52,9 @@ def main():
         lines.append(f"| centre guess | {man} | {year} | – | chance | {fmt(s)} |")
     lines.append("")
     lines.append(f"Sources: {', '.join(f.name for f in files) or 'none yet'}.")
+    verdict = Path(a.out).parent / "VERDICT.md"          # hand-written interpretation, kept next to the table
+    if verdict.exists():
+        lines += ["", verdict.read_text().rstrip()]
     Path(a.out).write_text("\n".join(lines) + "\n")
     print(f"wrote {a.out} ({len(files)} eval files)")
 
