@@ -15,28 +15,69 @@ per-patch RANSAC, "means" = distinct GMM means.
 | aug | manifest | 2025 | srt | means | 11.3 [9.1, 13.9] | 0.19 [0.14, 0.24] | 0.47 | 0.11 | 200/200 |
 | aug | manifest | 2024 | srt | peak | 12.5 [10.6, 14.1] | 0.19 [0.14, 0.24] | 0.41 | 0.09 | 200/200 |
 | aug | manifest | 2024 | srt | means | 12.0 [10.6, 13.9] | 0.21 [0.16, 0.28] | 0.41 | 0.10 | 200/200 |
+| aug | manifest_test | 2025 | srt | peak | 17.2 [12.8, 19.0] | 0.13 [0.09, 0.18] | 0.34 | 0.17 | 200/200 |
+| aug | manifest_test | 2025 | srt | means | 16.5 [12.8, 18.7] | 0.12 [0.08, 0.17] | 0.34 | 0.15 | 200/200 |
+| aug | manifest_test | 2024 | srt | peak | 16.0 [13.1, 18.4] | 0.16 [0.11, 0.21] | 0.35 | 0.19 | 200/200 |
+| aug | manifest_test | 2024 | srt | means | 16.0 [12.1, 19.1] | 0.14 [0.09, 0.19] | 0.35 | 0.16 | 200/200 |
 | multi | manifest | 2025 | srt | peak | 11.9 [10.7, 14.6] | 0.15 [0.10, 0.20] | 0.40 | 0.12 | 200/200 |
 | multi | manifest | 2025 | srt | means | 11.5 [10.2, 13.4] | 0.15 [0.10, 0.20] | 0.41 | 0.12 | 200/200 |
 | multi | manifest | 2024 | srt | peak | 13.5 [11.6, 15.4] | 0.14 [0.09, 0.18] | 0.37 | 0.12 | 200/200 |
 | multi | manifest | 2024 | srt | means | 13.2 [11.2, 15.4] | 0.16 [0.11, 0.21] | 0.39 | 0.10 | 200/200 |
+| multi | manifest_test | 2025 | srt | peak | 17.5 [14.3, 20.3] | 0.11 [0.07, 0.15] | 0.29 | 0.17 | 200/200 |
+| multi | manifest_test | 2025 | srt | means | 16.7 [13.7, 18.8] | 0.10 [0.06, 0.14] | 0.29 | 0.15 | 200/200 |
+| multi | manifest_test | 2024 | srt | peak | 16.3 [12.8, 19.6] | 0.12 [0.07, 0.17] | 0.34 | 0.19 | 200/200 |
+| multi | manifest_test | 2024 | srt | means | 15.2 [12.3, 18.1] | 0.11 [0.07, 0.15] | 0.35 | 0.18 | 200/200 |
+| pose_nll | manifest | 2025 | srt | peak | 13.6 [10.8, 15.3] | 0.14 [0.09, 0.18] | 0.41 | 0.11 | 200/200 |
+| pose_nll | manifest | 2025 | srt | means | 13.3 [10.9, 15.2] | 0.13 [0.08, 0.18] | 0.39 | 0.12 | 200/200 |
+| pose_nll | manifest | 2024 | srt | peak | 13.1 [11.7, 15.8] | 0.18 [0.14, 0.24] | 0.39 | 0.13 | 199/200 |
+| pose_nll | manifest | 2024 | srt | means | 12.3 [10.8, 13.6] | 0.17 [0.12, 0.23] | 0.39 | 0.12 | 199/200 |
+| pose_nll | manifest_test | 2025 | srt | peak | 16.6 [12.9, 19.8] | 0.12 [0.08, 0.17] | 0.32 | 0.17 | 200/200 |
+| pose_nll | manifest_test | 2025 | srt | means | 15.2 [12.3, 19.2] | 0.12 [0.09, 0.17] | 0.33 | 0.17 | 200/200 |
+| pose_nll | manifest_test | 2024 | srt | peak | 16.5 [14.0, 21.5] | 0.12 [0.07, 0.17] | 0.29 | 0.21 | 200/200 |
+| pose_nll | manifest_test | 2024 | srt | means | 16.2 [13.3, 21.5] | 0.09 [0.05, 0.13] | 0.29 | 0.21 | 200/200 |
 | seq | manifest | 2025 | srt | peak | 11.3 [9.7, 13.3] | 0.16 [0.12, 0.21] | 0.45 | 0.10 | 200/200 |
 | seq | manifest | 2025 | srt | means | 10.8 [9.3, 13.3] | 0.20 [0.14, 0.26] | 0.46 | 0.10 | 200/200 |
 | seq | manifest | 2024 | srt | peak | 13.0 [11.2, 15.5] | 0.17 [0.12, 0.23] | 0.40 | 0.10 | 200/200 |
 | seq | manifest | 2024 | srt | means | 12.1 [10.1, 14.1] | 0.20 [0.15, 0.26] | 0.43 | 0.10 | 200/200 |
+| seq | manifest_test | 2025 | srt | peak | 16.7 [13.0, 21.1] | 0.14 [0.09, 0.18] | 0.34 | 0.20 | 200/200 |
+| seq | manifest_test | 2025 | srt | means | 16.0 [13.9, 19.1] | 0.11 [0.07, 0.15] | 0.33 | 0.20 | 200/200 |
+| seq | manifest_test | 2024 | srt | peak | 16.2 [13.5, 20.6] | 0.13 [0.09, 0.18] | 0.34 | 0.21 | 200/200 |
+| seq | manifest_test | 2024 | srt | means | 15.6 [13.9, 19.0] | 0.10 [0.06, 0.13] | 0.32 | 0.21 | 200/200 |
 | seq_single | manifest | 2025 | srt | peak | 12.0 [9.5, 15.1] | 0.12 [0.08, 0.17] | 0.46 | 0.12 | 200/200 |
 | seq_single | manifest | 2025 | srt | means | 12.1 [10.1, 14.4] | 0.17 [0.12, 0.23] | 0.43 | 0.11 | 200/200 |
 | seq_single | manifest | 2024 | srt | peak | 13.5 [10.2, 15.6] | 0.17 [0.12, 0.21] | 0.41 | 0.14 | 200/200 |
 | seq_single | manifest | 2024 | srt | means | 11.7 [10.0, 13.5] | 0.17 [0.12, 0.22] | 0.42 | 0.11 | 200/200 |
+| seq_single | manifest_test | 2025 | srt | peak | 16.6 [14.2, 20.1] | 0.12 [0.07, 0.17] | 0.29 | 0.22 | 200/200 |
+| seq_single | manifest_test | 2025 | srt | means | 17.3 [14.3, 20.1] | 0.10 [0.07, 0.15] | 0.31 | 0.18 | 200/200 |
+| seq_single | manifest_test | 2024 | srt | peak | 17.8 [14.0, 23.8] | 0.11 [0.07, 0.15] | 0.30 | 0.23 | 200/200 |
+| seq_single | manifest_test | 2024 | srt | means | 18.2 [12.5, 22.6] | 0.11 [0.07, 0.15] | 0.30 | 0.23 | 200/200 |
 | years | manifest | 2025 | srt | peak | 12.4 [9.7, 15.1] | 0.15 [0.10, 0.21] | 0.45 | 0.10 | 200/200 |
 | years | manifest | 2025 | srt | means | 12.0 [9.8, 14.8] | 0.16 [0.11, 0.21] | 0.43 | 0.10 | 200/200 |
 | years | manifest | 2024 | srt | peak | 13.3 [11.2, 16.8] | 0.18 [0.13, 0.23] | 0.40 | 0.12 | 200/200 |
 | years | manifest | 2024 | srt | means | 12.3 [10.7, 15.3] | 0.17 [0.12, 0.22] | 0.39 | 0.12 | 200/200 |
+| years | manifest_test | 2025 | srt | peak | 14.9 [11.6, 18.9] | 0.17 [0.12, 0.21] | 0.38 | 0.19 | 200/200 |
+| years | manifest_test | 2025 | srt | means | 15.9 [12.5, 18.8] | 0.13 [0.09, 0.18] | 0.36 | 0.18 | 200/200 |
+| years | manifest_test | 2024 | srt | peak | 14.5 [12.0, 17.4] | 0.15 [0.10, 0.20] | 0.39 | 0.16 | 200/200 |
+| years | manifest_test | 2024 | srt | means | 14.3 [11.6, 17.2] | 0.15 [0.10, 0.20] | 0.37 | 0.16 | 200/200 |
 | centre guess | manifest | 2024 | – | chance | 16.9 [15.7, 17.8] | 0.05 [0.03, 0.08] | 0.17 | 0.01 | 200/200 |
 | centre guess | manifest | 2025 | – | chance | 16.9 [15.7, 17.8] | 0.05 [0.03, 0.08] | 0.17 | 0.01 | 200/200 |
+| centre guess | manifest_test | 2024 | – | chance | 18.3 [16.9, 19.4] | 0.04 [0.01, 0.07] | 0.15 | 0.01 | 200/200 |
+| centre guess | manifest_test | 2025 | – | chance | 18.3 [16.9, 19.4] | 0.04 [0.01, 0.07] | 0.15 | 0.01 | 200/200 |
 
-Sources: eval_aug_manifest.json, eval_multi_manifest.json, eval_seq_manifest.json, eval_seq_single_manifest.json, eval_years_manifest.json.
+Sources: eval_aug_manifest.json, eval_aug_manifest_test.json, eval_multi_manifest.json, eval_multi_manifest_test.json, eval_pose_nll_manifest.json, eval_pose_nll_manifest_test.json, eval_seq_manifest.json, eval_seq_manifest_test.json, eval_seq_single_manifest.json, eval_seq_single_manifest_test.json, eval_years_manifest.json, eval_years_manifest_test.json.
 
 ## Verdict (running notes; newest first)
+
+**2026-09-23, TEST manifest (irAsBUK, reserved route, 200 frames × 2025/2024).** The six lifted-BEV
+checkpoints (`multi`, `years`, `aug`, `seq`, `seq_single`, `pose_nll`) score 14.9–17.5 m median at 2025
+against a centre-guess of 18.3 m; R@5 0.11–0.17 against 0.04; R@10 0.29–0.38 against 0.15; the `>30 m`
+tail is 0.17–0.22 against 0.01. They are better than chance but by only 1–3 m of median, and every
+interval overlaps every other. The validation-route table below (11–13 m) was flattered by
+checkpoint selection on that route: the same checkpoints lose 3–5 m when moved to a route no
+training or selection ever saw. Multi-frame (`seq` vs `seq_single`) and pose NLL (`pose_nll`) change
+nothing. Implication: the learned depth-bin lift does not generalise; the query, not the loss, is the
+lever (plan Task 6, ERP-token query with placement after matching, is the response). Pending rows:
+`ipm`, `hybrid`, `hybrid_warm`.
 
 **2026-09-23, validation manifest (IcRzj, 200 frames × 2025/2024), single-frame re-scores.**
 The four Lift-Splat checkpoints (`multi`, `years`, `aug`, `seq`) are statistically indistinguishable:

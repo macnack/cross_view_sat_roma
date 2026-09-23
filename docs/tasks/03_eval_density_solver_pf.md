@@ -1352,3 +1352,53 @@ Ranked by expected payoff against the failure modes seen in this repo:
 5. **Depth foundation models as the training-time teacher instead of LiDAR.** Depth Any Camera (kick-off ref. 13) on the ERP gives metric-ish depth with the height known; it could supervise the depth head or the contact line where no LiDAR exists. Lower priority: 1 and 2 give placement without a dense depth network at all, which is the paper's premise.
 
 Recommendation: add 1 as a Task 3b (`bevloc/bev/semantic_contact.py`: segmenter wrapper, contact row per column, dynamic mask; a `hybrid` option `contact: semantic`), then 3+4 as one "OSM raster" task feeding both the reference channel and the H5 negatives, then 2. Each is a config-switchable variant of the existing query or reference, so the manifest evaluation from Task 1 scores it without new tooling.
+
+---
+
+## Task 6 (added 2026-09-23 after reading Loc², `docs/related/architecture_report_roma_losses.md` §6): ERP-token query, placement after matching
+
+**Why:** on the test manifest the four lifted-BEV checkpoints sit at 14.5–17.8 m median against a
+centre-guess of 18.3 m; the lift starves the query. Loc² (ICLR 2026) matches the panorama's own tokens
+to the aerial tokens and lifts only the matched points afterwards, and its App. A.2 shows the BEV-first
+variant of the same pipeline is substantially worse. Verified this evening: the released decoder accepts
+a 28×56 query grid (`gm_cls` (1, 3136, 28, 56)), and the package exposes the per-mode correspondences
+(`sat_roma.ransac.correspondence.find_gaussians` → `pts_A` as (col, row) query-patch indices, `means_B`,
+`peaks_B`, `covs_B`) so query points can be re-placed before consensus.
+
+**Files:**
+- Create: `src/bevloc/model/erp_query.py` (`ErpQuery`, `erp_placement`), `tests/test_erp_query.py`
+- Modify: `src/bevloc/model/coarse.py` (`coarse_targets(..., query_xy=None)`), `src/bevloc/model/query.py` (mode `erp`),
+  `src/bevloc/match/satroma.py` (`match_placed`), `scripts/train_lift_splat.py` and `scripts/eval_pose.py`
+  (use `query.placement(batch)` when present), `configs/default.yaml` (`erp:` section), `Makefile` (`erp-train`)
+
+**Interfaces:**
+- `erp_placement(h, w, erp_hw, R_w2c (B,3,3), height_m, n, cell_m, max_range_m) -> (xy (B,h,w,2) float, valid (B,h,w) bool)`:
+  for every ERP token centre ray, the ground intersection at the camera height expressed as **virtual BEV
+  pixel coordinates** (the 224 px / 0.25 m grid every other query uses: `u = n/2 − y/cell − 0.5`,
+  `v = n/2 − x/cell − 0.5`, x forward, y left). Tokens above the horizon or beyond `max_range_m` are invalid.
+- `ErpQuery(cfg).forward(batch, matcher) -> (f_q (B,1024,h,w), patch_frac (B,h,w))` with
+  `f_q = encoder(erp)[16]` untouched and `patch_frac = valid.float()`; `ErpQuery.placement(batch) -> (xy, valid)`.
+- `coarse_targets(H, patch_valid, ref_valid=None, ..., query_xy=None)`: when `query_xy` is given it replaces
+  the patch-centre grid, so the GT cell of an ERP token is where its placed ground point lands.
+- `SatRoMa.match_placed(f_q, f_s, xy (h,w,2), valid (h,w), scale_factor, H_gt=None) -> Match`: decoder →
+  zero invalid patches → `find_gaussians` → replace each mode's `pts_A` by the placed point in grid units
+  `k = (xy − (8 − 0.5)) / 16` → RANSAC (`ransac_init` similarity for `srt`, `se2_ransac` for `se2`) →
+  `convert_to_pixel_homography(H, in_patch_dim=14, out_patch_dim=56, crop_res=(224,224), map_res=(896,896))`.
+  The returned H is query-BEV-px → reference-px exactly like every other mode, so `pose_errors` applies.
+
+- [ ] **Step 1: failing tests** `tests/test_erp_query.py`: (a) the token looking at the ground 10 m ahead
+  (R = cam z north) places at virtual BEV px (u = n/2 − 0.5, v = n/2 − 40 − 0.5) at 0.25 m cells; tokens above
+  the horizon are invalid; (b) `coarse_targets` with `query_xy` and an identity-scale H returns the cell
+  containing that point; (c) `match_placed` on a synthetic `gm_cls` whose every valid token votes for the
+  cell its placed point maps to under an injected similarity recovers that transform within 0.5 cells.
+- [ ] **Step 2: implement**; the ERP validity mask is elevation-only (Mapillary has no ego mask).
+- [ ] **Step 3: trainer/eval wiring**: `--query erp` (T must be 1); `step()` passes `query_xy` to
+  `coarse_targets`; `eval_pose` and `track_route` call `match_placed` for this mode.
+- [ ] **Step 4: local smoke** `--query erp --overfit 4 --steps 40`: CE must fall; `n` supervised tokens
+  should be several hundred (against ~150–200 for the BEV queries).
+- [ ] **Step 5: Eagle**: `erp_train` 3000 steps with the standard recipe (cross-year, hinge, pose NLL 0.5, decoder
+  fine-tuned), evaluations on both manifests with `srt` and `se2` solvers.
+
+**Gate:** ERP query beats the best lifted query on the **test** manifest with non-overlapping median CIs, and its
+`>30 m` fraction drops. If it only matches, the hypothesis is not refuted but the front-end is not the lever
+either, and the next suspect is the reference side (map GSD / cross-year appearance).
