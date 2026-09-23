@@ -156,6 +156,11 @@ eval-pose: ## score CKPT on MANIFEST with bootstrap CIs and a centre-guess chanc
 pose-report: ## experiments/05_lift_splat/REPORT.md from every eval_*.json
 	$(RUN) scripts/report_pose.py
 
+eagle-pull: ## on Eagle: sync the checkout to the pushed branch (hard reset; the cluster checkout never has local commits)
+	@# `git pull` refuses when untracked result files (experiments/**/*.json written by jobs) collide with
+	@# files committed from the laptop; a hard reset to origin overwrites them with the committed copies.
+	git fetch -q origin && git reset -q --hard origin/$$(git rev-parse --abbrev-ref HEAD) && git log --oneline | head -1
+
 eagle-submit: ## submit CMD="scripts/x.py ..." JOB=name as one H100 job (run on Eagle, repo root); SBATCH_ARGS="--dependency=afterok:<id>" to chain
 	mkdir -p slurm/logs   # SLURM does not create the --output directory itself
 	@# CMD goes through the environment, NOT --export=ALL,CMD=...: sbatch splits --export on commas,
