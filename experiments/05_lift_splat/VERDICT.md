@@ -1,5 +1,20 @@
 ## Verdict (running notes; newest first)
 
+**2026-09-24, ERP-token query (Task 6), 3000 steps.** Validation 13.5 m [10.6, 17.4], R@5 0.14;
+test 14.3 m [11.7, 18.3], R@5 0.10, >30 m 0.22, 192/200 matched. Same band as the lifted queries,
+three times worse than `ipm`. With the decoder fine-tuned alone (no query-side head), the ground-view
+tokens do not become matchable to overhead tokens in 3000 steps; this is the same lesson as the
+hybrid row below (feature placement ≠ picture placement). A 10 000-step run (`erp_long`) is queued to
+separate "schedule" from "architecture"; if it does not move, the Loc²-style route needs a trained
+projection head on the panorama side, which is a design decision (docs/decisions.md OPEN).
+
+**2026-09-24, H7 solver ablation on the `ipm` query (test route, 2025).** Package default = 8-DoF
+homography 4.6 m [3.9, 6.5] / R@5 0.53 / >30 m 0.07; 4-DoF similarity 4.5 [3.9, 6.2] / 0.52 / 0.09;
+3-DoF fixed-scale SE(2) 4.5 [3.7, 5.8] / 0.52 / 0.09; validation route 5.5 / 5.8 / 5.7 m. All within
+one another's intervals; the tail does not shrink. H7 ("metric scale pays off") is not supported here:
+once the query is right, the consensus is not limited by solver freedom. The sheared boxes on the
+miss frames are a symptom, not the cause. `srt` stays the reference row; `se2` is kept as an option.
+
 **2026-09-23, hybrid query (dense IPM *features* + learned above-horizon splat, Task 3).** From
 scratch: validation 14.4 m, test 19.3 m (= chance, 28 % beyond 30 m, 175/200 matched); warm-started
 from the lift: 11.3 m / 15.9 m, i.e. the lift's own numbers. So placing the panorama's *tokens* on the
