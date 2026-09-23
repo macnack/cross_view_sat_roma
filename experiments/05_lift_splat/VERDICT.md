@@ -1,5 +1,17 @@
 ## Verdict (running notes; newest first)
 
+**2026-09-23, hybrid query (dense IPM *features* + learned above-horizon splat, Task 3).** From
+scratch: validation 14.4 m, test 19.3 m (= chance, 28 % beyond 30 m, 175/200 matched); warm-started
+from the lift: 11.3 m / 15.9 m, i.e. the lift's own numbers. So placing the panorama's *tokens* on the
+ground by exact IPM does not work, while placing the panorama's *pixels* on the ground and encoding
+that picture (the `ipm` query, 4.6 m on test) does. Reading: what the frozen `sat493m` encoder + decoder
+can match is an overhead-looking *image*; ground-view tokens moved to the right place are still
+ground-view tokens, and a 3000–4000-step decoder fine-tune does not bridge that view gap. This is a
+warning for the ERP-token query (Task 6), which hands ground-view tokens to the decoder directly and
+asks it to bridge the gap alone; its early validation CE (4.9 at step 1000 vs 3.7 for `ipm`) is
+consistent with that, and Loc² needs a trained projection head per branch plus long schedules for the
+same reason. Task 3's gate fails; the dense-ground idea survives only in pixel form (IPM picture).
+
 **2026-09-23, Task 2 gate: the camera-only RGB-IPM query wins by a wide margin.** Flat-ground IPM of
 the panorama (camera height 1.7 m, no depth, no LiDAR, no learned lift) pushed through the frozen
 `sat493m` encoder with the decoder fine-tuned by the same recipe as every other run (3000 steps,

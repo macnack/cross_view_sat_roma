@@ -19,6 +19,14 @@ per-patch RANSAC, "means" = distinct GMM means.
 | aug | manifest_test | 2025 | srt | means | 16.5 [12.8, 18.7] | 0.12 [0.08, 0.17] | 0.34 | 0.15 | 200/200 |
 | aug | manifest_test | 2024 | srt | peak | 16.0 [13.1, 18.4] | 0.16 [0.11, 0.21] | 0.35 | 0.19 | 200/200 |
 | aug | manifest_test | 2024 | srt | means | 16.0 [12.1, 19.1] | 0.14 [0.09, 0.19] | 0.35 | 0.16 | 200/200 |
+| hybrid | manifest | 2025 | srt | peak | 14.4 [12.6, 17.3] | 0.10 [0.06, 0.14] | 0.34 | 0.13 | 193/200 |
+| hybrid | manifest | 2025 | srt | means | 14.5 [11.8, 16.9] | 0.09 [0.05, 0.14] | 0.35 | 0.14 | 195/200 |
+| hybrid | manifest | 2024 | srt | peak | 15.6 [12.8, 18.6] | 0.09 [0.05, 0.12] | 0.30 | 0.17 | 187/200 |
+| hybrid | manifest | 2024 | srt | means | 13.9 [12.1, 16.5] | 0.10 [0.07, 0.14] | 0.32 | 0.15 | 193/200 |
+| hybrid | manifest_test | 2025 | srt | peak | 19.3 [16.2, 21.9] | 0.12 [0.08, 0.17] | 0.27 | 0.28 | 175/200 |
+| hybrid | manifest_test | 2025 | srt | means | 19.2 [15.4, 21.2] | 0.12 [0.08, 0.17] | 0.26 | 0.25 | 182/200 |
+| hybrid | manifest_test | 2024 | srt | peak | 17.2 [15.4, 21.2] | 0.12 [0.08, 0.17] | 0.29 | 0.26 | 183/200 |
+| hybrid | manifest_test | 2024 | srt | means | 17.3 [14.6, 21.0] | 0.12 [0.07, 0.17] | 0.28 | 0.25 | 189/200 |
 | hybrid_warm | manifest | 2025 | srt | peak | 11.3 [10.5, 13.0] | 0.18 [0.14, 0.24] | 0.41 | 0.10 | 200/200 |
 | hybrid_warm | manifest | 2025 | srt | means | 10.5 [8.9, 11.9] | 0.17 [0.12, 0.22] | 0.47 | 0.10 | 200/200 |
 | hybrid_warm | manifest | 2024 | srt | peak | 10.4 [8.9, 13.0] | 0.18 [0.14, 0.24] | 0.49 | 0.10 | 199/200 |
@@ -80,9 +88,21 @@ per-patch RANSAC, "means" = distinct GMM means.
 | centre guess | manifest_test | 2024 | – | chance | 18.3 [16.9, 19.4] | 0.04 [0.01, 0.07] | 0.15 | 0.01 | 200/200 |
 | centre guess | manifest_test | 2025 | – | chance | 18.3 [16.9, 19.4] | 0.04 [0.01, 0.07] | 0.15 | 0.01 | 200/200 |
 
-Sources: eval_aug_manifest.json, eval_aug_manifest_test.json, eval_hybrid_warm_manifest.json, eval_hybrid_warm_manifest_test.json, eval_ipm_manifest.json, eval_ipm_manifest_test.json, eval_multi_manifest.json, eval_multi_manifest_test.json, eval_pose_nll_manifest.json, eval_pose_nll_manifest_test.json, eval_seq_manifest.json, eval_seq_manifest_test.json, eval_seq_single_manifest.json, eval_seq_single_manifest_test.json, eval_years_manifest.json, eval_years_manifest_test.json.
+Sources: eval_aug_manifest.json, eval_aug_manifest_test.json, eval_hybrid_manifest.json, eval_hybrid_manifest_test.json, eval_hybrid_warm_manifest.json, eval_hybrid_warm_manifest_test.json, eval_ipm_manifest.json, eval_ipm_manifest_test.json, eval_multi_manifest.json, eval_multi_manifest_test.json, eval_pose_nll_manifest.json, eval_pose_nll_manifest_test.json, eval_seq_manifest.json, eval_seq_manifest_test.json, eval_seq_single_manifest.json, eval_seq_single_manifest_test.json, eval_years_manifest.json, eval_years_manifest_test.json.
 
 ## Verdict (running notes; newest first)
+
+**2026-09-23, hybrid query (dense IPM *features* + learned above-horizon splat, Task 3).** From
+scratch: validation 14.4 m, test 19.3 m (= chance, 28 % beyond 30 m, 175/200 matched); warm-started
+from the lift: 11.3 m / 15.9 m, i.e. the lift's own numbers. So placing the panorama's *tokens* on the
+ground by exact IPM does not work, while placing the panorama's *pixels* on the ground and encoding
+that picture (the `ipm` query, 4.6 m on test) does. Reading: what the frozen `sat493m` encoder + decoder
+can match is an overhead-looking *image*; ground-view tokens moved to the right place are still
+ground-view tokens, and a 3000–4000-step decoder fine-tune does not bridge that view gap. This is a
+warning for the ERP-token query (Task 6), which hands ground-view tokens to the decoder directly and
+asks it to bridge the gap alone; its early validation CE (4.9 at step 1000 vs 3.7 for `ipm`) is
+consistent with that, and Loc² needs a trained projection head per branch plus long schedules for the
+same reason. Task 3's gate fails; the dense-ground idea survives only in pixel form (IPM picture).
 
 **2026-09-23, Task 2 gate: the camera-only RGB-IPM query wins by a wide margin.** Flat-ground IPM of
 the panorama (camera height 1.7 m, no depth, no LiDAR, no learned lift) pushed through the frozen
