@@ -177,7 +177,7 @@ def main():
     }
     out = Path(a.out)
     write_manifest(entries, out, meta)
-    overview_plot(entries, out.parent / "manifest_overview.jpg")
+    overview_plot(entries, out.parent / f"{out.stem}_overview.jpg")
     # Snapshot config
     snap = out.parent / "config.yaml"
     if not snap.exists():
@@ -187,7 +187,7 @@ def main():
         "n_entries": len(entries),
         "n_unique_frames": a.n,
         "years": years,
-        "overview": str(out.parent / "manifest_overview.jpg"),
+        "overview": str(out.parent / f"{out.stem}_overview.jpg"),
     }, indent=2))
 
 

@@ -140,7 +140,7 @@ eagle-sync: ## push Fixtor panoramas, manifests and best checkpoints to Eagle sc
 	rsync -avP checkpoints/05_lift_splat_fixtor_*_best.pt eagle:$(EAGLE_DIR)/checkpoints/
 
 mapillary-seq: ## download one Mapillary sequence by id: SEQ=<sequence id> (env MAPILLARY_TOKEN)
-	MAPILLARY_TOKEN="$$MAPILLARY_TOKEN" $(RUN) -m mapillary_dl --sequence $(SEQ) --out data/mapillary/Fixtor
+	MAPILLARY_TOKEN="$$MAPILLARY_TOKEN" $(RUN) -m mapillary_dl --sequence $(SEQ) --out data/mapillary
 
 manifest-val:  ## 200-frame validation manifest on IcRzj (2025+2024)
 	$(RUN) scripts/build_baseline_manifest.py --config $(CONFIG) --seq Fixtor/IcRzj0wTLZX874qitxVsQa \
