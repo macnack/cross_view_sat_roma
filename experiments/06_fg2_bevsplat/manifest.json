@@ -2,7 +2,12 @@
   "meta": {
     "protocol": "docs/tasks/02_fg2_bevsplat.md",
     "held_out_seq": "IcRzj0wTLZX874qitxVsQa",
-    "reserved_untouched": "irAsBUKtGCfhPHuMbmOcLd",
+    "train_seqs": [
+      "iHfmEq03Tc6752Y4Ke8wlC",
+      "NWVA14Y83pMRsijaGFkmQS",
+      "gXabFhpwk2dcl0i4518mDQ",
+      "doQ3OhJBKe56c8UxjAFmat"
+    ],
     "n_frames": 200,
     "years": [
       2025,
@@ -21,7 +26,7 @@
     {
       "frame_id": "2095057974553082",
       "seq": "IcRzj0wTLZX874qitxVsQa",
-      "panorama": "/home/maciej/Github/cross_view_sat_roma/data/mapillary/Fixtor/IcRzj0wTLZX874qitxVsQa/images/2095057974553082.jpg",
+      "panorama": "data/mapillary/Fixtor/IcRzj0wTLZX874qitxVsQa/images/2095057974553082.jpg",
       "lon": 16.942552681217,
       "lat": 52.387112154194,
       "en": [
@@ -65,7 +70,7 @@
     {
       "frame_id": "2095057974553082",
       "seq": "IcRzj0wTLZX874qitxVsQa",
-      "panorama": "/home/maciej/Github/cross_view_sat_roma/data/mapillary/Fixtor/IcRzj0wTLZX874qitxVsQa/images/2095057974553082.jpg",
+      "panorama": "data/mapillary/Fixtor/IcRzj0wTLZX874qitxVsQa/images/2095057974553082.jpg",
       "lon": 16.942552681217,
       "lat": 52.387112154194,
       "en": [
@@ -109,7 +114,7 @@
     {
       "frame_id": "2134127433808624",
       "seq": "IcRzj0wTLZX874qitxVsQa",
-      "panorama": "/home/maciej/Github/cross_view_sat_roma/data/mapillary/Fixtor/IcRzj0wTLZX874qitxVsQa/images/2134127433808624.jpg",
+      "panorama": "data/mapillary/Fixtor/IcRzj0wTLZX874qitxVsQa/images/2134127433808624.jpg",
       "lon": 16.942662977395,
       "lat": 52.386784224326,
       "en": [
@@ -153,7 +158,7 @@
     {
       "frame_id": "2134127433808624",
       "seq": "IcRzj0wTLZX874qitxVsQa",
-      "panorama": "/home/maciej/Github/cross_view_sat_roma/data/mapillary/Fixtor/IcRzj0wTLZX874qitxVsQa/images/2134127433808624.jpg",
+      "panorama": "data/mapillary/Fixtor/IcRzj0wTLZX874qitxVsQa/images/2134127433808624.jpg",
       "lon": 16.942662977395,
       "lat": 52.386784224326,
       "en": [
@@ -197,7 +202,7 @@
     {
       "frame_id": "28398706986416513",
       "seq": "IcRzj0wTLZX874qitxVsQa",
-      "panorama": "/home/maciej/Github/cross_view_sat_roma/data/mapillary/Fixtor/IcRzj0wTLZX874qitxVsQa/images/28398706986416513.jpg",
+      "panorama": "data/mapillary/Fixtor/IcRzj0wTLZX874qitxVsQa/images/28398706986416513.jpg",
       "lon": 16.943065110006,
       "lat": 52.386753058958,
       "en": [
@@ -241,7 +246,7 @@
     {
       "frame_id": "28398706986416513",
       "seq": "IcRzj0wTLZX874qitxVsQa",
-      "panorama": "/home/maciej/Github/cross_view_sat_roma/data/mapillary/Fixtor/IcRzj0wTLZX874qitxVsQa/images/28398706986416513.jpg",
+      "panorama": "data/mapillary/Fixtor/IcRzj0wTLZX874qitxVsQa/images/28398706986416513.jpg",
       "lon": 16.943065110006,
       "lat": 52.386753058958,
       "en": [
@@ -285,7 +290,7 @@
     {
       "frame_id": "1100804636233191",
       "seq": "IcRzj0wTLZX874qitxVsQa",
-      "panorama": "/home/maciej/Github/cross_view_sat_roma/data/mapillary/Fixtor/IcRzj0wTLZX874qitxVsQa/images/1100804636233191.jpg",
+      "panorama": "data/mapillary/Fixtor/IcRzj0wTLZX874qitxVsQa/images/1100804636233191.jpg",
       "lon": 16.943571127305,
       "lat": 52.386806826036,
       "en": [
@@ -329,7 +334,7 @@
     {
       "frame_id": "1100804636233191",
       "seq": "IcRzj0wTLZX874qitxVsQa",
-      "panorama": "/home/maciej/Github/cross_view_sat_roma/data/mapillary/Fixtor/IcRzj0wTLZX874qitxVsQa/images/1100804636233191.jpg",
+      "panorama": "data/mapillary/Fixtor/IcRzj0wTLZX874qitxVsQa/images/1100804636233191.jpg",
       "lon": 16.943571127305,
       "lat": 52.386806826036,
       "en": [
@@ -373,7 +378,7 @@
     {
       "frame_id": "1794136951725433",
       "seq": "IcRzj0wTLZX874qitxVsQa",
-      "panorama": "/home/maciej/Github/cross_view_sat_roma/data/mapillary/Fixtor/IcRzj0wTLZX874qitxVsQa/images/1794136951725433.jpg",
+      "panorama": "data/mapillary/Fixtor/IcRzj0wTLZX874qitxVsQa/images/1794136951725433.jpg",
       "lon": 16.944065476168,
       "lat": 52.38686602522,
       "en": [
@@ -417,7 +422,7 @@
     {
       "frame_id": "1794136951725433",
       "seq": "IcRzj0wTLZX874qitxVsQa",
-      "panorama": "/home/maciej/Github/cross_view_sat_roma/data/mapillary/Fixtor/IcRzj0wTLZX874qitxVsQa/images/1794136951725433.jpg",
+      "panorama": "data/mapillary/Fixtor/IcRzj0wTLZX874qitxVsQa/images/1794136951725433.jpg",
       "lon": 16.944065476168,
       "lat": 52.38686602522,
       "en": [
@@ -461,7 +466,7 @@
     {
       "frame_id": "2250285992180932",
       "seq": "IcRzj0wTLZX874qitxVsQa",
-      "panorama": "/home/maciej/Github/cross_view_sat_roma/data/mapillary/Fixtor/IcRzj0wTLZX874qitxVsQa/images/2250285992180932.jpg",
+      "panorama": "data/mapillary/Fixtor/IcRzj0wTLZX874qitxVsQa/images/2250285992180932.jpg",
       "lon": 16.944282359392,
       "lat": 52.3866686759,
       "en": [
@@ -505,7 +510,7 @@
     {
       "frame_id": "2250285992180932",
       "seq": "IcRzj0wTLZX874qitxVsQa",
-      "panorama": "/home/maciej/Github/cross_view_sat_roma/data/mapillary/Fixtor/IcRzj0wTLZX874qitxVsQa/images/2250285992180932.jpg",
+      "panorama": "data/mapillary/Fixtor/IcRzj0wTLZX874qitxVsQa/images/2250285992180932.jpg",
       "lon": 16.944282359392,
       "lat": 52.3866686759,
       "en": [
@@ -549,7 +554,7 @@
     {
       "frame_id": "1113377307836084",
       "seq": "IcRzj0wTLZX874qitxVsQa",
-      "panorama": "/home/maciej/Github/cross_view_sat_roma/data/mapillary/Fixtor/IcRzj0wTLZX874qitxVsQa/images/1113377307836084.jpg",
+      "panorama": "data/mapillary/Fixtor/IcRzj0wTLZX874qitxVsQa/images/1113377307836084.jpg",
       "lon": 16.944441808314,
       "lat": 52.386386695037,
       "en": [
@@ -593,7 +598,7 @@
     {
       "frame_id": "1113377307836084",
       "seq": "IcRzj0wTLZX874qitxVsQa",
-      "panorama": "/home/maciej/Github/cross_view_sat_roma/data/mapillary/Fixtor/IcRzj0wTLZX874qitxVsQa/images/1113377307836084.jpg",
+      "panorama": "data/mapillary/Fixtor/IcRzj0wTLZX874qitxVsQa/images/1113377307836084.jpg",
       "lon": 16.944441808314,
       "lat": 52.386386695037,
       "en": [
@@ -637,7 +642,7 @@
     {
       "frame_id": "2163701757795311",
       "seq": "IcRzj0wTLZX874qitxVsQa",
-      "panorama": "/home/maciej/Github/cross_view_sat_roma/data/mapillary/Fixtor/IcRzj0wTLZX874qitxVsQa/images/2163701757795311.jpg",
+      "panorama": "data/mapillary/Fixtor/IcRzj0wTLZX874qitxVsQa/images/2163701757795311.jpg",
       "lon": 16.944929225133,
       "lat": 52.386448262225,
       "en": [
@@ -681,7 +686,7 @@
     {
       "frame_id": "2163701757795311",
       "seq": "IcRzj0wTLZX874qitxVsQa",
-      "panorama": "/home/maciej/Github/cross_view_sat_roma/data/mapillary/Fixtor/IcRzj0wTLZX874qitxVsQa/images/2163701757795311.jpg",
+      "panorama": "data/mapillary/Fixtor/IcRzj0wTLZX874qitxVsQa/images/2163701757795311.jpg",
       "lon": 16.944929225133,
       "lat": 52.386448262225,
       "en": [
@@ -725,7 +730,7 @@
     {
       "frame_id": "1407730031543039",
       "seq": "IcRzj0wTLZX874qitxVsQa",
-      "panorama": "/home/maciej/Github/cross_view_sat_roma/data/mapillary/Fixtor/IcRzj0wTLZX874qitxVsQa/images/1407730031543039.jpg",
+      "panorama": "data/mapillary/Fixtor/IcRzj0wTLZX874qitxVsQa/images/1407730031543039.jpg",
       "lon": 16.94460105151,
       "lat": 52.386394464521,
       "en": [
@@ -769,7 +774,7 @@
     {
       "frame_id": "1407730031543039",
       "seq": "IcRzj0wTLZX874qitxVsQa",
-      "panorama": "/home/maciej/Github/cross_view_sat_roma/data/mapillary/Fixtor/IcRzj0wTLZX874qitxVsQa/images/1407730031543039.jpg",
+      "panorama": "data/mapillary/Fixtor/IcRzj0wTLZX874qitxVsQa/images/1407730031543039.jpg",
       "lon": 16.94460105151,
       "lat": 52.386394464521,
       "en": [
@@ -813,7 +818,7 @@
     {
       "frame_id": "4644665985853547",
       "seq": "IcRzj0wTLZX874qitxVsQa",
-      "panorama": "/home/maciej/Github/cross_view_sat_roma/data/mapillary/Fixtor/IcRzj0wTLZX874qitxVsQa/images/4644665985853547.jpg",
+      "panorama": "data/mapillary/Fixtor/IcRzj0wTLZX874qitxVsQa/images/4644665985853547.jpg",
       "lon": 16.944325217407,
       "lat": 52.386565240522,
       "en": [
@@ -857,7 +862,7 @@
     {
       "frame_id": "4644665985853547",
       "seq": "IcRzj0wTLZX874qitxVsQa",
-      "panorama": "/home/maciej/Github/cross_view_sat_roma/data/mapillary/Fixtor/IcRzj0wTLZX874qitxVsQa/images/4644665985853547.jpg",
+      "panorama": "data/mapillary/Fixtor/IcRzj0wTLZX874qitxVsQa/images/4644665985853547.jpg",
       "lon": 16.944325217407,
       "lat": 52.386565240522,
       "en": [
@@ -901,7 +906,7 @@
     {
       "frame_id": "2298484727642838",
       "seq": "IcRzj0wTLZX874qitxVsQa",
-      "panorama": "/home/maciej/Github/cross_view_sat_roma/data/mapillary/Fixtor/IcRzj0wTLZX874qitxVsQa/images/2298484727642838.jpg",
+      "panorama": "data/mapillary/Fixtor/IcRzj0wTLZX874qitxVsQa/images/2298484727642838.jpg",
       "lon": 16.944244297129,
       "lat": 52.386857672518,
       "en": [
@@ -945,7 +950,7 @@
     {
       "frame_id": "2298484727642838",
       "seq": "IcRzj0wTLZX874qitxVsQa",
-      "panorama": "/home/maciej/Github/cross_view_sat_roma/data/mapillary/Fixtor/IcRzj0wTLZX874qitxVsQa/images/2298484727642838.jpg",
+      "panorama": "data/mapillary/Fixtor/IcRzj0wTLZX874qitxVsQa/images/2298484727642838.jpg",
       "lon": 16.944244297129,
       "lat": 52.386857672518,
       "en": [
@@ -989,7 +994,7 @@
     {
       "frame_id": "978411255289595",
       "seq": "IcRzj0wTLZX874qitxVsQa",
-      "panorama": "/home/maciej/Github/cross_view_sat_roma/data/mapillary/Fixtor/IcRzj0wTLZX874qitxVsQa/images/978411255289595.jpg",
+      "panorama": "data/mapillary/Fixtor/IcRzj0wTLZX874qitxVsQa/images/978411255289595.jpg",
       "lon": 16.944709604266,
       "lat": 52.386933865891,
       "en": [
@@ -1033,7 +1038,7 @@
     {
       "frame_id": "978411255289595",
       "seq": "IcRzj0wTLZX874qitxVsQa",
-      "panorama": "/home/maciej/Github/cross_view_sat_roma/data/mapillary/Fixtor/IcRzj0wTLZX874qitxVsQa/images/978411255289595.jpg",
+      "panorama": "data/mapillary/Fixtor/IcRzj0wTLZX874qitxVsQa/images/978411255289595.jpg",
       "lon": 16.944709604266,
       "lat": 52.386933865891,
       "en": [
@@ -1077,7 +1082,7 @@
     {
       "frame_id": "1394833675537922",
       "seq": "IcRzj0wTLZX874qitxVsQa",
-      "panorama": "/home/maciej/Github/cross_view_sat_roma/data/mapillary/Fixtor/IcRzj0wTLZX874qitxVsQa/images/1394833675537922.jpg",
+      "panorama": "data/mapillary/Fixtor/IcRzj0wTLZX874qitxVsQa/images/1394833675537922.jpg",
       "lon": 16.945192024683,
       "lat": 52.386888122661,
       "en": [
@@ -1121,7 +1126,7 @@
     {
       "frame_id": "1394833675537922",
       "seq": "IcRzj0wTLZX874qitxVsQa",
-      "panorama": "/home/maciej/Github/cross_view_sat_roma/data/mapillary/Fixtor/IcRzj0wTLZX874qitxVsQa/images/1394833675537922.jpg",
+      "panorama": "data/mapillary/Fixtor/IcRzj0wTLZX874qitxVsQa/images/1394833675537922.jpg",
       "lon": 16.945192024683,
       "lat": 52.386888122661,
       "en": [
@@ -1165,7 +1170,7 @@
     {
       "frame_id": "1395652132772836",
       "seq": "IcRzj0wTLZX874qitxVsQa",
-      "panorama": "/home/maciej/Github/cross_view_sat_roma/data/mapillary/Fixtor/IcRzj0wTLZX874qitxVsQa/images/1395652132772836.jpg",
+      "panorama": "data/mapillary/Fixtor/IcRzj0wTLZX874qitxVsQa/images/1395652132772836.jpg",
       "lon": 16.945312911993,
       "lat": 52.386628287629,
       "en": [
@@ -1209,7 +1214,7 @@
     {
       "frame_id": "1395652132772836",
       "seq": "IcRzj0wTLZX874qitxVsQa",
-      "panorama": "/home/maciej/Github/cross_view_sat_roma/data/mapillary/Fixtor/IcRzj0wTLZX874qitxVsQa/images/1395652132772836.jpg",
+      "panorama": "data/mapillary/Fixtor/IcRzj0wTLZX874qitxVsQa/images/1395652132772836.jpg",
       "lon": 16.945312911993,
       "lat": 52.386628287629,
       "en": [
@@ -1253,7 +1258,7 @@
     {
       "frame_id": "1400355921620343",
       "seq": "IcRzj0wTLZX874qitxVsQa",
-      "panorama": "/home/maciej/Github/cross_view_sat_roma/data/mapillary/Fixtor/IcRzj0wTLZX874qitxVsQa/images/1400355921620343.jpg",
+      "panorama": "data/mapillary/Fixtor/IcRzj0wTLZX874qitxVsQa/images/1400355921620343.jpg",
       "lon": 16.945220905359,
       "lat": 52.386348544028,
       "en": [
@@ -1297,7 +1302,7 @@
     {
       "frame_id": "1400355921620343",
       "seq": "IcRzj0wTLZX874qitxVsQa",
-      "panorama": "/home/maciej/Github/cross_view_sat_roma/data/mapillary/Fixtor/IcRzj0wTLZX874qitxVsQa/images/1400355921620343.jpg",
+      "panorama": "data/mapillary/Fixtor/IcRzj0wTLZX874qitxVsQa/images/1400355921620343.jpg",
       "lon": 16.945220905359,
       "lat": 52.386348544028,
       "en": [
@@ -1341,7 +1346,7 @@
     {
       "frame_id": "1659474219043827",
       "seq": "IcRzj0wTLZX874qitxVsQa",
-      "panorama": "/home/maciej/Github/cross_view_sat_roma/data/mapillary/Fixtor/IcRzj0wTLZX874qitxVsQa/images/1659474219043827.jpg",
+      "panorama": "data/mapillary/Fixtor/IcRzj0wTLZX874qitxVsQa/images/1659474219043827.jpg",
       "lon": 16.945075127522,
       "lat": 52.386043104455,
       "en": [
@@ -1385,7 +1390,7 @@
     {
       "frame_id": "1659474219043827",
       "seq": "IcRzj0wTLZX874qitxVsQa",
-      "panorama": "/home/maciej/Github/cross_view_sat_roma/data/mapillary/Fixtor/IcRzj0wTLZX874qitxVsQa/images/1659474219043827.jpg",
+      "panorama": "data/mapillary/Fixtor/IcRzj0wTLZX874qitxVsQa/images/1659474219043827.jpg",
       "lon": 16.945075127522,
       "lat": 52.386043104455,
       "en": [
@@ -1429,7 +1434,7 @@
     {
       "frame_id": "3757320467753222",
       "seq": "IcRzj0wTLZX874qitxVsQa",
-      "panorama": "/home/maciej/Github/cross_view_sat_roma/data/mapillary/Fixtor/IcRzj0wTLZX874qitxVsQa/images/3757320467753222.jpg",
+      "panorama": "data/mapillary/Fixtor/IcRzj0wTLZX874qitxVsQa/images/3757320467753222.jpg",
       "lon": 16.944936776159,
       "lat": 52.385769487163,
       "en": [
@@ -1473,7 +1478,7 @@
     {
       "frame_id": "3757320467753222",
       "seq": "IcRzj0wTLZX874qitxVsQa",
-      "panorama": "/home/maciej/Github/cross_view_sat_roma/data/mapillary/Fixtor/IcRzj0wTLZX874qitxVsQa/images/3757320467753222.jpg",
+      "panorama": "data/mapillary/Fixtor/IcRzj0wTLZX874qitxVsQa/images/3757320467753222.jpg",
       "lon": 16.944936776159,
       "lat": 52.385769487163,
       "en": [
@@ -1517,7 +1522,7 @@
     {
       "frame_id": "1084706981111921",
       "seq": "IcRzj0wTLZX874qitxVsQa",
-      "panorama": "/home/maciej/Github/cross_view_sat_roma/data/mapillary/Fixtor/IcRzj0wTLZX874qitxVsQa/images/1084706981111921.jpg",
+      "panorama": "data/mapillary/Fixtor/IcRzj0wTLZX874qitxVsQa/images/1084706981111921.jpg",
       "lon": 16.944780465332,
       "lat": 52.38548846153,
       "en": [
@@ -1561,7 +1566,7 @@
     {
       "frame_id": "1084706981111921",
       "seq": "IcRzj0wTLZX874qitxVsQa",
-      "panorama": "/home/maciej/Github/cross_view_sat_roma/data/mapillary/Fixtor/IcRzj0wTLZX874qitxVsQa/images/1084706981111921.jpg",
+      "panorama": "data/mapillary/Fixtor/IcRzj0wTLZX874qitxVsQa/images/1084706981111921.jpg",
       "lon": 16.944780465332,
       "lat": 52.38548846153,
       "en": [
@@ -1605,7 +1610,7 @@
     {
       "frame_id": "1569936184813606",
       "seq": "IcRzj0wTLZX874qitxVsQa",
-      "panorama": "/home/maciej/Github/cross_view_sat_roma/data/mapillary/Fixtor/IcRzj0wTLZX874qitxVsQa/images/1569936184813606.jpg",
+      "panorama": "data/mapillary/Fixtor/IcRzj0wTLZX874qitxVsQa/images/1569936184813606.jpg",
       "lon": 16.94465008467,
       "lat": 52.38520341224,
       "en": [
@@ -1649,7 +1654,7 @@
     {
       "frame_id": "1569936184813606",
       "seq": "IcRzj0wTLZX874qitxVsQa",
-      "panorama": "/home/maciej/Github/cross_view_sat_roma/data/mapillary/Fixtor/IcRzj0wTLZX874qitxVsQa/images/1569936184813606.jpg",
+      "panorama": "data/mapillary/Fixtor/IcRzj0wTLZX874qitxVsQa/images/1569936184813606.jpg",
       "lon": 16.94465008467,
       "lat": 52.38520341224,
       "en": [
@@ -1693,7 +1698,7 @@
     {
       "frame_id": "1966035434037497",
       "seq": "IcRzj0wTLZX874qitxVsQa",
-      "panorama": "/home/maciej/Github/cross_view_sat_roma/data/mapillary/Fixtor/IcRzj0wTLZX874qitxVsQa/images/1966035434037497.jpg",
+      "panorama": "data/mapillary/Fixtor/IcRzj0wTLZX874qitxVsQa/images/1966035434037497.jpg",
       "lon": 16.944504715099,
       "lat": 52.384915211235,
       "en": [
@@ -1737,7 +1742,7 @@
     {
       "frame_id": "1966035434037497",
       "seq": "IcRzj0wTLZX874qitxVsQa",
-      "panorama": "/home/maciej/Github/cross_view_sat_roma/data/mapillary/Fixtor/IcRzj0wTLZX874qitxVsQa/images/1966035434037497.jpg",
+      "panorama": "data/mapillary/Fixtor/IcRzj0wTLZX874qitxVsQa/images/1966035434037497.jpg",
       "lon": 16.944504715099,
       "lat": 52.384915211235,
       "en": [
@@ -1781,7 +1786,7 @@
     {
       "frame_id": "1897080597943369",
       "seq": "IcRzj0wTLZX874qitxVsQa",
-      "panorama": "/home/maciej/Github/cross_view_sat_roma/data/mapillary/Fixtor/IcRzj0wTLZX874qitxVsQa/images/1897080597943369.jpg",
+      "panorama": "data/mapillary/Fixtor/IcRzj0wTLZX874qitxVsQa/images/1897080597943369.jpg",
       "lon": 16.944340899428,
       "lat": 52.384615540035,
       "en": [
@@ -1825,7 +1830,7 @@
     {
       "frame_id": "1897080597943369",
       "seq": "IcRzj0wTLZX874qitxVsQa",
-      "panorama": "/home/maciej/Github/cross_view_sat_roma/data/mapillary/Fixtor/IcRzj0wTLZX874qitxVsQa/images/1897080597943369.jpg",
+      "panorama": "data/mapillary/Fixtor/IcRzj0wTLZX874qitxVsQa/images/1897080597943369.jpg",
       "lon": 16.944340899428,
       "lat": 52.384615540035,
       "en": [
@@ -1869,7 +1874,7 @@
     {
       "frame_id": "962616489483305",
       "seq": "IcRzj0wTLZX874qitxVsQa",
-      "panorama": "/home/maciej/Github/cross_view_sat_roma/data/mapillary/Fixtor/IcRzj0wTLZX874qitxVsQa/images/962616489483305.jpg",
+      "panorama": "data/mapillary/Fixtor/IcRzj0wTLZX874qitxVsQa/images/962616489483305.jpg",
       "lon": 16.944185660622,
       "lat": 52.384342723535,
       "en": [
@@ -1913,7 +1918,7 @@
     {
       "frame_id": "962616489483305",
       "seq": "IcRzj0wTLZX874qitxVsQa",
-      "panorama": "/home/maciej/Github/cross_view_sat_roma/data/mapillary/Fixtor/IcRzj0wTLZX874qitxVsQa/images/962616489483305.jpg",
+      "panorama": "data/mapillary/Fixtor/IcRzj0wTLZX874qitxVsQa/images/962616489483305.jpg",
       "lon": 16.944185660622,
       "lat": 52.384342723535,
       "en": [
@@ -1957,7 +1962,7 @@
     {
       "frame_id": "2210288512880939",
       "seq": "IcRzj0wTLZX874qitxVsQa",
-      "panorama": "/home/maciej/Github/cross_view_sat_roma/data/mapillary/Fixtor/IcRzj0wTLZX874qitxVsQa/images/2210288512880939.jpg",
+      "panorama": "data/mapillary/Fixtor/IcRzj0wTLZX874qitxVsQa/images/2210288512880939.jpg",
       "lon": 16.944059019708,
       "lat": 52.38404188794,
       "en": [
@@ -2001,7 +2006,7 @@
     {
       "frame_id": "2210288512880939",
       "seq": "IcRzj0wTLZX874qitxVsQa",
-      "panorama": "/home/maciej/Github/cross_view_sat_roma/data/mapillary/Fixtor/IcRzj0wTLZX874qitxVsQa/images/2210288512880939.jpg",
+      "panorama": "data/mapillary/Fixtor/IcRzj0wTLZX874qitxVsQa/images/2210288512880939.jpg",
       "lon": 16.944059019708,
       "lat": 52.38404188794,
       "en": [
@@ -2045,7 +2050,7 @@
     {
       "frame_id": "1039518862467428",
       "seq": "IcRzj0wTLZX874qitxVsQa",
-      "panorama": "/home/maciej/Github/cross_view_sat_roma/data/mapillary/Fixtor/IcRzj0wTLZX874qitxVsQa/images/1039518862467428.jpg",
+      "panorama": "data/mapillary/Fixtor/IcRzj0wTLZX874qitxVsQa/images/1039518862467428.jpg",
       "lon": 16.944274482973,
       "lat": 52.383804761793,
       "en": [
@@ -2089,7 +2094,7 @@
     {
       "frame_id": "1039518862467428",
       "seq": "IcRzj0wTLZX874qitxVsQa",
-      "panorama": "/home/maciej/Github/cross_view_sat_roma/data/mapillary/Fixtor/IcRzj0wTLZX874qitxVsQa/images/1039518862467428.jpg",
+      "panorama": "data/mapillary/Fixtor/IcRzj0wTLZX874qitxVsQa/images/1039518862467428.jpg",
       "lon": 16.944274482973,
       "lat": 52.383804761793,
       "en": [
@@ -2133,7 +2138,7 @@
     {
       "frame_id": "1068673502542792",
       "seq": "IcRzj0wTLZX874qitxVsQa",
-      "panorama": "/home/maciej/Github/cross_view_sat_roma/data/mapillary/Fixtor/IcRzj0wTLZX874qitxVsQa/images/1068673502542792.jpg",
+      "panorama": "data/mapillary/Fixtor/IcRzj0wTLZX874qitxVsQa/images/1068673502542792.jpg",
       "lon": 16.944757613339,
       "lat": 52.383786690277,
       "en": [
@@ -2177,7 +2182,7 @@
     {
       "frame_id": "1068673502542792",
       "seq": "IcRzj0wTLZX874qitxVsQa",
-      "panorama": "/home/maciej/Github/cross_view_sat_roma/data/mapillary/Fixtor/IcRzj0wTLZX874qitxVsQa/images/1068673502542792.jpg",
+      "panorama": "data/mapillary/Fixtor/IcRzj0wTLZX874qitxVsQa/images/1068673502542792.jpg",
       "lon": 16.944757613339,
       "lat": 52.383786690277,
       "en": [
@@ -2221,7 +2226,7 @@
     {
       "frame_id": "1614796256716672",
       "seq": "IcRzj0wTLZX874qitxVsQa",
-      "panorama": "/home/maciej/Github/cross_view_sat_roma/data/mapillary/Fixtor/IcRzj0wTLZX874qitxVsQa/images/1614796256716672.jpg",
+      "panorama": "data/mapillary/Fixtor/IcRzj0wTLZX874qitxVsQa/images/1614796256716672.jpg",
       "lon": 16.945251944161,
       "lat": 52.383849391095,
       "en": [
@@ -2265,7 +2270,7 @@
     {
       "frame_id": "1614796256716672",
       "seq": "IcRzj0wTLZX874qitxVsQa",
-      "panorama": "/home/maciej/Github/cross_view_sat_roma/data/mapillary/Fixtor/IcRzj0wTLZX874qitxVsQa/images/1614796256716672.jpg",
+      "panorama": "data/mapillary/Fixtor/IcRzj0wTLZX874qitxVsQa/images/1614796256716672.jpg",
       "lon": 16.945251944161,
       "lat": 52.383849391095,
       "en": [
@@ -2309,7 +2314,7 @@
     {
       "frame_id": "1623097549539635",
       "seq": "IcRzj0wTLZX874qitxVsQa",
-      "panorama": "/home/maciej/Github/cross_view_sat_roma/data/mapillary/Fixtor/IcRzj0wTLZX874qitxVsQa/images/1623097549539635.jpg",
+      "panorama": "data/mapillary/Fixtor/IcRzj0wTLZX874qitxVsQa/images/1623097549539635.jpg",
       "lon": 16.945706288663,
       "lat": 52.383918228313,
       "en": [
@@ -2353,7 +2358,7 @@
     {
       "frame_id": "1623097549539635",
       "seq": "IcRzj0wTLZX874qitxVsQa",
-      "panorama": "/home/maciej/Github/cross_view_sat_roma/data/mapillary/Fixtor/IcRzj0wTLZX874qitxVsQa/images/1623097549539635.jpg",
+      "panorama": "data/mapillary/Fixtor/IcRzj0wTLZX874qitxVsQa/images/1623097549539635.jpg",
       "lon": 16.945706288663,
       "lat": 52.383918228313,
       "en": [
@@ -2397,7 +2402,7 @@
     {
       "frame_id": "1585086595814553",
       "seq": "IcRzj0wTLZX874qitxVsQa",
-      "panorama": "/home/maciej/Github/cross_view_sat_roma/data/mapillary/Fixtor/IcRzj0wTLZX874qitxVsQa/images/1585086595814553.jpg",
+      "panorama": "data/mapillary/Fixtor/IcRzj0wTLZX874qitxVsQa/images/1585086595814553.jpg",
       "lon": 16.946217626001,
       "lat": 52.383989463671,
       "en": [
@@ -2441,7 +2446,7 @@
     {
       "frame_id": "1585086595814553",
       "seq": "IcRzj0wTLZX874qitxVsQa",
-      "panorama": "/home/maciej/Github/cross_view_sat_roma/data/mapillary/Fixtor/IcRzj0wTLZX874qitxVsQa/images/1585086595814553.jpg",
+      "panorama": "data/mapillary/Fixtor/IcRzj0wTLZX874qitxVsQa/images/1585086595814553.jpg",
       "lon": 16.946217626001,
       "lat": 52.383989463671,
       "en": [
@@ -2485,7 +2490,7 @@
     {
       "frame_id": "1605463537903045",
       "seq": "IcRzj0wTLZX874qitxVsQa",
-      "panorama": "/home/maciej/Github/cross_view_sat_roma/data/mapillary/Fixtor/IcRzj0wTLZX874qitxVsQa/images/1605463537903045.jpg",
+      "panorama": "data/mapillary/Fixtor/IcRzj0wTLZX874qitxVsQa/images/1605463537903045.jpg",
       "lon": 16.946664661748,
       "lat": 52.384058728557,
       "en": [
@@ -2529,7 +2534,7 @@
     {
       "frame_id": "1605463537903045",
       "seq": "IcRzj0wTLZX874qitxVsQa",
-      "panorama": "/home/maciej/Github/cross_view_sat_roma/data/mapillary/Fixtor/IcRzj0wTLZX874qitxVsQa/images/1605463537903045.jpg",
+      "panorama": "data/mapillary/Fixtor/IcRzj0wTLZX874qitxVsQa/images/1605463537903045.jpg",
       "lon": 16.946664661748,
       "lat": 52.384058728557,
       "en": [
@@ -2573,7 +2578,7 @@
     {
       "frame_id": "3789502397873420",
       "seq": "IcRzj0wTLZX874qitxVsQa",
-      "panorama": "/home/maciej/Github/cross_view_sat_roma/data/mapillary/Fixtor/IcRzj0wTLZX874qitxVsQa/images/3789502397873420.jpg",
+      "panorama": "data/mapillary/Fixtor/IcRzj0wTLZX874qitxVsQa/images/3789502397873420.jpg",
       "lon": 16.947150726505,
       "lat": 52.384126056388,
       "en": [
@@ -2617,7 +2622,7 @@
     {
       "frame_id": "3789502397873420",
       "seq": "IcRzj0wTLZX874qitxVsQa",
-      "panorama": "/home/maciej/Github/cross_view_sat_roma/data/mapillary/Fixtor/IcRzj0wTLZX874qitxVsQa/images/3789502397873420.jpg",
+      "panorama": "data/mapillary/Fixtor/IcRzj0wTLZX874qitxVsQa/images/3789502397873420.jpg",
       "lon": 16.947150726505,
       "lat": 52.384126056388,
       "en": [
@@ -2661,7 +2666,7 @@
     {
       "frame_id": "1950003419008286",
       "seq": "IcRzj0wTLZX874qitxVsQa",
-      "panorama": "/home/maciej/Github/cross_view_sat_roma/data/mapillary/Fixtor/IcRzj0wTLZX874qitxVsQa/images/1950003419008286.jpg",
+      "panorama": "data/mapillary/Fixtor/IcRzj0wTLZX874qitxVsQa/images/1950003419008286.jpg",
       "lon": 16.947638238494,
       "lat": 52.384199436711,
       "en": [
@@ -2705,7 +2710,7 @@
     {
       "frame_id": "1950003419008286",
       "seq": "IcRzj0wTLZX874qitxVsQa",
-      "panorama": "/home/maciej/Github/cross_view_sat_roma/data/mapillary/Fixtor/IcRzj0wTLZX874qitxVsQa/images/1950003419008286.jpg",
+      "panorama": "data/mapillary/Fixtor/IcRzj0wTLZX874qitxVsQa/images/1950003419008286.jpg",
       "lon": 16.947638238494,
       "lat": 52.384199436711,
       "en": [
@@ -2749,7 +2754,7 @@
     {
       "frame_id": "1783034616269773",
       "seq": "IcRzj0wTLZX874qitxVsQa",
-      "panorama": "/home/maciej/Github/cross_view_sat_roma/data/mapillary/Fixtor/IcRzj0wTLZX874qitxVsQa/images/1783034616269773.jpg",
+      "panorama": "data/mapillary/Fixtor/IcRzj0wTLZX874qitxVsQa/images/1783034616269773.jpg",
       "lon": 16.948091075227,
       "lat": 52.384255710205,
       "en": [
@@ -2793,7 +2798,7 @@
     {
       "frame_id": "1783034616269773",
       "seq": "IcRzj0wTLZX874qitxVsQa",
-      "panorama": "/home/maciej/Github/cross_view_sat_roma/data/mapillary/Fixtor/IcRzj0wTLZX874qitxVsQa/images/1783034616269773.jpg",
+      "panorama": "data/mapillary/Fixtor/IcRzj0wTLZX874qitxVsQa/images/1783034616269773.jpg",
       "lon": 16.948091075227,
       "lat": 52.384255710205,
       "en": [
@@ -2837,7 +2842,7 @@
     {
       "frame_id": "1751971182727263",
       "seq": "IcRzj0wTLZX874qitxVsQa",
-      "panorama": "/home/maciej/Github/cross_view_sat_roma/data/mapillary/Fixtor/IcRzj0wTLZX874qitxVsQa/images/1751971182727263.jpg",
+      "panorama": "data/mapillary/Fixtor/IcRzj0wTLZX874qitxVsQa/images/1751971182727263.jpg",
       "lon": 16.94860078249,
       "lat": 52.384318058831,
       "en": [
@@ -2881,7 +2886,7 @@
     {
       "frame_id": "1751971182727263",
       "seq": "IcRzj0wTLZX874qitxVsQa",
-      "panorama": "/home/maciej/Github/cross_view_sat_roma/data/mapillary/Fixtor/IcRzj0wTLZX874qitxVsQa/images/1751971182727263.jpg",
+      "panorama": "data/mapillary/Fixtor/IcRzj0wTLZX874qitxVsQa/images/1751971182727263.jpg",
       "lon": 16.94860078249,
       "lat": 52.384318058831,
       "en": [
@@ -2925,7 +2930,7 @@
     {
       "frame_id": "1041946372000040",
       "seq": "IcRzj0wTLZX874qitxVsQa",
-      "panorama": "/home/maciej/Github/cross_view_sat_roma/data/mapillary/Fixtor/IcRzj0wTLZX874qitxVsQa/images/1041946372000040.jpg",
+      "panorama": "data/mapillary/Fixtor/IcRzj0wTLZX874qitxVsQa/images/1041946372000040.jpg",
       "lon": 16.949062986749,
       "lat": 52.384374520504,
       "en": [
@@ -2969,7 +2974,7 @@
     {
       "frame_id": "1041946372000040",
       "seq": "IcRzj0wTLZX874qitxVsQa",
-      "panorama": "/home/maciej/Github/cross_view_sat_roma/data/mapillary/Fixtor/IcRzj0wTLZX874qitxVsQa/images/1041946372000040.jpg",
+      "panorama": "data/mapillary/Fixtor/IcRzj0wTLZX874qitxVsQa/images/1041946372000040.jpg",
       "lon": 16.949062986749,
       "lat": 52.384374520504,
       "en": [
@@ -3013,7 +3018,7 @@
     {
       "frame_id": "1058349307017059",
       "seq": "IcRzj0wTLZX874qitxVsQa",
-      "panorama": "/home/maciej/Github/cross_view_sat_roma/data/mapillary/Fixtor/IcRzj0wTLZX874qitxVsQa/images/1058349307017059.jpg",
+      "panorama": "data/mapillary/Fixtor/IcRzj0wTLZX874qitxVsQa/images/1058349307017059.jpg",
       "lon": 16.949525340946,
       "lat": 52.384425577188,
       "en": [
@@ -3057,7 +3062,7 @@
     {
       "frame_id": "1058349307017059",
       "seq": "IcRzj0wTLZX874qitxVsQa",
-      "panorama": "/home/maciej/Github/cross_view_sat_roma/data/mapillary/Fixtor/IcRzj0wTLZX874qitxVsQa/images/1058349307017059.jpg",
+      "panorama": "data/mapillary/Fixtor/IcRzj0wTLZX874qitxVsQa/images/1058349307017059.jpg",
       "lon": 16.949525340946,
       "lat": 52.384425577188,
       "en": [
@@ -3101,7 +3106,7 @@
     {
       "frame_id": "1588073185524588",
       "seq": "IcRzj0wTLZX874qitxVsQa",
-      "panorama": "/home/maciej/Github/cross_view_sat_roma/data/mapillary/Fixtor/IcRzj0wTLZX874qitxVsQa/images/1588073185524588.jpg",
+      "panorama": "data/mapillary/Fixtor/IcRzj0wTLZX874qitxVsQa/images/1588073185524588.jpg",
       "lon": 16.950029997907,
       "lat": 52.384488367015,
       "en": [
@@ -3145,7 +3150,7 @@
     {
       "frame_id": "1588073185524588",
       "seq": "IcRzj0wTLZX874qitxVsQa",
-      "panorama": "/home/maciej/Github/cross_view_sat_roma/data/mapillary/Fixtor/IcRzj0wTLZX874qitxVsQa/images/1588073185524588.jpg",
+      "panorama": "data/mapillary/Fixtor/IcRzj0wTLZX874qitxVsQa/images/1588073185524588.jpg",
       "lon": 16.950029997907,
       "lat": 52.384488367015,
       "en": [
@@ -3189,7 +3194,7 @@
     {
       "frame_id": "1098905325943467",
       "seq": "IcRzj0wTLZX874qitxVsQa",
-      "panorama": "/home/maciej/Github/cross_view_sat_roma/data/mapillary/Fixtor/IcRzj0wTLZX874qitxVsQa/images/1098905325943467.jpg",
+      "panorama": "data/mapillary/Fixtor/IcRzj0wTLZX874qitxVsQa/images/1098905325943467.jpg",
       "lon": 16.950525977975,
       "lat": 52.384546086428,
       "en": [
@@ -3233,7 +3238,7 @@
     {
       "frame_id": "1098905325943467",
       "seq": "IcRzj0wTLZX874qitxVsQa",
-      "panorama": "/home/maciej/Github/cross_view_sat_roma/data/mapillary/Fixtor/IcRzj0wTLZX874qitxVsQa/images/1098905325943467.jpg",
+      "panorama": "data/mapillary/Fixtor/IcRzj0wTLZX874qitxVsQa/images/1098905325943467.jpg",
       "lon": 16.950525977975,
       "lat": 52.384546086428,
       "en": [
@@ -3277,7 +3282,7 @@
     {
       "frame_id": "3499536660219793",
       "seq": "IcRzj0wTLZX874qitxVsQa",
-      "panorama": "/home/maciej/Github/cross_view_sat_roma/data/mapillary/Fixtor/IcRzj0wTLZX874qitxVsQa/images/3499536660219793.jpg",
+      "panorama": "data/mapillary/Fixtor/IcRzj0wTLZX874qitxVsQa/images/3499536660219793.jpg",
       "lon": 16.951014452884,
       "lat": 52.384593187038,
       "en": [
@@ -3321,7 +3326,7 @@
     {
       "frame_id": "3499536660219793",
       "seq": "IcRzj0wTLZX874qitxVsQa",
-      "panorama": "/home/maciej/Github/cross_view_sat_roma/data/mapillary/Fixtor/IcRzj0wTLZX874qitxVsQa/images/3499536660219793.jpg",
+      "panorama": "data/mapillary/Fixtor/IcRzj0wTLZX874qitxVsQa/images/3499536660219793.jpg",
       "lon": 16.951014452884,
       "lat": 52.384593187038,
       "en": [
@@ -3365,7 +3370,7 @@
     {
       "frame_id": "2175866539657391",
       "seq": "IcRzj0wTLZX874qitxVsQa",
-      "panorama": "/home/maciej/Github/cross_view_sat_roma/data/mapillary/Fixtor/IcRzj0wTLZX874qitxVsQa/images/2175866539657391.jpg",
+      "panorama": "data/mapillary/Fixtor/IcRzj0wTLZX874qitxVsQa/images/2175866539657391.jpg",
       "lon": 16.951497779212,
       "lat": 52.384637239569,
       "en": [
@@ -3409,7 +3414,7 @@
     {
       "frame_id": "2175866539657391",
       "seq": "IcRzj0wTLZX874qitxVsQa",
-      "panorama": "/home/maciej/Github/cross_view_sat_roma/data/mapillary/Fixtor/IcRzj0wTLZX874qitxVsQa/images/2175866539657391.jpg",
+      "panorama": "data/mapillary/Fixtor/IcRzj0wTLZX874qitxVsQa/images/2175866539657391.jpg",
       "lon": 16.951497779212,
       "lat": 52.384637239569,
       "en": [
@@ -3453,7 +3458,7 @@
     {
       "frame_id": "1470108621835604",
       "seq": "IcRzj0wTLZX874qitxVsQa",
-      "panorama": "/home/maciej/Github/cross_view_sat_roma/data/mapillary/Fixtor/IcRzj0wTLZX874qitxVsQa/images/1470108621835604.jpg",
+      "panorama": "data/mapillary/Fixtor/IcRzj0wTLZX874qitxVsQa/images/1470108621835604.jpg",
       "lon": 16.951934647451,
       "lat": 52.384697051395,
       "en": [
@@ -3497,7 +3502,7 @@
     {
       "frame_id": "1470108621835604",
       "seq": "IcRzj0wTLZX874qitxVsQa",
-      "panorama": "/home/maciej/Github/cross_view_sat_roma/data/mapillary/Fixtor/IcRzj0wTLZX874qitxVsQa/images/1470108621835604.jpg",
+      "panorama": "data/mapillary/Fixtor/IcRzj0wTLZX874qitxVsQa/images/1470108621835604.jpg",
       "lon": 16.951934647451,
       "lat": 52.384697051395,
       "en": [
@@ -3541,7 +3546,7 @@
     {
       "frame_id": "1261127602821029",
       "seq": "IcRzj0wTLZX874qitxVsQa",
-      "panorama": "/home/maciej/Github/cross_view_sat_roma/data/mapillary/Fixtor/IcRzj0wTLZX874qitxVsQa/images/1261127602821029.jpg",
+      "panorama": "data/mapillary/Fixtor/IcRzj0wTLZX874qitxVsQa/images/1261127602821029.jpg",
       "lon": 16.952293298196,
       "lat": 52.384545976676,
       "en": [
@@ -3585,7 +3590,7 @@
     {
       "frame_id": "1261127602821029",
       "seq": "IcRzj0wTLZX874qitxVsQa",
-      "panorama": "/home/maciej/Github/cross_view_sat_roma/data/mapillary/Fixtor/IcRzj0wTLZX874qitxVsQa/images/1261127602821029.jpg",
+      "panorama": "data/mapillary/Fixtor/IcRzj0wTLZX874qitxVsQa/images/1261127602821029.jpg",
       "lon": 16.952293298196,
       "lat": 52.384545976676,
       "en": [
@@ -3629,7 +3634,7 @@
     {
       "frame_id": "1810167326654101",
       "seq": "IcRzj0wTLZX874qitxVsQa",
-      "panorama": "/home/maciej/Github/cross_view_sat_roma/data/mapillary/Fixtor/IcRzj0wTLZX874qitxVsQa/images/1810167326654101.jpg",
+      "panorama": "data/mapillary/Fixtor/IcRzj0wTLZX874qitxVsQa/images/1810167326654101.jpg",
       "lon": 16.952396749369,
       "lat": 52.38424311067,
       "en": [
@@ -3673,7 +3678,7 @@
     {
       "frame_id": "1810167326654101",
       "seq": "IcRzj0wTLZX874qitxVsQa",
-      "panorama": "/home/maciej/Github/cross_view_sat_roma/data/mapillary/Fixtor/IcRzj0wTLZX874qitxVsQa/images/1810167326654101.jpg",
+      "panorama": "data/mapillary/Fixtor/IcRzj0wTLZX874qitxVsQa/images/1810167326654101.jpg",
       "lon": 16.952396749369,
       "lat": 52.38424311067,
       "en": [
@@ -3717,7 +3722,7 @@
     {
       "frame_id": "28353982287585850",
       "seq": "IcRzj0wTLZX874qitxVsQa",
-      "panorama": "/home/maciej/Github/cross_view_sat_roma/data/mapillary/Fixtor/IcRzj0wTLZX874qitxVsQa/images/28353982287585850.jpg",
+      "panorama": "data/mapillary/Fixtor/IcRzj0wTLZX874qitxVsQa/images/28353982287585850.jpg",
       "lon": 16.952497186263,
       "lat": 52.383937704615,
       "en": [
@@ -3761,7 +3766,7 @@
     {
       "frame_id": "28353982287585850",
       "seq": "IcRzj0wTLZX874qitxVsQa",
-      "panorama": "/home/maciej/Github/cross_view_sat_roma/data/mapillary/Fixtor/IcRzj0wTLZX874qitxVsQa/images/28353982287585850.jpg",
+      "panorama": "data/mapillary/Fixtor/IcRzj0wTLZX874qitxVsQa/images/28353982287585850.jpg",
       "lon": 16.952497186263,
       "lat": 52.383937704615,
       "en": [
@@ -3805,7 +3810,7 @@
     {
       "frame_id": "3724194881070199",
       "seq": "IcRzj0wTLZX874qitxVsQa",
-      "panorama": "/home/maciej/Github/cross_view_sat_roma/data/mapillary/Fixtor/IcRzj0wTLZX874qitxVsQa/images/3724194881070199.jpg",
+      "panorama": "data/mapillary/Fixtor/IcRzj0wTLZX874qitxVsQa/images/3724194881070199.jpg",
       "lon": 16.952591860146,
       "lat": 52.383660894965,
       "en": [
@@ -3849,7 +3854,7 @@
     {
       "frame_id": "3724194881070199",
       "seq": "IcRzj0wTLZX874qitxVsQa",
-      "panorama": "/home/maciej/Github/cross_view_sat_roma/data/mapillary/Fixtor/IcRzj0wTLZX874qitxVsQa/images/3724194881070199.jpg",
+      "panorama": "data/mapillary/Fixtor/IcRzj0wTLZX874qitxVsQa/images/3724194881070199.jpg",
       "lon": 16.952591860146,
       "lat": 52.383660894965,
       "en": [
@@ -3893,7 +3898,7 @@
     {
       "frame_id": "2127011918227183",
       "seq": "IcRzj0wTLZX874qitxVsQa",
-      "panorama": "/home/maciej/Github/cross_view_sat_roma/data/mapillary/Fixtor/IcRzj0wTLZX874qitxVsQa/images/2127011918227183.jpg",
+      "panorama": "data/mapillary/Fixtor/IcRzj0wTLZX874qitxVsQa/images/2127011918227183.jpg",
       "lon": 16.952484088482,
       "lat": 52.383411713028,
       "en": [
@@ -3937,7 +3942,7 @@
     {
       "frame_id": "2127011918227183",
       "seq": "IcRzj0wTLZX874qitxVsQa",
-      "panorama": "/home/maciej/Github/cross_view_sat_roma/data/mapillary/Fixtor/IcRzj0wTLZX874qitxVsQa/images/2127011918227183.jpg",
+      "panorama": "data/mapillary/Fixtor/IcRzj0wTLZX874qitxVsQa/images/2127011918227183.jpg",
       "lon": 16.952484088482,
       "lat": 52.383411713028,
       "en": [
@@ -3981,7 +3986,7 @@
     {
       "frame_id": "1050395951111401",
       "seq": "IcRzj0wTLZX874qitxVsQa",
-      "panorama": "/home/maciej/Github/cross_view_sat_roma/data/mapillary/Fixtor/IcRzj0wTLZX874qitxVsQa/images/1050395951111401.jpg",
+      "panorama": "data/mapillary/Fixtor/IcRzj0wTLZX874qitxVsQa/images/1050395951111401.jpg",
       "lon": 16.952552639993,
       "lat": 52.383113322294,
       "en": [
@@ -4025,7 +4030,7 @@
     {
       "frame_id": "1050395951111401",
       "seq": "IcRzj0wTLZX874qitxVsQa",
-      "panorama": "/home/maciej/Github/cross_view_sat_roma/data/mapillary/Fixtor/IcRzj0wTLZX874qitxVsQa/images/1050395951111401.jpg",
+      "panorama": "data/mapillary/Fixtor/IcRzj0wTLZX874qitxVsQa/images/1050395951111401.jpg",
       "lon": 16.952552639993,
       "lat": 52.383113322294,
       "en": [
@@ -4069,7 +4074,7 @@
     {
       "frame_id": "1833929260931559",
       "seq": "IcRzj0wTLZX874qitxVsQa",
-      "panorama": "/home/maciej/Github/cross_view_sat_roma/data/mapillary/Fixtor/IcRzj0wTLZX874qitxVsQa/images/1833929260931559.jpg",
+      "panorama": "data/mapillary/Fixtor/IcRzj0wTLZX874qitxVsQa/images/1833929260931559.jpg",
       "lon": 16.952645592013,
       "lat": 52.382820220787,
       "en": [
@@ -4113,7 +4118,7 @@
     {
       "frame_id": "1833929260931559",
       "seq": "IcRzj0wTLZX874qitxVsQa",
-      "panorama": "/home/maciej/Github/cross_view_sat_roma/data/mapillary/Fixtor/IcRzj0wTLZX874qitxVsQa/images/1833929260931559.jpg",
+      "panorama": "data/mapillary/Fixtor/IcRzj0wTLZX874qitxVsQa/images/1833929260931559.jpg",
       "lon": 16.952645592013,
       "lat": 52.382820220787,
       "en": [
@@ -4157,7 +4162,7 @@
     {
       "frame_id": "1547432720042956",
       "seq": "IcRzj0wTLZX874qitxVsQa",
-      "panorama": "/home/maciej/Github/cross_view_sat_roma/data/mapillary/Fixtor/IcRzj0wTLZX874qitxVsQa/images/1547432720042956.jpg",
+      "panorama": "data/mapillary/Fixtor/IcRzj0wTLZX874qitxVsQa/images/1547432720042956.jpg",
       "lon": 16.952738765675,
       "lat": 52.382527936629,
       "en": [
@@ -4201,7 +4206,7 @@
     {
       "frame_id": "1547432720042956",
       "seq": "IcRzj0wTLZX874qitxVsQa",
-      "panorama": "/home/maciej/Github/cross_view_sat_roma/data/mapillary/Fixtor/IcRzj0wTLZX874qitxVsQa/images/1547432720042956.jpg",
+      "panorama": "data/mapillary/Fixtor/IcRzj0wTLZX874qitxVsQa/images/1547432720042956.jpg",
       "lon": 16.952738765675,
       "lat": 52.382527936629,
       "en": [
@@ -4245,7 +4250,7 @@
     {
       "frame_id": "948728088280240",
       "seq": "IcRzj0wTLZX874qitxVsQa",
-      "panorama": "/home/maciej/Github/cross_view_sat_roma/data/mapillary/Fixtor/IcRzj0wTLZX874qitxVsQa/images/948728088280240.jpg",
+      "panorama": "data/mapillary/Fixtor/IcRzj0wTLZX874qitxVsQa/images/948728088280240.jpg",
       "lon": 16.952978703342,
       "lat": 52.382285506928,
       "en": [
@@ -4289,7 +4294,7 @@
     {
       "frame_id": "948728088280240",
       "seq": "IcRzj0wTLZX874qitxVsQa",
-      "panorama": "/home/maciej/Github/cross_view_sat_roma/data/mapillary/Fixtor/IcRzj0wTLZX874qitxVsQa/images/948728088280240.jpg",
+      "panorama": "data/mapillary/Fixtor/IcRzj0wTLZX874qitxVsQa/images/948728088280240.jpg",
       "lon": 16.952978703342,
       "lat": 52.382285506928,
       "en": [
@@ -4333,7 +4338,7 @@
     {
       "frame_id": "1085515110888108",
       "seq": "IcRzj0wTLZX874qitxVsQa",
-      "panorama": "/home/maciej/Github/cross_view_sat_roma/data/mapillary/Fixtor/IcRzj0wTLZX874qitxVsQa/images/1085515110888108.jpg",
+      "panorama": "data/mapillary/Fixtor/IcRzj0wTLZX874qitxVsQa/images/1085515110888108.jpg",
       "lon": 16.953095691831,
       "lat": 52.38201926652,
       "en": [
@@ -4377,7 +4382,7 @@
     {
       "frame_id": "1085515110888108",
       "seq": "IcRzj0wTLZX874qitxVsQa",
-      "panorama": "/home/maciej/Github/cross_view_sat_roma/data/mapillary/Fixtor/IcRzj0wTLZX874qitxVsQa/images/1085515110888108.jpg",
+      "panorama": "data/mapillary/Fixtor/IcRzj0wTLZX874qitxVsQa/images/1085515110888108.jpg",
       "lon": 16.953095691831,
       "lat": 52.38201926652,
       "en": [
@@ -4421,7 +4426,7 @@
     {
       "frame_id": "1414526570784660",
       "seq": "IcRzj0wTLZX874qitxVsQa",
-      "panorama": "/home/maciej/Github/cross_view_sat_roma/data/mapillary/Fixtor/IcRzj0wTLZX874qitxVsQa/images/1414526570784660.jpg",
+      "panorama": "data/mapillary/Fixtor/IcRzj0wTLZX874qitxVsQa/images/1414526570784660.jpg",
       "lon": 16.95342500523,
       "lat": 52.381889410766,
       "en": [
@@ -4465,7 +4470,7 @@
     {
       "frame_id": "1414526570784660",
       "seq": "IcRzj0wTLZX874qitxVsQa",
-      "panorama": "/home/maciej/Github/cross_view_sat_roma/data/mapillary/Fixtor/IcRzj0wTLZX874qitxVsQa/images/1414526570784660.jpg",
+      "panorama": "data/mapillary/Fixtor/IcRzj0wTLZX874qitxVsQa/images/1414526570784660.jpg",
       "lon": 16.95342500523,
       "lat": 52.381889410766,
       "en": [
@@ -4509,7 +4514,7 @@
     {
       "frame_id": "4655499598016038",
       "seq": "IcRzj0wTLZX874qitxVsQa",
-      "panorama": "/home/maciej/Github/cross_view_sat_roma/data/mapillary/Fixtor/IcRzj0wTLZX874qitxVsQa/images/4655499598016038.jpg",
+      "panorama": "data/mapillary/Fixtor/IcRzj0wTLZX874qitxVsQa/images/4655499598016038.jpg",
       "lon": 16.953928753667,
       "lat": 52.38194774015,
       "en": [
@@ -4553,7 +4558,7 @@
     {
       "frame_id": "4655499598016038",
       "seq": "IcRzj0wTLZX874qitxVsQa",
-      "panorama": "/home/maciej/Github/cross_view_sat_roma/data/mapillary/Fixtor/IcRzj0wTLZX874qitxVsQa/images/4655499598016038.jpg",
+      "panorama": "data/mapillary/Fixtor/IcRzj0wTLZX874qitxVsQa/images/4655499598016038.jpg",
       "lon": 16.953928753667,
       "lat": 52.38194774015,
       "en": [
@@ -4597,7 +4602,7 @@
     {
       "frame_id": "3033300290207352",
       "seq": "IcRzj0wTLZX874qitxVsQa",
-      "panorama": "/home/maciej/Github/cross_view_sat_roma/data/mapillary/Fixtor/IcRzj0wTLZX874qitxVsQa/images/3033300290207352.jpg",
+      "panorama": "data/mapillary/Fixtor/IcRzj0wTLZX874qitxVsQa/images/3033300290207352.jpg",
       "lon": 16.954420640667,
       "lat": 52.382003472741,
       "en": [
@@ -4641,7 +4646,7 @@
     {
       "frame_id": "3033300290207352",
       "seq": "IcRzj0wTLZX874qitxVsQa",
-      "panorama": "/home/maciej/Github/cross_view_sat_roma/data/mapillary/Fixtor/IcRzj0wTLZX874qitxVsQa/images/3033300290207352.jpg",
+      "panorama": "data/mapillary/Fixtor/IcRzj0wTLZX874qitxVsQa/images/3033300290207352.jpg",
       "lon": 16.954420640667,
       "lat": 52.382003472741,
       "en": [
@@ -4685,7 +4690,7 @@
     {
       "frame_id": "1423796489689610",
       "seq": "IcRzj0wTLZX874qitxVsQa",
-      "panorama": "/home/maciej/Github/cross_view_sat_roma/data/mapillary/Fixtor/IcRzj0wTLZX874qitxVsQa/images/1423796489689610.jpg",
+      "panorama": "data/mapillary/Fixtor/IcRzj0wTLZX874qitxVsQa/images/1423796489689610.jpg",
       "lon": 16.954881335605,
       "lat": 52.382016892853,
       "en": [
@@ -4729,7 +4734,7 @@
     {
       "frame_id": "1423796489689610",
       "seq": "IcRzj0wTLZX874qitxVsQa",
-      "panorama": "/home/maciej/Github/cross_view_sat_roma/data/mapillary/Fixtor/IcRzj0wTLZX874qitxVsQa/images/1423796489689610.jpg",
+      "panorama": "data/mapillary/Fixtor/IcRzj0wTLZX874qitxVsQa/images/1423796489689610.jpg",
       "lon": 16.954881335605,
       "lat": 52.382016892853,
       "en": [
@@ -4773,7 +4778,7 @@
     {
       "frame_id": "2132600394311539",
       "seq": "IcRzj0wTLZX874qitxVsQa",
-      "panorama": "/home/maciej/Github/cross_view_sat_roma/data/mapillary/Fixtor/IcRzj0wTLZX874qitxVsQa/images/2132600394311539.jpg",
+      "panorama": "data/mapillary/Fixtor/IcRzj0wTLZX874qitxVsQa/images/2132600394311539.jpg",
       "lon": 16.955342305444,
       "lat": 52.381939105537,
       "en": [
@@ -4817,7 +4822,7 @@
     {
       "frame_id": "2132600394311539",
       "seq": "IcRzj0wTLZX874qitxVsQa",
-      "panorama": "/home/maciej/Github/cross_view_sat_roma/data/mapillary/Fixtor/IcRzj0wTLZX874qitxVsQa/images/2132600394311539.jpg",
+      "panorama": "data/mapillary/Fixtor/IcRzj0wTLZX874qitxVsQa/images/2132600394311539.jpg",
       "lon": 16.955342305444,
       "lat": 52.381939105537,
       "en": [
@@ -4861,7 +4866,7 @@
     {
       "frame_id": "989523250818847",
       "seq": "IcRzj0wTLZX874qitxVsQa",
-      "panorama": "/home/maciej/Github/cross_view_sat_roma/data/mapillary/Fixtor/IcRzj0wTLZX874qitxVsQa/images/989523250818847.jpg",
+      "panorama": "data/mapillary/Fixtor/IcRzj0wTLZX874qitxVsQa/images/989523250818847.jpg",
       "lon": 16.955769401612,
       "lat": 52.381759923867,
       "en": [
@@ -4905,7 +4910,7 @@
     {
       "frame_id": "989523250818847",
       "seq": "IcRzj0wTLZX874qitxVsQa",
-      "panorama": "/home/maciej/Github/cross_view_sat_roma/data/mapillary/Fixtor/IcRzj0wTLZX874qitxVsQa/images/989523250818847.jpg",
+      "panorama": "data/mapillary/Fixtor/IcRzj0wTLZX874qitxVsQa/images/989523250818847.jpg",
       "lon": 16.955769401612,
       "lat": 52.381759923867,
       "en": [
@@ -4949,7 +4954,7 @@
     {
       "frame_id": "1632250488424820",
       "seq": "IcRzj0wTLZX874qitxVsQa",
-      "panorama": "/home/maciej/Github/cross_view_sat_roma/data/mapillary/Fixtor/IcRzj0wTLZX874qitxVsQa/images/1632250488424820.jpg",
+      "panorama": "data/mapillary/Fixtor/IcRzj0wTLZX874qitxVsQa/images/1632250488424820.jpg",
       "lon": 16.956093347265,
       "lat": 52.381932977593,
       "en": [
@@ -4993,7 +4998,7 @@
     {
       "frame_id": "1632250488424820",
       "seq": "IcRzj0wTLZX874qitxVsQa",
-      "panorama": "/home/maciej/Github/cross_view_sat_roma/data/mapillary/Fixtor/IcRzj0wTLZX874qitxVsQa/images/1632250488424820.jpg",
+      "panorama": "data/mapillary/Fixtor/IcRzj0wTLZX874qitxVsQa/images/1632250488424820.jpg",
       "lon": 16.956093347265,
       "lat": 52.381932977593,
       "en": [
@@ -5037,7 +5042,7 @@
     {
       "frame_id": "2077858049513350",
       "seq": "IcRzj0wTLZX874qitxVsQa",
-      "panorama": "/home/maciej/Github/cross_view_sat_roma/data/mapillary/Fixtor/IcRzj0wTLZX874qitxVsQa/images/2077858049513350.jpg",
+      "panorama": "data/mapillary/Fixtor/IcRzj0wTLZX874qitxVsQa/images/2077858049513350.jpg",
       "lon": 16.956501913792,
       "lat": 52.381906989702,
       "en": [
@@ -5081,7 +5086,7 @@
     {
       "frame_id": "2077858049513350",
       "seq": "IcRzj0wTLZX874qitxVsQa",
-      "panorama": "/home/maciej/Github/cross_view_sat_roma/data/mapillary/Fixtor/IcRzj0wTLZX874qitxVsQa/images/2077858049513350.jpg",
+      "panorama": "data/mapillary/Fixtor/IcRzj0wTLZX874qitxVsQa/images/2077858049513350.jpg",
       "lon": 16.956501913792,
       "lat": 52.381906989702,
       "en": [
@@ -5125,7 +5130,7 @@
     {
       "frame_id": "1589393802867647",
       "seq": "IcRzj0wTLZX874qitxVsQa",
-      "panorama": "/home/maciej/Github/cross_view_sat_roma/data/mapillary/Fixtor/IcRzj0wTLZX874qitxVsQa/images/1589393802867647.jpg",
+      "panorama": "data/mapillary/Fixtor/IcRzj0wTLZX874qitxVsQa/images/1589393802867647.jpg",
       "lon": 16.956951299992,
       "lat": 52.381781100658,
       "en": [
@@ -5169,7 +5174,7 @@
     {
       "frame_id": "1589393802867647",
       "seq": "IcRzj0wTLZX874qitxVsQa",
-      "panorama": "/home/maciej/Github/cross_view_sat_roma/data/mapillary/Fixtor/IcRzj0wTLZX874qitxVsQa/images/1589393802867647.jpg",
+      "panorama": "data/mapillary/Fixtor/IcRzj0wTLZX874qitxVsQa/images/1589393802867647.jpg",
       "lon": 16.956951299992,
       "lat": 52.381781100658,
       "en": [
@@ -5213,7 +5218,7 @@
     {
       "frame_id": "1390751626576697",
       "seq": "IcRzj0wTLZX874qitxVsQa",
-      "panorama": "/home/maciej/Github/cross_view_sat_roma/data/mapillary/Fixtor/IcRzj0wTLZX874qitxVsQa/images/1390751626576697.jpg",
+      "panorama": "data/mapillary/Fixtor/IcRzj0wTLZX874qitxVsQa/images/1390751626576697.jpg",
       "lon": 16.957421422966,
       "lat": 52.381871622672,
       "en": [
@@ -5257,7 +5262,7 @@
     {
       "frame_id": "1390751626576697",
       "seq": "IcRzj0wTLZX874qitxVsQa",
-      "panorama": "/home/maciej/Github/cross_view_sat_roma/data/mapillary/Fixtor/IcRzj0wTLZX874qitxVsQa/images/1390751626576697.jpg",
+      "panorama": "data/mapillary/Fixtor/IcRzj0wTLZX874qitxVsQa/images/1390751626576697.jpg",
       "lon": 16.957421422966,
       "lat": 52.381871622672,
       "en": [
@@ -5301,7 +5306,7 @@
     {
       "frame_id": "1779130370087030",
       "seq": "IcRzj0wTLZX874qitxVsQa",
-      "panorama": "/home/maciej/Github/cross_view_sat_roma/data/mapillary/Fixtor/IcRzj0wTLZX874qitxVsQa/images/1779130370087030.jpg",
+      "panorama": "data/mapillary/Fixtor/IcRzj0wTLZX874qitxVsQa/images/1779130370087030.jpg",
       "lon": 16.957772504875,
       "lat": 52.382058860423,
       "en": [
@@ -5345,7 +5350,7 @@
     {
       "frame_id": "1779130370087030",
       "seq": "IcRzj0wTLZX874qitxVsQa",
-      "panorama": "/home/maciej/Github/cross_view_sat_roma/data/mapillary/Fixtor/IcRzj0wTLZX874qitxVsQa/images/1779130370087030.jpg",
+      "panorama": "data/mapillary/Fixtor/IcRzj0wTLZX874qitxVsQa/images/1779130370087030.jpg",
       "lon": 16.957772504875,
       "lat": 52.382058860423,
       "en": [
@@ -5389,7 +5394,7 @@
     {
       "frame_id": "1081892811088637",
       "seq": "IcRzj0wTLZX874qitxVsQa",
-      "panorama": "/home/maciej/Github/cross_view_sat_roma/data/mapillary/Fixtor/IcRzj0wTLZX874qitxVsQa/images/1081892811088637.jpg",
+      "panorama": "data/mapillary/Fixtor/IcRzj0wTLZX874qitxVsQa/images/1081892811088637.jpg",
       "lon": 16.95814195964,
       "lat": 52.382259244274,
       "en": [
@@ -5433,7 +5438,7 @@
     {
       "frame_id": "1081892811088637",
       "seq": "IcRzj0wTLZX874qitxVsQa",
-      "panorama": "/home/maciej/Github/cross_view_sat_roma/data/mapillary/Fixtor/IcRzj0wTLZX874qitxVsQa/images/1081892811088637.jpg",
+      "panorama": "data/mapillary/Fixtor/IcRzj0wTLZX874qitxVsQa/images/1081892811088637.jpg",
       "lon": 16.95814195964,
       "lat": 52.382259244274,
       "en": [
@@ -5477,7 +5482,7 @@
     {
       "frame_id": "1571657080838112",
       "seq": "IcRzj0wTLZX874qitxVsQa",
-      "panorama": "/home/maciej/Github/cross_view_sat_roma/data/mapillary/Fixtor/IcRzj0wTLZX874qitxVsQa/images/1571657080838112.jpg",
+      "panorama": "data/mapillary/Fixtor/IcRzj0wTLZX874qitxVsQa/images/1571657080838112.jpg",
       "lon": 16.958516176995,
       "lat": 52.382456027445,
       "en": [
@@ -5521,7 +5526,7 @@
     {
       "frame_id": "1571657080838112",
       "seq": "IcRzj0wTLZX874qitxVsQa",
-      "panorama": "/home/maciej/Github/cross_view_sat_roma/data/mapillary/Fixtor/IcRzj0wTLZX874qitxVsQa/images/1571657080838112.jpg",
+      "panorama": "data/mapillary/Fixtor/IcRzj0wTLZX874qitxVsQa/images/1571657080838112.jpg",
       "lon": 16.958516176995,
       "lat": 52.382456027445,
       "en": [
@@ -5565,7 +5570,7 @@
     {
       "frame_id": "952888117221424",
       "seq": "IcRzj0wTLZX874qitxVsQa",
-      "panorama": "/home/maciej/Github/cross_view_sat_roma/data/mapillary/Fixtor/IcRzj0wTLZX874qitxVsQa/images/952888117221424.jpg",
+      "panorama": "data/mapillary/Fixtor/IcRzj0wTLZX874qitxVsQa/images/952888117221424.jpg",
       "lon": 16.95887966192,
       "lat": 52.382660980006,
       "en": [
@@ -5609,7 +5614,7 @@
     {
       "frame_id": "952888117221424",
       "seq": "IcRzj0wTLZX874qitxVsQa",
-      "panorama": "/home/maciej/Github/cross_view_sat_roma/data/mapillary/Fixtor/IcRzj0wTLZX874qitxVsQa/images/952888117221424.jpg",
+      "panorama": "data/mapillary/Fixtor/IcRzj0wTLZX874qitxVsQa/images/952888117221424.jpg",
       "lon": 16.95887966192,
       "lat": 52.382660980006,
       "en": [
@@ -5653,7 +5658,7 @@
     {
       "frame_id": "1088755186866756",
       "seq": "IcRzj0wTLZX874qitxVsQa",
-      "panorama": "/home/maciej/Github/cross_view_sat_roma/data/mapillary/Fixtor/IcRzj0wTLZX874qitxVsQa/images/1088755186866756.jpg",
+      "panorama": "data/mapillary/Fixtor/IcRzj0wTLZX874qitxVsQa/images/1088755186866756.jpg",
       "lon": 16.959256037187,
       "lat": 52.382863353228,
       "en": [
@@ -5697,7 +5702,7 @@
     {
       "frame_id": "1088755186866756",
       "seq": "IcRzj0wTLZX874qitxVsQa",
-      "panorama": "/home/maciej/Github/cross_view_sat_roma/data/mapillary/Fixtor/IcRzj0wTLZX874qitxVsQa/images/1088755186866756.jpg",
+      "panorama": "data/mapillary/Fixtor/IcRzj0wTLZX874qitxVsQa/images/1088755186866756.jpg",
       "lon": 16.959256037187,
       "lat": 52.382863353228,
       "en": [
@@ -5741,7 +5746,7 @@
     {
       "frame_id": "1666620238369939",
       "seq": "IcRzj0wTLZX874qitxVsQa",
-      "panorama": "/home/maciej/Github/cross_view_sat_roma/data/mapillary/Fixtor/IcRzj0wTLZX874qitxVsQa/images/1666620238369939.jpg",
+      "panorama": "data/mapillary/Fixtor/IcRzj0wTLZX874qitxVsQa/images/1666620238369939.jpg",
       "lon": 16.959594711591,
       "lat": 52.383075378342,
       "en": [
@@ -5785,7 +5790,7 @@
     {
       "frame_id": "1666620238369939",
       "seq": "IcRzj0wTLZX874qitxVsQa",
-      "panorama": "/home/maciej/Github/cross_view_sat_roma/data/mapillary/Fixtor/IcRzj0wTLZX874qitxVsQa/images/1666620238369939.jpg",
+      "panorama": "data/mapillary/Fixtor/IcRzj0wTLZX874qitxVsQa/images/1666620238369939.jpg",
       "lon": 16.959594711591,
       "lat": 52.383075378342,
       "en": [
@@ -5829,7 +5834,7 @@
     {
       "frame_id": "1762029464919045",
       "seq": "IcRzj0wTLZX874qitxVsQa",
-      "panorama": "/home/maciej/Github/cross_view_sat_roma/data/mapillary/Fixtor/IcRzj0wTLZX874qitxVsQa/images/1762029464919045.jpg",
+      "panorama": "data/mapillary/Fixtor/IcRzj0wTLZX874qitxVsQa/images/1762029464919045.jpg",
       "lon": 16.95933597072,
       "lat": 52.383318214622,
       "en": [
@@ -5873,7 +5878,7 @@
     {
       "frame_id": "1762029464919045",
       "seq": "IcRzj0wTLZX874qitxVsQa",
-      "panorama": "/home/maciej/Github/cross_view_sat_roma/data/mapillary/Fixtor/IcRzj0wTLZX874qitxVsQa/images/1762029464919045.jpg",
+      "panorama": "data/mapillary/Fixtor/IcRzj0wTLZX874qitxVsQa/images/1762029464919045.jpg",
       "lon": 16.95933597072,
       "lat": 52.383318214622,
       "en": [
@@ -5917,7 +5922,7 @@
     {
       "frame_id": "1132839019071351",
       "seq": "IcRzj0wTLZX874qitxVsQa",
-      "panorama": "/home/maciej/Github/cross_view_sat_roma/data/mapillary/Fixtor/IcRzj0wTLZX874qitxVsQa/images/1132839019071351.jpg",
+      "panorama": "data/mapillary/Fixtor/IcRzj0wTLZX874qitxVsQa/images/1132839019071351.jpg",
       "lon": 16.959125417543,
       "lat": 52.383435012331,
       "en": [
@@ -5961,7 +5966,7 @@
     {
       "frame_id": "1132839019071351",
       "seq": "IcRzj0wTLZX874qitxVsQa",
-      "panorama": "/home/maciej/Github/cross_view_sat_roma/data/mapillary/Fixtor/IcRzj0wTLZX874qitxVsQa/images/1132839019071351.jpg",
+      "panorama": "data/mapillary/Fixtor/IcRzj0wTLZX874qitxVsQa/images/1132839019071351.jpg",
       "lon": 16.959125417543,
       "lat": 52.383435012331,
       "en": [
@@ -6005,7 +6010,7 @@
     {
       "frame_id": "1796949328283937",
       "seq": "IcRzj0wTLZX874qitxVsQa",
-      "panorama": "/home/maciej/Github/cross_view_sat_roma/data/mapillary/Fixtor/IcRzj0wTLZX874qitxVsQa/images/1796949328283937.jpg",
+      "panorama": "data/mapillary/Fixtor/IcRzj0wTLZX874qitxVsQa/images/1796949328283937.jpg",
       "lon": 16.959476636422,
       "lat": 52.383225744246,
       "en": [
@@ -6049,7 +6054,7 @@
     {
       "frame_id": "1796949328283937",
       "seq": "IcRzj0wTLZX874qitxVsQa",
-      "panorama": "/home/maciej/Github/cross_view_sat_roma/data/mapillary/Fixtor/IcRzj0wTLZX874qitxVsQa/images/1796949328283937.jpg",
+      "panorama": "data/mapillary/Fixtor/IcRzj0wTLZX874qitxVsQa/images/1796949328283937.jpg",
       "lon": 16.959476636422,
       "lat": 52.383225744246,
       "en": [
@@ -6093,7 +6098,7 @@
     {
       "frame_id": "1457053619817270",
       "seq": "IcRzj0wTLZX874qitxVsQa",
-      "panorama": "/home/maciej/Github/cross_view_sat_roma/data/mapillary/Fixtor/IcRzj0wTLZX874qitxVsQa/images/1457053619817270.jpg",
+      "panorama": "data/mapillary/Fixtor/IcRzj0wTLZX874qitxVsQa/images/1457053619817270.jpg",
       "lon": 16.95945893681,
       "lat": 52.38297754981,
       "en": [
@@ -6137,7 +6142,7 @@
     {
       "frame_id": "1457053619817270",
       "seq": "IcRzj0wTLZX874qitxVsQa",
-      "panorama": "/home/maciej/Github/cross_view_sat_roma/data/mapillary/Fixtor/IcRzj0wTLZX874qitxVsQa/images/1457053619817270.jpg",
+      "panorama": "data/mapillary/Fixtor/IcRzj0wTLZX874qitxVsQa/images/1457053619817270.jpg",
       "lon": 16.95945893681,
       "lat": 52.38297754981,
       "en": [
@@ -6181,7 +6186,7 @@
     {
       "frame_id": "1837757387401780",
       "seq": "IcRzj0wTLZX874qitxVsQa",
-      "panorama": "/home/maciej/Github/cross_view_sat_roma/data/mapillary/Fixtor/IcRzj0wTLZX874qitxVsQa/images/1837757387401780.jpg",
+      "panorama": "data/mapillary/Fixtor/IcRzj0wTLZX874qitxVsQa/images/1837757387401780.jpg",
       "lon": 16.959111911936,
       "lat": 52.382796464619,
       "en": [
@@ -6225,7 +6230,7 @@
     {
       "frame_id": "1837757387401780",
       "seq": "IcRzj0wTLZX874qitxVsQa",
-      "panorama": "/home/maciej/Github/cross_view_sat_roma/data/mapillary/Fixtor/IcRzj0wTLZX874qitxVsQa/images/1837757387401780.jpg",
+      "panorama": "data/mapillary/Fixtor/IcRzj0wTLZX874qitxVsQa/images/1837757387401780.jpg",
       "lon": 16.959111911936,
       "lat": 52.382796464619,
       "en": [
@@ -6269,7 +6274,7 @@
     {
       "frame_id": "910305541902539",
       "seq": "IcRzj0wTLZX874qitxVsQa",
-      "panorama": "/home/maciej/Github/cross_view_sat_roma/data/mapillary/Fixtor/IcRzj0wTLZX874qitxVsQa/images/910305541902539.jpg",
+      "panorama": "data/mapillary/Fixtor/IcRzj0wTLZX874qitxVsQa/images/910305541902539.jpg",
       "lon": 16.958739104624,
       "lat": 52.38259796572,
       "en": [
@@ -6313,7 +6318,7 @@
     {
       "frame_id": "910305541902539",
       "seq": "IcRzj0wTLZX874qitxVsQa",
-      "panorama": "/home/maciej/Github/cross_view_sat_roma/data/mapillary/Fixtor/IcRzj0wTLZX874qitxVsQa/images/910305541902539.jpg",
+      "panorama": "data/mapillary/Fixtor/IcRzj0wTLZX874qitxVsQa/images/910305541902539.jpg",
       "lon": 16.958739104624,
       "lat": 52.38259796572,
       "en": [
@@ -6357,7 +6362,7 @@
     {
       "frame_id": "943623705468611",
       "seq": "IcRzj0wTLZX874qitxVsQa",
-      "panorama": "/home/maciej/Github/cross_view_sat_roma/data/mapillary/Fixtor/IcRzj0wTLZX874qitxVsQa/images/943623705468611.jpg",
+      "panorama": "data/mapillary/Fixtor/IcRzj0wTLZX874qitxVsQa/images/943623705468611.jpg",
       "lon": 16.958911535706,
       "lat": 52.382357642584,
       "en": [
@@ -6401,7 +6406,7 @@
     {
       "frame_id": "943623705468611",
       "seq": "IcRzj0wTLZX874qitxVsQa",
-      "panorama": "/home/maciej/Github/cross_view_sat_roma/data/mapillary/Fixtor/IcRzj0wTLZX874qitxVsQa/images/943623705468611.jpg",
+      "panorama": "data/mapillary/Fixtor/IcRzj0wTLZX874qitxVsQa/images/943623705468611.jpg",
       "lon": 16.958911535706,
       "lat": 52.382357642584,
       "en": [
@@ -6445,7 +6450,7 @@
     {
       "frame_id": "29302096676059304",
       "seq": "IcRzj0wTLZX874qitxVsQa",
-      "panorama": "/home/maciej/Github/cross_view_sat_roma/data/mapillary/Fixtor/IcRzj0wTLZX874qitxVsQa/images/29302096676059304.jpg",
+      "panorama": "data/mapillary/Fixtor/IcRzj0wTLZX874qitxVsQa/images/29302096676059304.jpg",
       "lon": 16.959319639917,
       "lat": 52.382447407151,
       "en": [
@@ -6489,7 +6494,7 @@
     {
       "frame_id": "29302096676059304",
       "seq": "IcRzj0wTLZX874qitxVsQa",
-      "panorama": "/home/maciej/Github/cross_view_sat_roma/data/mapillary/Fixtor/IcRzj0wTLZX874qitxVsQa/images/29302096676059304.jpg",
+      "panorama": "data/mapillary/Fixtor/IcRzj0wTLZX874qitxVsQa/images/29302096676059304.jpg",
       "lon": 16.959319639917,
       "lat": 52.382447407151,
       "en": [
@@ -6533,7 +6538,7 @@
     {
       "frame_id": "945959455229054",
       "seq": "IcRzj0wTLZX874qitxVsQa",
-      "panorama": "/home/maciej/Github/cross_view_sat_roma/data/mapillary/Fixtor/IcRzj0wTLZX874qitxVsQa/images/945959455229054.jpg",
+      "panorama": "data/mapillary/Fixtor/IcRzj0wTLZX874qitxVsQa/images/945959455229054.jpg",
       "lon": 16.959694744984,
       "lat": 52.382652879591,
       "en": [
@@ -6577,7 +6582,7 @@
     {
       "frame_id": "945959455229054",
       "seq": "IcRzj0wTLZX874qitxVsQa",
-      "panorama": "/home/maciej/Github/cross_view_sat_roma/data/mapillary/Fixtor/IcRzj0wTLZX874qitxVsQa/images/945959455229054.jpg",
+      "panorama": "data/mapillary/Fixtor/IcRzj0wTLZX874qitxVsQa/images/945959455229054.jpg",
       "lon": 16.959694744984,
       "lat": 52.382652879591,
       "en": [
@@ -6621,7 +6626,7 @@
     {
       "frame_id": "1673666160842107",
       "seq": "IcRzj0wTLZX874qitxVsQa",
-      "panorama": "/home/maciej/Github/cross_view_sat_roma/data/mapillary/Fixtor/IcRzj0wTLZX874qitxVsQa/images/1673666160842107.jpg",
+      "panorama": "data/mapillary/Fixtor/IcRzj0wTLZX874qitxVsQa/images/1673666160842107.jpg",
       "lon": 16.960045494671,
       "lat": 52.38284435437,
       "en": [
@@ -6665,7 +6670,7 @@
     {
       "frame_id": "1673666160842107",
       "seq": "IcRzj0wTLZX874qitxVsQa",
-      "panorama": "/home/maciej/Github/cross_view_sat_roma/data/mapillary/Fixtor/IcRzj0wTLZX874qitxVsQa/images/1673666160842107.jpg",
+      "panorama": "data/mapillary/Fixtor/IcRzj0wTLZX874qitxVsQa/images/1673666160842107.jpg",
       "lon": 16.960045494671,
       "lat": 52.38284435437,
       "en": [
@@ -6709,7 +6714,7 @@
     {
       "frame_id": "1090951123865054",
       "seq": "IcRzj0wTLZX874qitxVsQa",
-      "panorama": "/home/maciej/Github/cross_view_sat_roma/data/mapillary/Fixtor/IcRzj0wTLZX874qitxVsQa/images/1090951123865054.jpg",
+      "panorama": "data/mapillary/Fixtor/IcRzj0wTLZX874qitxVsQa/images/1090951123865054.jpg",
       "lon": 16.960424058977,
       "lat": 52.383051811287,
       "en": [
@@ -6753,7 +6758,7 @@
     {
       "frame_id": "1090951123865054",
       "seq": "IcRzj0wTLZX874qitxVsQa",
-      "panorama": "/home/maciej/Github/cross_view_sat_roma/data/mapillary/Fixtor/IcRzj0wTLZX874qitxVsQa/images/1090951123865054.jpg",
+      "panorama": "data/mapillary/Fixtor/IcRzj0wTLZX874qitxVsQa/images/1090951123865054.jpg",
       "lon": 16.960424058977,
       "lat": 52.383051811287,
       "en": [
@@ -6797,7 +6802,7 @@
     {
       "frame_id": "2599151813871531",
       "seq": "IcRzj0wTLZX874qitxVsQa",
-      "panorama": "/home/maciej/Github/cross_view_sat_roma/data/mapillary/Fixtor/IcRzj0wTLZX874qitxVsQa/images/2599151813871531.jpg",
+      "panorama": "data/mapillary/Fixtor/IcRzj0wTLZX874qitxVsQa/images/2599151813871531.jpg",
       "lon": 16.960789029504,
       "lat": 52.38324934572,
       "en": [
@@ -6841,7 +6846,7 @@
     {
       "frame_id": "2599151813871531",
       "seq": "IcRzj0wTLZX874qitxVsQa",
-      "panorama": "/home/maciej/Github/cross_view_sat_roma/data/mapillary/Fixtor/IcRzj0wTLZX874qitxVsQa/images/2599151813871531.jpg",
+      "panorama": "data/mapillary/Fixtor/IcRzj0wTLZX874qitxVsQa/images/2599151813871531.jpg",
       "lon": 16.960789029504,
       "lat": 52.38324934572,
       "en": [
@@ -6885,7 +6890,7 @@
     {
       "frame_id": "1597452008592561",
       "seq": "IcRzj0wTLZX874qitxVsQa",
-      "panorama": "/home/maciej/Github/cross_view_sat_roma/data/mapillary/Fixtor/IcRzj0wTLZX874qitxVsQa/images/1597452008592561.jpg",
+      "panorama": "data/mapillary/Fixtor/IcRzj0wTLZX874qitxVsQa/images/1597452008592561.jpg",
       "lon": 16.961178283017,
       "lat": 52.38346043045,
       "en": [
@@ -6929,7 +6934,7 @@
     {
       "frame_id": "1597452008592561",
       "seq": "IcRzj0wTLZX874qitxVsQa",
-      "panorama": "/home/maciej/Github/cross_view_sat_roma/data/mapillary/Fixtor/IcRzj0wTLZX874qitxVsQa/images/1597452008592561.jpg",
+      "panorama": "data/mapillary/Fixtor/IcRzj0wTLZX874qitxVsQa/images/1597452008592561.jpg",
       "lon": 16.961178283017,
       "lat": 52.38346043045,
       "en": [
@@ -6973,7 +6978,7 @@
     {
       "frame_id": "1591043065903450",
       "seq": "IcRzj0wTLZX874qitxVsQa",
-      "panorama": "/home/maciej/Github/cross_view_sat_roma/data/mapillary/Fixtor/IcRzj0wTLZX874qitxVsQa/images/1591043065903450.jpg",
+      "panorama": "data/mapillary/Fixtor/IcRzj0wTLZX874qitxVsQa/images/1591043065903450.jpg",
       "lon": 16.96152752526,
       "lat": 52.383650595728,
       "en": [
@@ -7017,7 +7022,7 @@
     {
       "frame_id": "1591043065903450",
       "seq": "IcRzj0wTLZX874qitxVsQa",
-      "panorama": "/home/maciej/Github/cross_view_sat_roma/data/mapillary/Fixtor/IcRzj0wTLZX874qitxVsQa/images/1591043065903450.jpg",
+      "panorama": "data/mapillary/Fixtor/IcRzj0wTLZX874qitxVsQa/images/1591043065903450.jpg",
       "lon": 16.96152752526,
       "lat": 52.383650595728,
       "en": [
@@ -7061,7 +7066,7 @@
     {
       "frame_id": "1112966985014802",
       "seq": "IcRzj0wTLZX874qitxVsQa",
-      "panorama": "/home/maciej/Github/cross_view_sat_roma/data/mapillary/Fixtor/IcRzj0wTLZX874qitxVsQa/images/1112966985014802.jpg",
+      "panorama": "data/mapillary/Fixtor/IcRzj0wTLZX874qitxVsQa/images/1112966985014802.jpg",
       "lon": 16.961894777309,
       "lat": 52.383851104735,
       "en": [
@@ -7105,7 +7110,7 @@
     {
       "frame_id": "1112966985014802",
       "seq": "IcRzj0wTLZX874qitxVsQa",
-      "panorama": "/home/maciej/Github/cross_view_sat_roma/data/mapillary/Fixtor/IcRzj0wTLZX874qitxVsQa/images/1112966985014802.jpg",
+      "panorama": "data/mapillary/Fixtor/IcRzj0wTLZX874qitxVsQa/images/1112966985014802.jpg",
       "lon": 16.961894777309,
       "lat": 52.383851104735,
       "en": [
@@ -7149,7 +7154,7 @@
     {
       "frame_id": "2366348720838280",
       "seq": "IcRzj0wTLZX874qitxVsQa",
-      "panorama": "/home/maciej/Github/cross_view_sat_roma/data/mapillary/Fixtor/IcRzj0wTLZX874qitxVsQa/images/2366348720838280.jpg",
+      "panorama": "data/mapillary/Fixtor/IcRzj0wTLZX874qitxVsQa/images/2366348720838280.jpg",
       "lon": 16.962257807942,
       "lat": 52.384047403677,
       "en": [
@@ -7193,7 +7198,7 @@
     {
       "frame_id": "2366348720838280",
       "seq": "IcRzj0wTLZX874qitxVsQa",
-      "panorama": "/home/maciej/Github/cross_view_sat_roma/data/mapillary/Fixtor/IcRzj0wTLZX874qitxVsQa/images/2366348720838280.jpg",
+      "panorama": "data/mapillary/Fixtor/IcRzj0wTLZX874qitxVsQa/images/2366348720838280.jpg",
       "lon": 16.962257807942,
       "lat": 52.384047403677,
       "en": [
@@ -7237,7 +7242,7 @@
     {
       "frame_id": "1572977703746490",
       "seq": "IcRzj0wTLZX874qitxVsQa",
-      "panorama": "/home/maciej/Github/cross_view_sat_roma/data/mapillary/Fixtor/IcRzj0wTLZX874qitxVsQa/images/1572977703746490.jpg",
+      "panorama": "data/mapillary/Fixtor/IcRzj0wTLZX874qitxVsQa/images/1572977703746490.jpg",
       "lon": 16.962607789113,
       "lat": 52.384254381684,
       "en": [
@@ -7281,7 +7286,7 @@
     {
       "frame_id": "1572977703746490",
       "seq": "IcRzj0wTLZX874qitxVsQa",
-      "panorama": "/home/maciej/Github/cross_view_sat_roma/data/mapillary/Fixtor/IcRzj0wTLZX874qitxVsQa/images/1572977703746490.jpg",
+      "panorama": "data/mapillary/Fixtor/IcRzj0wTLZX874qitxVsQa/images/1572977703746490.jpg",
       "lon": 16.962607789113,
       "lat": 52.384254381684,
       "en": [
@@ -7325,7 +7330,7 @@
     {
       "frame_id": "1579563780527774",
       "seq": "IcRzj0wTLZX874qitxVsQa",
-      "panorama": "/home/maciej/Github/cross_view_sat_roma/data/mapillary/Fixtor/IcRzj0wTLZX874qitxVsQa/images/1579563780527774.jpg",
+      "panorama": "data/mapillary/Fixtor/IcRzj0wTLZX874qitxVsQa/images/1579563780527774.jpg",
       "lon": 16.962931377198,
       "lat": 52.384467630627,
       "en": [
@@ -7369,7 +7374,7 @@
     {
       "frame_id": "1579563780527774",
       "seq": "IcRzj0wTLZX874qitxVsQa",
-      "panorama": "/home/maciej/Github/cross_view_sat_roma/data/mapillary/Fixtor/IcRzj0wTLZX874qitxVsQa/images/1579563780527774.jpg",
+      "panorama": "data/mapillary/Fixtor/IcRzj0wTLZX874qitxVsQa/images/1579563780527774.jpg",
       "lon": 16.962931377198,
       "lat": 52.384467630627,
       "en": [
@@ -7413,7 +7418,7 @@
     {
       "frame_id": "1077445214894446",
       "seq": "IcRzj0wTLZX874qitxVsQa",
-      "panorama": "/home/maciej/Github/cross_view_sat_roma/data/mapillary/Fixtor/IcRzj0wTLZX874qitxVsQa/images/1077445214894446.jpg",
+      "panorama": "data/mapillary/Fixtor/IcRzj0wTLZX874qitxVsQa/images/1077445214894446.jpg",
       "lon": 16.963271433463,
       "lat": 52.384702550576,
       "en": [
@@ -7457,7 +7462,7 @@
     {
       "frame_id": "1077445214894446",
       "seq": "IcRzj0wTLZX874qitxVsQa",
-      "panorama": "/home/maciej/Github/cross_view_sat_roma/data/mapillary/Fixtor/IcRzj0wTLZX874qitxVsQa/images/1077445214894446.jpg",
+      "panorama": "data/mapillary/Fixtor/IcRzj0wTLZX874qitxVsQa/images/1077445214894446.jpg",
       "lon": 16.963271433463,
       "lat": 52.384702550576,
       "en": [
@@ -7501,7 +7506,7 @@
     {
       "frame_id": "1714471442944128",
       "seq": "IcRzj0wTLZX874qitxVsQa",
-      "panorama": "/home/maciej/Github/cross_view_sat_roma/data/mapillary/Fixtor/IcRzj0wTLZX874qitxVsQa/images/1714471442944128.jpg",
+      "panorama": "data/mapillary/Fixtor/IcRzj0wTLZX874qitxVsQa/images/1714471442944128.jpg",
       "lon": 16.963570222068,
       "lat": 52.384922993269,
       "en": [
@@ -7545,7 +7550,7 @@
     {
       "frame_id": "1714471442944128",
       "seq": "IcRzj0wTLZX874qitxVsQa",
-      "panorama": "/home/maciej/Github/cross_view_sat_roma/data/mapillary/Fixtor/IcRzj0wTLZX874qitxVsQa/images/1714471442944128.jpg",
+      "panorama": "data/mapillary/Fixtor/IcRzj0wTLZX874qitxVsQa/images/1714471442944128.jpg",
       "lon": 16.963570222068,
       "lat": 52.384922993269,
       "en": [
@@ -7589,7 +7594,7 @@
     {
       "frame_id": "1347449930528506",
       "seq": "IcRzj0wTLZX874qitxVsQa",
-      "panorama": "/home/maciej/Github/cross_view_sat_roma/data/mapillary/Fixtor/IcRzj0wTLZX874qitxVsQa/images/1347449930528506.jpg",
+      "panorama": "data/mapillary/Fixtor/IcRzj0wTLZX874qitxVsQa/images/1347449930528506.jpg",
       "lon": 16.963902080839,
       "lat": 52.385168529481,
       "en": [
@@ -7633,7 +7638,7 @@
     {
       "frame_id": "1347449930528506",
       "seq": "IcRzj0wTLZX874qitxVsQa",
-      "panorama": "/home/maciej/Github/cross_view_sat_roma/data/mapillary/Fixtor/IcRzj0wTLZX874qitxVsQa/images/1347449930528506.jpg",
+      "panorama": "data/mapillary/Fixtor/IcRzj0wTLZX874qitxVsQa/images/1347449930528506.jpg",
       "lon": 16.963902080839,
       "lat": 52.385168529481,
       "en": [
@@ -7677,7 +7682,7 @@
     {
       "frame_id": "1413652087402340",
       "seq": "IcRzj0wTLZX874qitxVsQa",
-      "panorama": "/home/maciej/Github/cross_view_sat_roma/data/mapillary/Fixtor/IcRzj0wTLZX874qitxVsQa/images/1413652087402340.jpg",
+      "panorama": "data/mapillary/Fixtor/IcRzj0wTLZX874qitxVsQa/images/1413652087402340.jpg",
       "lon": 16.964180707249,
       "lat": 52.385406083024,
       "en": [
@@ -7721,7 +7726,7 @@
     {
       "frame_id": "1413652087402340",
       "seq": "IcRzj0wTLZX874qitxVsQa",
-      "panorama": "/home/maciej/Github/cross_view_sat_roma/data/mapillary/Fixtor/IcRzj0wTLZX874qitxVsQa/images/1413652087402340.jpg",
+      "panorama": "data/mapillary/Fixtor/IcRzj0wTLZX874qitxVsQa/images/1413652087402340.jpg",
       "lon": 16.964180707249,
       "lat": 52.385406083024,
       "en": [
@@ -7765,7 +7770,7 @@
     {
       "frame_id": "921953573931750",
       "seq": "IcRzj0wTLZX874qitxVsQa",
-      "panorama": "/home/maciej/Github/cross_view_sat_roma/data/mapillary/Fixtor/IcRzj0wTLZX874qitxVsQa/images/921953573931750.jpg",
+      "panorama": "data/mapillary/Fixtor/IcRzj0wTLZX874qitxVsQa/images/921953573931750.jpg",
       "lon": 16.964416722207,
       "lat": 52.385661385549,
       "en": [
@@ -7809,7 +7814,7 @@
     {
       "frame_id": "921953573931750",
       "seq": "IcRzj0wTLZX874qitxVsQa",
-      "panorama": "/home/maciej/Github/cross_view_sat_roma/data/mapillary/Fixtor/IcRzj0wTLZX874qitxVsQa/images/921953573931750.jpg",
+      "panorama": "data/mapillary/Fixtor/IcRzj0wTLZX874qitxVsQa/images/921953573931750.jpg",
       "lon": 16.964416722207,
       "lat": 52.385661385549,
       "en": [
@@ -7853,7 +7858,7 @@
     {
       "frame_id": "1403478994512518",
       "seq": "IcRzj0wTLZX874qitxVsQa",
-      "panorama": "/home/maciej/Github/cross_view_sat_roma/data/mapillary/Fixtor/IcRzj0wTLZX874qitxVsQa/images/1403478994512518.jpg",
+      "panorama": "data/mapillary/Fixtor/IcRzj0wTLZX874qitxVsQa/images/1403478994512518.jpg",
       "lon": 16.964614501563,
       "lat": 52.385952468253,
       "en": [
@@ -7897,7 +7902,7 @@
     {
       "frame_id": "1403478994512518",
       "seq": "IcRzj0wTLZX874qitxVsQa",
-      "panorama": "/home/maciej/Github/cross_view_sat_roma/data/mapillary/Fixtor/IcRzj0wTLZX874qitxVsQa/images/1403478994512518.jpg",
+      "panorama": "data/mapillary/Fixtor/IcRzj0wTLZX874qitxVsQa/images/1403478994512518.jpg",
       "lon": 16.964614501563,
       "lat": 52.385952468253,
       "en": [
@@ -7941,7 +7946,7 @@
     {
       "frame_id": "1794731371773449",
       "seq": "IcRzj0wTLZX874qitxVsQa",
-      "panorama": "/home/maciej/Github/cross_view_sat_roma/data/mapillary/Fixtor/IcRzj0wTLZX874qitxVsQa/images/1794731371773449.jpg",
+      "panorama": "data/mapillary/Fixtor/IcRzj0wTLZX874qitxVsQa/images/1794731371773449.jpg",
       "lon": 16.964724421812,
       "lat": 52.386238570653,
       "en": [
@@ -7985,7 +7990,7 @@
     {
       "frame_id": "1794731371773449",
       "seq": "IcRzj0wTLZX874qitxVsQa",
-      "panorama": "/home/maciej/Github/cross_view_sat_roma/data/mapillary/Fixtor/IcRzj0wTLZX874qitxVsQa/images/1794731371773449.jpg",
+      "panorama": "data/mapillary/Fixtor/IcRzj0wTLZX874qitxVsQa/images/1794731371773449.jpg",
       "lon": 16.964724421812,
       "lat": 52.386238570653,
       "en": [
@@ -8029,7 +8034,7 @@
     {
       "frame_id": "3059374137740657",
       "seq": "IcRzj0wTLZX874qitxVsQa",
-      "panorama": "/home/maciej/Github/cross_view_sat_roma/data/mapillary/Fixtor/IcRzj0wTLZX874qitxVsQa/images/3059374137740657.jpg",
+      "panorama": "data/mapillary/Fixtor/IcRzj0wTLZX874qitxVsQa/images/3059374137740657.jpg",
       "lon": 16.964786253166,
       "lat": 52.386537328385,
       "en": [
@@ -8073,7 +8078,7 @@
     {
       "frame_id": "3059374137740657",
       "seq": "IcRzj0wTLZX874qitxVsQa",
-      "panorama": "/home/maciej/Github/cross_view_sat_roma/data/mapillary/Fixtor/IcRzj0wTLZX874qitxVsQa/images/3059374137740657.jpg",
+      "panorama": "data/mapillary/Fixtor/IcRzj0wTLZX874qitxVsQa/images/3059374137740657.jpg",
       "lon": 16.964786253166,
       "lat": 52.386537328385,
       "en": [
@@ -8117,7 +8122,7 @@
     {
       "frame_id": "1613002776844852",
       "seq": "IcRzj0wTLZX874qitxVsQa",
-      "panorama": "/home/maciej/Github/cross_view_sat_roma/data/mapillary/Fixtor/IcRzj0wTLZX874qitxVsQa/images/1613002776844852.jpg",
+      "panorama": "data/mapillary/Fixtor/IcRzj0wTLZX874qitxVsQa/images/1613002776844852.jpg",
       "lon": 16.964765375436,
       "lat": 52.386797426717,
       "en": [
@@ -8161,7 +8166,7 @@
     {
       "frame_id": "1613002776844852",
       "seq": "IcRzj0wTLZX874qitxVsQa",
-      "panorama": "/home/maciej/Github/cross_view_sat_roma/data/mapillary/Fixtor/IcRzj0wTLZX874qitxVsQa/images/1613002776844852.jpg",
+      "panorama": "data/mapillary/Fixtor/IcRzj0wTLZX874qitxVsQa/images/1613002776844852.jpg",
       "lon": 16.964765375436,
       "lat": 52.386797426717,
       "en": [
@@ -8205,7 +8210,7 @@
     {
       "frame_id": "981836188268787",
       "seq": "IcRzj0wTLZX874qitxVsQa",
-      "panorama": "/home/maciej/Github/cross_view_sat_roma/data/mapillary/Fixtor/IcRzj0wTLZX874qitxVsQa/images/981836188268787.jpg",
+      "panorama": "data/mapillary/Fixtor/IcRzj0wTLZX874qitxVsQa/images/981836188268787.jpg",
       "lon": 16.964775287832,
       "lat": 52.387101050091,
       "en": [
@@ -8249,7 +8254,7 @@
     {
       "frame_id": "981836188268787",
       "seq": "IcRzj0wTLZX874qitxVsQa",
-      "panorama": "/home/maciej/Github/cross_view_sat_roma/data/mapillary/Fixtor/IcRzj0wTLZX874qitxVsQa/images/981836188268787.jpg",
+      "panorama": "data/mapillary/Fixtor/IcRzj0wTLZX874qitxVsQa/images/981836188268787.jpg",
       "lon": 16.964775287832,
       "lat": 52.387101050091,
       "en": [
@@ -8293,7 +8298,7 @@
     {
       "frame_id": "1093658489977921",
       "seq": "IcRzj0wTLZX874qitxVsQa",
-      "panorama": "/home/maciej/Github/cross_view_sat_roma/data/mapillary/Fixtor/IcRzj0wTLZX874qitxVsQa/images/1093658489977921.jpg",
+      "panorama": "data/mapillary/Fixtor/IcRzj0wTLZX874qitxVsQa/images/1093658489977921.jpg",
       "lon": 16.964787808493,
       "lat": 52.387418270221,
       "en": [
@@ -8337,7 +8342,7 @@
     {
       "frame_id": "1093658489977921",
       "seq": "IcRzj0wTLZX874qitxVsQa",
-      "panorama": "/home/maciej/Github/cross_view_sat_roma/data/mapillary/Fixtor/IcRzj0wTLZX874qitxVsQa/images/1093658489977921.jpg",
+      "panorama": "data/mapillary/Fixtor/IcRzj0wTLZX874qitxVsQa/images/1093658489977921.jpg",
       "lon": 16.964787808493,
       "lat": 52.387418270221,
       "en": [
@@ -8381,7 +8386,7 @@
     {
       "frame_id": "1619687222851775",
       "seq": "IcRzj0wTLZX874qitxVsQa",
-      "panorama": "/home/maciej/Github/cross_view_sat_roma/data/mapillary/Fixtor/IcRzj0wTLZX874qitxVsQa/images/1619687222851775.jpg",
+      "panorama": "data/mapillary/Fixtor/IcRzj0wTLZX874qitxVsQa/images/1619687222851775.jpg",
       "lon": 16.964798713521,
       "lat": 52.387712307029,
       "en": [
@@ -8425,7 +8430,7 @@
     {
       "frame_id": "1619687222851775",
       "seq": "IcRzj0wTLZX874qitxVsQa",
-      "panorama": "/home/maciej/Github/cross_view_sat_roma/data/mapillary/Fixtor/IcRzj0wTLZX874qitxVsQa/images/1619687222851775.jpg",
+      "panorama": "data/mapillary/Fixtor/IcRzj0wTLZX874qitxVsQa/images/1619687222851775.jpg",
       "lon": 16.964798713521,
       "lat": 52.387712307029,
       "en": [
@@ -8469,7 +8474,7 @@
     {
       "frame_id": "1391865393135267",
       "seq": "IcRzj0wTLZX874qitxVsQa",
-      "panorama": "/home/maciej/Github/cross_view_sat_roma/data/mapillary/Fixtor/IcRzj0wTLZX874qitxVsQa/images/1391865393135267.jpg",
+      "panorama": "data/mapillary/Fixtor/IcRzj0wTLZX874qitxVsQa/images/1391865393135267.jpg",
       "lon": 16.964826768264,
       "lat": 52.388001254275,
       "en": [
@@ -8513,7 +8518,7 @@
     {
       "frame_id": "1391865393135267",
       "seq": "IcRzj0wTLZX874qitxVsQa",
-      "panorama": "/home/maciej/Github/cross_view_sat_roma/data/mapillary/Fixtor/IcRzj0wTLZX874qitxVsQa/images/1391865393135267.jpg",
+      "panorama": "data/mapillary/Fixtor/IcRzj0wTLZX874qitxVsQa/images/1391865393135267.jpg",
       "lon": 16.964826768264,
       "lat": 52.388001254275,
       "en": [
@@ -8557,7 +8562,7 @@
     {
       "frame_id": "1316675827064189",
       "seq": "IcRzj0wTLZX874qitxVsQa",
-      "panorama": "/home/maciej/Github/cross_view_sat_roma/data/mapillary/Fixtor/IcRzj0wTLZX874qitxVsQa/images/1316675827064189.jpg",
+      "panorama": "data/mapillary/Fixtor/IcRzj0wTLZX874qitxVsQa/images/1316675827064189.jpg",
       "lon": 16.964928114557,
       "lat": 52.388307314356,
       "en": [
@@ -8601,7 +8606,7 @@
     {
       "frame_id": "1316675827064189",
       "seq": "IcRzj0wTLZX874qitxVsQa",
-      "panorama": "/home/maciej/Github/cross_view_sat_roma/data/mapillary/Fixtor/IcRzj0wTLZX874qitxVsQa/images/1316675827064189.jpg",
+      "panorama": "data/mapillary/Fixtor/IcRzj0wTLZX874qitxVsQa/images/1316675827064189.jpg",
       "lon": 16.964928114557,
       "lat": 52.388307314356,
       "en": [
@@ -8645,7 +8650,7 @@
     {
       "frame_id": "28263711263284815",
       "seq": "IcRzj0wTLZX874qitxVsQa",
-      "panorama": "/home/maciej/Github/cross_view_sat_roma/data/mapillary/Fixtor/IcRzj0wTLZX874qitxVsQa/images/28263711263284815.jpg",
+      "panorama": "data/mapillary/Fixtor/IcRzj0wTLZX874qitxVsQa/images/28263711263284815.jpg",
       "lon": 16.965084596733,
       "lat": 52.388578730358,
       "en": [
@@ -8689,7 +8694,7 @@
     {
       "frame_id": "28263711263284815",
       "seq": "IcRzj0wTLZX874qitxVsQa",
-      "panorama": "/home/maciej/Github/cross_view_sat_roma/data/mapillary/Fixtor/IcRzj0wTLZX874qitxVsQa/images/28263711263284815.jpg",
+      "panorama": "data/mapillary/Fixtor/IcRzj0wTLZX874qitxVsQa/images/28263711263284815.jpg",
       "lon": 16.965084596733,
       "lat": 52.388578730358,
       "en": [
@@ -8733,7 +8738,7 @@
     {
       "frame_id": "3489296377898570",
       "seq": "IcRzj0wTLZX874qitxVsQa",
-      "panorama": "/home/maciej/Github/cross_view_sat_roma/data/mapillary/Fixtor/IcRzj0wTLZX874qitxVsQa/images/3489296377898570.jpg",
+      "panorama": "data/mapillary/Fixtor/IcRzj0wTLZX874qitxVsQa/images/3489296377898570.jpg",
       "lon": 16.965188763489,
       "lat": 52.388843012611,
       "en": [
@@ -8777,7 +8782,7 @@
     {
       "frame_id": "3489296377898570",
       "seq": "IcRzj0wTLZX874qitxVsQa",
-      "panorama": "/home/maciej/Github/cross_view_sat_roma/data/mapillary/Fixtor/IcRzj0wTLZX874qitxVsQa/images/3489296377898570.jpg",
+      "panorama": "data/mapillary/Fixtor/IcRzj0wTLZX874qitxVsQa/images/3489296377898570.jpg",
       "lon": 16.965188763489,
       "lat": 52.388843012611,
       "en": [
@@ -8821,7 +8826,7 @@
     {
       "frame_id": "1131727186478749",
       "seq": "IcRzj0wTLZX874qitxVsQa",
-      "panorama": "/home/maciej/Github/cross_view_sat_roma/data/mapillary/Fixtor/IcRzj0wTLZX874qitxVsQa/images/1131727186478749.jpg",
+      "panorama": "data/mapillary/Fixtor/IcRzj0wTLZX874qitxVsQa/images/1131727186478749.jpg",
       "lon": 16.965431331111,
       "lat": 52.389075276142,
       "en": [
@@ -8865,7 +8870,7 @@
     {
       "frame_id": "1131727186478749",
       "seq": "IcRzj0wTLZX874qitxVsQa",
-      "panorama": "/home/maciej/Github/cross_view_sat_roma/data/mapillary/Fixtor/IcRzj0wTLZX874qitxVsQa/images/1131727186478749.jpg",
+      "panorama": "data/mapillary/Fixtor/IcRzj0wTLZX874qitxVsQa/images/1131727186478749.jpg",
       "lon": 16.965431331111,
       "lat": 52.389075276142,
       "en": [
@@ -8909,7 +8914,7 @@
     {
       "frame_id": "1599642875223994",
       "seq": "IcRzj0wTLZX874qitxVsQa",
-      "panorama": "/home/maciej/Github/cross_view_sat_roma/data/mapillary/Fixtor/IcRzj0wTLZX874qitxVsQa/images/1599642875223994.jpg",
+      "panorama": "data/mapillary/Fixtor/IcRzj0wTLZX874qitxVsQa/images/1599642875223994.jpg",
       "lon": 16.965745623487,
       "lat": 52.389304061041,
       "en": [
@@ -8953,7 +8958,7 @@
     {
       "frame_id": "1599642875223994",
       "seq": "IcRzj0wTLZX874qitxVsQa",
-      "panorama": "/home/maciej/Github/cross_view_sat_roma/data/mapillary/Fixtor/IcRzj0wTLZX874qitxVsQa/images/1599642875223994.jpg",
+      "panorama": "data/mapillary/Fixtor/IcRzj0wTLZX874qitxVsQa/images/1599642875223994.jpg",
       "lon": 16.965745623487,
       "lat": 52.389304061041,
       "en": [
@@ -8997,7 +9002,7 @@
     {
       "frame_id": "1073713638614184",
       "seq": "IcRzj0wTLZX874qitxVsQa",
-      "panorama": "/home/maciej/Github/cross_view_sat_roma/data/mapillary/Fixtor/IcRzj0wTLZX874qitxVsQa/images/1073713638614184.jpg",
+      "panorama": "data/mapillary/Fixtor/IcRzj0wTLZX874qitxVsQa/images/1073713638614184.jpg",
       "lon": 16.966116395024,
       "lat": 52.389526362921,
       "en": [
@@ -9041,7 +9046,7 @@
     {
       "frame_id": "1073713638614184",
       "seq": "IcRzj0wTLZX874qitxVsQa",
-      "panorama": "/home/maciej/Github/cross_view_sat_roma/data/mapillary/Fixtor/IcRzj0wTLZX874qitxVsQa/images/1073713638614184.jpg",
+      "panorama": "data/mapillary/Fixtor/IcRzj0wTLZX874qitxVsQa/images/1073713638614184.jpg",
       "lon": 16.966116395024,
       "lat": 52.389526362921,
       "en": [
@@ -9085,7 +9090,7 @@
     {
       "frame_id": "1120440463974740",
       "seq": "IcRzj0wTLZX874qitxVsQa",
-      "panorama": "/home/maciej/Github/cross_view_sat_roma/data/mapillary/Fixtor/IcRzj0wTLZX874qitxVsQa/images/1120440463974740.jpg",
+      "panorama": "data/mapillary/Fixtor/IcRzj0wTLZX874qitxVsQa/images/1120440463974740.jpg",
       "lon": 16.966458176908,
       "lat": 52.389729928594,
       "en": [
@@ -9129,7 +9134,7 @@
     {
       "frame_id": "1120440463974740",
       "seq": "IcRzj0wTLZX874qitxVsQa",
-      "panorama": "/home/maciej/Github/cross_view_sat_roma/data/mapillary/Fixtor/IcRzj0wTLZX874qitxVsQa/images/1120440463974740.jpg",
+      "panorama": "data/mapillary/Fixtor/IcRzj0wTLZX874qitxVsQa/images/1120440463974740.jpg",
       "lon": 16.966458176908,
       "lat": 52.389729928594,
       "en": [
@@ -9173,7 +9178,7 @@
     {
       "frame_id": "1396740292671110",
       "seq": "IcRzj0wTLZX874qitxVsQa",
-      "panorama": "/home/maciej/Github/cross_view_sat_roma/data/mapillary/Fixtor/IcRzj0wTLZX874qitxVsQa/images/1396740292671110.jpg",
+      "panorama": "data/mapillary/Fixtor/IcRzj0wTLZX874qitxVsQa/images/1396740292671110.jpg",
       "lon": 16.96677565379,
       "lat": 52.389948877947,
       "en": [
@@ -9217,7 +9222,7 @@
     {
       "frame_id": "1396740292671110",
       "seq": "IcRzj0wTLZX874qitxVsQa",
-      "panorama": "/home/maciej/Github/cross_view_sat_roma/data/mapillary/Fixtor/IcRzj0wTLZX874qitxVsQa/images/1396740292671110.jpg",
+      "panorama": "data/mapillary/Fixtor/IcRzj0wTLZX874qitxVsQa/images/1396740292671110.jpg",
       "lon": 16.96677565379,
       "lat": 52.389948877947,
       "en": [
@@ -9261,7 +9266,7 @@
     {
       "frame_id": "1100290906086001",
       "seq": "IcRzj0wTLZX874qitxVsQa",
-      "panorama": "/home/maciej/Github/cross_view_sat_roma/data/mapillary/Fixtor/IcRzj0wTLZX874qitxVsQa/images/1100290906086001.jpg",
+      "panorama": "data/mapillary/Fixtor/IcRzj0wTLZX874qitxVsQa/images/1100290906086001.jpg",
       "lon": 16.967130044295,
       "lat": 52.390179347595,
       "en": [
@@ -9305,7 +9310,7 @@
     {
       "frame_id": "1100290906086001",
       "seq": "IcRzj0wTLZX874qitxVsQa",
-      "panorama": "/home/maciej/Github/cross_view_sat_roma/data/mapillary/Fixtor/IcRzj0wTLZX874qitxVsQa/images/1100290906086001.jpg",
+      "panorama": "data/mapillary/Fixtor/IcRzj0wTLZX874qitxVsQa/images/1100290906086001.jpg",
       "lon": 16.967130044295,
       "lat": 52.390179347595,
       "en": [
@@ -9349,7 +9354,7 @@
     {
       "frame_id": "1436906631667845",
       "seq": "IcRzj0wTLZX874qitxVsQa",
-      "panorama": "/home/maciej/Github/cross_view_sat_roma/data/mapillary/Fixtor/IcRzj0wTLZX874qitxVsQa/images/1436906631667845.jpg",
+      "panorama": "data/mapillary/Fixtor/IcRzj0wTLZX874qitxVsQa/images/1436906631667845.jpg",
       "lon": 16.966965026524,
       "lat": 52.390430037751,
       "en": [
@@ -9393,7 +9398,7 @@
     {
       "frame_id": "1436906631667845",
       "seq": "IcRzj0wTLZX874qitxVsQa",
-      "panorama": "/home/maciej/Github/cross_view_sat_roma/data/mapillary/Fixtor/IcRzj0wTLZX874qitxVsQa/images/1436906631667845.jpg",
+      "panorama": "data/mapillary/Fixtor/IcRzj0wTLZX874qitxVsQa/images/1436906631667845.jpg",
       "lon": 16.966965026524,
       "lat": 52.390430037751,
       "en": [
@@ -9437,7 +9442,7 @@
     {
       "frame_id": "1609692443937868",
       "seq": "IcRzj0wTLZX874qitxVsQa",
-      "panorama": "/home/maciej/Github/cross_view_sat_roma/data/mapillary/Fixtor/IcRzj0wTLZX874qitxVsQa/images/1609692443937868.jpg",
+      "panorama": "data/mapillary/Fixtor/IcRzj0wTLZX874qitxVsQa/images/1609692443937868.jpg",
       "lon": 16.966540133415,
       "lat": 52.390569606436,
       "en": [
@@ -9481,7 +9486,7 @@
     {
       "frame_id": "1609692443937868",
       "seq": "IcRzj0wTLZX874qitxVsQa",
-      "panorama": "/home/maciej/Github/cross_view_sat_roma/data/mapillary/Fixtor/IcRzj0wTLZX874qitxVsQa/images/1609692443937868.jpg",
+      "panorama": "data/mapillary/Fixtor/IcRzj0wTLZX874qitxVsQa/images/1609692443937868.jpg",
       "lon": 16.966540133415,
       "lat": 52.390569606436,
       "en": [
@@ -9525,7 +9530,7 @@
     {
       "frame_id": "2140812226473784",
       "seq": "IcRzj0wTLZX874qitxVsQa",
-      "panorama": "/home/maciej/Github/cross_view_sat_roma/data/mapillary/Fixtor/IcRzj0wTLZX874qitxVsQa/images/2140812226473784.jpg",
+      "panorama": "data/mapillary/Fixtor/IcRzj0wTLZX874qitxVsQa/images/2140812226473784.jpg",
       "lon": 16.966122539019,
       "lat": 52.390729509123,
       "en": [
@@ -9569,7 +9574,7 @@
     {
       "frame_id": "2140812226473784",
       "seq": "IcRzj0wTLZX874qitxVsQa",
-      "panorama": "/home/maciej/Github/cross_view_sat_roma/data/mapillary/Fixtor/IcRzj0wTLZX874qitxVsQa/images/2140812226473784.jpg",
+      "panorama": "data/mapillary/Fixtor/IcRzj0wTLZX874qitxVsQa/images/2140812226473784.jpg",
       "lon": 16.966122539019,
       "lat": 52.390729509123,
       "en": [
@@ -9613,7 +9618,7 @@
     {
       "frame_id": "1770134364187132",
       "seq": "IcRzj0wTLZX874qitxVsQa",
-      "panorama": "/home/maciej/Github/cross_view_sat_roma/data/mapillary/Fixtor/IcRzj0wTLZX874qitxVsQa/images/1770134364187132.jpg",
+      "panorama": "data/mapillary/Fixtor/IcRzj0wTLZX874qitxVsQa/images/1770134364187132.jpg",
       "lon": 16.965725256271,
       "lat": 52.39091174931,
       "en": [
@@ -9657,7 +9662,7 @@
     {
       "frame_id": "1770134364187132",
       "seq": "IcRzj0wTLZX874qitxVsQa",
-      "panorama": "/home/maciej/Github/cross_view_sat_roma/data/mapillary/Fixtor/IcRzj0wTLZX874qitxVsQa/images/1770134364187132.jpg",
+      "panorama": "data/mapillary/Fixtor/IcRzj0wTLZX874qitxVsQa/images/1770134364187132.jpg",
       "lon": 16.965725256271,
       "lat": 52.39091174931,
       "en": [
@@ -9701,7 +9706,7 @@
     {
       "frame_id": "3960386027436480",
       "seq": "IcRzj0wTLZX874qitxVsQa",
-      "panorama": "/home/maciej/Github/cross_view_sat_roma/data/mapillary/Fixtor/IcRzj0wTLZX874qitxVsQa/images/3960386027436480.jpg",
+      "panorama": "data/mapillary/Fixtor/IcRzj0wTLZX874qitxVsQa/images/3960386027436480.jpg",
       "lon": 16.965377491867,
       "lat": 52.391122377734,
       "en": [
@@ -9745,7 +9750,7 @@
     {
       "frame_id": "3960386027436480",
       "seq": "IcRzj0wTLZX874qitxVsQa",
-      "panorama": "/home/maciej/Github/cross_view_sat_roma/data/mapillary/Fixtor/IcRzj0wTLZX874qitxVsQa/images/3960386027436480.jpg",
+      "panorama": "data/mapillary/Fixtor/IcRzj0wTLZX874qitxVsQa/images/3960386027436480.jpg",
       "lon": 16.965377491867,
       "lat": 52.391122377734,
       "en": [
@@ -9789,7 +9794,7 @@
     {
       "frame_id": "1799341664552833",
       "seq": "IcRzj0wTLZX874qitxVsQa",
-      "panorama": "/home/maciej/Github/cross_view_sat_roma/data/mapillary/Fixtor/IcRzj0wTLZX874qitxVsQa/images/1799341664552833.jpg",
+      "panorama": "data/mapillary/Fixtor/IcRzj0wTLZX874qitxVsQa/images/1799341664552833.jpg",
       "lon": 16.965087392486,
       "lat": 52.391372550372,
       "en": [
@@ -9833,7 +9838,7 @@
     {
       "frame_id": "1799341664552833",
       "seq": "IcRzj0wTLZX874qitxVsQa",
-      "panorama": "/home/maciej/Github/cross_view_sat_roma/data/mapillary/Fixtor/IcRzj0wTLZX874qitxVsQa/images/1799341664552833.jpg",
+      "panorama": "data/mapillary/Fixtor/IcRzj0wTLZX874qitxVsQa/images/1799341664552833.jpg",
       "lon": 16.965087392486,
       "lat": 52.391372550372,
       "en": [
@@ -9877,7 +9882,7 @@
     {
       "frame_id": "1388036546256933",
       "seq": "IcRzj0wTLZX874qitxVsQa",
-      "panorama": "/home/maciej/Github/cross_view_sat_roma/data/mapillary/Fixtor/IcRzj0wTLZX874qitxVsQa/images/1388036546256933.jpg",
+      "panorama": "data/mapillary/Fixtor/IcRzj0wTLZX874qitxVsQa/images/1388036546256933.jpg",
       "lon": 16.96487052412,
       "lat": 52.391634376515,
       "en": [
@@ -9921,7 +9926,7 @@
     {
       "frame_id": "1388036546256933",
       "seq": "IcRzj0wTLZX874qitxVsQa",
-      "panorama": "/home/maciej/Github/cross_view_sat_roma/data/mapillary/Fixtor/IcRzj0wTLZX874qitxVsQa/images/1388036546256933.jpg",
+      "panorama": "data/mapillary/Fixtor/IcRzj0wTLZX874qitxVsQa/images/1388036546256933.jpg",
       "lon": 16.96487052412,
       "lat": 52.391634376515,
       "en": [
@@ -9965,7 +9970,7 @@
     {
       "frame_id": "1392556546281046",
       "seq": "IcRzj0wTLZX874qitxVsQa",
-      "panorama": "/home/maciej/Github/cross_view_sat_roma/data/mapillary/Fixtor/IcRzj0wTLZX874qitxVsQa/images/1392556546281046.jpg",
+      "panorama": "data/mapillary/Fixtor/IcRzj0wTLZX874qitxVsQa/images/1392556546281046.jpg",
       "lon": 16.964700933879,
       "lat": 52.391913622674,
       "en": [
@@ -10009,7 +10014,7 @@
     {
       "frame_id": "1392556546281046",
       "seq": "IcRzj0wTLZX874qitxVsQa",
-      "panorama": "/home/maciej/Github/cross_view_sat_roma/data/mapillary/Fixtor/IcRzj0wTLZX874qitxVsQa/images/1392556546281046.jpg",
+      "panorama": "data/mapillary/Fixtor/IcRzj0wTLZX874qitxVsQa/images/1392556546281046.jpg",
       "lon": 16.964700933879,
       "lat": 52.391913622674,
       "en": [
@@ -10053,7 +10058,7 @@
     {
       "frame_id": "1400716081531820",
       "seq": "IcRzj0wTLZX874qitxVsQa",
-      "panorama": "/home/maciej/Github/cross_view_sat_roma/data/mapillary/Fixtor/IcRzj0wTLZX874qitxVsQa/images/1400716081531820.jpg",
+      "panorama": "data/mapillary/Fixtor/IcRzj0wTLZX874qitxVsQa/images/1400716081531820.jpg",
       "lon": 16.964528902036,
       "lat": 52.392197201781,
       "en": [
@@ -10097,7 +10102,7 @@
     {
       "frame_id": "1400716081531820",
       "seq": "IcRzj0wTLZX874qitxVsQa",
-      "panorama": "/home/maciej/Github/cross_view_sat_roma/data/mapillary/Fixtor/IcRzj0wTLZX874qitxVsQa/images/1400716081531820.jpg",
+      "panorama": "data/mapillary/Fixtor/IcRzj0wTLZX874qitxVsQa/images/1400716081531820.jpg",
       "lon": 16.964528902036,
       "lat": 52.392197201781,
       "en": [
@@ -10141,7 +10146,7 @@
     {
       "frame_id": "1892217645152325",
       "seq": "IcRzj0wTLZX874qitxVsQa",
-      "panorama": "/home/maciej/Github/cross_view_sat_roma/data/mapillary/Fixtor/IcRzj0wTLZX874qitxVsQa/images/1892217645152325.jpg",
+      "panorama": "data/mapillary/Fixtor/IcRzj0wTLZX874qitxVsQa/images/1892217645152325.jpg",
       "lon": 16.96436747052,
       "lat": 52.392484775813,
       "en": [
@@ -10185,7 +10190,7 @@
     {
       "frame_id": "1892217645152325",
       "seq": "IcRzj0wTLZX874qitxVsQa",
-      "panorama": "/home/maciej/Github/cross_view_sat_roma/data/mapillary/Fixtor/IcRzj0wTLZX874qitxVsQa/images/1892217645152325.jpg",
+      "panorama": "data/mapillary/Fixtor/IcRzj0wTLZX874qitxVsQa/images/1892217645152325.jpg",
       "lon": 16.96436747052,
       "lat": 52.392484775813,
       "en": [
@@ -10229,7 +10234,7 @@
     {
       "frame_id": "845278345272909",
       "seq": "IcRzj0wTLZX874qitxVsQa",
-      "panorama": "/home/maciej/Github/cross_view_sat_roma/data/mapillary/Fixtor/IcRzj0wTLZX874qitxVsQa/images/845278345272909.jpg",
+      "panorama": "data/mapillary/Fixtor/IcRzj0wTLZX874qitxVsQa/images/845278345272909.jpg",
       "lon": 16.964220544427,
       "lat": 52.392750525339,
       "en": [
@@ -10273,7 +10278,7 @@
     {
       "frame_id": "845278345272909",
       "seq": "IcRzj0wTLZX874qitxVsQa",
-      "panorama": "/home/maciej/Github/cross_view_sat_roma/data/mapillary/Fixtor/IcRzj0wTLZX874qitxVsQa/images/845278345272909.jpg",
+      "panorama": "data/mapillary/Fixtor/IcRzj0wTLZX874qitxVsQa/images/845278345272909.jpg",
       "lon": 16.964220544427,
       "lat": 52.392750525339,
       "en": [
@@ -10317,7 +10322,7 @@
     {
       "frame_id": "2612096309208434",
       "seq": "IcRzj0wTLZX874qitxVsQa",
-      "panorama": "/home/maciej/Github/cross_view_sat_roma/data/mapillary/Fixtor/IcRzj0wTLZX874qitxVsQa/images/2612096309208434.jpg",
+      "panorama": "data/mapillary/Fixtor/IcRzj0wTLZX874qitxVsQa/images/2612096309208434.jpg",
       "lon": 16.964086596359,
       "lat": 52.393043990224,
       "en": [
@@ -10361,7 +10366,7 @@
     {
       "frame_id": "2612096309208434",
       "seq": "IcRzj0wTLZX874qitxVsQa",
-      "panorama": "/home/maciej/Github/cross_view_sat_roma/data/mapillary/Fixtor/IcRzj0wTLZX874qitxVsQa/images/2612096309208434.jpg",
+      "panorama": "data/mapillary/Fixtor/IcRzj0wTLZX874qitxVsQa/images/2612096309208434.jpg",
       "lon": 16.964086596359,
       "lat": 52.393043990224,
       "en": [
@@ -10405,7 +10410,7 @@
     {
       "frame_id": "1645304160505212",
       "seq": "IcRzj0wTLZX874qitxVsQa",
-      "panorama": "/home/maciej/Github/cross_view_sat_roma/data/mapillary/Fixtor/IcRzj0wTLZX874qitxVsQa/images/1645304160505212.jpg",
+      "panorama": "data/mapillary/Fixtor/IcRzj0wTLZX874qitxVsQa/images/1645304160505212.jpg",
       "lon": 16.963962468487,
       "lat": 52.393327818982,
       "en": [
@@ -10449,7 +10454,7 @@
     {
       "frame_id": "1645304160505212",
       "seq": "IcRzj0wTLZX874qitxVsQa",
-      "panorama": "/home/maciej/Github/cross_view_sat_roma/data/mapillary/Fixtor/IcRzj0wTLZX874qitxVsQa/images/1645304160505212.jpg",
+      "panorama": "data/mapillary/Fixtor/IcRzj0wTLZX874qitxVsQa/images/1645304160505212.jpg",
       "lon": 16.963962468487,
       "lat": 52.393327818982,
       "en": [
@@ -10493,7 +10498,7 @@
     {
       "frame_id": "1368742985247867",
       "seq": "IcRzj0wTLZX874qitxVsQa",
-      "panorama": "/home/maciej/Github/cross_view_sat_roma/data/mapillary/Fixtor/IcRzj0wTLZX874qitxVsQa/images/1368742985247867.jpg",
+      "panorama": "data/mapillary/Fixtor/IcRzj0wTLZX874qitxVsQa/images/1368742985247867.jpg",
       "lon": 16.963801254194,
       "lat": 52.393630109395,
       "en": [
@@ -10537,7 +10542,7 @@
     {
       "frame_id": "1368742985247867",
       "seq": "IcRzj0wTLZX874qitxVsQa",
-      "panorama": "/home/maciej/Github/cross_view_sat_roma/data/mapillary/Fixtor/IcRzj0wTLZX874qitxVsQa/images/1368742985247867.jpg",
+      "panorama": "data/mapillary/Fixtor/IcRzj0wTLZX874qitxVsQa/images/1368742985247867.jpg",
       "lon": 16.963801254194,
       "lat": 52.393630109395,
       "en": [
@@ -10581,7 +10586,7 @@
     {
       "frame_id": "1094966510141854",
       "seq": "IcRzj0wTLZX874qitxVsQa",
-      "panorama": "/home/maciej/Github/cross_view_sat_roma/data/mapillary/Fixtor/IcRzj0wTLZX874qitxVsQa/images/1094966510141854.jpg",
+      "panorama": "data/mapillary/Fixtor/IcRzj0wTLZX874qitxVsQa/images/1094966510141854.jpg",
       "lon": 16.963650560419,
       "lat": 52.393897539852,
       "en": [
@@ -10625,7 +10630,7 @@
     {
       "frame_id": "1094966510141854",
       "seq": "IcRzj0wTLZX874qitxVsQa",
-      "panorama": "/home/maciej/Github/cross_view_sat_roma/data/mapillary/Fixtor/IcRzj0wTLZX874qitxVsQa/images/1094966510141854.jpg",
+      "panorama": "data/mapillary/Fixtor/IcRzj0wTLZX874qitxVsQa/images/1094966510141854.jpg",
       "lon": 16.963650560419,
       "lat": 52.393897539852,
       "en": [
@@ -10669,7 +10674,7 @@
     {
       "frame_id": "1576088213452988",
       "seq": "IcRzj0wTLZX874qitxVsQa",
-      "panorama": "/home/maciej/Github/cross_view_sat_roma/data/mapillary/Fixtor/IcRzj0wTLZX874qitxVsQa/images/1576088213452988.jpg",
+      "panorama": "data/mapillary/Fixtor/IcRzj0wTLZX874qitxVsQa/images/1576088213452988.jpg",
       "lon": 16.963474082096,
       "lat": 52.39419063451,
       "en": [
@@ -10713,7 +10718,7 @@
     {
       "frame_id": "1576088213452988",
       "seq": "IcRzj0wTLZX874qitxVsQa",
-      "panorama": "/home/maciej/Github/cross_view_sat_roma/data/mapillary/Fixtor/IcRzj0wTLZX874qitxVsQa/images/1576088213452988.jpg",
+      "panorama": "data/mapillary/Fixtor/IcRzj0wTLZX874qitxVsQa/images/1576088213452988.jpg",
       "lon": 16.963474082096,
       "lat": 52.39419063451,
       "en": [
@@ -10757,7 +10762,7 @@
     {
       "frame_id": "2326419104828349",
       "seq": "IcRzj0wTLZX874qitxVsQa",
-      "panorama": "/home/maciej/Github/cross_view_sat_roma/data/mapillary/Fixtor/IcRzj0wTLZX874qitxVsQa/images/2326419104828349.jpg",
+      "panorama": "data/mapillary/Fixtor/IcRzj0wTLZX874qitxVsQa/images/2326419104828349.jpg",
       "lon": 16.96334524641,
       "lat": 52.394478035628,
       "en": [
@@ -10801,7 +10806,7 @@
     {
       "frame_id": "2326419104828349",
       "seq": "IcRzj0wTLZX874qitxVsQa",
-      "panorama": "/home/maciej/Github/cross_view_sat_roma/data/mapillary/Fixtor/IcRzj0wTLZX874qitxVsQa/images/2326419104828349.jpg",
+      "panorama": "data/mapillary/Fixtor/IcRzj0wTLZX874qitxVsQa/images/2326419104828349.jpg",
       "lon": 16.96334524641,
       "lat": 52.394478035628,
       "en": [
@@ -10845,7 +10850,7 @@
     {
       "frame_id": "1611154070401669",
       "seq": "IcRzj0wTLZX874qitxVsQa",
-      "panorama": "/home/maciej/Github/cross_view_sat_roma/data/mapillary/Fixtor/IcRzj0wTLZX874qitxVsQa/images/1611154070401669.jpg",
+      "panorama": "data/mapillary/Fixtor/IcRzj0wTLZX874qitxVsQa/images/1611154070401669.jpg",
       "lon": 16.963767801159,
       "lat": 52.3946181611,
       "en": [
@@ -10889,7 +10894,7 @@
     {
       "frame_id": "1611154070401669",
       "seq": "IcRzj0wTLZX874qitxVsQa",
-      "panorama": "/home/maciej/Github/cross_view_sat_roma/data/mapillary/Fixtor/IcRzj0wTLZX874qitxVsQa/images/1611154070401669.jpg",
+      "panorama": "data/mapillary/Fixtor/IcRzj0wTLZX874qitxVsQa/images/1611154070401669.jpg",
       "lon": 16.963767801159,
       "lat": 52.3946181611,
       "en": [
@@ -10933,7 +10938,7 @@
     {
       "frame_id": "2044825309733264",
       "seq": "IcRzj0wTLZX874qitxVsQa",
-      "panorama": "/home/maciej/Github/cross_view_sat_roma/data/mapillary/Fixtor/IcRzj0wTLZX874qitxVsQa/images/2044825309733264.jpg",
+      "panorama": "data/mapillary/Fixtor/IcRzj0wTLZX874qitxVsQa/images/2044825309733264.jpg",
       "lon": 16.964122572263,
       "lat": 52.394824504431,
       "en": [
@@ -10977,7 +10982,7 @@
     {
       "frame_id": "2044825309733264",
       "seq": "IcRzj0wTLZX874qitxVsQa",
-      "panorama": "/home/maciej/Github/cross_view_sat_roma/data/mapillary/Fixtor/IcRzj0wTLZX874qitxVsQa/images/2044825309733264.jpg",
+      "panorama": "data/mapillary/Fixtor/IcRzj0wTLZX874qitxVsQa/images/2044825309733264.jpg",
       "lon": 16.964122572263,
       "lat": 52.394824504431,
       "en": [
@@ -11021,7 +11026,7 @@
     {
       "frame_id": "1353979803178810",
       "seq": "IcRzj0wTLZX874qitxVsQa",
-      "panorama": "/home/maciej/Github/cross_view_sat_roma/data/mapillary/Fixtor/IcRzj0wTLZX874qitxVsQa/images/1353979803178810.jpg",
+      "panorama": "data/mapillary/Fixtor/IcRzj0wTLZX874qitxVsQa/images/1353979803178810.jpg",
       "lon": 16.964302373966,
       "lat": 52.394920990886,
       "en": [
@@ -11065,7 +11070,7 @@
     {
       "frame_id": "1353979803178810",
       "seq": "IcRzj0wTLZX874qitxVsQa",
-      "panorama": "/home/maciej/Github/cross_view_sat_roma/data/mapillary/Fixtor/IcRzj0wTLZX874qitxVsQa/images/1353979803178810.jpg",
+      "panorama": "data/mapillary/Fixtor/IcRzj0wTLZX874qitxVsQa/images/1353979803178810.jpg",
       "lon": 16.964302373966,
       "lat": 52.394920990886,
       "en": [
@@ -11109,7 +11114,7 @@
     {
       "frame_id": "1112299907902984",
       "seq": "IcRzj0wTLZX874qitxVsQa",
-      "panorama": "/home/maciej/Github/cross_view_sat_roma/data/mapillary/Fixtor/IcRzj0wTLZX874qitxVsQa/images/1112299907902984.jpg",
+      "panorama": "data/mapillary/Fixtor/IcRzj0wTLZX874qitxVsQa/images/1112299907902984.jpg",
       "lon": 16.963939626314,
       "lat": 52.394712436245,
       "en": [
@@ -11153,7 +11158,7 @@
     {
       "frame_id": "1112299907902984",
       "seq": "IcRzj0wTLZX874qitxVsQa",
-      "panorama": "/home/maciej/Github/cross_view_sat_roma/data/mapillary/Fixtor/IcRzj0wTLZX874qitxVsQa/images/1112299907902984.jpg",
+      "panorama": "data/mapillary/Fixtor/IcRzj0wTLZX874qitxVsQa/images/1112299907902984.jpg",
       "lon": 16.963939626314,
       "lat": 52.394712436245,
       "en": [
@@ -11197,7 +11202,7 @@
     {
       "frame_id": "1099992155940572",
       "seq": "IcRzj0wTLZX874qitxVsQa",
-      "panorama": "/home/maciej/Github/cross_view_sat_roma/data/mapillary/Fixtor/IcRzj0wTLZX874qitxVsQa/images/1099992155940572.jpg",
+      "panorama": "data/mapillary/Fixtor/IcRzj0wTLZX874qitxVsQa/images/1099992155940572.jpg",
       "lon": 16.96353408284,
       "lat": 52.39454750899,
       "en": [
@@ -11241,7 +11246,7 @@
     {
       "frame_id": "1099992155940572",
       "seq": "IcRzj0wTLZX874qitxVsQa",
-      "panorama": "/home/maciej/Github/cross_view_sat_roma/data/mapillary/Fixtor/IcRzj0wTLZX874qitxVsQa/images/1099992155940572.jpg",
+      "panorama": "data/mapillary/Fixtor/IcRzj0wTLZX874qitxVsQa/images/1099992155940572.jpg",
       "lon": 16.96353408284,
       "lat": 52.39454750899,
       "en": [
@@ -11285,7 +11290,7 @@
     {
       "frame_id": "2090069028562856",
       "seq": "IcRzj0wTLZX874qitxVsQa",
-      "panorama": "/home/maciej/Github/cross_view_sat_roma/data/mapillary/Fixtor/IcRzj0wTLZX874qitxVsQa/images/2090069028562856.jpg",
+      "panorama": "data/mapillary/Fixtor/IcRzj0wTLZX874qitxVsQa/images/2090069028562856.jpg",
       "lon": 16.963334407904,
       "lat": 52.394342608198,
       "en": [
@@ -11329,7 +11334,7 @@
     {
       "frame_id": "2090069028562856",
       "seq": "IcRzj0wTLZX874qitxVsQa",
-      "panorama": "/home/maciej/Github/cross_view_sat_roma/data/mapillary/Fixtor/IcRzj0wTLZX874qitxVsQa/images/2090069028562856.jpg",
+      "panorama": "data/mapillary/Fixtor/IcRzj0wTLZX874qitxVsQa/images/2090069028562856.jpg",
       "lon": 16.963334407904,
       "lat": 52.394342608198,
       "en": [
@@ -11373,7 +11378,7 @@
     {
       "frame_id": "28071381109150220",
       "seq": "IcRzj0wTLZX874qitxVsQa",
-      "panorama": "/home/maciej/Github/cross_view_sat_roma/data/mapillary/Fixtor/IcRzj0wTLZX874qitxVsQa/images/28071381109150220.jpg",
+      "panorama": "data/mapillary/Fixtor/IcRzj0wTLZX874qitxVsQa/images/28071381109150220.jpg",
       "lon": 16.963427977298,
       "lat": 52.394070997924,
       "en": [
@@ -11417,7 +11422,7 @@
     {
       "frame_id": "28071381109150220",
       "seq": "IcRzj0wTLZX874qitxVsQa",
-      "panorama": "/home/maciej/Github/cross_view_sat_roma/data/mapillary/Fixtor/IcRzj0wTLZX874qitxVsQa/images/28071381109150220.jpg",
+      "panorama": "data/mapillary/Fixtor/IcRzj0wTLZX874qitxVsQa/images/28071381109150220.jpg",
       "lon": 16.963427977298,
       "lat": 52.394070997924,
       "en": [
@@ -11461,7 +11466,7 @@
     {
       "frame_id": "1120045207649869",
       "seq": "IcRzj0wTLZX874qitxVsQa",
-      "panorama": "/home/maciej/Github/cross_view_sat_roma/data/mapillary/Fixtor/IcRzj0wTLZX874qitxVsQa/images/1120045207649869.jpg",
+      "panorama": "data/mapillary/Fixtor/IcRzj0wTLZX874qitxVsQa/images/1120045207649869.jpg",
       "lon": 16.96357808932,
       "lat": 52.393776621589,
       "en": [
@@ -11505,7 +11510,7 @@
     {
       "frame_id": "1120045207649869",
       "seq": "IcRzj0wTLZX874qitxVsQa",
-      "panorama": "/home/maciej/Github/cross_view_sat_roma/data/mapillary/Fixtor/IcRzj0wTLZX874qitxVsQa/images/1120045207649869.jpg",
+      "panorama": "data/mapillary/Fixtor/IcRzj0wTLZX874qitxVsQa/images/1120045207649869.jpg",
       "lon": 16.96357808932,
       "lat": 52.393776621589,
       "en": [
@@ -11549,7 +11554,7 @@
     {
       "frame_id": "2176435617086201",
       "seq": "IcRzj0wTLZX874qitxVsQa",
-      "panorama": "/home/maciej/Github/cross_view_sat_roma/data/mapillary/Fixtor/IcRzj0wTLZX874qitxVsQa/images/2176435617086201.jpg",
+      "panorama": "data/mapillary/Fixtor/IcRzj0wTLZX874qitxVsQa/images/2176435617086201.jpg",
       "lon": 16.963409452405,
       "lat": 52.393543586937,
       "en": [
@@ -11593,7 +11598,7 @@
     {
       "frame_id": "2176435617086201",
       "seq": "IcRzj0wTLZX874qitxVsQa",
-      "panorama": "/home/maciej/Github/cross_view_sat_roma/data/mapillary/Fixtor/IcRzj0wTLZX874qitxVsQa/images/2176435617086201.jpg",
+      "panorama": "data/mapillary/Fixtor/IcRzj0wTLZX874qitxVsQa/images/2176435617086201.jpg",
       "lon": 16.963409452405,
       "lat": 52.393543586937,
       "en": [
@@ -11637,7 +11642,7 @@
     {
       "frame_id": "1476656934564153",
       "seq": "IcRzj0wTLZX874qitxVsQa",
-      "panorama": "/home/maciej/Github/cross_view_sat_roma/data/mapillary/Fixtor/IcRzj0wTLZX874qitxVsQa/images/1476656934564153.jpg",
+      "panorama": "data/mapillary/Fixtor/IcRzj0wTLZX874qitxVsQa/images/1476656934564153.jpg",
       "lon": 16.962976361009,
       "lat": 52.393443719356,
       "en": [
@@ -11681,7 +11686,7 @@
     {
       "frame_id": "1476656934564153",
       "seq": "IcRzj0wTLZX874qitxVsQa",
-      "panorama": "/home/maciej/Github/cross_view_sat_roma/data/mapillary/Fixtor/IcRzj0wTLZX874qitxVsQa/images/1476656934564153.jpg",
+      "panorama": "data/mapillary/Fixtor/IcRzj0wTLZX874qitxVsQa/images/1476656934564153.jpg",
       "lon": 16.962976361009,
       "lat": 52.393443719356,
       "en": [
@@ -11725,7 +11730,7 @@
     {
       "frame_id": "1555312799214362",
       "seq": "IcRzj0wTLZX874qitxVsQa",
-      "panorama": "/home/maciej/Github/cross_view_sat_roma/data/mapillary/Fixtor/IcRzj0wTLZX874qitxVsQa/images/1555312799214362.jpg",
+      "panorama": "data/mapillary/Fixtor/IcRzj0wTLZX874qitxVsQa/images/1555312799214362.jpg",
       "lon": 16.962488315261,
       "lat": 52.393348383601,
       "en": [
@@ -11769,7 +11774,7 @@
     {
       "frame_id": "1555312799214362",
       "seq": "IcRzj0wTLZX874qitxVsQa",
-      "panorama": "/home/maciej/Github/cross_view_sat_roma/data/mapillary/Fixtor/IcRzj0wTLZX874qitxVsQa/images/1555312799214362.jpg",
+      "panorama": "data/mapillary/Fixtor/IcRzj0wTLZX874qitxVsQa/images/1555312799214362.jpg",
       "lon": 16.962488315261,
       "lat": 52.393348383601,
       "en": [
@@ -11813,7 +11818,7 @@
     {
       "frame_id": "1626801685484071",
       "seq": "IcRzj0wTLZX874qitxVsQa",
-      "panorama": "/home/maciej/Github/cross_view_sat_roma/data/mapillary/Fixtor/IcRzj0wTLZX874qitxVsQa/images/1626801685484071.jpg",
+      "panorama": "data/mapillary/Fixtor/IcRzj0wTLZX874qitxVsQa/images/1626801685484071.jpg",
       "lon": 16.962028940446,
       "lat": 52.39328661718,
       "en": [
@@ -11857,7 +11862,7 @@
     {
       "frame_id": "1626801685484071",
       "seq": "IcRzj0wTLZX874qitxVsQa",
-      "panorama": "/home/maciej/Github/cross_view_sat_roma/data/mapillary/Fixtor/IcRzj0wTLZX874qitxVsQa/images/1626801685484071.jpg",
+      "panorama": "data/mapillary/Fixtor/IcRzj0wTLZX874qitxVsQa/images/1626801685484071.jpg",
       "lon": 16.962028940446,
       "lat": 52.39328661718,
       "en": [
@@ -11901,7 +11906,7 @@
     {
       "frame_id": "1613966733737828",
       "seq": "IcRzj0wTLZX874qitxVsQa",
-      "panorama": "/home/maciej/Github/cross_view_sat_roma/data/mapillary/Fixtor/IcRzj0wTLZX874qitxVsQa/images/1613966733737828.jpg",
+      "panorama": "data/mapillary/Fixtor/IcRzj0wTLZX874qitxVsQa/images/1613966733737828.jpg",
       "lon": 16.961530149014,
       "lat": 52.393319352123,
       "en": [
@@ -11945,7 +11950,7 @@
     {
       "frame_id": "1613966733737828",
       "seq": "IcRzj0wTLZX874qitxVsQa",
-      "panorama": "/home/maciej/Github/cross_view_sat_roma/data/mapillary/Fixtor/IcRzj0wTLZX874qitxVsQa/images/1613966733737828.jpg",
+      "panorama": "data/mapillary/Fixtor/IcRzj0wTLZX874qitxVsQa/images/1613966733737828.jpg",
       "lon": 16.961530149014,
       "lat": 52.393319352123,
       "en": [
@@ -11989,7 +11994,7 @@
     {
       "frame_id": "1597169132134158",
       "seq": "IcRzj0wTLZX874qitxVsQa",
-      "panorama": "/home/maciej/Github/cross_view_sat_roma/data/mapillary/Fixtor/IcRzj0wTLZX874qitxVsQa/images/1597169132134158.jpg",
+      "panorama": "data/mapillary/Fixtor/IcRzj0wTLZX874qitxVsQa/images/1597169132134158.jpg",
       "lon": 16.961082702298,
       "lat": 52.393433783411,
       "en": [
@@ -12033,7 +12038,7 @@
     {
       "frame_id": "1597169132134158",
       "seq": "IcRzj0wTLZX874qitxVsQa",
-      "panorama": "/home/maciej/Github/cross_view_sat_roma/data/mapillary/Fixtor/IcRzj0wTLZX874qitxVsQa/images/1597169132134158.jpg",
+      "panorama": "data/mapillary/Fixtor/IcRzj0wTLZX874qitxVsQa/images/1597169132134158.jpg",
       "lon": 16.961082702298,
       "lat": 52.393433783411,
       "en": [
@@ -12077,7 +12082,7 @@
     {
       "frame_id": "1402659124563537",
       "seq": "IcRzj0wTLZX874qitxVsQa",
-      "panorama": "/home/maciej/Github/cross_view_sat_roma/data/mapillary/Fixtor/IcRzj0wTLZX874qitxVsQa/images/1402659124563537.jpg",
+      "panorama": "data/mapillary/Fixtor/IcRzj0wTLZX874qitxVsQa/images/1402659124563537.jpg",
       "lon": 16.960640052666,
       "lat": 52.393571794127,
       "en": [
@@ -12121,7 +12126,7 @@
     {
       "frame_id": "1402659124563537",
       "seq": "IcRzj0wTLZX874qitxVsQa",
-      "panorama": "/home/maciej/Github/cross_view_sat_roma/data/mapillary/Fixtor/IcRzj0wTLZX874qitxVsQa/images/1402659124563537.jpg",
+      "panorama": "data/mapillary/Fixtor/IcRzj0wTLZX874qitxVsQa/images/1402659124563537.jpg",
       "lon": 16.960640052666,
       "lat": 52.393571794127,
       "en": [
@@ -12165,7 +12170,7 @@
     {
       "frame_id": "1791234278691271",
       "seq": "IcRzj0wTLZX874qitxVsQa",
-      "panorama": "/home/maciej/Github/cross_view_sat_roma/data/mapillary/Fixtor/IcRzj0wTLZX874qitxVsQa/images/1791234278691271.jpg",
+      "panorama": "data/mapillary/Fixtor/IcRzj0wTLZX874qitxVsQa/images/1791234278691271.jpg",
       "lon": 16.960217103123,
       "lat": 52.393706282355,
       "en": [
@@ -12209,7 +12214,7 @@
     {
       "frame_id": "1791234278691271",
       "seq": "IcRzj0wTLZX874qitxVsQa",
-      "panorama": "/home/maciej/Github/cross_view_sat_roma/data/mapillary/Fixtor/IcRzj0wTLZX874qitxVsQa/images/1791234278691271.jpg",
+      "panorama": "data/mapillary/Fixtor/IcRzj0wTLZX874qitxVsQa/images/1791234278691271.jpg",
       "lon": 16.960217103123,
       "lat": 52.393706282355,
       "en": [
@@ -12253,7 +12258,7 @@
     {
       "frame_id": "1405846657542303",
       "seq": "IcRzj0wTLZX874qitxVsQa",
-      "panorama": "/home/maciej/Github/cross_view_sat_roma/data/mapillary/Fixtor/IcRzj0wTLZX874qitxVsQa/images/1405846657542303.jpg",
+      "panorama": "data/mapillary/Fixtor/IcRzj0wTLZX874qitxVsQa/images/1405846657542303.jpg",
       "lon": 16.959778380447,
       "lat": 52.393872162584,
       "en": [
@@ -12297,7 +12302,7 @@
     {
       "frame_id": "1405846657542303",
       "seq": "IcRzj0wTLZX874qitxVsQa",
-      "panorama": "/home/maciej/Github/cross_view_sat_roma/data/mapillary/Fixtor/IcRzj0wTLZX874qitxVsQa/images/1405846657542303.jpg",
+      "panorama": "data/mapillary/Fixtor/IcRzj0wTLZX874qitxVsQa/images/1405846657542303.jpg",
       "lon": 16.959778380447,
       "lat": 52.393872162584,
       "en": [
@@ -12341,7 +12346,7 @@
     {
       "frame_id": "1998492840812168",
       "seq": "IcRzj0wTLZX874qitxVsQa",
-      "panorama": "/home/maciej/Github/cross_view_sat_roma/data/mapillary/Fixtor/IcRzj0wTLZX874qitxVsQa/images/1998492840812168.jpg",
+      "panorama": "data/mapillary/Fixtor/IcRzj0wTLZX874qitxVsQa/images/1998492840812168.jpg",
       "lon": 16.95938603963,
       "lat": 52.39402585812,
       "en": [
@@ -12385,7 +12390,7 @@
     {
       "frame_id": "1998492840812168",
       "seq": "IcRzj0wTLZX874qitxVsQa",
-      "panorama": "/home/maciej/Github/cross_view_sat_roma/data/mapillary/Fixtor/IcRzj0wTLZX874qitxVsQa/images/1998492840812168.jpg",
+      "panorama": "data/mapillary/Fixtor/IcRzj0wTLZX874qitxVsQa/images/1998492840812168.jpg",
       "lon": 16.95938603963,
       "lat": 52.39402585812,
       "en": [
@@ -12429,7 +12434,7 @@
     {
       "frame_id": "1805068834011537",
       "seq": "IcRzj0wTLZX874qitxVsQa",
-      "panorama": "/home/maciej/Github/cross_view_sat_roma/data/mapillary/Fixtor/IcRzj0wTLZX874qitxVsQa/images/1805068834011537.jpg",
+      "panorama": "data/mapillary/Fixtor/IcRzj0wTLZX874qitxVsQa/images/1805068834011537.jpg",
       "lon": 16.95893584728,
       "lat": 52.39417604611,
       "en": [
@@ -12473,7 +12478,7 @@
     {
       "frame_id": "1805068834011537",
       "seq": "IcRzj0wTLZX874qitxVsQa",
-      "panorama": "/home/maciej/Github/cross_view_sat_roma/data/mapillary/Fixtor/IcRzj0wTLZX874qitxVsQa/images/1805068834011537.jpg",
+      "panorama": "data/mapillary/Fixtor/IcRzj0wTLZX874qitxVsQa/images/1805068834011537.jpg",
       "lon": 16.95893584728,
       "lat": 52.39417604611,
       "en": [
@@ -12517,7 +12522,7 @@
     {
       "frame_id": "1577342996632443",
       "seq": "IcRzj0wTLZX874qitxVsQa",
-      "panorama": "/home/maciej/Github/cross_view_sat_roma/data/mapillary/Fixtor/IcRzj0wTLZX874qitxVsQa/images/1577342996632443.jpg",
+      "panorama": "data/mapillary/Fixtor/IcRzj0wTLZX874qitxVsQa/images/1577342996632443.jpg",
       "lon": 16.958506938919,
       "lat": 52.394315296085,
       "en": [
@@ -12561,7 +12566,7 @@
     {
       "frame_id": "1577342996632443",
       "seq": "IcRzj0wTLZX874qitxVsQa",
-      "panorama": "/home/maciej/Github/cross_view_sat_roma/data/mapillary/Fixtor/IcRzj0wTLZX874qitxVsQa/images/1577342996632443.jpg",
+      "panorama": "data/mapillary/Fixtor/IcRzj0wTLZX874qitxVsQa/images/1577342996632443.jpg",
       "lon": 16.958506938919,
       "lat": 52.394315296085,
       "en": [
@@ -12605,7 +12610,7 @@
     {
       "frame_id": "1627218468984037",
       "seq": "IcRzj0wTLZX874qitxVsQa",
-      "panorama": "/home/maciej/Github/cross_view_sat_roma/data/mapillary/Fixtor/IcRzj0wTLZX874qitxVsQa/images/1627218468984037.jpg",
+      "panorama": "data/mapillary/Fixtor/IcRzj0wTLZX874qitxVsQa/images/1627218468984037.jpg",
       "lon": 16.958059291574,
       "lat": 52.394460539802,
       "en": [
@@ -12649,7 +12654,7 @@
     {
       "frame_id": "1627218468984037",
       "seq": "IcRzj0wTLZX874qitxVsQa",
-      "panorama": "/home/maciej/Github/cross_view_sat_roma/data/mapillary/Fixtor/IcRzj0wTLZX874qitxVsQa/images/1627218468984037.jpg",
+      "panorama": "data/mapillary/Fixtor/IcRzj0wTLZX874qitxVsQa/images/1627218468984037.jpg",
       "lon": 16.958059291574,
       "lat": 52.394460539802,
       "en": [
@@ -12693,7 +12698,7 @@
     {
       "frame_id": "2978326649172208",
       "seq": "IcRzj0wTLZX874qitxVsQa",
-      "panorama": "/home/maciej/Github/cross_view_sat_roma/data/mapillary/Fixtor/IcRzj0wTLZX874qitxVsQa/images/2978326649172208.jpg",
+      "panorama": "data/mapillary/Fixtor/IcRzj0wTLZX874qitxVsQa/images/2978326649172208.jpg",
       "lon": 16.957644415039,
       "lat": 52.394595991188,
       "en": [
@@ -12737,7 +12742,7 @@
     {
       "frame_id": "2978326649172208",
       "seq": "IcRzj0wTLZX874qitxVsQa",
-      "panorama": "/home/maciej/Github/cross_view_sat_roma/data/mapillary/Fixtor/IcRzj0wTLZX874qitxVsQa/images/2978326649172208.jpg",
+      "panorama": "data/mapillary/Fixtor/IcRzj0wTLZX874qitxVsQa/images/2978326649172208.jpg",
       "lon": 16.957644415039,
       "lat": 52.394595991188,
       "en": [
@@ -12781,7 +12786,7 @@
     {
       "frame_id": "3754424991393145",
       "seq": "IcRzj0wTLZX874qitxVsQa",
-      "panorama": "/home/maciej/Github/cross_view_sat_roma/data/mapillary/Fixtor/IcRzj0wTLZX874qitxVsQa/images/3754424991393145.jpg",
+      "panorama": "data/mapillary/Fixtor/IcRzj0wTLZX874qitxVsQa/images/3754424991393145.jpg",
       "lon": 16.957203429364,
       "lat": 52.394740600854,
       "en": [
@@ -12825,7 +12830,7 @@
     {
       "frame_id": "3754424991393145",
       "seq": "IcRzj0wTLZX874qitxVsQa",
-      "panorama": "/home/maciej/Github/cross_view_sat_roma/data/mapillary/Fixtor/IcRzj0wTLZX874qitxVsQa/images/3754424991393145.jpg",
+      "panorama": "data/mapillary/Fixtor/IcRzj0wTLZX874qitxVsQa/images/3754424991393145.jpg",
       "lon": 16.957203429364,
       "lat": 52.394740600854,
       "en": [
@@ -12869,7 +12874,7 @@
     {
       "frame_id": "1260741202845756",
       "seq": "IcRzj0wTLZX874qitxVsQa",
-      "panorama": "/home/maciej/Github/cross_view_sat_roma/data/mapillary/Fixtor/IcRzj0wTLZX874qitxVsQa/images/1260741202845756.jpg",
+      "panorama": "data/mapillary/Fixtor/IcRzj0wTLZX874qitxVsQa/images/1260741202845756.jpg",
       "lon": 16.956786055146,
       "lat": 52.394876323,
       "en": [
@@ -12913,7 +12918,7 @@
     {
       "frame_id": "1260741202845756",
       "seq": "IcRzj0wTLZX874qitxVsQa",
-      "panorama": "/home/maciej/Github/cross_view_sat_roma/data/mapillary/Fixtor/IcRzj0wTLZX874qitxVsQa/images/1260741202845756.jpg",
+      "panorama": "data/mapillary/Fixtor/IcRzj0wTLZX874qitxVsQa/images/1260741202845756.jpg",
       "lon": 16.956786055146,
       "lat": 52.394876323,
       "en": [
@@ -12957,7 +12962,7 @@
     {
       "frame_id": "1556200629076514",
       "seq": "IcRzj0wTLZX874qitxVsQa",
-      "panorama": "/home/maciej/Github/cross_view_sat_roma/data/mapillary/Fixtor/IcRzj0wTLZX874qitxVsQa/images/1556200629076514.jpg",
+      "panorama": "data/mapillary/Fixtor/IcRzj0wTLZX874qitxVsQa/images/1556200629076514.jpg",
       "lon": 16.956344378183,
       "lat": 52.395020642278,
       "en": [
@@ -13001,7 +13006,7 @@
     {
       "frame_id": "1556200629076514",
       "seq": "IcRzj0wTLZX874qitxVsQa",
-      "panorama": "/home/maciej/Github/cross_view_sat_roma/data/mapillary/Fixtor/IcRzj0wTLZX874qitxVsQa/images/1556200629076514.jpg",
+      "panorama": "data/mapillary/Fixtor/IcRzj0wTLZX874qitxVsQa/images/1556200629076514.jpg",
       "lon": 16.956344378183,
       "lat": 52.395020642278,
       "en": [
@@ -13045,7 +13050,7 @@
     {
       "frame_id": "1058757126920400",
       "seq": "IcRzj0wTLZX874qitxVsQa",
-      "panorama": "/home/maciej/Github/cross_view_sat_roma/data/mapillary/Fixtor/IcRzj0wTLZX874qitxVsQa/images/1058757126920400.jpg",
+      "panorama": "data/mapillary/Fixtor/IcRzj0wTLZX874qitxVsQa/images/1058757126920400.jpg",
       "lon": 16.953849610433,
       "lat": 52.396657470982,
       "en": [
@@ -13089,7 +13094,7 @@
     {
       "frame_id": "1058757126920400",
       "seq": "IcRzj0wTLZX874qitxVsQa",
-      "panorama": "/home/maciej/Github/cross_view_sat_roma/data/mapillary/Fixtor/IcRzj0wTLZX874qitxVsQa/images/1058757126920400.jpg",
+      "panorama": "data/mapillary/Fixtor/IcRzj0wTLZX874qitxVsQa/images/1058757126920400.jpg",
       "lon": 16.953849610433,
       "lat": 52.396657470982,
       "en": [
@@ -13133,7 +13138,7 @@
     {
       "frame_id": "1100362855725571",
       "seq": "IcRzj0wTLZX874qitxVsQa",
-      "panorama": "/home/maciej/Github/cross_view_sat_roma/data/mapillary/Fixtor/IcRzj0wTLZX874qitxVsQa/images/1100362855725571.jpg",
+      "panorama": "data/mapillary/Fixtor/IcRzj0wTLZX874qitxVsQa/images/1100362855725571.jpg",
       "lon": 16.956181243324,
       "lat": 52.395069968079,
       "en": [
@@ -13177,7 +13182,7 @@
     {
       "frame_id": "1100362855725571",
       "seq": "IcRzj0wTLZX874qitxVsQa",
-      "panorama": "/home/maciej/Github/cross_view_sat_roma/data/mapillary/Fixtor/IcRzj0wTLZX874qitxVsQa/images/1100362855725571.jpg",
+      "panorama": "data/mapillary/Fixtor/IcRzj0wTLZX874qitxVsQa/images/1100362855725571.jpg",
       "lon": 16.956181243324,
       "lat": 52.395069968079,
       "en": [
@@ -13221,7 +13226,7 @@
     {
       "frame_id": "1041328292272541",
       "seq": "IcRzj0wTLZX874qitxVsQa",
-      "panorama": "/home/maciej/Github/cross_view_sat_roma/data/mapillary/Fixtor/IcRzj0wTLZX874qitxVsQa/images/1041328292272541.jpg",
+      "panorama": "data/mapillary/Fixtor/IcRzj0wTLZX874qitxVsQa/images/1041328292272541.jpg",
       "lon": 16.95383572984,
       "lat": 52.396684282014,
       "en": [
@@ -13265,7 +13270,7 @@
     {
       "frame_id": "1041328292272541",
       "seq": "IcRzj0wTLZX874qitxVsQa",
-      "panorama": "/home/maciej/Github/cross_view_sat_roma/data/mapillary/Fixtor/IcRzj0wTLZX874qitxVsQa/images/1041328292272541.jpg",
+      "panorama": "data/mapillary/Fixtor/IcRzj0wTLZX874qitxVsQa/images/1041328292272541.jpg",
       "lon": 16.95383572984,
       "lat": 52.396684282014,
       "en": [
@@ -13309,7 +13314,7 @@
     {
       "frame_id": "1978181079545268",
       "seq": "IcRzj0wTLZX874qitxVsQa",
-      "panorama": "/home/maciej/Github/cross_view_sat_roma/data/mapillary/Fixtor/IcRzj0wTLZX874qitxVsQa/images/1978181079545268.jpg",
+      "panorama": "data/mapillary/Fixtor/IcRzj0wTLZX874qitxVsQa/images/1978181079545268.jpg",
       "lon": 16.956222878836,
       "lat": 52.395057815515,
       "en": [
@@ -13353,7 +13358,7 @@
     {
       "frame_id": "1978181079545268",
       "seq": "IcRzj0wTLZX874qitxVsQa",
-      "panorama": "/home/maciej/Github/cross_view_sat_roma/data/mapillary/Fixtor/IcRzj0wTLZX874qitxVsQa/images/1978181079545268.jpg",
+      "panorama": "data/mapillary/Fixtor/IcRzj0wTLZX874qitxVsQa/images/1978181079545268.jpg",
       "lon": 16.956222878836,
       "lat": 52.395057815515,
       "en": [
@@ -13397,7 +13402,7 @@
     {
       "frame_id": "1624858092548608",
       "seq": "IcRzj0wTLZX874qitxVsQa",
-      "panorama": "/home/maciej/Github/cross_view_sat_roma/data/mapillary/Fixtor/IcRzj0wTLZX874qitxVsQa/images/1624858092548608.jpg",
+      "panorama": "data/mapillary/Fixtor/IcRzj0wTLZX874qitxVsQa/images/1624858092548608.jpg",
       "lon": 16.953821739888,
       "lat": 52.396712353578,
       "en": [
@@ -13441,7 +13446,7 @@
     {
       "frame_id": "1624858092548608",
       "seq": "IcRzj0wTLZX874qitxVsQa",
-      "panorama": "/home/maciej/Github/cross_view_sat_roma/data/mapillary/Fixtor/IcRzj0wTLZX874qitxVsQa/images/1624858092548608.jpg",
+      "panorama": "data/mapillary/Fixtor/IcRzj0wTLZX874qitxVsQa/images/1624858092548608.jpg",
       "lon": 16.953821739888,
       "lat": 52.396712353578,
       "en": [
@@ -13485,7 +13490,7 @@
     {
       "frame_id": "1132747332749947",
       "seq": "IcRzj0wTLZX874qitxVsQa",
-      "panorama": "/home/maciej/Github/cross_view_sat_roma/data/mapillary/Fixtor/IcRzj0wTLZX874qitxVsQa/images/1132747332749947.jpg",
+      "panorama": "data/mapillary/Fixtor/IcRzj0wTLZX874qitxVsQa/images/1132747332749947.jpg",
       "lon": 16.956264114623,
       "lat": 52.395045449516,
       "en": [
@@ -13529,7 +13534,7 @@
     {
       "frame_id": "1132747332749947",
       "seq": "IcRzj0wTLZX874qitxVsQa",
-      "panorama": "/home/maciej/Github/cross_view_sat_roma/data/mapillary/Fixtor/IcRzj0wTLZX874qitxVsQa/images/1132747332749947.jpg",
+      "panorama": "data/mapillary/Fixtor/IcRzj0wTLZX874qitxVsQa/images/1132747332749947.jpg",
       "lon": 16.956264114623,
       "lat": 52.395045449516,
       "en": [
@@ -13573,7 +13578,7 @@
     {
       "frame_id": "1999264247459733",
       "seq": "IcRzj0wTLZX874qitxVsQa",
-      "panorama": "/home/maciej/Github/cross_view_sat_roma/data/mapillary/Fixtor/IcRzj0wTLZX874qitxVsQa/images/1999264247459733.jpg",
+      "panorama": "data/mapillary/Fixtor/IcRzj0wTLZX874qitxVsQa/images/1999264247459733.jpg",
       "lon": 16.953808894571,
       "lat": 52.396739322507,
       "en": [
@@ -13617,7 +13622,7 @@
     {
       "frame_id": "1999264247459733",
       "seq": "IcRzj0wTLZX874qitxVsQa",
-      "panorama": "/home/maciej/Github/cross_view_sat_roma/data/mapillary/Fixtor/IcRzj0wTLZX874qitxVsQa/images/1999264247459733.jpg",
+      "panorama": "data/mapillary/Fixtor/IcRzj0wTLZX874qitxVsQa/images/1999264247459733.jpg",
       "lon": 16.953808894571,
       "lat": 52.396739322507,
       "en": [
@@ -13661,7 +13666,7 @@
     {
       "frame_id": "1069879799117962",
       "seq": "IcRzj0wTLZX874qitxVsQa",
-      "panorama": "/home/maciej/Github/cross_view_sat_roma/data/mapillary/Fixtor/IcRzj0wTLZX874qitxVsQa/images/1069879799117962.jpg",
+      "panorama": "data/mapillary/Fixtor/IcRzj0wTLZX874qitxVsQa/images/1069879799117962.jpg",
       "lon": 16.953783209748,
       "lat": 52.396794101234,
       "en": [
@@ -13705,7 +13710,7 @@
     {
       "frame_id": "1069879799117962",
       "seq": "IcRzj0wTLZX874qitxVsQa",
-      "panorama": "/home/maciej/Github/cross_view_sat_roma/data/mapillary/Fixtor/IcRzj0wTLZX874qitxVsQa/images/1069879799117962.jpg",
+      "panorama": "data/mapillary/Fixtor/IcRzj0wTLZX874qitxVsQa/images/1069879799117962.jpg",
       "lon": 16.953783209748,
       "lat": 52.396794101234,
       "en": [
@@ -13749,7 +13754,7 @@
     {
       "frame_id": "946071411273849",
       "seq": "IcRzj0wTLZX874qitxVsQa",
-      "panorama": "/home/maciej/Github/cross_view_sat_roma/data/mapillary/Fixtor/IcRzj0wTLZX874qitxVsQa/images/946071411273849.jpg",
+      "panorama": "data/mapillary/Fixtor/IcRzj0wTLZX874qitxVsQa/images/946071411273849.jpg",
       "lon": 16.953646963987,
       "lat": 52.397090110399,
       "en": [
@@ -13793,7 +13798,7 @@
     {
       "frame_id": "946071411273849",
       "seq": "IcRzj0wTLZX874qitxVsQa",
-      "panorama": "/home/maciej/Github/cross_view_sat_roma/data/mapillary/Fixtor/IcRzj0wTLZX874qitxVsQa/images/946071411273849.jpg",
+      "panorama": "data/mapillary/Fixtor/IcRzj0wTLZX874qitxVsQa/images/946071411273849.jpg",
       "lon": 16.953646963987,
       "lat": 52.397090110399,
       "en": [
@@ -13837,7 +13842,7 @@
     {
       "frame_id": "28630049443257593",
       "seq": "IcRzj0wTLZX874qitxVsQa",
-      "panorama": "/home/maciej/Github/cross_view_sat_roma/data/mapillary/Fixtor/IcRzj0wTLZX874qitxVsQa/images/28630049443257593.jpg",
+      "panorama": "data/mapillary/Fixtor/IcRzj0wTLZX874qitxVsQa/images/28630049443257593.jpg",
       "lon": 16.953504837217,
       "lat": 52.397390017223,
       "en": [
@@ -13881,7 +13886,7 @@
     {
       "frame_id": "28630049443257593",
       "seq": "IcRzj0wTLZX874qitxVsQa",
-      "panorama": "/home/maciej/Github/cross_view_sat_roma/data/mapillary/Fixtor/IcRzj0wTLZX874qitxVsQa/images/28630049443257593.jpg",
+      "panorama": "data/mapillary/Fixtor/IcRzj0wTLZX874qitxVsQa/images/28630049443257593.jpg",
       "lon": 16.953504837217,
       "lat": 52.397390017223,
       "en": [
@@ -13925,7 +13930,7 @@
     {
       "frame_id": "2325916388183213",
       "seq": "IcRzj0wTLZX874qitxVsQa",
-      "panorama": "/home/maciej/Github/cross_view_sat_roma/data/mapillary/Fixtor/IcRzj0wTLZX874qitxVsQa/images/2325916388183213.jpg",
+      "panorama": "data/mapillary/Fixtor/IcRzj0wTLZX874qitxVsQa/images/2325916388183213.jpg",
       "lon": 16.953367028161,
       "lat": 52.397675795714,
       "en": [
@@ -13969,7 +13974,7 @@
     {
       "frame_id": "2325916388183213",
       "seq": "IcRzj0wTLZX874qitxVsQa",
-      "panorama": "/home/maciej/Github/cross_view_sat_roma/data/mapillary/Fixtor/IcRzj0wTLZX874qitxVsQa/images/2325916388183213.jpg",
+      "panorama": "data/mapillary/Fixtor/IcRzj0wTLZX874qitxVsQa/images/2325916388183213.jpg",
       "lon": 16.953367028161,
       "lat": 52.397675795714,
       "en": [
@@ -14013,7 +14018,7 @@
     {
       "frame_id": "1975241993146792",
       "seq": "IcRzj0wTLZX874qitxVsQa",
-      "panorama": "/home/maciej/Github/cross_view_sat_roma/data/mapillary/Fixtor/IcRzj0wTLZX874qitxVsQa/images/1975241993146792.jpg",
+      "panorama": "data/mapillary/Fixtor/IcRzj0wTLZX874qitxVsQa/images/1975241993146792.jpg",
       "lon": 16.953289463612,
       "lat": 52.397969813037,
       "en": [
@@ -14057,7 +14062,7 @@
     {
       "frame_id": "1975241993146792",
       "seq": "IcRzj0wTLZX874qitxVsQa",
-      "panorama": "/home/maciej/Github/cross_view_sat_roma/data/mapillary/Fixtor/IcRzj0wTLZX874qitxVsQa/images/1975241993146792.jpg",
+      "panorama": "data/mapillary/Fixtor/IcRzj0wTLZX874qitxVsQa/images/1975241993146792.jpg",
       "lon": 16.953289463612,
       "lat": 52.397969813037,
       "en": [
@@ -14101,7 +14106,7 @@
     {
       "frame_id": "2266652857522078",
       "seq": "IcRzj0wTLZX874qitxVsQa",
-      "panorama": "/home/maciej/Github/cross_view_sat_roma/data/mapillary/Fixtor/IcRzj0wTLZX874qitxVsQa/images/2266652857522078.jpg",
+      "panorama": "data/mapillary/Fixtor/IcRzj0wTLZX874qitxVsQa/images/2266652857522078.jpg",
       "lon": 16.953438722772,
       "lat": 52.398245234798,
       "en": [
@@ -14145,7 +14150,7 @@
     {
       "frame_id": "2266652857522078",
       "seq": "IcRzj0wTLZX874qitxVsQa",
-      "panorama": "/home/maciej/Github/cross_view_sat_roma/data/mapillary/Fixtor/IcRzj0wTLZX874qitxVsQa/images/2266652857522078.jpg",
+      "panorama": "data/mapillary/Fixtor/IcRzj0wTLZX874qitxVsQa/images/2266652857522078.jpg",
       "lon": 16.953438722772,
       "lat": 52.398245234798,
       "en": [
@@ -14189,7 +14194,7 @@
     {
       "frame_id": "2664235027388592",
       "seq": "IcRzj0wTLZX874qitxVsQa",
-      "panorama": "/home/maciej/Github/cross_view_sat_roma/data/mapillary/Fixtor/IcRzj0wTLZX874qitxVsQa/images/2664235027388592.jpg",
+      "panorama": "data/mapillary/Fixtor/IcRzj0wTLZX874qitxVsQa/images/2664235027388592.jpg",
       "lon": 16.9536087099,
       "lat": 52.39851600666,
       "en": [
@@ -14233,7 +14238,7 @@
     {
       "frame_id": "2664235027388592",
       "seq": "IcRzj0wTLZX874qitxVsQa",
-      "panorama": "/home/maciej/Github/cross_view_sat_roma/data/mapillary/Fixtor/IcRzj0wTLZX874qitxVsQa/images/2664235027388592.jpg",
+      "panorama": "data/mapillary/Fixtor/IcRzj0wTLZX874qitxVsQa/images/2664235027388592.jpg",
       "lon": 16.9536087099,
       "lat": 52.39851600666,
       "en": [
@@ -14277,7 +14282,7 @@
     {
       "frame_id": "2298332014341910",
       "seq": "IcRzj0wTLZX874qitxVsQa",
-      "panorama": "/home/maciej/Github/cross_view_sat_roma/data/mapillary/Fixtor/IcRzj0wTLZX874qitxVsQa/images/2298332014341910.jpg",
+      "panorama": "data/mapillary/Fixtor/IcRzj0wTLZX874qitxVsQa/images/2298332014341910.jpg",
       "lon": 16.953808311924,
       "lat": 52.398786260924,
       "en": [
@@ -14321,7 +14326,7 @@
     {
       "frame_id": "2298332014341910",
       "seq": "IcRzj0wTLZX874qitxVsQa",
-      "panorama": "/home/maciej/Github/cross_view_sat_roma/data/mapillary/Fixtor/IcRzj0wTLZX874qitxVsQa/images/2298332014341910.jpg",
+      "panorama": "data/mapillary/Fixtor/IcRzj0wTLZX874qitxVsQa/images/2298332014341910.jpg",
       "lon": 16.953808311924,
       "lat": 52.398786260924,
       "en": [
@@ -14365,7 +14370,7 @@
     {
       "frame_id": "2664985677254720",
       "seq": "IcRzj0wTLZX874qitxVsQa",
-      "panorama": "/home/maciej/Github/cross_view_sat_roma/data/mapillary/Fixtor/IcRzj0wTLZX874qitxVsQa/images/2664985677254720.jpg",
+      "panorama": "data/mapillary/Fixtor/IcRzj0wTLZX874qitxVsQa/images/2664985677254720.jpg",
       "lon": 16.954051905787,
       "lat": 52.399075999937,
       "en": [
@@ -14409,7 +14414,7 @@
     {
       "frame_id": "2664985677254720",
       "seq": "IcRzj0wTLZX874qitxVsQa",
-      "panorama": "/home/maciej/Github/cross_view_sat_roma/data/mapillary/Fixtor/IcRzj0wTLZX874qitxVsQa/images/2664985677254720.jpg",
+      "panorama": "data/mapillary/Fixtor/IcRzj0wTLZX874qitxVsQa/images/2664985677254720.jpg",
       "lon": 16.954051905787,
       "lat": 52.399075999937,
       "en": [
@@ -14453,7 +14458,7 @@
     {
       "frame_id": "2190862265201212",
       "seq": "IcRzj0wTLZX874qitxVsQa",
-      "panorama": "/home/maciej/Github/cross_view_sat_roma/data/mapillary/Fixtor/IcRzj0wTLZX874qitxVsQa/images/2190862265201212.jpg",
+      "panorama": "data/mapillary/Fixtor/IcRzj0wTLZX874qitxVsQa/images/2190862265201212.jpg",
       "lon": 16.954213512648,
       "lat": 52.399336569613,
       "en": [
@@ -14497,7 +14502,7 @@
     {
       "frame_id": "2190862265201212",
       "seq": "IcRzj0wTLZX874qitxVsQa",
-      "panorama": "/home/maciej/Github/cross_view_sat_roma/data/mapillary/Fixtor/IcRzj0wTLZX874qitxVsQa/images/2190862265201212.jpg",
+      "panorama": "data/mapillary/Fixtor/IcRzj0wTLZX874qitxVsQa/images/2190862265201212.jpg",
       "lon": 16.954213512648,
       "lat": 52.399336569613,
       "en": [
@@ -14541,7 +14546,7 @@
     {
       "frame_id": "1803778274142674",
       "seq": "IcRzj0wTLZX874qitxVsQa",
-      "panorama": "/home/maciej/Github/cross_view_sat_roma/data/mapillary/Fixtor/IcRzj0wTLZX874qitxVsQa/images/1803778274142674.jpg",
+      "panorama": "data/mapillary/Fixtor/IcRzj0wTLZX874qitxVsQa/images/1803778274142674.jpg",
       "lon": 16.954324360455,
       "lat": 52.399638588266,
       "en": [
@@ -14585,7 +14590,7 @@
     {
       "frame_id": "1803778274142674",
       "seq": "IcRzj0wTLZX874qitxVsQa",
-      "panorama": "/home/maciej/Github/cross_view_sat_roma/data/mapillary/Fixtor/IcRzj0wTLZX874qitxVsQa/images/1803778274142674.jpg",
+      "panorama": "data/mapillary/Fixtor/IcRzj0wTLZX874qitxVsQa/images/1803778274142674.jpg",
       "lon": 16.954324360455,
       "lat": 52.399638588266,
       "en": [
@@ -14629,7 +14634,7 @@
     {
       "frame_id": "1595260398958253",
       "seq": "IcRzj0wTLZX874qitxVsQa",
-      "panorama": "/home/maciej/Github/cross_view_sat_roma/data/mapillary/Fixtor/IcRzj0wTLZX874qitxVsQa/images/1595260398958253.jpg",
+      "panorama": "data/mapillary/Fixtor/IcRzj0wTLZX874qitxVsQa/images/1595260398958253.jpg",
       "lon": 16.954451945532,
       "lat": 52.399933436143,
       "en": [
@@ -14673,7 +14678,7 @@
     {
       "frame_id": "1595260398958253",
       "seq": "IcRzj0wTLZX874qitxVsQa",
-      "panorama": "/home/maciej/Github/cross_view_sat_roma/data/mapillary/Fixtor/IcRzj0wTLZX874qitxVsQa/images/1595260398958253.jpg",
+      "panorama": "data/mapillary/Fixtor/IcRzj0wTLZX874qitxVsQa/images/1595260398958253.jpg",
       "lon": 16.954451945532,
       "lat": 52.399933436143,
       "en": [
@@ -14717,7 +14722,7 @@
     {
       "frame_id": "1618478246297464",
       "seq": "IcRzj0wTLZX874qitxVsQa",
-      "panorama": "/home/maciej/Github/cross_view_sat_roma/data/mapillary/Fixtor/IcRzj0wTLZX874qitxVsQa/images/1618478246297464.jpg",
+      "panorama": "data/mapillary/Fixtor/IcRzj0wTLZX874qitxVsQa/images/1618478246297464.jpg",
       "lon": 16.954749454931,
       "lat": 52.400150740164,
       "en": [
@@ -14761,7 +14766,7 @@
     {
       "frame_id": "1618478246297464",
       "seq": "IcRzj0wTLZX874qitxVsQa",
-      "panorama": "/home/maciej/Github/cross_view_sat_roma/data/mapillary/Fixtor/IcRzj0wTLZX874qitxVsQa/images/1618478246297464.jpg",
+      "panorama": "data/mapillary/Fixtor/IcRzj0wTLZX874qitxVsQa/images/1618478246297464.jpg",
       "lon": 16.954749454931,
       "lat": 52.400150740164,
       "en": [
@@ -14805,7 +14810,7 @@
     {
       "frame_id": "1411397654284692",
       "seq": "IcRzj0wTLZX874qitxVsQa",
-      "panorama": "/home/maciej/Github/cross_view_sat_roma/data/mapillary/Fixtor/IcRzj0wTLZX874qitxVsQa/images/1411397654284692.jpg",
+      "panorama": "data/mapillary/Fixtor/IcRzj0wTLZX874qitxVsQa/images/1411397654284692.jpg",
       "lon": 16.955213642622,
       "lat": 52.400069570441,
       "en": [
@@ -14849,7 +14854,7 @@
     {
       "frame_id": "1411397654284692",
       "seq": "IcRzj0wTLZX874qitxVsQa",
-      "panorama": "/home/maciej/Github/cross_view_sat_roma/data/mapillary/Fixtor/IcRzj0wTLZX874qitxVsQa/images/1411397654284692.jpg",
+      "panorama": "data/mapillary/Fixtor/IcRzj0wTLZX874qitxVsQa/images/1411397654284692.jpg",
       "lon": 16.955213642622,
       "lat": 52.400069570441,
       "en": [
@@ -14893,7 +14898,7 @@
     {
       "frame_id": "2199725277275110",
       "seq": "IcRzj0wTLZX874qitxVsQa",
-      "panorama": "/home/maciej/Github/cross_view_sat_roma/data/mapillary/Fixtor/IcRzj0wTLZX874qitxVsQa/images/2199725277275110.jpg",
+      "panorama": "data/mapillary/Fixtor/IcRzj0wTLZX874qitxVsQa/images/2199725277275110.jpg",
       "lon": 16.955674544039,
       "lat": 52.399986203026,
       "en": [
@@ -14937,7 +14942,7 @@
     {
       "frame_id": "2199725277275110",
       "seq": "IcRzj0wTLZX874qitxVsQa",
-      "panorama": "/home/maciej/Github/cross_view_sat_roma/data/mapillary/Fixtor/IcRzj0wTLZX874qitxVsQa/images/2199725277275110.jpg",
+      "panorama": "data/mapillary/Fixtor/IcRzj0wTLZX874qitxVsQa/images/2199725277275110.jpg",
       "lon": 16.955674544039,
       "lat": 52.399986203026,
       "en": [
@@ -14981,7 +14986,7 @@
     {
       "frame_id": "1630029038733543",
       "seq": "IcRzj0wTLZX874qitxVsQa",
-      "panorama": "/home/maciej/Github/cross_view_sat_roma/data/mapillary/Fixtor/IcRzj0wTLZX874qitxVsQa/images/1630029038733543.jpg",
+      "panorama": "data/mapillary/Fixtor/IcRzj0wTLZX874qitxVsQa/images/1630029038733543.jpg",
       "lon": 16.955951527503,
       "lat": 52.399812202275,
       "en": [
@@ -15025,7 +15030,7 @@
     {
       "frame_id": "1630029038733543",
       "seq": "IcRzj0wTLZX874qitxVsQa",
-      "panorama": "/home/maciej/Github/cross_view_sat_roma/data/mapillary/Fixtor/IcRzj0wTLZX874qitxVsQa/images/1630029038733543.jpg",
+      "panorama": "data/mapillary/Fixtor/IcRzj0wTLZX874qitxVsQa/images/1630029038733543.jpg",
       "lon": 16.955951527503,
       "lat": 52.399812202275,
       "en": [
@@ -15069,7 +15074,7 @@
     {
       "frame_id": "1029541690071867",
       "seq": "IcRzj0wTLZX874qitxVsQa",
-      "panorama": "/home/maciej/Github/cross_view_sat_roma/data/mapillary/Fixtor/IcRzj0wTLZX874qitxVsQa/images/1029541690071867.jpg",
+      "panorama": "data/mapillary/Fixtor/IcRzj0wTLZX874qitxVsQa/images/1029541690071867.jpg",
       "lon": 16.955784574053,
       "lat": 52.399528722005,
       "en": [
@@ -15113,7 +15118,7 @@
     {
       "frame_id": "1029541690071867",
       "seq": "IcRzj0wTLZX874qitxVsQa",
-      "panorama": "/home/maciej/Github/cross_view_sat_roma/data/mapillary/Fixtor/IcRzj0wTLZX874qitxVsQa/images/1029541690071867.jpg",
+      "panorama": "data/mapillary/Fixtor/IcRzj0wTLZX874qitxVsQa/images/1029541690071867.jpg",
       "lon": 16.955784574053,
       "lat": 52.399528722005,
       "en": [
@@ -15157,7 +15162,7 @@
     {
       "frame_id": "1110169474745368",
       "seq": "IcRzj0wTLZX874qitxVsQa",
-      "panorama": "/home/maciej/Github/cross_view_sat_roma/data/mapillary/Fixtor/IcRzj0wTLZX874qitxVsQa/images/1110169474745368.jpg",
+      "panorama": "data/mapillary/Fixtor/IcRzj0wTLZX874qitxVsQa/images/1110169474745368.jpg",
       "lon": 16.955632021227,
       "lat": 52.39924043708,
       "en": [
@@ -15201,7 +15206,7 @@
     {
       "frame_id": "1110169474745368",
       "seq": "IcRzj0wTLZX874qitxVsQa",
-      "panorama": "/home/maciej/Github/cross_view_sat_roma/data/mapillary/Fixtor/IcRzj0wTLZX874qitxVsQa/images/1110169474745368.jpg",
+      "panorama": "data/mapillary/Fixtor/IcRzj0wTLZX874qitxVsQa/images/1110169474745368.jpg",
       "lon": 16.955632021227,
       "lat": 52.39924043708,
       "en": [
@@ -15245,7 +15250,7 @@
     {
       "frame_id": "2143531059567041",
       "seq": "IcRzj0wTLZX874qitxVsQa",
-      "panorama": "/home/maciej/Github/cross_view_sat_roma/data/mapillary/Fixtor/IcRzj0wTLZX874qitxVsQa/images/2143531059567041.jpg",
+      "panorama": "data/mapillary/Fixtor/IcRzj0wTLZX874qitxVsQa/images/2143531059567041.jpg",
       "lon": 16.956020327685,
       "lat": 52.399099279792,
       "en": [
@@ -15289,7 +15294,7 @@
     {
       "frame_id": "2143531059567041",
       "seq": "IcRzj0wTLZX874qitxVsQa",
-      "panorama": "/home/maciej/Github/cross_view_sat_roma/data/mapillary/Fixtor/IcRzj0wTLZX874qitxVsQa/images/2143531059567041.jpg",
+      "panorama": "data/mapillary/Fixtor/IcRzj0wTLZX874qitxVsQa/images/2143531059567041.jpg",
       "lon": 16.956020327685,
       "lat": 52.399099279792,
       "en": [
@@ -15333,7 +15338,7 @@
     {
       "frame_id": "1885191899114432",
       "seq": "IcRzj0wTLZX874qitxVsQa",
-      "panorama": "/home/maciej/Github/cross_view_sat_roma/data/mapillary/Fixtor/IcRzj0wTLZX874qitxVsQa/images/1885191899114432.jpg",
+      "panorama": "data/mapillary/Fixtor/IcRzj0wTLZX874qitxVsQa/images/1885191899114432.jpg",
       "lon": 16.956448789132,
       "lat": 52.398997834912,
       "en": [
@@ -15377,7 +15382,7 @@
     {
       "frame_id": "1885191899114432",
       "seq": "IcRzj0wTLZX874qitxVsQa",
-      "panorama": "/home/maciej/Github/cross_view_sat_roma/data/mapillary/Fixtor/IcRzj0wTLZX874qitxVsQa/images/1885191899114432.jpg",
+      "panorama": "data/mapillary/Fixtor/IcRzj0wTLZX874qitxVsQa/images/1885191899114432.jpg",
       "lon": 16.956448789132,
       "lat": 52.398997834912,
       "en": [
@@ -15421,7 +15426,7 @@
     {
       "frame_id": "1566349148627059",
       "seq": "IcRzj0wTLZX874qitxVsQa",
-      "panorama": "/home/maciej/Github/cross_view_sat_roma/data/mapillary/Fixtor/IcRzj0wTLZX874qitxVsQa/images/1566349148627059.jpg",
+      "panorama": "data/mapillary/Fixtor/IcRzj0wTLZX874qitxVsQa/images/1566349148627059.jpg",
       "lon": 16.956908914615,
       "lat": 52.398887382847,
       "en": [
@@ -15465,7 +15470,7 @@
     {
       "frame_id": "1566349148627059",
       "seq": "IcRzj0wTLZX874qitxVsQa",
-      "panorama": "/home/maciej/Github/cross_view_sat_roma/data/mapillary/Fixtor/IcRzj0wTLZX874qitxVsQa/images/1566349148627059.jpg",
+      "panorama": "data/mapillary/Fixtor/IcRzj0wTLZX874qitxVsQa/images/1566349148627059.jpg",
       "lon": 16.956908914615,
       "lat": 52.398887382847,
       "en": [
@@ -15509,7 +15514,7 @@
     {
       "frame_id": "2343542236381893",
       "seq": "IcRzj0wTLZX874qitxVsQa",
-      "panorama": "/home/maciej/Github/cross_view_sat_roma/data/mapillary/Fixtor/IcRzj0wTLZX874qitxVsQa/images/2343542236381893.jpg",
+      "panorama": "data/mapillary/Fixtor/IcRzj0wTLZX874qitxVsQa/images/2343542236381893.jpg",
       "lon": 16.95737264593,
       "lat": 52.3987780038,
       "en": [
@@ -15553,7 +15558,7 @@
     {
       "frame_id": "2343542236381893",
       "seq": "IcRzj0wTLZX874qitxVsQa",
-      "panorama": "/home/maciej/Github/cross_view_sat_roma/data/mapillary/Fixtor/IcRzj0wTLZX874qitxVsQa/images/2343542236381893.jpg",
+      "panorama": "data/mapillary/Fixtor/IcRzj0wTLZX874qitxVsQa/images/2343542236381893.jpg",
       "lon": 16.95737264593,
       "lat": 52.3987780038,
       "en": [
@@ -15597,7 +15602,7 @@
     {
       "frame_id": "1843956966766764",
       "seq": "IcRzj0wTLZX874qitxVsQa",
-      "panorama": "/home/maciej/Github/cross_view_sat_roma/data/mapillary/Fixtor/IcRzj0wTLZX874qitxVsQa/images/1843956966766764.jpg",
+      "panorama": "data/mapillary/Fixtor/IcRzj0wTLZX874qitxVsQa/images/1843956966766764.jpg",
       "lon": 16.957830991783,
       "lat": 52.398666772602,
       "en": [
@@ -15641,7 +15646,7 @@
     {
       "frame_id": "1843956966766764",
       "seq": "IcRzj0wTLZX874qitxVsQa",
-      "panorama": "/home/maciej/Github/cross_view_sat_roma/data/mapillary/Fixtor/IcRzj0wTLZX874qitxVsQa/images/1843956966766764.jpg",
+      "panorama": "data/mapillary/Fixtor/IcRzj0wTLZX874qitxVsQa/images/1843956966766764.jpg",
       "lon": 16.957830991783,
       "lat": 52.398666772602,
       "en": [
@@ -15685,7 +15690,7 @@
     {
       "frame_id": "1378668397810037",
       "seq": "IcRzj0wTLZX874qitxVsQa",
-      "panorama": "/home/maciej/Github/cross_view_sat_roma/data/mapillary/Fixtor/IcRzj0wTLZX874qitxVsQa/images/1378668397810037.jpg",
+      "panorama": "data/mapillary/Fixtor/IcRzj0wTLZX874qitxVsQa/images/1378668397810037.jpg",
       "lon": 16.958298503674,
       "lat": 52.398565226204,
       "en": [
@@ -15729,7 +15734,7 @@
     {
       "frame_id": "1378668397810037",
       "seq": "IcRzj0wTLZX874qitxVsQa",
-      "panorama": "/home/maciej/Github/cross_view_sat_roma/data/mapillary/Fixtor/IcRzj0wTLZX874qitxVsQa/images/1378668397810037.jpg",
+      "panorama": "data/mapillary/Fixtor/IcRzj0wTLZX874qitxVsQa/images/1378668397810037.jpg",
       "lon": 16.958298503674,
       "lat": 52.398565226204,
       "en": [
@@ -15773,7 +15778,7 @@
     {
       "frame_id": "1640881657746457",
       "seq": "IcRzj0wTLZX874qitxVsQa",
-      "panorama": "/home/maciej/Github/cross_view_sat_roma/data/mapillary/Fixtor/IcRzj0wTLZX874qitxVsQa/images/1640881657746457.jpg",
+      "panorama": "data/mapillary/Fixtor/IcRzj0wTLZX874qitxVsQa/images/1640881657746457.jpg",
       "lon": 16.95876350706,
       "lat": 52.398458134295,
       "en": [
@@ -15817,7 +15822,7 @@
     {
       "frame_id": "1640881657746457",
       "seq": "IcRzj0wTLZX874qitxVsQa",
-      "panorama": "/home/maciej/Github/cross_view_sat_roma/data/mapillary/Fixtor/IcRzj0wTLZX874qitxVsQa/images/1640881657746457.jpg",
+      "panorama": "data/mapillary/Fixtor/IcRzj0wTLZX874qitxVsQa/images/1640881657746457.jpg",
       "lon": 16.95876350706,
       "lat": 52.398458134295,
       "en": [
@@ -15861,7 +15866,7 @@
     {
       "frame_id": "1329442135766852",
       "seq": "IcRzj0wTLZX874qitxVsQa",
-      "panorama": "/home/maciej/Github/cross_view_sat_roma/data/mapillary/Fixtor/IcRzj0wTLZX874qitxVsQa/images/1329442135766852.jpg",
+      "panorama": "data/mapillary/Fixtor/IcRzj0wTLZX874qitxVsQa/images/1329442135766852.jpg",
       "lon": 16.959221158919,
       "lat": 52.398353215974,
       "en": [
@@ -15905,7 +15910,7 @@
     {
       "frame_id": "1329442135766852",
       "seq": "IcRzj0wTLZX874qitxVsQa",
-      "panorama": "/home/maciej/Github/cross_view_sat_roma/data/mapillary/Fixtor/IcRzj0wTLZX874qitxVsQa/images/1329442135766852.jpg",
+      "panorama": "data/mapillary/Fixtor/IcRzj0wTLZX874qitxVsQa/images/1329442135766852.jpg",
       "lon": 16.959221158919,
       "lat": 52.398353215974,
       "en": [
@@ -15949,7 +15954,7 @@
     {
       "frame_id": "1877539553208523",
       "seq": "IcRzj0wTLZX874qitxVsQa",
-      "panorama": "/home/maciej/Github/cross_view_sat_roma/data/mapillary/Fixtor/IcRzj0wTLZX874qitxVsQa/images/1877539553208523.jpg",
+      "panorama": "data/mapillary/Fixtor/IcRzj0wTLZX874qitxVsQa/images/1877539553208523.jpg",
       "lon": 16.959678928087,
       "lat": 52.398255127652,
       "en": [
@@ -15993,7 +15998,7 @@
     {
       "frame_id": "1877539553208523",
       "seq": "IcRzj0wTLZX874qitxVsQa",
-      "panorama": "/home/maciej/Github/cross_view_sat_roma/data/mapillary/Fixtor/IcRzj0wTLZX874qitxVsQa/images/1877539553208523.jpg",
+      "panorama": "data/mapillary/Fixtor/IcRzj0wTLZX874qitxVsQa/images/1877539553208523.jpg",
       "lon": 16.959678928087,
       "lat": 52.398255127652,
       "en": [
@@ -16037,7 +16042,7 @@
     {
       "frame_id": "971140639343305",
       "seq": "IcRzj0wTLZX874qitxVsQa",
-      "panorama": "/home/maciej/Github/cross_view_sat_roma/data/mapillary/Fixtor/IcRzj0wTLZX874qitxVsQa/images/971140639343305.jpg",
+      "panorama": "data/mapillary/Fixtor/IcRzj0wTLZX874qitxVsQa/images/971140639343305.jpg",
       "lon": 16.960148069233,
       "lat": 52.398166385721,
       "en": [
@@ -16081,7 +16086,7 @@
     {
       "frame_id": "971140639343305",
       "seq": "IcRzj0wTLZX874qitxVsQa",
-      "panorama": "/home/maciej/Github/cross_view_sat_roma/data/mapillary/Fixtor/IcRzj0wTLZX874qitxVsQa/images/971140639343305.jpg",
+      "panorama": "data/mapillary/Fixtor/IcRzj0wTLZX874qitxVsQa/images/971140639343305.jpg",
       "lon": 16.960148069233,
       "lat": 52.398166385721,
       "en": [
@@ -16125,7 +16130,7 @@
     {
       "frame_id": "1426839858986128",
       "seq": "IcRzj0wTLZX874qitxVsQa",
-      "panorama": "/home/maciej/Github/cross_view_sat_roma/data/mapillary/Fixtor/IcRzj0wTLZX874qitxVsQa/images/1426839858986128.jpg",
+      "panorama": "data/mapillary/Fixtor/IcRzj0wTLZX874qitxVsQa/images/1426839858986128.jpg",
       "lon": 16.960607231302,
       "lat": 52.398062416683,
       "en": [
@@ -16169,7 +16174,7 @@
     {
       "frame_id": "1426839858986128",
       "seq": "IcRzj0wTLZX874qitxVsQa",
-      "panorama": "/home/maciej/Github/cross_view_sat_roma/data/mapillary/Fixtor/IcRzj0wTLZX874qitxVsQa/images/1426839858986128.jpg",
+      "panorama": "data/mapillary/Fixtor/IcRzj0wTLZX874qitxVsQa/images/1426839858986128.jpg",
       "lon": 16.960607231302,
       "lat": 52.398062416683,
       "en": [
@@ -16213,7 +16218,7 @@
     {
       "frame_id": "1419645030041727",
       "seq": "IcRzj0wTLZX874qitxVsQa",
-      "panorama": "/home/maciej/Github/cross_view_sat_roma/data/mapillary/Fixtor/IcRzj0wTLZX874qitxVsQa/images/1419645030041727.jpg",
+      "panorama": "data/mapillary/Fixtor/IcRzj0wTLZX874qitxVsQa/images/1419645030041727.jpg",
       "lon": 16.961045136371,
       "lat": 52.397963541317,
       "en": [
@@ -16257,7 +16262,7 @@
     {
       "frame_id": "1419645030041727",
       "seq": "IcRzj0wTLZX874qitxVsQa",
-      "panorama": "/home/maciej/Github/cross_view_sat_roma/data/mapillary/Fixtor/IcRzj0wTLZX874qitxVsQa/images/1419645030041727.jpg",
+      "panorama": "data/mapillary/Fixtor/IcRzj0wTLZX874qitxVsQa/images/1419645030041727.jpg",
       "lon": 16.961045136371,
       "lat": 52.397963541317,
       "en": [
@@ -16301,7 +16306,7 @@
     {
       "frame_id": "4510807879135648",
       "seq": "IcRzj0wTLZX874qitxVsQa",
-      "panorama": "/home/maciej/Github/cross_view_sat_roma/data/mapillary/Fixtor/IcRzj0wTLZX874qitxVsQa/images/4510807879135648.jpg",
+      "panorama": "data/mapillary/Fixtor/IcRzj0wTLZX874qitxVsQa/images/4510807879135648.jpg",
       "lon": 16.961541583427,
       "lat": 52.397902444983,
       "en": [
@@ -16345,7 +16350,7 @@
     {
       "frame_id": "4510807879135648",
       "seq": "IcRzj0wTLZX874qitxVsQa",
-      "panorama": "/home/maciej/Github/cross_view_sat_roma/data/mapillary/Fixtor/IcRzj0wTLZX874qitxVsQa/images/4510807879135648.jpg",
+      "panorama": "data/mapillary/Fixtor/IcRzj0wTLZX874qitxVsQa/images/4510807879135648.jpg",
       "lon": 16.961541583427,
       "lat": 52.397902444983,
       "en": [
@@ -16389,7 +16394,7 @@
     {
       "frame_id": "929538789876463",
       "seq": "IcRzj0wTLZX874qitxVsQa",
-      "panorama": "/home/maciej/Github/cross_view_sat_roma/data/mapillary/Fixtor/IcRzj0wTLZX874qitxVsQa/images/929538789876463.jpg",
+      "panorama": "data/mapillary/Fixtor/IcRzj0wTLZX874qitxVsQa/images/929538789876463.jpg",
       "lon": 16.9619956502,
       "lat": 52.397838865361,
       "en": [
@@ -16433,7 +16438,7 @@
     {
       "frame_id": "929538789876463",
       "seq": "IcRzj0wTLZX874qitxVsQa",
-      "panorama": "/home/maciej/Github/cross_view_sat_roma/data/mapillary/Fixtor/IcRzj0wTLZX874qitxVsQa/images/929538789876463.jpg",
+      "panorama": "data/mapillary/Fixtor/IcRzj0wTLZX874qitxVsQa/images/929538789876463.jpg",
       "lon": 16.9619956502,
       "lat": 52.397838865361,
       "en": [
@@ -16477,7 +16482,7 @@
     {
       "frame_id": "1736493034133252",
       "seq": "IcRzj0wTLZX874qitxVsQa",
-      "panorama": "/home/maciej/Github/cross_view_sat_roma/data/mapillary/Fixtor/IcRzj0wTLZX874qitxVsQa/images/1736493034133252.jpg",
+      "panorama": "data/mapillary/Fixtor/IcRzj0wTLZX874qitxVsQa/images/1736493034133252.jpg",
       "lon": 16.961922968551,
       "lat": 52.397522344515,
       "en": [
@@ -16521,7 +16526,7 @@
     {
       "frame_id": "1736493034133252",
       "seq": "IcRzj0wTLZX874qitxVsQa",
-      "panorama": "/home/maciej/Github/cross_view_sat_roma/data/mapillary/Fixtor/IcRzj0wTLZX874qitxVsQa/images/1736493034133252.jpg",
+      "panorama": "data/mapillary/Fixtor/IcRzj0wTLZX874qitxVsQa/images/1736493034133252.jpg",
       "lon": 16.961922968551,
       "lat": 52.397522344515,
       "en": [
@@ -16565,7 +16570,7 @@
     {
       "frame_id": "2001244650439529",
       "seq": "IcRzj0wTLZX874qitxVsQa",
-      "panorama": "/home/maciej/Github/cross_view_sat_roma/data/mapillary/Fixtor/IcRzj0wTLZX874qitxVsQa/images/2001244650439529.jpg",
+      "panorama": "data/mapillary/Fixtor/IcRzj0wTLZX874qitxVsQa/images/2001244650439529.jpg",
       "lon": 16.961957508805,
       "lat": 52.397233861419,
       "en": [
@@ -16609,7 +16614,7 @@
     {
       "frame_id": "2001244650439529",
       "seq": "IcRzj0wTLZX874qitxVsQa",
-      "panorama": "/home/maciej/Github/cross_view_sat_roma/data/mapillary/Fixtor/IcRzj0wTLZX874qitxVsQa/images/2001244650439529.jpg",
+      "panorama": "data/mapillary/Fixtor/IcRzj0wTLZX874qitxVsQa/images/2001244650439529.jpg",
       "lon": 16.961957508805,
       "lat": 52.397233861419,
       "en": [
@@ -16653,7 +16658,7 @@
     {
       "frame_id": "2042982259659935",
       "seq": "IcRzj0wTLZX874qitxVsQa",
-      "panorama": "/home/maciej/Github/cross_view_sat_roma/data/mapillary/Fixtor/IcRzj0wTLZX874qitxVsQa/images/2042982259659935.jpg",
+      "panorama": "data/mapillary/Fixtor/IcRzj0wTLZX874qitxVsQa/images/2042982259659935.jpg",
       "lon": 16.962324761357,
       "lat": 52.397057946448,
       "en": [
@@ -16697,7 +16702,7 @@
     {
       "frame_id": "2042982259659935",
       "seq": "IcRzj0wTLZX874qitxVsQa",
-      "panorama": "/home/maciej/Github/cross_view_sat_roma/data/mapillary/Fixtor/IcRzj0wTLZX874qitxVsQa/images/2042982259659935.jpg",
+      "panorama": "data/mapillary/Fixtor/IcRzj0wTLZX874qitxVsQa/images/2042982259659935.jpg",
       "lon": 16.962324761357,
       "lat": 52.397057946448,
       "en": [
@@ -16741,7 +16746,7 @@
     {
       "frame_id": "1414668144105202",
       "seq": "IcRzj0wTLZX874qitxVsQa",
-      "panorama": "/home/maciej/Github/cross_view_sat_roma/data/mapillary/Fixtor/IcRzj0wTLZX874qitxVsQa/images/1414668144105202.jpg",
+      "panorama": "data/mapillary/Fixtor/IcRzj0wTLZX874qitxVsQa/images/1414668144105202.jpg",
       "lon": 16.962732760274,
       "lat": 52.396891056423,
       "en": [
@@ -16785,7 +16790,7 @@
     {
       "frame_id": "1414668144105202",
       "seq": "IcRzj0wTLZX874qitxVsQa",
-      "panorama": "/home/maciej/Github/cross_view_sat_roma/data/mapillary/Fixtor/IcRzj0wTLZX874qitxVsQa/images/1414668144105202.jpg",
+      "panorama": "data/mapillary/Fixtor/IcRzj0wTLZX874qitxVsQa/images/1414668144105202.jpg",
       "lon": 16.962732760274,
       "lat": 52.396891056423,
       "en": [
@@ -16829,7 +16834,7 @@
     {
       "frame_id": "1618985639622967",
       "seq": "IcRzj0wTLZX874qitxVsQa",
-      "panorama": "/home/maciej/Github/cross_view_sat_roma/data/mapillary/Fixtor/IcRzj0wTLZX874qitxVsQa/images/1618985639622967.jpg",
+      "panorama": "data/mapillary/Fixtor/IcRzj0wTLZX874qitxVsQa/images/1618985639622967.jpg",
       "lon": 16.966129480114,
       "lat": 52.396874372828,
       "en": [
@@ -16873,7 +16878,7 @@
     {
       "frame_id": "1618985639622967",
       "seq": "IcRzj0wTLZX874qitxVsQa",
-      "panorama": "/home/maciej/Github/cross_view_sat_roma/data/mapillary/Fixtor/IcRzj0wTLZX874qitxVsQa/images/1618985639622967.jpg",
+      "panorama": "data/mapillary/Fixtor/IcRzj0wTLZX874qitxVsQa/images/1618985639622967.jpg",
       "lon": 16.966129480114,
       "lat": 52.396874372828,
       "en": [
@@ -16917,7 +16922,7 @@
     {
       "frame_id": "1474764354670842",
       "seq": "IcRzj0wTLZX874qitxVsQa",
-      "panorama": "/home/maciej/Github/cross_view_sat_roma/data/mapillary/Fixtor/IcRzj0wTLZX874qitxVsQa/images/1474764354670842.jpg",
+      "panorama": "data/mapillary/Fixtor/IcRzj0wTLZX874qitxVsQa/images/1474764354670842.jpg",
       "lon": 16.962891036229,
       "lat": 52.396819127605,
       "en": [
@@ -16961,7 +16966,7 @@
     {
       "frame_id": "1474764354670842",
       "seq": "IcRzj0wTLZX874qitxVsQa",
-      "panorama": "/home/maciej/Github/cross_view_sat_roma/data/mapillary/Fixtor/IcRzj0wTLZX874qitxVsQa/images/1474764354670842.jpg",
+      "panorama": "data/mapillary/Fixtor/IcRzj0wTLZX874qitxVsQa/images/1474764354670842.jpg",
       "lon": 16.962891036229,
       "lat": 52.396819127605,
       "en": [
@@ -17005,7 +17010,7 @@
     {
       "frame_id": "1068392369135122",
       "seq": "IcRzj0wTLZX874qitxVsQa",
-      "panorama": "/home/maciej/Github/cross_view_sat_roma/data/mapillary/Fixtor/IcRzj0wTLZX874qitxVsQa/images/1068392369135122.jpg",
+      "panorama": "data/mapillary/Fixtor/IcRzj0wTLZX874qitxVsQa/images/1068392369135122.jpg",
       "lon": 16.966175734608,
       "lat": 52.396884898896,
       "en": [
@@ -17049,7 +17054,7 @@
     {
       "frame_id": "1068392369135122",
       "seq": "IcRzj0wTLZX874qitxVsQa",
-      "panorama": "/home/maciej/Github/cross_view_sat_roma/data/mapillary/Fixtor/IcRzj0wTLZX874qitxVsQa/images/1068392369135122.jpg",
+      "panorama": "data/mapillary/Fixtor/IcRzj0wTLZX874qitxVsQa/images/1068392369135122.jpg",
       "lon": 16.966175734608,
       "lat": 52.396884898896,
       "en": [
@@ -17093,7 +17098,7 @@
     {
       "frame_id": "1564945198650080",
       "seq": "IcRzj0wTLZX874qitxVsQa",
-      "panorama": "/home/maciej/Github/cross_view_sat_roma/data/mapillary/Fixtor/IcRzj0wTLZX874qitxVsQa/images/1564945198650080.jpg",
+      "panorama": "data/mapillary/Fixtor/IcRzj0wTLZX874qitxVsQa/images/1564945198650080.jpg",
       "lon": 16.962854526074,
       "lat": 52.396836432141,
       "en": [
@@ -17137,7 +17142,7 @@
     {
       "frame_id": "1564945198650080",
       "seq": "IcRzj0wTLZX874qitxVsQa",
-      "panorama": "/home/maciej/Github/cross_view_sat_roma/data/mapillary/Fixtor/IcRzj0wTLZX874qitxVsQa/images/1564945198650080.jpg",
+      "panorama": "data/mapillary/Fixtor/IcRzj0wTLZX874qitxVsQa/images/1564945198650080.jpg",
       "lon": 16.962854526074,
       "lat": 52.396836432141,
       "en": [
@@ -17181,7 +17186,7 @@
     {
       "frame_id": "4615440378688443",
       "seq": "IcRzj0wTLZX874qitxVsQa",
-      "panorama": "/home/maciej/Github/cross_view_sat_roma/data/mapillary/Fixtor/IcRzj0wTLZX874qitxVsQa/images/4615440378688443.jpg",
+      "panorama": "data/mapillary/Fixtor/IcRzj0wTLZX874qitxVsQa/images/4615440378688443.jpg",
       "lon": 16.966222035221,
       "lat": 52.396895312999,
       "en": [
@@ -17225,7 +17230,7 @@
     {
       "frame_id": "4615440378688443",
       "seq": "IcRzj0wTLZX874qitxVsQa",
-      "panorama": "/home/maciej/Github/cross_view_sat_roma/data/mapillary/Fixtor/IcRzj0wTLZX874qitxVsQa/images/4615440378688443.jpg",
+      "panorama": "data/mapillary/Fixtor/IcRzj0wTLZX874qitxVsQa/images/4615440378688443.jpg",
       "lon": 16.966222035221,
       "lat": 52.396895312999,
       "en": [
@@ -17269,7 +17274,7 @@
     {
       "frame_id": "2475590072940447",
       "seq": "IcRzj0wTLZX874qitxVsQa",
-      "panorama": "/home/maciej/Github/cross_view_sat_roma/data/mapillary/Fixtor/IcRzj0wTLZX874qitxVsQa/images/2475590072940447.jpg",
+      "panorama": "data/mapillary/Fixtor/IcRzj0wTLZX874qitxVsQa/images/2475590072940447.jpg",
       "lon": 16.962814031907,
       "lat": 52.39685505892,
       "en": [
@@ -17313,7 +17318,7 @@
     {
       "frame_id": "2475590072940447",
       "seq": "IcRzj0wTLZX874qitxVsQa",
-      "panorama": "/home/maciej/Github/cross_view_sat_roma/data/mapillary/Fixtor/IcRzj0wTLZX874qitxVsQa/images/2475590072940447.jpg",
+      "panorama": "data/mapillary/Fixtor/IcRzj0wTLZX874qitxVsQa/images/2475590072940447.jpg",
       "lon": 16.962814031907,
       "lat": 52.39685505892,
       "en": [
@@ -17357,7 +17362,7 @@
     {
       "frame_id": "1396114019377954",
       "seq": "IcRzj0wTLZX874qitxVsQa",
-      "panorama": "/home/maciej/Github/cross_view_sat_roma/data/mapillary/Fixtor/IcRzj0wTLZX874qitxVsQa/images/1396114019377954.jpg",
+      "panorama": "data/mapillary/Fixtor/IcRzj0wTLZX874qitxVsQa/images/1396114019377954.jpg",
       "lon": 16.966268021748,
       "lat": 52.39690500505,
       "en": [
@@ -17401,7 +17406,7 @@
     {
       "frame_id": "1396114019377954",
       "seq": "IcRzj0wTLZX874qitxVsQa",
-      "panorama": "/home/maciej/Github/cross_view_sat_roma/data/mapillary/Fixtor/IcRzj0wTLZX874qitxVsQa/images/1396114019377954.jpg",
+      "panorama": "data/mapillary/Fixtor/IcRzj0wTLZX874qitxVsQa/images/1396114019377954.jpg",
       "lon": 16.966268021748,
       "lat": 52.39690500505,
       "en": [
@@ -17445,7 +17450,7 @@
     {
       "frame_id": "2297705431003261",
       "seq": "IcRzj0wTLZX874qitxVsQa",
-      "panorama": "/home/maciej/Github/cross_view_sat_roma/data/mapillary/Fixtor/IcRzj0wTLZX874qitxVsQa/images/2297705431003261.jpg",
+      "panorama": "data/mapillary/Fixtor/IcRzj0wTLZX874qitxVsQa/images/2297705431003261.jpg",
       "lon": 16.966585077686,
       "lat": 52.396976271377,
       "en": [
@@ -17489,7 +17494,7 @@
     {
       "frame_id": "2297705431003261",
       "seq": "IcRzj0wTLZX874qitxVsQa",
-      "panorama": "/home/maciej/Github/cross_view_sat_roma/data/mapillary/Fixtor/IcRzj0wTLZX874qitxVsQa/images/2297705431003261.jpg",
+      "panorama": "data/mapillary/Fixtor/IcRzj0wTLZX874qitxVsQa/images/2297705431003261.jpg",
       "lon": 16.966585077686,
       "lat": 52.396976271377,
       "en": [
@@ -17533,7 +17538,7 @@
     {
       "frame_id": "3578370962341082",
       "seq": "IcRzj0wTLZX874qitxVsQa",
-      "panorama": "/home/maciej/Github/cross_view_sat_roma/data/mapillary/Fixtor/IcRzj0wTLZX874qitxVsQa/images/3578370962341082.jpg",
+      "panorama": "data/mapillary/Fixtor/IcRzj0wTLZX874qitxVsQa/images/3578370962341082.jpg",
       "lon": 16.967027420217,
       "lat": 52.397074840668,
       "en": [
@@ -17577,7 +17582,7 @@
     {
       "frame_id": "3578370962341082",
       "seq": "IcRzj0wTLZX874qitxVsQa",
-      "panorama": "/home/maciej/Github/cross_view_sat_roma/data/mapillary/Fixtor/IcRzj0wTLZX874qitxVsQa/images/3578370962341082.jpg",
+      "panorama": "data/mapillary/Fixtor/IcRzj0wTLZX874qitxVsQa/images/3578370962341082.jpg",
       "lon": 16.967027420217,
       "lat": 52.397074840668,
       "en": [

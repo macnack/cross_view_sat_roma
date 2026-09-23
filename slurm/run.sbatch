@@ -15,10 +15,12 @@
 set -euo pipefail
 cd "${SLURM_SUBMIT_DIR:?run sbatch from the repo root}"
 mkdir -p slurm/logs
-S=/mnt/storage_5/scratch/pl0467-01/mackop
-export SAT_DATA_DIR="${SAT_DATA_DIR:-$S/sat_data}"
-export HF_HOME="${HF_HOME:-$S/hf_home}"
-export HUGGINGFACE_HUB_CACHE="${HUGGINGFACE_HUB_CACHE:-$S/hf_cache_global/hub}"
+# storage_6 (NFS project_data) on purpose: the Lustre scratch on storage_5 gave I/O errors and
+# "transport endpoint shutdown" on 2026-09-23; project_data is mounted on login and compute nodes.
+P=/mnt/storage_6/project_data/pl1269-01/krupka_maciej
+export SAT_DATA_DIR="${SAT_DATA_DIR:-$P/sat_data}"
+export HF_HOME="${HF_HOME:-$P/hf_home}"
+export HUGGINGFACE_HUB_CACHE="${HUGGINGFACE_HUB_CACHE:-$P/hf_cache/hub}"
 export HF_HUB_OFFLINE="${HF_HUB_OFFLINE:-1}"
 export PYTHONPATH="src:.pydeps"
 export SATROMA_INFER_DIR="$PWD/third_party/sat_roma_infer"

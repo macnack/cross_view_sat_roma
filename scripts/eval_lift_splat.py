@@ -15,14 +15,12 @@ import numpy as np
 import torch
 
 from bevloc import config as C
-from bevloc.data.mapillary import MapillaryPairs, PoznanOrtho, load_frames, poznan_tiles
+from bevloc.data.mapillary import VAL_SEQS, MapillaryPairs, PoznanOrtho, load_frames, poznan_tiles
 from bevloc.eval.metrics import pose_errors, recall
 from bevloc.match.satroma import SatRoMa
 from bevloc.model.coarse import FeatureQueryMatcher, coarse_targets, ref_cell_validity
 from bevloc.model.lift_splat import SphericalLiftSplat
 
-MAP_ROOT = C.REPO / "data/mapillary"
-VAL_SEQS = [MAP_ROOT / "Fixtor/IcRzj0wTLZX874qitxVsQa"]
 CELL_M = 4.0
 
 

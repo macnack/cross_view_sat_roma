@@ -34,6 +34,17 @@ def poznan_tiles(year: int) -> list[Path]:
     return paths
 
 
+MAP_ROOT = Path(__file__).resolve().parents[3] / "data/mapillary"
+TRAIN_SEQS = [
+    MAP_ROOT / "Fixtor/iHfmEq03Tc6752Y4Ke8wlC",
+    MAP_ROOT / "Fixtor/NWVA14Y83pMRsijaGFkmQS",
+    MAP_ROOT / "Fixtor/gXabFhpwk2dcl0i4518mDQ",
+    MAP_ROOT / "Fixtor/doQ3OhJBKe56c8UxjAFmat",
+]
+VAL_SEQS = [MAP_ROOT / "Fixtor/IcRzj0wTLZX874qitxVsQa"]          # checkpoint selection, dev numbers
+TEST_SEQS = [MAP_ROOT / "Fixtor/irAsBUKtGCfhPHuMbmOcLd"]         # reserved: never trained on, never selected on
+
+
 def rodrigues(r):
     r = np.asarray(r, np.float64)
     theta = np.linalg.norm(r)
@@ -273,6 +284,10 @@ class MapillaryPairs(Dataset):
         dR = np.eye(3) + np.sin(ang) * K + (1 - np.cos(ang)) * (K @ K)
         return (dR.astype(np.float32) @ R)
 
+    def _up_of(self, fr):
+        lon, lat = fr["computed_geometry"]["coordinates"]
+        return grid_bearing(lon, lat, fr["computed_compass_angle"])[0]
+
     def _one(self, i):
         fr = self.frames[i]
         rng = (self.rng if self.train
@@ -291,6 +306,21 @@ class MapillaryPairs(Dataset):
                                              max_rot_deg=rot)
         else:
             ref_o = sample_reference(query, rng, scale=scale, max_offset_frac=off, max_rot_deg=rot)
+        return self._build(i, ref_o, year, rng, negative=negative, scale=scale,
+                           loaded=(erp_q, R_q, up_q, en_q))
+
+    def sample_for(self, frame_id, ref_o, year):
+        """Deterministic sample for one frame with a GIVEN reference crop (manifest evaluation)."""
+        i = next(k for k, fr in enumerate(self.frames) if str(fr["id"]) == str(frame_id))
+        rng = np.random.default_rng([self.cfg.matcher.seed, int(frame_id) % (2**32)])
+        return self._build(i, ref_o, int(year), rng, negative=False,
+                           scale=int(ref_o.size // self.cfg.grid.n))
+
+    def _build(self, i, ref_o, year, rng, negative=False, scale=4, loaded=None):
+        fr = self.frames[i]
+        erp_q, R_q, up_q, en_q = loaded if loaded is not None else self._load_erp_R_pose(fr, rng)
+        g = self.cfg.grid
+        query = Oriented(en_q, up_q, g.n, g.cell_m)
         ref, valid = self.ortho[year].render(ref_o)
         if float(valid.mean()) < 0.5 or float((ref.sum(-1) > 0).mean()) < 0.5:
             raise RuntimeError(f"black / missing reference for {fr['id']} year {year} at {en_q}")

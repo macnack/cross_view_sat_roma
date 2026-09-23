@@ -20,12 +20,9 @@ import numpy as np
 
 from bevloc import config as C
 from bevloc.baselines.common import ManifestFrame, frame_pose_proxy, write_manifest
-from bevloc.data.mapillary import PoznanOrtho, load_frames, poznan_tiles
+from bevloc.data.mapillary import MAP_ROOT, TRAIN_SEQS, PoznanOrtho, load_frames, poznan_tiles
 from bevloc.data.ortho import Oriented, gt_homography, sample_reference
 
-MAP_ROOT = C.REPO / "data/mapillary"
-VAL_SEQ = MAP_ROOT / "Fixtor/IcRzj0wTLZX874qitxVsQa"
-RESERVED = "irAsBUKtGCfhPHuMbmOcLd"
 
 
 def open_year(year: int) -> PoznanOrtho:
@@ -86,7 +83,8 @@ def build_entries(frames, years, cfg, seed=0):
         rot = float(ref.up_bearing_deg - query.up_bearing_deg)
         H = gt_homography(query, ref)
         lon, lat = fr["computed_geometry"]["coordinates"]
-        panorama = str(Path(fr["_seq"]) / "images" / f"{fr['id']}.jpg")
+        # repo-relative so the manifest is portable (Eagle, worktrees)
+        panorama = str((Path(fr["_seq"]) / "images" / f"{fr['id']}.jpg").relative_to(C.REPO))
         for year in years:
             out.append(ManifestFrame(
                 frame_id=str(fr["id"]),
@@ -120,7 +118,7 @@ def overview_plot(entries, out_path: Path):
     ax.set_aspect("equal")
     ax.set_xlabel("E (EPSG:2180)")
     ax.set_ylabel("N (EPSG:2180)")
-    ax.set_title("Fixtor held-out manifest (IcRzj)")
+    ax.set_title(f"Fixtor held-out manifest ({rows[0].seq if rows else ''})")
     ax.legend(loc="best")
     fig.tight_layout()
     out_path.parent.mkdir(parents=True, exist_ok=True)
@@ -134,14 +132,19 @@ def main():
     ap.add_argument("--n", type=int, default=200, help="held-out frames (≥200)")
     ap.add_argument("--years", default="2025,2024")
     ap.add_argument("--seed", type=int, default=0)
+    ap.add_argument("--seq", default="Fixtor/IcRzj0wTLZX874qitxVsQa",
+                    help="route under data/mapillary used for this manifest (never a training route)")
     a = ap.parse_args()
     cfg = C.load(a.config)
     years = [int(y) for y in a.years.split(",") if y.strip()]
-    if RESERVED in str(VAL_SEQ):
-        raise SystemExit("held-out path collides with reserved sequence")
+    seq_dir = MAP_ROOT / a.seq
+    if seq_dir in TRAIN_SEQS:
+        raise SystemExit(f"{a.seq} is a training route")
+    if not (seq_dir / "images.json").exists():
+        raise SystemExit(f"{seq_dir} has no images.json (download it: make mapillary-seq SEQ=<id>)")
     ortho = open_year(years[0])
     margin = float(getattr(cfg.lift, "margin_m", 120.0))
-    all_frames = load_frames([VAL_SEQ], ortho, margin_m=margin)
+    all_frames = load_frames([seq_dir], ortho, margin_m=margin)
     # Also require coverage on every other year.
     for y in years[1:]:
         o = open_year(y)
@@ -159,8 +162,8 @@ def main():
     entries = build_entries(picked, years, cfg, seed=a.seed)
     meta = {
         "protocol": "docs/tasks/02_fg2_bevsplat.md",
-        "held_out_seq": VAL_SEQ.name,
-        "reserved_untouched": RESERVED,
+        "held_out_seq": seq_dir.name,
+        "train_seqs": [p.name for p in TRAIN_SEQS],
         "n_frames": a.n,
         "years": years,
         "seed": a.seed,

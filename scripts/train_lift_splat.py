@@ -15,23 +15,13 @@ import torch
 from torch.utils.data import DataLoader
 
 from bevloc import config as C
-from bevloc.data.mapillary import MapillaryPairs, PoznanOrtho, collate, load_frames, poznan_tiles
+from bevloc.data.mapillary import (
+    TRAIN_SEQS, VAL_SEQS, MapillaryPairs, PoznanOrtho, collate, load_frames, poznan_tiles,
+)
 from bevloc.model.coarse import (
     FeatureQueryMatcher, coarse_targets, pose_heatmap_nll, ref_cell_validity, roma_coarse_loss,
 )
 from bevloc.model.lift_splat import SphericalLiftSplat
-
-MAP_ROOT = C.REPO / "data/mapillary"
-TRAIN_SEQS = [
-    MAP_ROOT / "Fixtor/iHfmEq03Tc6752Y4Ke8wlC",
-    MAP_ROOT / "Fixtor/NWVA14Y83pMRsijaGFkmQS",
-    MAP_ROOT / "Fixtor/gXabFhpwk2dcl0i4518mDQ",
-    MAP_ROOT / "Fixtor/doQ3OhJBKe56c8UxjAFmat",
-]
-VAL_SEQS = [
-    MAP_ROOT / "Fixtor/IcRzj0wTLZX874qitxVsQa",
-]
-
 
 def encode_erp(matcher, erp):
     with torch.no_grad():

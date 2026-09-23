@@ -130,12 +130,29 @@ lift-splat-seq: ## multi-frame Mapillary splat (0/2/5 m) + pose NLL; prefers pos
 		--seq-dists 0,2,5
 
 # --- Eagle (docs/tasks/03_eval_density_solver_pf.md Task 0; slurm/README.md) ---
-EAGLE_DIR ?= /mnt/storage_5/scratch/pl0467-01/mackop/cross_view_sat_roma
+EAGLE_DIR ?= /mnt/storage_6/project_data/pl1269-01/krupka_maciej/cross_view_sat_roma
 
 eagle-sync: ## push Fixtor panoramas, manifests and best checkpoints to Eagle scratch (13 GB first time)
 	rsync -avP data/mapillary/Fixtor eagle:$(EAGLE_DIR)/data/mapillary/
 	rsync -avP experiments/06_fg2_bevsplat/manifest*.json eagle:$(EAGLE_DIR)/experiments/06_fg2_bevsplat/
 	rsync -avP checkpoints/05_lift_splat_fixtor_*_best.pt eagle:$(EAGLE_DIR)/checkpoints/
+
+mapillary-seq: ## download one Mapillary sequence by id: SEQ=<sequence id> (env MAPILLARY_TOKEN)
+	MAPILLARY_TOKEN="$$MAPILLARY_TOKEN" $(RUN) -m mapillary_dl --sequence $(SEQ) --out data/mapillary/Fixtor
+
+manifest-val:  ## 200-frame validation manifest on IcRzj (2025+2024)
+	$(RUN) scripts/build_baseline_manifest.py --config $(CONFIG) --seq Fixtor/IcRzj0wTLZX874qitxVsQa \
+		--out experiments/06_fg2_bevsplat/manifest.json --n 200
+
+manifest-test: ## 200-frame TEST manifest on the reserved route irAsBUK (make mapillary-seq SEQ=irAsBUKtGCfhPHuMbmOcLd first)
+	$(RUN) scripts/build_baseline_manifest.py --config $(CONFIG) --seq Fixtor/irAsBUKtGCfhPHuMbmOcLd \
+		--out experiments/06_fg2_bevsplat/manifest_test.json --n 200
+
+eval-pose: ## score CKPT on MANIFEST with bootstrap CIs and a centre-guess chance row; TAG names the json
+	$(RUN) scripts/eval_pose.py --config $(CONFIG) --ckpt $(CKPT) --manifest $(MANIFEST) --tag $(TAG) $(EVAL_ARGS)
+
+pose-report: ## experiments/05_lift_splat/REPORT.md from every eval_*.json
+	$(RUN) scripts/report_pose.py
 
 eagle-submit: ## submit CMD="scripts/x.py ..." JOB=name as one H100 job (run on Eagle, repo root)
 	mkdir -p slurm/logs   # SLURM does not create the --output directory itself

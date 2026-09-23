@@ -50,6 +50,7 @@ matcher:
   min_valid_frac: 0.5              # PROPOSED, not yet agreed (package default 1.0)
   reproj_cells: 3.0
   seed: 0
+  solver: srt                     # srt = Sat-RoMa 4-DoF similarity (published); se2 = fixed-scale 2-point SE(2) (task 03, H7)
 
 fusion:                            # camera + LiDAR fusion BEV (src/bevloc/model/fusion_bev.py)
   backbone: convnext_tiny.dinov3_lvd1689m     # frozen; same ground backbone as BEV-Patch-PF
@@ -102,6 +103,13 @@ lift:                              # camera-only spherical Lift-Splat (scripts/t
   certainty_weight: 0.01           # RoMa ce_weight; still applies on positive patches
   pose_nll_weight: 0.0             # OrienterNet-style pose heatmap NLL; set 0.5 for tonight deep-dive
   seq_dists_m: [0.0]               # metres behind query; [0,2,5] = multi-frame soft-splat
+  query_mode: lift                # lift | ipm | hybrid (task 03)
+  min_elev_deg: -3.5              # hybrid: rays below this hit ground inside ground_max_range_m and are placed by IPM
+  ground_max_range_m: 28.0
+
+ipm:                              # camera-only flat-ground query on Mapillary (task 03, Task 2)
+  height_m: 1.7                   # Mapillary rig height above the road, assumed (not in the files)
+  blind_radius_m: 1.2             # disc under the camera (rig / vehicle roof)
 
 reference:
   scale: 4
