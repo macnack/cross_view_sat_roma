@@ -156,6 +156,15 @@ eval-pose: ## score CKPT on MANIFEST with bootstrap CIs and a centre-guess chanc
 pose-report: ## experiments/05_lift_splat/REPORT.md from every eval_*.json
 	$(RUN) scripts/report_pose.py
 
+MANIFEST_STEM ?= manifest_test
+EVAL_JSON ?=
+
+pose-cdf: ## error CDF of every scored checkpoint on MANIFEST_STEM (default manifest_test) for YEAR
+	$(RUN) scripts/plot_eval_cdf.py --config $(CONFIG) --manifest-stem $(MANIFEST_STEM) --year $(YEAR)
+
+pose-viz: ## per-frame overlay sheet for CKPT on MANIFEST (frames spread over EVAL_JSON's error range); TAG=
+	$(RUN) scripts/viz_pose.py --config $(CONFIG) --ckpt $(CKPT) --manifest $(MANIFEST) --year $(YEAR) --tag $(TAG) $(if $(EVAL_JSON),--eval-json $(EVAL_JSON),)
+
 eagle-pull: ## on Eagle: sync the checkout to the pushed branch (hard reset; the cluster checkout never has local commits)
 	@# `git pull` refuses when untracked result files (experiments/**/*.json written by jobs) collide with
 	@# files committed from the laptop; a hard reset to origin overwrites them with the committed copies.
