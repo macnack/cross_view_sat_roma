@@ -11,3 +11,6 @@ experiments/**/*.npy
 experiments/**/*.html
 experiments/**/queries/
 experiments/**/*.tif
+
+# Claude Code linked worktrees
+.claude/worktrees/
