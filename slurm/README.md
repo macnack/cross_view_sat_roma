@@ -37,8 +37,8 @@ tail -f slurm/logs/lift_A_*.log
 
 `slurm/run.sbatch` sets the account (`pl1269-01`), partition (`proxima`), one H100, 8 CPUs, 64 GB,
 12 h, and exports `SAT_DATA_DIR`, `HF_HOME`, `HUGGINGFACE_HUB_CACHE`, `HF_HUB_OFFLINE=1`,
-`PYTHONPATH=src:.pydeps`, `SATROMA_INFER_DIR`. Override any of them with `sbatch --export=ALL,CMD=...,SB=...`
-style environment, or edit the `#SBATCH` lines for a longer run. Jobs are independent: submit all
+`PYTHONPATH=src:.pydeps`, `SATROMA_INFER_DIR`. Override any of them by exporting the variable before
+`make eagle-submit` (they are read with `${VAR:-default}`), or edit the `#SBATCH` lines for a longer run. Jobs are independent: submit all
 evaluations of a sweep at once.
 
 From the laptop, `make eagle-sync` pushes `data/mapillary/Fixtor`, the manifests and the
@@ -85,10 +85,12 @@ endpoint shutdown` on reads (`lfs quota` also reports "some devices may be not w
 deactivated"). Small writes (50 MB) succeeded, so the failures look like deactivated OSTs, not a
 real quota. The NFS project_data on `storage_6` passed a 500 MB write test and holds everything now.
 
-## Measured
+## Measured (H100, 2026-09-23)
 
-Fill in after the first jobs: seconds per training step (batch 1, 896×448 ERP) and seconds per
-evaluated manifest entry on an H100, from `slurm/logs/`.
+- Training, batch 1, 896×448 ERP, single frame: 20 steps in about 1 s of wall time between prints
+  (roughly 0.05 s/step; the 48-frame validation every 200 steps dominates a 2000-step run).
+- `eval_pose.py` on the 400-entry validation manifest (200 frames × 2 years): about 4 min per checkpoint.
+- Job start-up (container, encoder load): about 40 s.
 
 ## Older files
 
