@@ -17,7 +17,7 @@ import rasterio
 from pyproj import Geod, Transformer
 from rasterio.windows import Window
 
-from bevloc.bev.grid import BevGrid
+from bevloc.bev.ipm_sphere import ipm_erp
 from bevloc.data.mapillary import sat_data_root
 
 ROOT = Path(__file__).resolve().parents[1]
@@ -36,29 +36,6 @@ def rodrigues(r):
     k = r / theta
     K = np.array([[0, -k[2], k[1]], [k[2], 0, -k[0]], [-k[1], k[0], 0]])
     return np.eye(3) + np.sin(theta) * K + (1 - np.cos(theta)) * (K @ K)
-
-
-def ipm(erp, grid: BevGrid, R_w2c, height):
-    """(n, n, 3) uint8 ground view. Row 0 is camera-forward, col 0 is left."""
-    x, y = grid.cell_centres()
-    forward = R_w2c.T @ np.array([0.0, 0.0, 1.0])
-    forward[2] = 0.0
-    forward /= np.linalg.norm(forward)
-    left = np.array([-forward[1], forward[0], 0.0])
-    east = x * forward[0] + y * left[0]
-    north = x * forward[1] + y * left[1]
-    up = np.full_like(x, -float(height))
-    p_cam = np.stack([east, north, up], -1).reshape(-1, 3) @ R_w2c.T
-    xc, yc, zc = p_cam[:, 0], p_cam[:, 1], p_cam[:, 2]
-    lon = np.arctan2(xc, zc)
-    lat = np.arctan2(-yc, np.hypot(xc, zc))
-    h, w = erp.shape[:2]
-    mu = ((lon / (2 * np.pi) + 0.5) * w).astype(np.float32).reshape(grid.n, grid.n)
-    mv = ((0.5 - lat / np.pi) * h).astype(np.float32).reshape(grid.n, grid.n)
-    img = cv2.remap(erp, mu, mv, cv2.INTER_LINEAR, borderMode=cv2.BORDER_WRAP)
-    # The capture rig sits on the nadir. Drop the disc under the camera.
-    img[np.hypot(x, y) < 1.2] = 0
-    return img
 
 
 def grid_bearing(lon, lat, true_bearing):
@@ -131,8 +108,7 @@ def main():
     lon, lat = fr["computed_geometry"]["coordinates"]
     up, en = grid_bearing(lon, lat, fr["computed_compass_angle"])
     n = int(round(args.extent / args.gsd))
-    grid = BevGrid(n=n, cell=args.gsd)
-    bev = ipm(erp, grid, R, args.height)
+    bev, _ = ipm_erp(erp, R, args.height, n, args.gsd)
     tile, path = tile_for(en)
     ref = ortho_crop(path, en, up, n, args.gsd)
     blend = cv2.addWeighted(bev, 0.5, ref, 0.5, 0)
