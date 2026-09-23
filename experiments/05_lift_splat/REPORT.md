@@ -19,10 +19,14 @@ per-patch RANSAC, "means" = distinct GMM means.
 | multi | manifest | 2025 | srt | means | 11.5 [10.2, 13.4] | 0.15 [0.10, 0.20] | 0.41 | 0.12 | 200/200 |
 | multi | manifest | 2024 | srt | peak | 13.5 [11.6, 15.4] | 0.14 [0.09, 0.18] | 0.37 | 0.12 | 200/200 |
 | multi | manifest | 2024 | srt | means | 13.2 [11.2, 15.4] | 0.16 [0.11, 0.21] | 0.39 | 0.10 | 200/200 |
-| seq | manifest | 2025 | srt | peak | 11.9 [9.7, 14.6] | 0.13 [0.09, 0.17] | 0.45 | 0.12 | 200/200 |
-| seq | manifest | 2025 | srt | means | 11.7 [9.8, 14.4] | 0.17 [0.12, 0.23] | 0.45 | 0.11 | 200/200 |
-| seq | manifest | 2024 | srt | peak | 13.4 [10.4, 15.8] | 0.17 [0.12, 0.21] | 0.41 | 0.14 | 200/200 |
-| seq | manifest | 2024 | srt | means | 11.9 [9.4, 13.4] | 0.18 [0.14, 0.23] | 0.45 | 0.10 | 200/200 |
+| seq | manifest | 2025 | srt | peak | 11.3 [9.7, 13.3] | 0.16 [0.12, 0.21] | 0.45 | 0.10 | 200/200 |
+| seq | manifest | 2025 | srt | means | 10.8 [9.3, 13.3] | 0.20 [0.14, 0.26] | 0.46 | 0.10 | 200/200 |
+| seq | manifest | 2024 | srt | peak | 13.0 [11.2, 15.5] | 0.17 [0.12, 0.23] | 0.40 | 0.10 | 200/200 |
+| seq | manifest | 2024 | srt | means | 12.1 [10.1, 14.1] | 0.20 [0.15, 0.26] | 0.43 | 0.10 | 200/200 |
+| seq_single | manifest | 2025 | srt | peak | 12.0 [9.5, 15.1] | 0.12 [0.08, 0.17] | 0.46 | 0.12 | 200/200 |
+| seq_single | manifest | 2025 | srt | means | 12.1 [10.1, 14.4] | 0.17 [0.12, 0.23] | 0.43 | 0.11 | 200/200 |
+| seq_single | manifest | 2024 | srt | peak | 13.5 [10.2, 15.6] | 0.17 [0.12, 0.21] | 0.41 | 0.14 | 200/200 |
+| seq_single | manifest | 2024 | srt | means | 11.7 [10.0, 13.5] | 0.17 [0.12, 0.22] | 0.42 | 0.11 | 200/200 |
 | years | manifest | 2025 | srt | peak | 12.4 [9.7, 15.1] | 0.15 [0.10, 0.21] | 0.45 | 0.10 | 200/200 |
 | years | manifest | 2025 | srt | means | 12.0 [9.8, 14.8] | 0.16 [0.11, 0.21] | 0.43 | 0.10 | 200/200 |
 | years | manifest | 2024 | srt | peak | 13.3 [11.2, 16.8] | 0.18 [0.13, 0.23] | 0.40 | 0.12 | 200/200 |
@@ -30,7 +34,7 @@ per-patch RANSAC, "means" = distinct GMM means.
 | centre guess | manifest | 2024 | – | chance | 16.9 [15.7, 17.8] | 0.05 [0.03, 0.08] | 0.17 | 0.01 | 200/200 |
 | centre guess | manifest | 2025 | – | chance | 16.9 [15.7, 17.8] | 0.05 [0.03, 0.08] | 0.17 | 0.01 | 200/200 |
 
-Sources: eval_aug_manifest.json, eval_multi_manifest.json, eval_seq_manifest.json, eval_years_manifest.json.
+Sources: eval_aug_manifest.json, eval_multi_manifest.json, eval_seq_manifest.json, eval_seq_single_manifest.json, eval_years_manifest.json.
 
 ## Verdict (running notes; newest first)
 
