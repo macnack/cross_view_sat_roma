@@ -19,6 +19,7 @@ mkdir -p slurm/logs
 # "transport endpoint shutdown" on 2026-09-23; project_data is mounted on login and compute nodes.
 P=/mnt/storage_6/project_data/pl1269-01/krupka_maciej
 export SAT_DATA_DIR="${SAT_DATA_DIR:-$P/sat_data}"
+export VIGOR_DIR="${VIGOR_DIR:-$P/vigor}"
 export HF_HOME="${HF_HOME:-$P/hf_home}"
 export HUGGINGFACE_HUB_CACHE="${HUGGINGFACE_HUB_CACHE:-$P/hf_cache/hub}"
 export HF_HUB_OFFLINE="${HF_HUB_OFFLINE:-1}"

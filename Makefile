@@ -181,6 +181,15 @@ semantic-smoke: ## SegFormer classes + camera-only contact line on one Mapillary
 ipm-picture: ## dump the query picture CONFIG produces (SEQ=, INDEX="400 800", SEQ_DISTS=) to experiments/08_semantic
 	$(RUN) scripts/diag_picture.py --config $(CONFIG) --seq $(if $(SEQ),$(SEQ),Fixtor/irAsBUKtGCfhPHuMbmOcLd) --index $(if $(INDEX),$(INDEX),400) $(if $(SEQ_DISTS),--seq-dists $(SEQ_DISTS),)
 
+SPLIT ?= crossarea
+LIMIT ?= 0
+
+vigor-eval: ## our method on VIGOR (known orientation): CKPT=, SPLIT=crossarea|samearea, TAG=, LIMIT=, VIGOR_ARGS=
+	$(RUN) scripts/eval_vigor.py --config $(CONFIG) --ckpt $(CKPT) --split $(SPLIT) --tag $(TAG) --limit $(LIMIT) $(VIGOR_ARGS)
+
+vigor-calibrate: ## settle row_sign and camera height on 150 VIGOR samples (CKPT=)
+	$(RUN) scripts/eval_vigor.py --config $(CONFIG) --ckpt $(CKPT) --split $(SPLIT) --tag calib --calibrate $(VIGOR_ARGS)
+
 pose-diag: ## failure diagnostics of one EVAL_JSON (confidence gate, cross-year consistency, tail) for YEAR
 	$(RUN) scripts/diag_eval.py --config $(CONFIG) --eval-json $(EVAL_JSON) --year $(YEAR)
 

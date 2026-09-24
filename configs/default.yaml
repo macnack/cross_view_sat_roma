@@ -107,6 +107,11 @@ lift:                              # camera-only spherical Lift-Splat (scripts/t
   min_elev_deg: -3.5              # hybrid: rays below this hit ground inside ground_max_range_m and are placed by IPM
   ground_max_range_m: 28.0
 
+vigor:                            # src/bevloc/data/vigor.py, scripts/eval_vigor.py (known-orientation protocol)
+  root: null                      # default: $VIGOR_DIR
+  row_sign: 1.0                   # label dy is DOWN-positive in tile pixels (+1) or up (-1); calibrated with `make vigor-calibrate`
+  height_m: 2.0                   # panorama camera height for the IPM picture (Google Street View car); calibrated too
+
 erp_query:                        # ERP-token query, placement after matching (task 03, Task 6)
   max_range_m: 40.0               # ground tokens beyond this are not placed (IPM too coarse there)
 
