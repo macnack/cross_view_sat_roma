@@ -83,6 +83,17 @@ def test_contact_feet_paint_the_facade_colour_at_the_wall_foot():
     assert not valid[n // 2 + 10, c]                                # nothing painted behind the camera
 
 
+def test_above_contact_mask_removes_the_facade_but_keeps_the_ground():
+    from bevloc.bev.ipm_sphere import above_contact_mask
+    H, W = 64, 32
+    sem = np.zeros((H, W), np.uint8)                 # road everywhere
+    sem[10:40, 8:12] = 2                             # a building in columns 8..11 down to row 39
+    sem[5, 20] = 2                                   # a single stray "building" pixel: ignored (min_run)
+    m = above_contact_mask(sem, (2, 3, 4), (H, W))
+    assert not m[:40, 8:12].any() and m[40:, 8:12].all()      # facade and sky gone, ground below kept
+    assert m[:, 0].all() and m[:, 20].all()                   # untouched columns fully valid
+
+
 def test_ipm_marker_lands_in_the_forward_cell():
     h, W, H, n, cell = 1.7, 1280, 640, 64, 0.5
     r, c = n // 2 - int(10.0 / cell), n // 2            # row 0 is forward, col 0 is left

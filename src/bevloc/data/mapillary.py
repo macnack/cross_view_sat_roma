@@ -13,7 +13,9 @@ from pyproj import Geod, Transformer
 from rasterio.windows import Window
 from torch.utils.data import Dataset
 
-from bevloc.bev.ipm_sphere import contact_feet, depression_mask, ipm_erp, mosaic_ipm, paint_feet
+from bevloc.bev.ipm_sphere import (
+    above_contact_mask, contact_feet, depression_mask, ipm_erp, mosaic_ipm, paint_feet,
+)
 from bevloc.data.ortho import Oriented, gt_homography, sample_negative_reference, sample_reference
 
 CS92 = "EPSG:2180"
@@ -278,13 +280,21 @@ class MapillaryPairs(Dataset):
         valid = depression_mask(erp_hw, dep) if dep > 0 else np.ones(erp_hw, bool)
         use_dyn = bool(getattr(ipm, "semantic_dynamic_mask", False))
         ground_only = bool(getattr(ipm, "semantic_ground_only", False))
-        if use_dyn or ground_only:
+        contact = bool(getattr(ipm, "contact_line", False))
+        if use_dyn or ground_only or contact:
             sem = self._semantic(fr, erp_hw)
             if sem is not None:
                 if use_dyn:
                     valid &= ~np.isin(sem, self._DYNAMIC_IDS)
                 if ground_only:
                     valid &= np.isin(sem, self._GROUND_IDS)
+                if contact:
+                    # ipm_cl: no IPM at or above the wall/hedge contact row (no radial facade smear);
+                    # the feet are painted afterwards by _paint_contact
+                    classes = tuple(int(c) for c in getattr(ipm, "contact_classes", (2, 3, 4)))
+                    if bool(getattr(ipm, "contact_vegetation", False)):
+                        classes = classes + (8,)
+                    valid &= above_contact_mask(sem, classes, erp_hw)
         return valid
 
     def _paint_contact(self, fr, erp_full, R, bev, bev_valid):

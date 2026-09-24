@@ -144,6 +144,25 @@ def contact_feet(sem, erp_rgb, class_ids, R_w2c, height_m, n, cell_m, max_range_
     return feet
 
 
+def above_contact_mask(sem, class_ids, erp_hw, min_run=3):
+    """(H, W) bool: False for every pixel at or above the lowest ``class_ids`` pixel of its column.
+
+    This is the other half of the contact-line query (decision 2026-09-17): IPM is applied only
+    below v_c(u), so a wall's facade is not smeared radially across the ground behind its foot;
+    the foot itself is then drawn by ``paint_feet``. Columns without the classes stay fully valid."""
+    H, W = int(erp_hw[0]), int(erp_hw[1])
+    cls = np.isin(sem, list(class_ids))
+    rows = np.arange(H)[:, None]
+    lowest = np.where(cls, rows, -1).max(0)
+    ok = lowest >= min_run - 1
+    ok &= np.array([cls[max(0, v - min_run + 1):v + 1, u].all() if v >= 0 else False for u, v in enumerate(lowest)])
+    valid = np.ones((H, W), bool)
+    cols = np.where(ok)[0]
+    for u in cols:
+        valid[: int(lowest[u]) + 1, u] = False
+    return valid
+
+
 def paint_feet(img, valid, feet, n, cell_m, thickness=2):
     """Draw the contact feet into an IPM picture in place (row 0 forward, col 0 left) and mark them valid."""
     o = (n - 1) / 2.0
