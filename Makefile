@@ -162,6 +162,9 @@ EVAL_JSON ?=
 pose-cdf: ## error CDF of every scored checkpoint on MANIFEST_STEM (default manifest_test) for YEAR
 	$(RUN) scripts/plot_eval_cdf.py --config $(CONFIG) --manifest-stem $(MANIFEST_STEM) --year $(YEAR)
 
+pose-diag: ## failure diagnostics of one EVAL_JSON (confidence gate, cross-year consistency, tail) for YEAR
+	$(RUN) scripts/diag_eval.py --config $(CONFIG) --eval-json $(EVAL_JSON) --year $(YEAR)
+
 pose-viz: ## per-frame overlay sheet for CKPT on MANIFEST (frames spread over EVAL_JSON's error range); TAG=
 	$(RUN) scripts/viz_pose.py --config $(CONFIG) --ckpt $(CKPT) --manifest $(MANIFEST) --year $(YEAR) --tag $(TAG) $(if $(EVAL_JSON),--eval-json $(EVAL_JSON),)
 
