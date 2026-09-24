@@ -1,5 +1,22 @@
 ## Verdict (running notes; newest first)
 
+**2026-09-24, code review of the branch (`/code-review high`, 10 findings) and what was done.**
+Fixed: (1) `sim` solver reported a failed RANSAC (identity from `ransac_init`) as a match — now a miss
+like `srt`; the `ipm_sim` rows above were scored before the fix and may contain a few identity
+"matches" counted as >30 m, which only makes `sim` look worse, never better; (2) bootstrap intervals
+became NaN when a resample's median was inf (`np.quantile` interpolation) — now `method="nearest"`;
+(3) `eval_pose` ran the decoder twice per entry and built two extra ViT-L copies just to toggle
+`use_means` — now one encoder/decoder pass and two consensus runs on the same logits; dead code and a
+hard-coded `scale_factor=0.4` removed; (4) `--query` override crashed on any mode other than the
+checkpoint's — now loads the overlapping tensors and prints the mismatch; (5) the IPM mosaic decoded
+each neighbour panorama twice with different attitude-noise draws — now one decode, same R as the
+ERP stack; (6) `track_route` hard-coded the 224 px geometry (would crash on ERP checkpoints) and also
+ran a second model — now uses the query grid's scale factor, the placement path, one model;
+(7) CLAUDE.md "current task" pointed at task 01; (8) `ipm.height_m = 1.7` was undocumented (now a
+decisions entry with a plan to fit it from the similarity solver's scale). Not fixed: (9) `HybridQuery`
+CPU syncs per step — hybrid retired; (10) `argmax_m` is None for placed (ERP) queries by design and now
+says so in the code. No finding changes a reported number except (1), in the conservative direction.
+
 **2026-09-24, ERP-token query, 10 000 steps (`erp_long`).** Validation 12.3 m [10.6, 14.4], R@5 0.20;
 test 13.6 m [11.4, 15.0], R@5 0.15, >30 m 0.15 (2024: 11.8 m, R@5 0.21); SE(2) solver identical
 within noise. Tripling the schedule moved the test median by 0.7 m. Schedule is not the explanation;

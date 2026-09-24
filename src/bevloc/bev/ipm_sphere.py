@@ -88,11 +88,26 @@ def mosaic_ipm(pictures, valids, se2s, n, cell_m):
     return out, out_valid
 
 
-def ipm_erp(erp_rgb, R_w2c, height_m, n, cell_m, blind_radius_m=1.2):
-    """(n, n, 3) uint8 ground picture and (n, n) bool validity (outside the blind disc)."""
+def ipm_erp(erp_rgb, R_w2c, height_m, n, cell_m, blind_radius_m=1.2, erp_valid=None):
+    """(n, n, 3) uint8 ground picture and (n, n) bool validity.
+
+    A cell is valid outside the blind disc and, when ``erp_valid`` (H, W) bool is given, only if the
+    ERP pixel it samples is valid (ego-vehicle body, dynamic objects, ... are masked there)."""
     x, y = cell_centres(n, cell_m)
     mu, mv = ground_pixel_coords(x, y, R_w2c, height_m, erp_rgb.shape[:2])
     img = cv2.remap(erp_rgb, mu, mv, cv2.INTER_LINEAR, borderMode=cv2.BORDER_WRAP)
     valid = np.hypot(x, y) >= float(blind_radius_m)
+    if erp_valid is not None:
+        src_ok = cv2.remap(erp_valid.astype(np.uint8), mu, mv, cv2.INTER_NEAREST, borderMode=cv2.BORDER_WRAP)
+        valid &= src_ok.astype(bool)
     img[~valid] = 0
     return img, valid
+
+
+def depression_mask(erp_hw, max_depression_deg):
+    """(H, W) bool: True where the ERP pixel looks less than ``max_depression_deg`` below the horizon.
+    On a car-mounted 360° camera everything steeper than ~20° down is the vehicle's own body."""
+    H, W = int(erp_hw[0]), int(erp_hw[1])
+    lat = (0.5 - (np.arange(H) + 0.5) / H) * 180.0
+    rows_ok = lat >= -float(max_depression_deg)
+    return np.repeat(rows_ok[:, None], W, axis=1)

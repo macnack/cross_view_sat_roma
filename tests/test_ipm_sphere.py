@@ -44,6 +44,21 @@ def test_mosaic_ipm_warps_a_source_frame_by_its_relative_pose_and_prefers_the_ne
     assert tuple(img2[r3, cs]) == (0, 0, 255)
 
 
+def test_erp_validity_and_depression_mask_propagate_to_cells():
+    from bevloc.bev.ipm_sphere import depression_mask
+    h, W, H, n, cell = 1.7, 1280, 640, 64, 0.5
+    erp = np.full((H, W, 3), 200, np.uint8)
+    dep = depression_mask((H, W), 20.0)
+    assert dep[0, 0] and not dep[H - 1, 0]                       # sky row valid, nadir row invalid
+    img, valid = ipm_erp(erp, R_NORTH, h, n, cell, blind_radius_m=0.0, erp_valid=dep)
+    x, y = cell_centres(n, cell)
+    rng = np.hypot(x, y)
+    r_cut = h / np.tan(np.radians(20.0))                          # 4.67 m: the ego-body cut on the ground
+    assert valid[rng > r_cut + 1.0].all()
+    assert not valid[rng < r_cut - 1.0].any()
+    assert (img[~valid] == 0).all()
+
+
 def test_ipm_marker_lands_in_the_forward_cell():
     h, W, H, n, cell = 1.7, 1280, 640, 64, 0.5
     r, c = n // 2 - int(10.0 / cell), n // 2            # row 0 is forward, col 0 is left

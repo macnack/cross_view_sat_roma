@@ -67,6 +67,22 @@ class SatRoMa:
         self.min_valid_frac = float(min_valid_frac)
 
     @classmethod
+    def from_wrapper(cls, wrapper, cfg, use_means=False, min_valid_frac=None):
+        """A consensus-only instance sharing an existing SatRoMaMatcher (no second model copy).
+
+        Evaluation scripts decode once with their FeatureQueryMatcher and run `_ransac` /
+        `consensus_from_gm` here for the "peak" and "means" rows on the same logits."""
+        self = cls.__new__(cls)
+        m = cfg.matcher
+        self.m = wrapper
+        self.use_means = bool(use_means)
+        self.reproj = float(m.reproj_cells)
+        self.seed = int(m.seed)
+        self.solver = str(getattr(m, "solver", "srt"))
+        self.min_valid_frac = float(m.min_valid_frac if min_valid_frac is None else min_valid_frac)
+        return self
+
+    @classmethod
     def from_config(cls, cfg, **override):
         m = cfg.matcher
         kw = dict(checkpoint=m.checkpoint, use_means=m.use_means, reproj_cells=m.reproj_cells,
@@ -230,7 +246,8 @@ class SatRoMa:
             Hs, _, _ = ransac_init(np.asarray(r.pts_A, np.float64), np.asarray(tgt, np.float64),
                                    method=cv2.RANSAC, reproj_threshold=self.reproj, max_iters=5000,
                                    confidence=0.995, quiet=True, estimator="similarity")
-            if Hs is None or not np.isfinite(np.asarray(Hs)).all():
+            # ransac_init substitutes np.eye(3) when cv2 finds no model: treat that as a miss, like `srt`
+            if Hs is None or not np.isfinite(np.asarray(Hs)).all() or np.array_equal(np.asarray(Hs), np.eye(3)):
                 return Match(None, None, n_modes, n_patches, n_multi, 0.0, argmax_cells)
             Hf = np.asarray(Hs, np.float64)
         elif self.solver == "se2":

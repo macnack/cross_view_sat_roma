@@ -8,15 +8,21 @@ roll/pitch, known camera height. Matcher: our Sat-RoMa multi-hypothesis matcher 
 Full plan and hypotheses H1–H7: docs/kickoff.html. Decisions already taken: docs/decisions.md.
 
 ## Current task
-docs/tasks/01_kickoff.md only. Do not start later tasks (geometry head, contrastive loss, Lift-Splat
-baseline, particle filter) until 01 is reported and reviewed.
+docs/tasks/03_eval_density_solver_pf.md (branch `task03/eval-density-solver-pf`): manifest evaluation with
+bootstrap intervals, query modes (lift | ipm | hybrid | erp), solver ablation, particle filter. Results and
+verdicts: experiments/05_lift_splat/REPORT.md + VERDICT.md, experiments/07_track/REPORT.md. Task 01 is
+reported (experiments/01_kickoff/REPORT.md, H1 falsified); task 02 (FG²/BevSplat) is blocked on data/env.
+Method of record since 2026-09-24: camera-only IPM picture + Sat-RoMa (`--query ipm`); learned lifts are
+ablation rows only. Open design decisions are listed at the end of docs/decisions.md.
 
 ## Repo layout
 - third_party/   read-only: Dur360BEV, RoMa, RoMaV2, FG2, VIGOR, bev-patch-pf, lift-splat-shoot. Wrap, never edit.
                  Sat-RoMa inference code is used from ~/Github/sat-roma-infer (or $SATROMA_INFER_DIR).
 - configs/       default.yaml = every tunable parameter; scripts snapshot it into their output folder
-- src/bevloc/    data/ (frames, calib, ortho), bev/ (lens, projection, ground/contact, variants, mask, mosaic),
-                 match/ (Sat-RoMa wrapper), eval/, viz.py — see README.md
+- src/bevloc/    data/ (frames, calib, ortho, mapillary), bev/ (lens, projection, ground/contact, variants, mask,
+                 mosaic, ipm_sphere), model/ (coarse loss, query modes: lift_splat, hybrid_query, erp_query, query.py),
+                 match/ (Sat-RoMa wrapper, se2 solver), eval/ (metrics, bootstrap report), track/ (particle filter),
+                 viz.py — see README.md
 - scripts/       thin CLIs, one per Makefile target (`make help`); scripts/attic = rejected approaches
 - tests/         `make test`
 - data/          see data/README.md

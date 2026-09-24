@@ -90,8 +90,8 @@ def main():
     query = build_query(cfg, mode).to(dev)
     load_query_state(query, state)
     query.eval()
-    ransac = SatRoMa.from_config(cfg, use_means=False, min_valid_frac=L.min_patch_valid)
-    ransac.m.model.decoder.load_state_dict(state["decoder"], strict=False)
+    # consensus needs only the wrapper's sizes and the RANSAC settings, not a second model copy
+    ransac = SatRoMa.from_wrapper(matcher.wrapper, cfg, use_means=False, min_valid_frac=L.min_patch_valid)
 
     g = cfg.grid
     n, gsd, scale = int(g.n), float(g.cell_m), int(cfg.reference.scale)
@@ -125,7 +125,9 @@ def main():
         with torch.no_grad():
             f_q, frac = query(batch, matcher)
             f_s = matcher.reference_features(batch["ref"])
-            out = matcher.model.decoder({16: f_q}, f_s, scale_factor=0.4)[16]
+            sf = float(((f_q.shape[-2] * 16) * (f_q.shape[-1] * 16)) ** 0.5 / 560.0)   # 0.4 for 224 px BEV queries
+            with matcher.model.exposed_intermediates():
+                out = matcher.model.decoder({16: f_q}, f_s, scale_factor=sf)[16]
             gm, cert = out["gm_cls"], out.get("gm_certainty")
             matchable = frac >= L.min_patch_valid          # no GT here: validity only
             heat = vote_heatmap(gm, cert, matchable)[0].cpu().numpy()
@@ -136,9 +138,16 @@ def main():
         pf.update(P.temperature * bilinear_log_heat(heat, cells))
         pf.update(-0.5 * (wrap_deg(pf.particles[:, 2] - up_true) / P.sigma_yaw_obs) ** 2)
         en_pf, yaw_pf = pf.estimate()
-        # per-frame RANSAC on the same crop
-        mask = torch.nn.functional.interpolate(frac[:, None].float(), size=(n, n), mode="nearest")[0, 0]
-        m = ransac.match_encoded(f_q, f_s[16], scale_factor=0.4, mask=(mask >= L.min_patch_valid).cpu().numpy())
+        # per-frame RANSAC on the same logits (no second decoder pass); placed (ERP) queries use their points
+        if hasattr(query, "placement"):
+            xy, valid = query.placement(batch)
+            m = SatRoMa.consensus_from_gm(ransac, gm[0], xy[0], valid[0])
+        else:
+            mask = torch.nn.functional.interpolate(frac[:, None].float(), size=(n, n), mode="nearest")[0, 0]
+            mask = mask >= L.min_patch_valid
+            gmm = gm[0].clone()
+            gmm[:, ~ransac.query_patches(mask)] = 0.0
+            m = ransac._ransac(gmm, None)
         r_err = None
         if m.H is not None:
             en_r, _ = pose_from_homography(m.H, n, ref_o)

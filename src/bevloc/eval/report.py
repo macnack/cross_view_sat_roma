@@ -15,7 +15,10 @@ def bootstrap_ci(values, stat, n_boot=1000, seed=0, alpha=0.05):
     rng = np.random.default_rng(seed)
     idx = rng.integers(0, len(v), size=(n_boot, len(v)))
     boots = np.array([stat(v[i]) for i in idx], float)
-    return float(stat(v)), (float(np.quantile(boots, alpha / 2)), float(np.quantile(boots, 1 - alpha / 2)))
+    # "nearest" avoids interpolating between two inf bootstrap medians (inf - inf = nan) when misses
+    # dominate a resample; an unbounded upper limit is then reported as inf, which is the truth.
+    return float(stat(v)), (float(np.quantile(boots, alpha / 2, method="nearest")),
+                            float(np.quantile(boots, 1 - alpha / 2, method="nearest")))
 
 
 def summarise_pose(errors_m, n_boot=1000, seed=0):

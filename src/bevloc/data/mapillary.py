@@ -13,7 +13,7 @@ from pyproj import Geod, Transformer
 from rasterio.windows import Window
 from torch.utils.data import Dataset
 
-from bevloc.bev.ipm_sphere import ipm_erp, mosaic_ipm
+from bevloc.bev.ipm_sphere import depression_mask, ipm_erp, mosaic_ipm
 from bevloc.data.ortho import Oriented, gt_homography, sample_negative_reference, sample_reference
 
 CS92 = "EPSG:2180"
@@ -253,6 +253,32 @@ class MapillaryPairs(Dataset):
         L = getattr(self.cfg, "lift", None)
         return str(getattr(L, "query_mode", "lift") or "lift") if L else "lift"
 
+    # Cityscapes train ids (scripts/semantic_precompute.py)
+    _DYNAMIC_IDS = (11, 12, 13, 14, 15, 16, 17, 18)          # person, rider, car, truck, bus, train, motorcycle, bicycle
+    _GROUND_IDS = (0, 1, 8, 9)                                # road, sidewalk, vegetation, terrain
+
+    def _erp_valid(self, fr, erp_hw):
+        """(H, W) bool validity of the panorama for the IPM picture: ego-body cut by depression angle,
+        plus dynamic-object (and optionally non-ground) pixels masked when a precomputed semantic map
+        exists at <seq>/semantic/<id>.png (scripts/semantic_precompute.py). None = no masking."""
+        ipm = self.cfg.ipm
+        dep = float(getattr(ipm, "max_depression_deg", 0.0) or 0.0)
+        valid = depression_mask(erp_hw, dep) if dep > 0 else np.ones(erp_hw, bool)
+        use_dyn = bool(getattr(ipm, "semantic_dynamic_mask", False))
+        ground_only = bool(getattr(ipm, "semantic_ground_only", False))
+        if use_dyn or ground_only:
+            p = Path(fr["_seq"]) / "semantic" / f"{fr['id']}.png"
+            if p.exists():
+                sem = cv2.imread(str(p), cv2.IMREAD_UNCHANGED)
+                if sem is not None:
+                    if sem.shape[:2] != tuple(erp_hw):
+                        sem = cv2.resize(sem, (erp_hw[1], erp_hw[0]), interpolation=cv2.INTER_NEAREST)
+                    if use_dyn:
+                        valid &= ~np.isin(sem, self._DYNAMIC_IDS)
+                    if ground_only:
+                        valid &= np.isin(sem, self._GROUND_IDS)
+        return valid
+
     def _pose_budget(self, rng):
         L = getattr(self.cfg, "lift", None)
         if self.train and L is not None and getattr(L, "offset_range", None):
@@ -339,9 +365,13 @@ class MapillaryPairs(Dataset):
         # Multi-frame: query + frames ~seq_dists metres behind
         neigh = self._neighbor_indices(i)
         erps, Rs, se2s = [], [], []
+        fulls = {}                                   # neighbour full-res ERPs, decoded once (IPM mosaic)
+        want_full = self._query_mode() == "ipm"
         for j in neigh:
             if j == i:
                 erp, R, up, en = erp_q, R_q, up_q, en_q
+            elif want_full:
+                erp, R, up, en, fulls[j] = self._load_erp_R_pose(self.frames[j], rng, full=True)
             else:
                 erp, R, up, en = self._load_erp_R_pose(self.frames[j], rng)
             yaw, tx, ty = src_in_query_se2(en_q, up_q, en, up)
@@ -365,16 +395,18 @@ class MapillaryPairs(Dataset):
             # Camera-only flat-ground picture of the QUERY frame at full ERP resolution
             # (kick-off H2 lower bound): the decoder sees it through the frozen encoder.
             ipm = self.cfg.ipm
-            bev, bev_valid = ipm_erp(erp_full, R_q, ipm.height_m, g.n, g.cell_m, ipm.blind_radius_m)
+            bev, bev_valid = ipm_erp(erp_full, R_q, ipm.height_m, g.n, g.cell_m, ipm.blind_radius_m,
+                                     erp_valid=self._erp_valid(fr, erp_full.shape[:2]))
             if len(neigh) > 1:
                 # Multi-frame IPM mosaic: the neighbours' pictures warped by the proxy relative pose,
                 # nearest camera wins per cell (the query keeps everything it sees close by).
                 pics, vals, poses = [bev], [bev_valid], [(0.0, 0.0, 0.0)]
-                for j, se2 in zip(neigh, se2s):
+                for j, R_j, se2 in zip(neigh, Rs, se2s):
                     if j == i:
                         continue
-                    _, R_j, _, _, full_j = self._load_erp_R_pose(self.frames[j], rng, full=True)
-                    pic_j, val_j = ipm_erp(full_j, R_j, ipm.height_m, g.n, g.cell_m, ipm.blind_radius_m)
+                    full_j = fulls[j]                                    # same decode and same R as the ERP stack
+                    pic_j, val_j = ipm_erp(full_j, R_j.numpy(), ipm.height_m, g.n, g.cell_m, ipm.blind_radius_m,
+                                           erp_valid=self._erp_valid(self.frames[j], full_j.shape[:2]))
                     pics.append(pic_j)
                     vals.append(val_j)
                     poses.append(tuple(float(v) for v in se2.tolist()))

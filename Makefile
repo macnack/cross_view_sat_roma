@@ -162,6 +162,14 @@ EVAL_JSON ?=
 pose-cdf: ## error CDF of every scored checkpoint on MANIFEST_STEM (default manifest_test) for YEAR
 	$(RUN) scripts/plot_eval_cdf.py --config $(CONFIG) --manifest-stem $(MANIFEST_STEM) --year $(YEAR)
 
+SEQS ?= Fixtor/iHfmEq03Tc6752Y4Ke8wlC Fixtor/NWVA14Y83pMRsijaGFkmQS Fixtor/gXabFhpwk2dcl0i4518mDQ Fixtor/doQ3OhJBKe56c8UxjAFmat Fixtor/IcRzj0wTLZX874qitxVsQa Fixtor/irAsBUKtGCfhPHuMbmOcLd
+
+semantic-precompute: ## SegFormer class-id maps for every frame of SEQS -> data/mapillary/<seq>/semantic/<id>.png (GPU)
+	$(RUN) scripts/semantic_precompute.py --config $(CONFIG) --seqs $(SEQS)
+
+semantic-smoke: ## SegFormer classes + camera-only contact line on one Mapillary panorama (SEQ=, INDEX=)
+	$(RUN) scripts/semantic_erp.py --config $(CONFIG) --seq $(if $(SEQ),$(SEQ),Fixtor/IcRzj0wTLZX874qitxVsQa) --index $(if $(INDEX),$(INDEX),400)
+
 pose-diag: ## failure diagnostics of one EVAL_JSON (confidence gate, cross-year consistency, tail) for YEAR
 	$(RUN) scripts/diag_eval.py --config $(CONFIG) --eval-json $(EVAL_JSON) --year $(YEAR)
 

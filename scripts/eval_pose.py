@@ -1,10 +1,12 @@
 """Pose evaluation of a query checkpoint on an immutable manifest (bootstrap CIs, chance row).
 
-  make eval-pose CKPT=checkpoints/05_lift_splat_fixtor_seq_best.pt \
-       MANIFEST=experiments/06_fg2_bevsplat/manifest.json TAG=seq EVAL_ARGS="--seq-dists 0,2,5"
+  make eval-pose CKPT=checkpoints/05_lift_splat_fixtor_ipm_best.pt \
+       MANIFEST=experiments/06_fg2_bevsplat/manifest_test.json TAG=ipm [EVAL_ARGS="--seq-dists 0,2,5 --solver se2"]
 
 The reference crop of every entry is fixed by the manifest (centre, bearing, size), so every
 checkpoint, query mode and solver is scored on exactly the same pairs. Misses count as inf.
+One encoder, one decoder pass per entry; the "peak" (published one-peak-per-patch RANSAC) and
+"means" (distinct GMM means) rows are two consensus runs on the same logits.
 """
 from __future__ import annotations
 
@@ -22,7 +24,7 @@ from bevloc.data.ortho import Oriented
 from bevloc.eval.metrics import pose_errors
 from bevloc.eval.report import summarise_pose
 from bevloc.match.satroma import SatRoMa
-from bevloc.model.coarse import FeatureQueryMatcher, coarse_targets, ref_cell_validity
+from bevloc.model.coarse import FeatureQueryMatcher
 from bevloc.model.query import build_query, load_query_state
 
 CELL_M = 4.0
@@ -34,9 +36,9 @@ def main():
     ap.add_argument("--manifest", default="experiments/06_fg2_bevsplat/manifest.json")
     ap.add_argument("--years", default="2025,2024")
     ap.add_argument("--n", type=int, default=0, help="0 = every entry; small values for smoke tests")
-    ap.add_argument("--query", default="", help="lift | ipm | hybrid; default = the mode stored in the checkpoint")
-    ap.add_argument("--solver", default="", help="srt | se2; default = cfg.matcher.solver")
-    ap.add_argument("--seq-dists", default="", help="multi-frame splat distances, e.g. 0,2,5 (seq checkpoints)")
+    ap.add_argument("--query", default="", help="lift | ipm | hybrid | erp; default = the mode stored in the checkpoint")
+    ap.add_argument("--solver", default="", help="srt | sim | se2; default = cfg.matcher.solver")
+    ap.add_argument("--seq-dists", default="", help="multi-frame distances, e.g. 0,2,5 (seq / IPM-mosaic queries)")
     ap.add_argument("--out", default="experiments/05_lift_splat/eval")
     ap.add_argument("--tag", required=True)
     a = ap.parse_args()
@@ -53,29 +55,29 @@ def main():
     entries = [e for e in man["frames"] if int(e["year"]) in years]
     if a.n:
         entries = entries[: a.n]
+    state = torch.load(a.ckpt, map_location=dev, weights_only=False)
+    ckpt_mode = state.get("mode", "lift")
+    mode = a.query or ckpt_mode
+    L.query_mode = mode                                    # the dataset builds the picture this mode needs
     orthos = {y: PoznanOrtho(poznan_tiles(y)) for y in years}
     seq_dir = MAP_ROOT / "Fixtor" / man["meta"]["held_out_seq"]
     frames = load_frames([seq_dir], orthos[years[0]], margin_m=L.margin_m)
-    if getattr(L, "query_mode", "lift") != (a.query or "lift"):
-        L.query_mode = a.query or L.query_mode
     ds = MapillaryPairs(frames, orthos, cfg, train=False, seed=cfg.train.seed,
                         erp_size=tuple(L.erp_size), years=years)
 
-    state = torch.load(a.ckpt, map_location=dev, weights_only=False)
-    mode = a.query or state.get("mode", "lift")
-    L.query_mode = mode
     matcher = FeatureQueryMatcher(cfg.matcher.checkpoint, dev, train_decoder=False)
     matcher.model.decoder.load_state_dict(state["decoder"], strict=False)
     query = build_query(cfg, mode).to(dev)
-    load_query_state(query, state)
+    n_loaded, n_own = load_query_state(query, state)
+    if mode != ckpt_mode:
+        print(f"WARNING: --query {mode} differs from the checkpoint's mode {ckpt_mode}: "
+              f"{n_loaded}/{n_own} query tensors loaded, the rest are initialised", flush=True)
     query.eval()
-    wraps = {}
-    for tag, means in (("peak", False), ("means", True)):
-        w = SatRoMa.from_config(cfg, use_means=means, min_valid_frac=L.min_patch_valid)
-        w.m.model.decoder.load_state_dict(state["decoder"], strict=False)
-        wraps[tag] = w
+    cons = {tag: SatRoMa.from_wrapper(matcher.wrapper, cfg, use_means=means, min_valid_frac=L.min_patch_valid)
+            for tag, means in (("peak", False), ("means", True))}
 
     rows = []
+    n = int(cfg.grid.n)
     for e in entries:
         ref_o = Oriented(tuple(e["crop_centre_en"]), float(e["crop_up_bearing_deg"]),
                          int(e["ref_size"]), float(e["gsd_m"]))
@@ -84,28 +86,30 @@ def main():
         with torch.no_grad():
             f_q, frac = query(batch, matcher)
             f_s = matcher.reference_features(batch["ref"])
+            sf = float(((f_q.shape[-2] * 16) * (f_q.shape[-1] * 16)) ** 0.5 / 560.0)
+            with matcher.model.exposed_intermediates():
+                gm = matcher.model.decoder({16: f_q}, f_s, scale_factor=sf)[16]["gm_cls"][0]
         H = np.asarray(e["H_gt"], float)
-        rv = ref_cell_validity(batch["ref"])
-        idx, use = coarse_targets(batch["H"], frac >= L.min_patch_valid, ref_valid=rv)
-        mask = torch.nn.functional.interpolate(frac[:, None].float(), size=(cfg.grid.n, cfg.grid.n),
-                                               mode="nearest")[0, 0]
-        mask = (mask >= L.min_patch_valid).cpu().numpy()
+        placed = query.placement(batch) if hasattr(query, "placement") else None
         row = dict(frame_id=e["frame_id"], year=int(e["year"]),
                    centre_guess_m=float(np.hypot(*e["crop_offset_m"])), argmax_m=None)
-        placed = query.placement(batch) if hasattr(query, "placement") else None
-        sf = float(((f_q.shape[-2] * 16) * (f_q.shape[-1] * 16)) ** 0.5 / 560.0)
-        for tag, w in wraps.items():
+        for tag, c in cons.items():
             if placed is not None:
-                m = w.match_placed(f_q, f_s[16], placed[0][0], placed[1][0], scale_factor=sf, H_gt=H)
+                m = SatRoMa.consensus_from_gm(c, gm, placed[0][0], placed[1][0], H_gt=H)
             else:
-                m = w.match_encoded(f_q, f_s[16], scale_factor=0.4, mask=mask, H_gt=H)
-            err = pose_errors(m.H, H, cfg.grid.n, cfg.grid.cell_m) if m.H is not None else None
+                mask = torch.nn.functional.interpolate(frac[:, None].float(), size=(n, n), mode="nearest")[0, 0]
+                mask = (mask >= L.min_patch_valid)
+                gmm = gm.clone()
+                gmm[:, ~c.query_patches(mask)] = 0.0
+                cell_err = c._argmax_cells(gmm, mask, H)
+                m = c._ransac(gmm, cell_err)
+            err = pose_errors(m.H, H, n, cfg.grid.cell_m) if m.H is not None else None
             row[f"pose_{tag}_m"] = None if err is None else err["position_m"]
             row[f"yaw_{tag}_deg"] = None if err is None else err["yaw_deg"]
             row[f"inliers_{tag}"] = m.inlier_ratio
             row[f"modes_{tag}"] = m.n_modes
             if m.argmax_cells is not None:
-                row["argmax_m"] = m.argmax_cells * CELL_M
+                row["argmax_m"] = m.argmax_cells * CELL_M       # None for placed (ERP) queries: no patch grid
         rows.append(row)
         pk, mn = row["pose_peak_m"], row["pose_means_m"]
         print(f"  {row['frame_id']} y{row['year']}  peak {None if pk is None else round(pk, 1)}  "
@@ -124,7 +128,7 @@ def main():
     out = Path(a.out)
     out.mkdir(parents=True, exist_ok=True)
     path = out / f"eval_{a.tag}_{Path(a.manifest).stem}.json"
-    path.write_text(json.dumps({"meta": dict(ckpt=a.ckpt, manifest=a.manifest, mode=mode,
+    path.write_text(json.dumps({"meta": dict(ckpt=a.ckpt, manifest=a.manifest, mode=mode, ckpt_mode=ckpt_mode,
                                               solver=cfg.matcher.solver, seq_dists=list(L.seq_dists_m),
                                               held_out_seq=man["meta"]["held_out_seq"], n=len(rows)),
                                 "frames": rows, "summary": summary}, indent=2))

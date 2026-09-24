@@ -66,13 +66,24 @@ def build_query(cfg, mode):
 
 
 def load_query_state(query, state):
-    """Accept both the new {"query": ..., "mode": ...} and the old {"lift": ...} checkpoint layouts."""
+    """Accept both the new {"query": ..., "mode": ...} and the old {"lift": ...} checkpoint layouts.
+
+    When the checkpoint was written by another query mode (eval_pose --query override), only the
+    overlapping parameters are loaded and the rest keep their initialisation; the caller prints the
+    mismatch. Raises only when nothing at all can be loaded into a parameterised query."""
+    own = query.state_dict()
     if "query" in state:
-        query.load_state_dict(state["query"])
-    elif "lift" in state and hasattr(query, "lift"):
-        query.lift.load_state_dict(state["lift"])
-    elif "lift" in state and hasattr(query, "load_lift_weights"):
-        query.load_lift_weights(state["lift"])
+        src = state["query"]
+    elif "lift" in state:
+        src = {f"lift.{k}": v for k, v in state["lift"].items()} if hasattr(query, "lift") else {}
+    else:
+        src = {}
+    common = {k: v for k, v in src.items() if k in own and tuple(v.shape) == tuple(own[k].shape)}
+    if own and not common and src:
+        raise KeyError(f"checkpoint mode {state.get('mode', 'lift')!r} shares no parameters with {type(query).__name__}")
+    if common:
+        query.load_state_dict(common, strict=False)
+    return len(common), len(own)
 
 
 def lift_state_dict(state):
