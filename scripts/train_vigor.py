@@ -41,6 +41,7 @@ def main():
     ap.add_argument("--val-cities", nargs="*", default=None, help="default = the training cities (same-area) or the split's test cities")
     ap.add_argument("--steps", type=int, default=3000)
     ap.add_argument("--batch", type=int, default=4)
+    ap.add_argument("--workers", type=int, default=0, help="DataLoader workers (the IPM picture is built on the CPU per sample)")
     ap.add_argument("--val-every", type=int, default=500)
     ap.add_argument("--val-samples", type=int, default=200)
     ap.add_argument("--neighbour-radius", type=int, default=4)
@@ -63,8 +64,9 @@ def main():
     tr = VigorPairs(a.root, cfg, cities=tr_cities, split=a.split, train=True)
     va = VigorPairs(a.root, cfg, cities=va_cities, split=a.split, train=False, limit=a.val_samples, seed=1)
     print(f"train {len(tr)} ({tr_cities})  val {len(va)} ({va_cities})  mode {mode}  batch {a.batch}", flush=True)
-    tr_loader = DataLoader(tr, batch_size=a.batch, shuffle=True, num_workers=0, collate_fn=collate_vigor, drop_last=True)
-    va_loader = DataLoader(va, batch_size=a.batch, shuffle=False, num_workers=0, collate_fn=collate_vigor)
+    tr_loader = DataLoader(tr, batch_size=a.batch, shuffle=True, num_workers=a.workers, collate_fn=collate_vigor,
+                           drop_last=True, persistent_workers=a.workers > 0)
+    va_loader = DataLoader(va, batch_size=a.batch, shuffle=False, num_workers=a.workers, collate_fn=collate_vigor)
 
     matcher = FeatureQueryMatcher(cfg.matcher.checkpoint, dev, train_decoder=True)
     for n, p in matcher.model.decoder.named_parameters():

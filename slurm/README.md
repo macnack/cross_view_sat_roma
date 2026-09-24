@@ -70,6 +70,10 @@ PYTHONPATH=src:.pydeps SATROMA_INFER_DIR=$PWD/third_party/sat_roma_infer $X pyth
 
 ## Syncing the checkout: `make eagle-pull`, not `git pull`
 
+Submit at least a minute after `make eagle-pull`: on 2026-09-24 a job submitted 5 s after the pull ran the
+*previous* version of `scripts/train_vigor.py` (the compute node's NFS attribute cache still held the old
+file) and failed on a flag that no longer existed. Resubmitting a few minutes later ran the new file.
+
 Jobs write result files (`experiments/**/*.json`) that are later committed from the laptop; a plain
 `git pull` then refuses ("untracked working tree files would be overwritten"). `make eagle-pull` does
 `git fetch` + `git reset --hard origin/<branch>`, which is safe because the cluster checkout never
