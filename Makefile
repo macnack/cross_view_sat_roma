@@ -170,6 +170,9 @@ semantic-precompute: ## SegFormer class-id maps for every frame of SEQS -> data/
 semantic-smoke: ## SegFormer classes + camera-only contact line on one Mapillary panorama (SEQ=, INDEX=)
 	$(RUN) scripts/semantic_erp.py --config $(CONFIG) --seq $(if $(SEQ),$(SEQ),Fixtor/IcRzj0wTLZX874qitxVsQa) --index $(if $(INDEX),$(INDEX),400)
 
+ipm-picture: ## dump the query picture CONFIG produces (SEQ=, INDEX="400 800", SEQ_DISTS=) to experiments/08_semantic
+	$(RUN) scripts/diag_picture.py --config $(CONFIG) --seq $(if $(SEQ),$(SEQ),Fixtor/irAsBUKtGCfhPHuMbmOcLd) --index $(if $(INDEX),$(INDEX),400) $(if $(SEQ_DISTS),--seq-dists $(SEQ_DISTS),)
+
 pose-diag: ## failure diagnostics of one EVAL_JSON (confidence gate, cross-year consistency, tail) for YEAR
 	$(RUN) scripts/diag_eval.py --config $(CONFIG) --eval-json $(EVAL_JSON) --year $(YEAR)
 
