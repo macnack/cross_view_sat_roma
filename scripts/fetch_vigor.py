@@ -60,11 +60,13 @@ def main():
         else:
             failed.append(f.path)
     if failed:
-        print("FAILED (rerun later):", *failed, sep="\n  ", flush=True)
-        sys.exit(2)
+        print("FAILED (rerun later, Drive quota resets after ~24 h):", *failed, sep="\n  ", flush=True)
     if a.no_extract:
-        return
+        sys.exit(2 if failed else 0)
     for tar in sorted((out / "VIGOR_files").glob("*/*.tar.gz")):
+        if not tar.with_suffix(tar.suffix + ".done").exists():        # incomplete or failed download: never extract
+            print(f"skip extract {tar.relative_to(out)} (download not complete)", flush=True)
+            continue
         target = out / tar.parent.name
         marker = target / f".{tar.stem}.extracted"
         if marker.exists():
@@ -77,7 +79,9 @@ def main():
     z = out / "VIGOR_files" / "splits.zip"
     if z.exists() and not (out / "splits").exists():
         subprocess.run(["unzip", "-q", "-o", str(z), "-d", str(out / "splits")], check=True)
-    print("done", flush=True)
+    print("done" + (f" with {len(failed)} file(s) still missing" if failed else ""), flush=True)
+    if failed:
+        sys.exit(2)
 
 
 if __name__ == "__main__":
