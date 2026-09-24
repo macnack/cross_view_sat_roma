@@ -75,6 +75,14 @@ per-patch RANSAC, "means" = distinct GMM means.
 | ipm_cl2 | manifest_test | 2025 | srt | means | 7.7 [5.8, 9.3] | 0.39 [0.32, 0.46] | 0.57 | 0.11 | 200/200 |
 | ipm_cl2 | manifest_test | 2024 | srt | peak | 7.6 [6.4, 9.9] | 0.40 [0.34, 0.46] | 0.58 | 0.12 | 200/200 |
 | ipm_cl2 | manifest_test | 2024 | srt | means | 7.3 [6.4, 10.1] | 0.39 [0.33, 0.45] | 0.57 | 0.10 | 200/200 |
+| ipm_cl3 | manifest | 2025 | srt | peak | 7.2 [5.0, 7.7] | 0.43 [0.36, 0.50] | 0.67 | 0.04 | 200/200 |
+| ipm_cl3 | manifest | 2025 | srt | means | 6.2 [5.1, 7.5] | 0.42 [0.35, 0.49] | 0.71 | 0.03 | 200/200 |
+| ipm_cl3 | manifest | 2024 | srt | peak | 6.3 [5.1, 7.8] | 0.43 [0.36, 0.49] | 0.69 | 0.04 | 200/200 |
+| ipm_cl3 | manifest | 2024 | srt | means | 6.0 [5.0, 7.1] | 0.43 [0.37, 0.51] | 0.69 | 0.04 | 200/200 |
+| ipm_cl3 | manifest_test | 2025 | srt | peak | 5.3 [4.1, 6.6] | 0.49 [0.42, 0.56] | 0.66 | 0.09 | 200/200 |
+| ipm_cl3 | manifest_test | 2025 | srt | means | 5.5 [4.2, 6.9] | 0.48 [0.42, 0.56] | 0.65 | 0.09 | 200/200 |
+| ipm_cl3 | manifest_test | 2024 | srt | peak | 5.9 [4.8, 8.2] | 0.46 [0.39, 0.52] | 0.64 | 0.10 | 200/200 |
+| ipm_cl3 | manifest_test | 2024 | srt | means | 6.3 [5.0, 7.9] | 0.44 [0.38, 0.51] | 0.65 | 0.10 | 200/200 |
 | ipm_cl | manifest | 2025 | srt | peak | 4.9 [4.2, 6.4] | 0.51 [0.45, 0.58] | 0.74 | 0.04 | 200/200 |
 | ipm_cl | manifest | 2025 | srt | means | 5.2 [4.3, 6.4] | 0.49 [0.42, 0.56] | 0.73 | 0.04 | 200/200 |
 | ipm_cl | manifest | 2024 | srt | peak | 5.1 [4.5, 6.4] | 0.48 [0.42, 0.56] | 0.74 | 0.04 | 200/200 |
@@ -200,9 +208,25 @@ per-patch RANSAC, "means" = distinct GMM means.
 | centre guess | manifest_test | 2024 | – | chance | 18.3 [16.9, 19.4] | 0.04 [0.01, 0.07] | 0.15 | 0.01 | 200/200 |
 | centre guess | manifest_test | 2025 | – | chance | 18.3 [16.9, 19.4] | 0.04 [0.01, 0.07] | 0.15 | 0.01 | 200/200 |
 
-Sources: eval_aug_manifest.json, eval_aug_manifest_test.json, eval_erp_long_se2_manifest.json, eval_erp_long_se2_manifest_test.json, eval_erp_long_srt_manifest.json, eval_erp_long_srt_manifest_test.json, eval_erp_se2_manifest.json, eval_erp_se2_manifest_test.json, eval_erp_srt_manifest.json, eval_erp_srt_manifest_test.json, eval_hybrid_manifest.json, eval_hybrid_manifest_test.json, eval_hybrid_warm_manifest.json, eval_hybrid_warm_manifest_test.json, eval_ipm_cl2_manifest.json, eval_ipm_cl2_manifest_test.json, eval_ipm_cl_manifest.json, eval_ipm_cl_manifest_test.json, eval_ipm_long_manifest.json, eval_ipm_long_manifest_test.json, eval_ipm_manifest.json, eval_ipm_manifest_test.json, eval_ipm_mosaic025_manifest.json, eval_ipm_mosaic025_manifest_test.json, eval_ipm_mosaic0510_manifest.json, eval_ipm_mosaic0510_manifest_test.json, eval_ipm_mosaic_trained_manifest.json, eval_ipm_mosaic_trained_manifest_test.json, eval_ipm_se2_manifest.json, eval_ipm_se2_manifest_test.json, eval_ipm_sim_manifest.json, eval_ipm_sim_manifest_test.json, eval_ipm_v2_manifest.json, eval_ipm_v2_manifest_test.json, eval_ipm_v2_mosaic_manifest.json, eval_ipm_v2_mosaic_manifest_test.json, eval_multi_manifest.json, eval_multi_manifest_test.json, eval_pose_nll_manifest.json, eval_pose_nll_manifest_test.json, eval_seq_manifest.json, eval_seq_manifest_test.json, eval_seq_single_manifest.json, eval_seq_single_manifest_test.json, eval_years_manifest.json, eval_years_manifest_test.json.
+Sources: eval_aug_manifest.json, eval_aug_manifest_test.json, eval_erp_long_se2_manifest.json, eval_erp_long_se2_manifest_test.json, eval_erp_long_srt_manifest.json, eval_erp_long_srt_manifest_test.json, eval_erp_se2_manifest.json, eval_erp_se2_manifest_test.json, eval_erp_srt_manifest.json, eval_erp_srt_manifest_test.json, eval_hybrid_manifest.json, eval_hybrid_manifest_test.json, eval_hybrid_warm_manifest.json, eval_hybrid_warm_manifest_test.json, eval_ipm_cl2_manifest.json, eval_ipm_cl2_manifest_test.json, eval_ipm_cl3_manifest.json, eval_ipm_cl3_manifest_test.json, eval_ipm_cl_manifest.json, eval_ipm_cl_manifest_test.json, eval_ipm_long_manifest.json, eval_ipm_long_manifest_test.json, eval_ipm_manifest.json, eval_ipm_manifest_test.json, eval_ipm_mosaic025_manifest.json, eval_ipm_mosaic025_manifest_test.json, eval_ipm_mosaic0510_manifest.json, eval_ipm_mosaic0510_manifest_test.json, eval_ipm_mosaic_trained_manifest.json, eval_ipm_mosaic_trained_manifest_test.json, eval_ipm_se2_manifest.json, eval_ipm_se2_manifest_test.json, eval_ipm_sim_manifest.json, eval_ipm_sim_manifest_test.json, eval_ipm_v2_manifest.json, eval_ipm_v2_manifest_test.json, eval_ipm_v2_mosaic_manifest.json, eval_ipm_v2_mosaic_manifest_test.json, eval_multi_manifest.json, eval_multi_manifest_test.json, eval_pose_nll_manifest.json, eval_pose_nll_manifest_test.json, eval_seq_manifest.json, eval_seq_manifest_test.json, eval_seq_single_manifest.json, eval_seq_single_manifest_test.json, eval_years_manifest.json, eval_years_manifest_test.json.
 
 ## Verdict (running notes; newest first)
+
+**2026-09-24, camera-only contact-line picture (`ipm_cl*`, kick-off H2 with a semantic map instead of
+LiDAR): does not beat plain IPM.** Test route (2025, peak): feet painted on the plain picture
+(`ipm_cl`) 4.3 m / R@5 0.55 — identical to `ipm_long`, because flat IPM already puts a wall's bottom
+pixels at its foot; feet + masking everything above the contact of buildings *and vegetation*
+(`ipm_cl2`) 7.1 m / 0.39 — grass verges became "walls" and most of the ground was masked; feet +
+masking above building/wall/fence contacts only (`ipm_cl3`) 5.3 m [4.1, 6.6] / 0.49 / R@10 0.66,
+validation 7.2 m — still no better than plain IPM (4.3–4.6 m). Reading: the radial facade smear of
+plain IPM is not noise to this matcher; it puts facade colour at the footprint, which is where the
+orthophoto shows the roof edge, and removing it costs more than the clean footprint outline gains.
+Together with the earlier rows, every query-side variant tried today (10k steps, mosaic, ego cut,
+dynamic mask, contact line, hybrid, ERP tokens) lands within the plain IPM picture's interval or
+below it. The query side is exhausted at ~4.5 m median / a third of frames beyond 10 m on
+structure-poor road; the remaining levers are the reference side (cross-season / leaf-off imagery,
+an OSM channel for road and building outlines) and the filter's tail (likelihood flattening, real
+odometry), plus a trained query-side head if the ERP-token route is to be retried.
 
 **2026-09-24, IPM family on the test route (2025, peak row): a plateau.** `ipm` 4.6 m / R@5 0.53 /
 R@10 0.67; 10k steps (`ipm_long`) 4.3 / 0.55 / 0.70; trained mosaic 0/2/5 m 4.8 / 0.52 / 0.71;

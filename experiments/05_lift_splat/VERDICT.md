@@ -1,5 +1,21 @@
 ## Verdict (running notes; newest first)
 
+**2026-09-24, camera-only contact-line picture (`ipm_cl*`, kick-off H2 with a semantic map instead of
+LiDAR): does not beat plain IPM.** Test route (2025, peak): feet painted on the plain picture
+(`ipm_cl`) 4.3 m / R@5 0.55 — identical to `ipm_long`, because flat IPM already puts a wall's bottom
+pixels at its foot; feet + masking everything above the contact of buildings *and vegetation*
+(`ipm_cl2`) 7.1 m / 0.39 — grass verges became "walls" and most of the ground was masked; feet +
+masking above building/wall/fence contacts only (`ipm_cl3`) 5.3 m [4.1, 6.6] / 0.49 / R@10 0.66,
+validation 7.2 m — still no better than plain IPM (4.3–4.6 m). Reading: the radial facade smear of
+plain IPM is not noise to this matcher; it puts facade colour at the footprint, which is where the
+orthophoto shows the roof edge, and removing it costs more than the clean footprint outline gains.
+Together with the earlier rows, every query-side variant tried today (10k steps, mosaic, ego cut,
+dynamic mask, contact line, hybrid, ERP tokens) lands within the plain IPM picture's interval or
+below it. The query side is exhausted at ~4.5 m median / a third of frames beyond 10 m on
+structure-poor road; the remaining levers are the reference side (cross-season / leaf-off imagery,
+an OSM channel for road and building outlines) and the filter's tail (likelihood flattening, real
+odometry), plus a trained query-side head if the ERP-token route is to be retried.
+
 **2026-09-24, IPM family on the test route (2025, peak row): a plateau.** `ipm` 4.6 m / R@5 0.53 /
 R@10 0.67; 10k steps (`ipm_long`) 4.3 / 0.55 / 0.70; trained mosaic 0/2/5 m 4.8 / 0.52 / 0.71;
 zero-shot mosaic 5.4 / 0.46 / 0.69; ego cut + dynamic mask (`ipm_v2`) 5.0 / 0.49 / 0.67. All within
