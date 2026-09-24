@@ -75,6 +75,26 @@ per-patch RANSAC, "means" = distinct GMM means.
 | ipm | manifest_test | 2025 | srt | means | 4.5 [3.9, 5.9] | 0.52 [0.45, 0.59] | 0.69 | 0.07 | 200/200 |
 | ipm | manifest_test | 2024 | srt | peak | 5.7 [3.9, 7.5] | 0.48 [0.41, 0.56] | 0.66 | 0.11 | 200/200 |
 | ipm | manifest_test | 2024 | srt | means | 5.6 [4.1, 7.7] | 0.46 [0.39, 0.53] | 0.66 | 0.10 | 200/200 |
+| ipm_mosaic025 | manifest | 2025 | srt | peak | 5.8 [4.7, 7.2] | 0.46 [0.39, 0.53] | 0.74 | 0.04 | 200/200 |
+| ipm_mosaic025 | manifest | 2025 | srt | means | 5.6 [4.6, 7.2] | 0.46 [0.39, 0.53] | 0.73 | 0.04 | 200/200 |
+| ipm_mosaic025 | manifest | 2024 | srt | peak | 6.6 [5.4, 7.4] | 0.42 [0.36, 0.49] | 0.71 | 0.07 | 200/200 |
+| ipm_mosaic025 | manifest | 2024 | srt | means | 6.3 [5.3, 7.2] | 0.42 [0.35, 0.49] | 0.70 | 0.05 | 200/200 |
+| ipm_mosaic025 | manifest_test | 2025 | srt | peak | 5.4 [4.5, 6.1] | 0.46 [0.39, 0.52] | 0.69 | 0.07 | 200/200 |
+| ipm_mosaic025 | manifest_test | 2025 | srt | means | 5.5 [4.5, 7.0] | 0.47 [0.41, 0.55] | 0.69 | 0.09 | 200/200 |
+| ipm_mosaic025 | manifest_test | 2024 | srt | peak | 5.2 [4.2, 6.8] | 0.49 [0.42, 0.56] | 0.66 | 0.09 | 199/200 |
+| ipm_mosaic025 | manifest_test | 2024 | srt | means | 5.4 [4.4, 7.0] | 0.47 [0.41, 0.54] | 0.68 | 0.10 | 199/200 |
+| ipm_mosaic0510 | manifest | 2025 | srt | peak | 5.9 [4.6, 6.9] | 0.46 [0.39, 0.53] | 0.76 | 0.03 | 199/200 |
+| ipm_mosaic0510 | manifest | 2025 | srt | means | 5.8 [4.9, 6.7] | 0.44 [0.37, 0.51] | 0.77 | 0.03 | 199/200 |
+| ipm_mosaic0510 | manifest | 2024 | srt | peak | 5.7 [4.6, 6.7] | 0.47 [0.40, 0.54] | 0.69 | 0.05 | 200/200 |
+| ipm_mosaic0510 | manifest | 2024 | srt | means | 5.3 [4.5, 6.2] | 0.47 [0.41, 0.55] | 0.71 | 0.04 | 200/200 |
+| ipm_mosaic0510 | manifest_test | 2025 | srt | peak | 6.1 [4.7, 6.8] | 0.46 [0.39, 0.53] | 0.69 | 0.10 | 200/200 |
+| ipm_mosaic0510 | manifest_test | 2025 | srt | means | 5.5 [4.7, 7.1] | 0.46 [0.40, 0.53] | 0.68 | 0.10 | 200/200 |
+| ipm_mosaic0510 | manifest_test | 2024 | srt | peak | 5.1 [4.3, 7.3] | 0.49 [0.42, 0.56] | 0.66 | 0.10 | 200/200 |
+| ipm_mosaic0510 | manifest_test | 2024 | srt | means | 5.5 [4.3, 7.4] | 0.48 [0.41, 0.55] | 0.66 | 0.12 | 200/200 |
+| ipm_mosaic_trained | manifest | 2025 | srt | peak | 5.5 [4.8, 6.9] | 0.46 [0.40, 0.53] | 0.77 | 0.03 | 200/200 |
+| ipm_mosaic_trained | manifest | 2025 | srt | means | 5.4 [4.6, 6.6] | 0.47 [0.41, 0.54] | 0.77 | 0.03 | 200/200 |
+| ipm_mosaic_trained | manifest | 2024 | srt | peak | 5.6 [4.4, 6.7] | 0.46 [0.39, 0.53] | 0.74 | 0.04 | 200/200 |
+| ipm_mosaic_trained | manifest | 2024 | srt | means | 5.7 [4.3, 6.9] | 0.47 [0.40, 0.54] | 0.73 | 0.04 | 200/200 |
 | ipm_se2 | manifest | 2025 | se2 | peak | 5.7 [4.7, 6.9] | 0.44 [0.37, 0.51] | 0.72 | 0.05 | 200/200 |
 | ipm_se2 | manifest | 2025 | se2 | means | 5.5 [4.6, 7.0] | 0.45 [0.39, 0.52] | 0.73 | 0.04 | 200/200 |
 | ipm_se2 | manifest | 2024 | se2 | peak | 6.0 [4.8, 6.7] | 0.45 [0.39, 0.52] | 0.73 | 0.06 | 199/200 |
@@ -91,6 +111,14 @@ per-patch RANSAC, "means" = distinct GMM means.
 | ipm_sim | manifest_test | 2025 | sim | means | 4.7 [3.9, 6.0] | 0.51 [0.43, 0.58] | 0.67 | 0.09 | 200/200 |
 | ipm_sim | manifest_test | 2024 | sim | peak | 6.0 [4.3, 7.8] | 0.46 [0.38, 0.53] | 0.65 | 0.11 | 200/200 |
 | ipm_sim | manifest_test | 2024 | sim | means | 5.6 [4.1, 7.8] | 0.46 [0.39, 0.53] | 0.65 | 0.10 | 200/200 |
+| ipm_v2 | manifest | 2025 | srt | peak | 5.3 [4.6, 6.3] | 0.47 [0.40, 0.54] | 0.74 | 0.03 | 200/200 |
+| ipm_v2 | manifest | 2025 | srt | means | 5.5 [4.3, 6.5] | 0.46 [0.39, 0.53] | 0.72 | 0.04 | 200/200 |
+| ipm_v2 | manifest | 2024 | srt | peak | 6.1 [5.1, 6.8] | 0.42 [0.35, 0.49] | 0.73 | 0.06 | 200/200 |
+| ipm_v2 | manifest | 2024 | srt | means | 6.4 [5.1, 7.1] | 0.41 [0.35, 0.48] | 0.72 | 0.06 | 200/200 |
+| ipm_v2 | manifest_test | 2025 | srt | peak | 5.0 [4.1, 6.3] | 0.49 [0.42, 0.56] | 0.67 | 0.09 | 200/200 |
+| ipm_v2 | manifest_test | 2025 | srt | means | 4.6 [4.0, 6.3] | 0.52 [0.44, 0.58] | 0.67 | 0.08 | 200/200 |
+| ipm_v2 | manifest_test | 2024 | srt | peak | 6.0 [5.0, 7.3] | 0.43 [0.36, 0.50] | 0.63 | 0.12 | 200/200 |
+| ipm_v2 | manifest_test | 2024 | srt | means | 6.4 [4.8, 7.9] | 0.46 [0.39, 0.52] | 0.62 | 0.12 | 200/200 |
 | multi | manifest | 2025 | srt | peak | 11.9 [10.7, 14.6] | 0.15 [0.10, 0.20] | 0.40 | 0.12 | 200/200 |
 | multi | manifest | 2025 | srt | means | 11.5 [10.2, 13.4] | 0.15 [0.10, 0.20] | 0.41 | 0.12 | 200/200 |
 | multi | manifest | 2024 | srt | peak | 13.5 [11.6, 15.4] | 0.14 [0.09, 0.18] | 0.37 | 0.12 | 200/200 |
@@ -136,9 +164,26 @@ per-patch RANSAC, "means" = distinct GMM means.
 | centre guess | manifest_test | 2024 | – | chance | 18.3 [16.9, 19.4] | 0.04 [0.01, 0.07] | 0.15 | 0.01 | 200/200 |
 | centre guess | manifest_test | 2025 | – | chance | 18.3 [16.9, 19.4] | 0.04 [0.01, 0.07] | 0.15 | 0.01 | 200/200 |
 
-Sources: eval_aug_manifest.json, eval_aug_manifest_test.json, eval_erp_long_se2_manifest.json, eval_erp_long_se2_manifest_test.json, eval_erp_long_srt_manifest.json, eval_erp_long_srt_manifest_test.json, eval_erp_se2_manifest.json, eval_erp_se2_manifest_test.json, eval_erp_srt_manifest.json, eval_erp_srt_manifest_test.json, eval_hybrid_manifest.json, eval_hybrid_manifest_test.json, eval_hybrid_warm_manifest.json, eval_hybrid_warm_manifest_test.json, eval_ipm_manifest.json, eval_ipm_manifest_test.json, eval_ipm_se2_manifest.json, eval_ipm_se2_manifest_test.json, eval_ipm_sim_manifest.json, eval_ipm_sim_manifest_test.json, eval_multi_manifest.json, eval_multi_manifest_test.json, eval_pose_nll_manifest.json, eval_pose_nll_manifest_test.json, eval_seq_manifest.json, eval_seq_manifest_test.json, eval_seq_single_manifest.json, eval_seq_single_manifest_test.json, eval_years_manifest.json, eval_years_manifest_test.json.
+Sources: eval_aug_manifest.json, eval_aug_manifest_test.json, eval_erp_long_se2_manifest.json, eval_erp_long_se2_manifest_test.json, eval_erp_long_srt_manifest.json, eval_erp_long_srt_manifest_test.json, eval_erp_se2_manifest.json, eval_erp_se2_manifest_test.json, eval_erp_srt_manifest.json, eval_erp_srt_manifest_test.json, eval_hybrid_manifest.json, eval_hybrid_manifest_test.json, eval_hybrid_warm_manifest.json, eval_hybrid_warm_manifest_test.json, eval_ipm_manifest.json, eval_ipm_manifest_test.json, eval_ipm_mosaic025_manifest.json, eval_ipm_mosaic025_manifest_test.json, eval_ipm_mosaic0510_manifest.json, eval_ipm_mosaic0510_manifest_test.json, eval_ipm_mosaic_trained_manifest.json, eval_ipm_se2_manifest.json, eval_ipm_se2_manifest_test.json, eval_ipm_sim_manifest.json, eval_ipm_sim_manifest_test.json, eval_ipm_v2_manifest.json, eval_ipm_v2_manifest_test.json, eval_multi_manifest.json, eval_multi_manifest_test.json, eval_pose_nll_manifest.json, eval_pose_nll_manifest_test.json, eval_seq_manifest.json, eval_seq_manifest_test.json, eval_seq_single_manifest.json, eval_seq_single_manifest_test.json, eval_years_manifest.json, eval_years_manifest_test.json.
 
 ## Verdict (running notes; newest first)
+
+**2026-09-24, code review of the branch (`/code-review high`, 10 findings) and what was done.**
+Fixed: (1) `sim` solver reported a failed RANSAC (identity from `ransac_init`) as a match — now a miss
+like `srt`; the `ipm_sim` rows above were scored before the fix and may contain a few identity
+"matches" counted as >30 m, which only makes `sim` look worse, never better; (2) bootstrap intervals
+became NaN when a resample's median was inf (`np.quantile` interpolation) — now `method="nearest"`;
+(3) `eval_pose` ran the decoder twice per entry and built two extra ViT-L copies just to toggle
+`use_means` — now one encoder/decoder pass and two consensus runs on the same logits; dead code and a
+hard-coded `scale_factor=0.4` removed; (4) `--query` override crashed on any mode other than the
+checkpoint's — now loads the overlapping tensors and prints the mismatch; (5) the IPM mosaic decoded
+each neighbour panorama twice with different attitude-noise draws — now one decode, same R as the
+ERP stack; (6) `track_route` hard-coded the 224 px geometry (would crash on ERP checkpoints) and also
+ran a second model — now uses the query grid's scale factor, the placement path, one model;
+(7) CLAUDE.md "current task" pointed at task 01; (8) `ipm.height_m = 1.7` was undocumented (now a
+decisions entry with a plan to fit it from the similarity solver's scale). Not fixed: (9) `HybridQuery`
+CPU syncs per step — hybrid retired; (10) `argmax_m` is None for placed (ERP) queries by design and now
+says so in the code. No finding changes a reported number except (1), in the conservative direction.
 
 **2026-09-24, ERP-token query, 10 000 steps (`erp_long`).** Validation 12.3 m [10.6, 14.4], R@5 0.20;
 test 13.6 m [11.4, 15.0], R@5 0.15, >30 m 0.15 (2024: 11.8 m, R@5 0.21); SE(2) solver identical
