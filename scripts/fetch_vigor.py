@@ -28,15 +28,18 @@ def main():
     ap.add_argument("--folder", default=FOLDER)
     ap.add_argument("--retries", type=int, default=5)
     ap.add_argument("--no-extract", action="store_true")
+    ap.add_argument("--only-extract", action="store_true", help="skip all downloads; extract completed files")
     a = ap.parse_args()
-    import gdown
     out = Path(a.out)
     out.mkdir(parents=True, exist_ok=True)
-    listing = gdown.download_folder(url=a.folder, skip_download=True, quiet=True)
-    if not listing:
-        sys.exit("could not list the Drive folder (private, or Google blocked this address)")
-    print(f"{len(listing)} files in the folder", flush=True)
     failed = []
+    listing = []
+    if not a.only_extract:
+        import gdown
+        listing = gdown.download_folder(url=a.folder, skip_download=True, quiet=True)
+        if not listing:
+            sys.exit("could not list the Drive folder (private, or Google blocked this address)")
+        print(f"{len(listing)} files in the folder", flush=True)
     for f in listing:
         dest = out / f.path
         dest.parent.mkdir(parents=True, exist_ok=True)

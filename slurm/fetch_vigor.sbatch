@@ -17,6 +17,6 @@ export PYTHONPATH="src:.pydeps"
 export PYTHONUNBUFFERED=1
 SIF="${SIF:-/mnt/storage_6/project_data/pl0467-01/container_mackop/sat_roma_2026-09-02.sif}"
 echo "[fetch] host=$(hostname) date=$(date -Is) out=$VIGOR_DIR"
-singularity exec --bind /mnt/storage_5,/mnt/storage_6 "$SIF" python scripts/fetch_vigor.py --out "$VIGOR_DIR"
+singularity exec --bind /mnt/storage_5,/mnt/storage_6 "$SIF" python scripts/fetch_vigor.py --out "$VIGOR_DIR" ${FETCH_ARGS:-}
 echo "[fetch] exit=$? date=$(date -Is)"
 du -sh "$VIGOR_DIR"/* 2>/dev/null || true

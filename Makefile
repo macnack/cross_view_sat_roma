@@ -206,7 +206,7 @@ eagle-pull: ## on Eagle: sync the checkout to the pushed branch (hard reset; the
 
 eagle-fetch-vigor: ## on Eagle: download + extract VIGOR from the shared Drive folder (CPU job, resumable) into project_data/.../vigor
 	mkdir -p slurm/logs
-	sbatch slurm/fetch_vigor.sbatch
+	FETCH_ARGS="$(FETCH_ARGS)" sbatch --export=ALL slurm/fetch_vigor.sbatch    # FETCH_ARGS="--only-extract" to just extract
 
 eagle-submit: ## submit CMD="scripts/x.py ..." JOB=name as one H100 job (run on Eagle, repo root); SBATCH_ARGS="--dependency=afterok:<id>" to chain
 	mkdir -p slurm/logs   # SLURM does not create the --output directory itself
