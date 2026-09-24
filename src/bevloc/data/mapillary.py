@@ -13,7 +13,7 @@ from pyproj import Geod, Transformer
 from rasterio.windows import Window
 from torch.utils.data import Dataset
 
-from bevloc.bev.ipm_sphere import ipm_erp
+from bevloc.bev.ipm_sphere import ipm_erp, mosaic_ipm
 from bevloc.data.ortho import Oriented, gt_homography, sample_negative_reference, sample_reference
 
 CS92 = "EPSG:2180"
@@ -366,6 +366,19 @@ class MapillaryPairs(Dataset):
             # (kick-off H2 lower bound): the decoder sees it through the frozen encoder.
             ipm = self.cfg.ipm
             bev, bev_valid = ipm_erp(erp_full, R_q, ipm.height_m, g.n, g.cell_m, ipm.blind_radius_m)
+            if len(neigh) > 1:
+                # Multi-frame IPM mosaic: the neighbours' pictures warped by the proxy relative pose,
+                # nearest camera wins per cell (the query keeps everything it sees close by).
+                pics, vals, poses = [bev], [bev_valid], [(0.0, 0.0, 0.0)]
+                for j, se2 in zip(neigh, se2s):
+                    if j == i:
+                        continue
+                    _, R_j, _, _, full_j = self._load_erp_R_pose(self.frames[j], rng, full=True)
+                    pic_j, val_j = ipm_erp(full_j, R_j, ipm.height_m, g.n, g.cell_m, ipm.blind_radius_m)
+                    pics.append(pic_j)
+                    vals.append(val_j)
+                    poses.append(tuple(float(v) for v in se2.tolist()))
+                bev, bev_valid = mosaic_ipm(pics, vals, poses, g.n, g.cell_m)
             bev = self._colour_jitter(bev, rng)
             out["bev"] = torch.from_numpy(np.ascontiguousarray(bev)).permute(2, 0, 1).float().div(255.0)
             out["bev_valid"] = torch.from_numpy(bev_valid)

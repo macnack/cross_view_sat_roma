@@ -42,6 +42,52 @@ def cell_centres(n, cell_m):
     return x, y
 
 
+def bev_affine(se2, n, cell_m):
+    """2x3 affine taking SOURCE BEV pixels to QUERY BEV pixels for a source origin at
+    se2 = (yaw, tx, ty) in the query ego frame (rotate then translate; bevloc.data.mapillary convention).
+
+    Pixel (u, v) <-> ego (x, y): u = n/2 - y/cell - 0.5, v = n/2 - x/cell - 0.5 (x forward, y left)."""
+    yaw, tx, ty = float(se2[0]), float(se2[1]), float(se2[2])
+    c, s = np.cos(yaw), np.sin(yaw)
+    o = (n - 1) / 2.0
+    # source px -> source ego: x = (o - v) cell, y = (o - u) cell ; query ego: xq = c x - s y + tx, yq = s x + c y + ty
+    # query px: u' = o - yq/cell, v' = o - xq/cell
+    # u' = o - [s (o - v) + c (o - u) + ty/cell] = c u + s v + (o - s o - c o - ty/cell)
+    # v' = o - [c (o - v) - s (o - u) - tx/cell]... careful with signs:
+    # xq/cell = c (o - v) - s (o - u) + tx/cell  ->  v' = o - xq/cell = -s u + c v + (o - c o + s o - tx/cell)
+    A = np.array([[c, s, o - s * o - c * o - ty / cell_m],
+                  [-s, c, o - c * o + s * o - tx / cell_m]], np.float64)
+    return A
+
+
+def mosaic_ipm(pictures, valids, se2s, n, cell_m):
+    """Composite several IPM pictures into the frame of the first one (the query).
+
+    pictures[t] (n, n, 3) uint8 and valids[t] (n, n) bool are each in their own ego frame; se2s[t]
+    = (yaw, tx, ty) of source t's origin in the query frame (the query itself is (0, 0, 0)).
+    Each query cell takes the pixel of the valid source whose camera is nearest to it
+    (IPM is most accurate close to the camera). Returns (img, valid)."""
+    n = int(n)
+    ys, xs = np.mgrid[0:n, 0:n]
+    o = (n - 1) / 2.0
+    ego_x = (o - ys) * cell_m
+    ego_y = (o - xs) * cell_m
+    best = np.full((n, n), np.inf)
+    out = np.zeros((n, n, 3), np.uint8)
+    out_valid = np.zeros((n, n), bool)
+    for pic, val, se2 in zip(pictures, valids, se2s):
+        A = bev_affine(se2, n, cell_m)
+        w_img = cv2.warpAffine(pic, A.astype(np.float32), (n, n), flags=cv2.INTER_LINEAR, borderValue=0)
+        w_val = cv2.warpAffine(val.astype(np.uint8), A.astype(np.float32), (n, n),
+                               flags=cv2.INTER_NEAREST, borderValue=0).astype(bool)
+        rng = np.hypot(ego_x - float(se2[1]), ego_y - float(se2[2]))     # distance of each cell to this camera
+        take = w_val & (rng < best)
+        out[take] = w_img[take]
+        best[take] = rng[take]
+        out_valid |= take
+    return out, out_valid
+
+
 def ipm_erp(erp_rgb, R_w2c, height_m, n, cell_m, blind_radius_m=1.2):
     """(n, n, 3) uint8 ground picture and (n, n) bool validity (outside the blind disc)."""
     x, y = cell_centres(n, cell_m)

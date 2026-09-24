@@ -17,6 +17,33 @@ def test_ground_point_ahead_maps_to_erp_centre_column():
     assert abs(mv[0] - (0.5 - lat / np.pi) * H) < 1e-4     # below the horizon by atan(h/10)
 
 
+def test_mosaic_ipm_warps_a_source_frame_by_its_relative_pose_and_prefers_the_nearer_camera():
+    from bevloc.bev.ipm_sphere import mosaic_ipm
+    n, cell = 64, 0.5
+    q = np.zeros((n, n, 3), np.uint8)
+    s = np.zeros((n, n, 3), np.uint8)
+    # source frame sits 4 m BEHIND the query (its origin at query ego x = -4), same heading
+    se2_src = (0.0, -4.0, 0.0)
+    # a marker 10 m ahead of the SOURCE camera -> 6 m ahead of the query camera
+    rs, cs = n // 2 - int(round(10.0 / cell)) , n // 2
+    s[rs - 1:rs + 2, cs - 1:cs + 2] = (0, 255, 0)
+    valid = np.ones((n, n), bool)
+    rq = n // 2 - int(round(6.0 / cell))
+    q_valid = valid.copy()
+    q_valid[rq - 2:rq + 3, :] = False                 # the query cannot see that strip (say, its blind disc)
+    img, vmask = mosaic_ipm([q, s], [q_valid, valid], [(0.0, 0.0, 0.0), se2_src], n, cell)
+    assert img[rq, cs, 1] >= 200 and vmask[rq, cs]   # the source fills it, warped 4 m forward
+    # a cell 2 m ahead of the query is nearer to the query camera than to the source: the query's pixel wins
+    q2 = q.copy(); q2[:] = (255, 0, 0)
+    s2 = s.copy(); s2[:] = (0, 0, 255)
+    img2, _ = mosaic_ipm([q2, s2], [valid, valid], [(0.0, 0.0, 0.0), se2_src], n, cell)
+    r2 = n // 2 - int(round(2.0 / cell))
+    assert tuple(img2[r2, cs]) == (255, 0, 0)
+    # a cell 3 m BEHIND the query is nearer to the source camera (1 m) than to the query (3 m): source wins
+    r3 = n // 2 + int(round(3.0 / cell))
+    assert tuple(img2[r3, cs]) == (0, 0, 255)
+
+
 def test_ipm_marker_lands_in_the_forward_cell():
     h, W, H, n, cell = 1.7, 1280, 640, 64, 0.5
     r, c = n // 2 - int(10.0 / cell), n // 2            # row 0 is forward, col 0 is left
