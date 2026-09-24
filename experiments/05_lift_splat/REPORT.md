@@ -91,6 +91,14 @@ per-patch RANSAC, "means" = distinct GMM means.
 | ipm_cl | manifest_test | 2025 | srt | means | 4.4 [3.7, 5.5] | 0.54 [0.47, 0.60] | 0.73 | 0.06 | 200/200 |
 | ipm_cl | manifest_test | 2024 | srt | peak | 5.4 [3.9, 7.0] | 0.48 [0.41, 0.55] | 0.67 | 0.07 | 200/200 |
 | ipm_cl | manifest_test | 2024 | srt | means | 5.5 [4.0, 6.6] | 0.48 [0.41, 0.55] | 0.67 | 0.07 | 200/200 |
+| ipm_long_leafoff | manifest | 2022 | srt | peak | 5.4 [4.4, 7.0] | 0.47 [0.40, 0.55] | 0.69 | 0.08 | 200/200 |
+| ipm_long_leafoff | manifest | 2022 | srt | means | 5.1 [4.4, 6.5] | 0.48 [0.41, 0.56] | 0.69 | 0.08 | 200/200 |
+| ipm_long_leafoff | manifest | 2021 | srt | peak | 6.1 [5.0, 7.7] | 0.43 [0.37, 0.50] | 0.65 | 0.11 | 200/200 |
+| ipm_long_leafoff | manifest | 2021 | srt | means | 6.0 [5.0, 7.7] | 0.42 [0.35, 0.49] | 0.65 | 0.10 | 200/200 |
+| ipm_long_leafoff | manifest_test | 2022 | srt | peak | 4.7 [4.0, 5.6] | 0.55 [0.47, 0.61] | 0.69 | 0.07 | 200/200 |
+| ipm_long_leafoff | manifest_test | 2022 | srt | means | 4.7 [4.2, 5.7] | 0.52 [0.45, 0.58] | 0.70 | 0.07 | 200/200 |
+| ipm_long_leafoff | manifest_test | 2021 | srt | peak | 5.1 [4.0, 6.5] | 0.49 [0.42, 0.56] | 0.67 | 0.11 | 200/200 |
+| ipm_long_leafoff | manifest_test | 2021 | srt | means | 5.0 [4.2, 6.6] | 0.50 [0.43, 0.56] | 0.67 | 0.10 | 200/200 |
 | ipm_long | manifest | 2025 | srt | peak | 5.6 [4.3, 6.5] | 0.47 [0.41, 0.55] | 0.74 | 0.04 | 200/200 |
 | ipm_long | manifest | 2025 | srt | means | 5.4 [4.3, 6.5] | 0.48 [0.41, 0.55] | 0.77 | 0.04 | 200/200 |
 | ipm_long | manifest | 2024 | srt | peak | 5.3 [4.6, 6.5] | 0.47 [0.41, 0.55] | 0.72 | 0.06 | 200/200 |
@@ -203,14 +211,30 @@ per-patch RANSAC, "means" = distinct GMM means.
 | years | manifest_test | 2025 | srt | means | 15.9 [12.5, 18.8] | 0.13 [0.09, 0.18] | 0.36 | 0.18 | 200/200 |
 | years | manifest_test | 2024 | srt | peak | 14.5 [12.0, 17.4] | 0.15 [0.10, 0.20] | 0.39 | 0.16 | 200/200 |
 | years | manifest_test | 2024 | srt | means | 14.3 [11.6, 17.2] | 0.15 [0.10, 0.20] | 0.37 | 0.16 | 200/200 |
+| centre guess | manifest | 2021 | – | chance | 16.9 [15.7, 17.8] | 0.05 [0.03, 0.08] | 0.17 | 0.01 | 200/200 |
+| centre guess | manifest | 2022 | – | chance | 16.9 [15.7, 17.8] | 0.05 [0.03, 0.08] | 0.17 | 0.01 | 200/200 |
 | centre guess | manifest | 2024 | – | chance | 16.9 [15.7, 17.8] | 0.05 [0.03, 0.08] | 0.17 | 0.01 | 200/200 |
 | centre guess | manifest | 2025 | – | chance | 16.9 [15.7, 17.8] | 0.05 [0.03, 0.08] | 0.17 | 0.01 | 200/200 |
+| centre guess | manifest_test | 2021 | – | chance | 18.3 [16.9, 19.4] | 0.04 [0.01, 0.07] | 0.15 | 0.01 | 200/200 |
+| centre guess | manifest_test | 2022 | – | chance | 18.3 [16.9, 19.4] | 0.04 [0.01, 0.07] | 0.15 | 0.01 | 200/200 |
 | centre guess | manifest_test | 2024 | – | chance | 18.3 [16.9, 19.4] | 0.04 [0.01, 0.07] | 0.15 | 0.01 | 200/200 |
 | centre guess | manifest_test | 2025 | – | chance | 18.3 [16.9, 19.4] | 0.04 [0.01, 0.07] | 0.15 | 0.01 | 200/200 |
 
-Sources: eval_aug_manifest.json, eval_aug_manifest_test.json, eval_erp_long_se2_manifest.json, eval_erp_long_se2_manifest_test.json, eval_erp_long_srt_manifest.json, eval_erp_long_srt_manifest_test.json, eval_erp_se2_manifest.json, eval_erp_se2_manifest_test.json, eval_erp_srt_manifest.json, eval_erp_srt_manifest_test.json, eval_hybrid_manifest.json, eval_hybrid_manifest_test.json, eval_hybrid_warm_manifest.json, eval_hybrid_warm_manifest_test.json, eval_ipm_cl2_manifest.json, eval_ipm_cl2_manifest_test.json, eval_ipm_cl3_manifest.json, eval_ipm_cl3_manifest_test.json, eval_ipm_cl_manifest.json, eval_ipm_cl_manifest_test.json, eval_ipm_long_manifest.json, eval_ipm_long_manifest_test.json, eval_ipm_manifest.json, eval_ipm_manifest_test.json, eval_ipm_mosaic025_manifest.json, eval_ipm_mosaic025_manifest_test.json, eval_ipm_mosaic0510_manifest.json, eval_ipm_mosaic0510_manifest_test.json, eval_ipm_mosaic_trained_manifest.json, eval_ipm_mosaic_trained_manifest_test.json, eval_ipm_se2_manifest.json, eval_ipm_se2_manifest_test.json, eval_ipm_sim_manifest.json, eval_ipm_sim_manifest_test.json, eval_ipm_v2_manifest.json, eval_ipm_v2_manifest_test.json, eval_ipm_v2_mosaic_manifest.json, eval_ipm_v2_mosaic_manifest_test.json, eval_multi_manifest.json, eval_multi_manifest_test.json, eval_pose_nll_manifest.json, eval_pose_nll_manifest_test.json, eval_seq_manifest.json, eval_seq_manifest_test.json, eval_seq_single_manifest.json, eval_seq_single_manifest_test.json, eval_years_manifest.json, eval_years_manifest_test.json.
+Sources: eval_aug_manifest.json, eval_aug_manifest_test.json, eval_erp_long_se2_manifest.json, eval_erp_long_se2_manifest_test.json, eval_erp_long_srt_manifest.json, eval_erp_long_srt_manifest_test.json, eval_erp_se2_manifest.json, eval_erp_se2_manifest_test.json, eval_erp_srt_manifest.json, eval_erp_srt_manifest_test.json, eval_hybrid_manifest.json, eval_hybrid_manifest_test.json, eval_hybrid_warm_manifest.json, eval_hybrid_warm_manifest_test.json, eval_ipm_cl2_manifest.json, eval_ipm_cl2_manifest_test.json, eval_ipm_cl3_manifest.json, eval_ipm_cl3_manifest_test.json, eval_ipm_cl_manifest.json, eval_ipm_cl_manifest_test.json, eval_ipm_long_leafoff_manifest.json, eval_ipm_long_leafoff_manifest_test.json, eval_ipm_long_manifest.json, eval_ipm_long_manifest_test.json, eval_ipm_manifest.json, eval_ipm_manifest_test.json, eval_ipm_mosaic025_manifest.json, eval_ipm_mosaic025_manifest_test.json, eval_ipm_mosaic0510_manifest.json, eval_ipm_mosaic0510_manifest_test.json, eval_ipm_mosaic_trained_manifest.json, eval_ipm_mosaic_trained_manifest_test.json, eval_ipm_se2_manifest.json, eval_ipm_se2_manifest_test.json, eval_ipm_sim_manifest.json, eval_ipm_sim_manifest_test.json, eval_ipm_v2_manifest.json, eval_ipm_v2_manifest_test.json, eval_ipm_v2_mosaic_manifest.json, eval_ipm_v2_mosaic_manifest_test.json, eval_multi_manifest.json, eval_multi_manifest_test.json, eval_pose_nll_manifest.json, eval_pose_nll_manifest_test.json, eval_seq_manifest.json, eval_seq_manifest_test.json, eval_seq_single_manifest.json, eval_seq_single_manifest_test.json, eval_years_manifest.json, eval_years_manifest_test.json.
 
 ## Verdict (running notes; newest first)
+
+**2026-09-24, leaf-off reference years (2022, 2021) with the 10k IPM checkpoint.** `viz_years` shows
+Poznań 2019–2022 were flown leaf-off and 2014/2017/2023–2025 leaf-on. Test route against 2022: 4.7 m
+[4.0, 5.6] / R@5 0.55 / R@10 0.69 / >30 m 0.07 — the same as against leaf-on 2025 (4.3 / 0.55 /
+0.70 / 0.07); 2021: 5.1 m / 0.49; validation 2021: 6.1 m. A bare-tree map does not shrink the tail,
+so the misses on tree-lined road are not the canopy hiding the road in the reference; they are the
+road picture itself being ambiguous along the road. This closes the "leaf-off imagery" lever without a
+retraining run. Remaining levers, in the order I would take them: the filter's tail (likelihood
+flattening, real odometry for the mosaic), an OSM road/building channel on the reference side (adds
+structure that neither picture nor orthophoto texture gives on straight roads), and a trained
+query-side head if the ERP-token route is retried. Both manifests now carry 2022/2021 entries
+(identical crops), so any checkpoint can be scored cross-season with `--years`.
 
 **2026-09-24, camera-only contact-line picture (`ipm_cl*`, kick-off H2 with a semantic map instead of
 LiDAR): does not beat plain IPM.** Test route (2025, peak): feet painted on the plain picture

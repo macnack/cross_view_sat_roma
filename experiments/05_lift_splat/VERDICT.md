@@ -1,5 +1,17 @@
 ## Verdict (running notes; newest first)
 
+**2026-09-24, leaf-off reference years (2022, 2021) with the 10k IPM checkpoint.** `viz_years` shows
+Poznań 2019–2022 were flown leaf-off and 2014/2017/2023–2025 leaf-on. Test route against 2022: 4.7 m
+[4.0, 5.6] / R@5 0.55 / R@10 0.69 / >30 m 0.07 — the same as against leaf-on 2025 (4.3 / 0.55 /
+0.70 / 0.07); 2021: 5.1 m / 0.49; validation 2021: 6.1 m. A bare-tree map does not shrink the tail,
+so the misses on tree-lined road are not the canopy hiding the road in the reference; they are the
+road picture itself being ambiguous along the road. This closes the "leaf-off imagery" lever without a
+retraining run. Remaining levers, in the order I would take them: the filter's tail (likelihood
+flattening, real odometry for the mosaic), an OSM road/building channel on the reference side (adds
+structure that neither picture nor orthophoto texture gives on straight roads), and a trained
+query-side head if the ERP-token route is retried. Both manifests now carry 2022/2021 entries
+(identical crops), so any checkpoint can be scored cross-season with `--years`.
+
 **2026-09-24, camera-only contact-line picture (`ipm_cl*`, kick-off H2 with a semantic map instead of
 LiDAR): does not beat plain IPM.** Test route (2025, peak): feet painted on the plain picture
 (`ipm_cl`) 4.3 m / R@5 0.55 — identical to `ipm_long`, because flat IPM already puts a wall's bottom
