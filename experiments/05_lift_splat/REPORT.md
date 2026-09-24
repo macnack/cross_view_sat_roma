@@ -67,6 +67,14 @@ per-patch RANSAC, "means" = distinct GMM means.
 | hybrid_warm | manifest_test | 2025 | srt | means | 15.1 [12.8, 17.9] | 0.15 [0.10, 0.20] | 0.36 | 0.13 | 198/200 |
 | hybrid_warm | manifest_test | 2024 | srt | peak | 16.4 [13.7, 20.4] | 0.14 [0.10, 0.20] | 0.34 | 0.17 | 199/200 |
 | hybrid_warm | manifest_test | 2024 | srt | means | 16.0 [13.4, 19.4] | 0.17 [0.11, 0.21] | 0.33 | 0.17 | 199/200 |
+| ipm_long | manifest | 2025 | srt | peak | 5.6 [4.3, 6.5] | 0.47 [0.41, 0.55] | 0.74 | 0.04 | 200/200 |
+| ipm_long | manifest | 2025 | srt | means | 5.4 [4.3, 6.5] | 0.48 [0.41, 0.55] | 0.77 | 0.04 | 200/200 |
+| ipm_long | manifest | 2024 | srt | peak | 5.3 [4.6, 6.5] | 0.47 [0.41, 0.55] | 0.72 | 0.06 | 200/200 |
+| ipm_long | manifest | 2024 | srt | means | 5.3 [4.3, 6.3] | 0.48 [0.41, 0.55] | 0.74 | 0.04 | 200/200 |
+| ipm_long | manifest_test | 2025 | srt | peak | 4.3 [3.5, 5.2] | 0.55 [0.48, 0.62] | 0.70 | 0.07 | 200/200 |
+| ipm_long | manifest_test | 2025 | srt | means | 4.0 [3.4, 5.1] | 0.56 [0.49, 0.64] | 0.71 | 0.07 | 200/200 |
+| ipm_long | manifest_test | 2024 | srt | peak | 5.4 [4.3, 7.4] | 0.48 [0.41, 0.55] | 0.65 | 0.08 | 200/200 |
+| ipm_long | manifest_test | 2024 | srt | means | 5.2 [4.0, 7.1] | 0.48 [0.41, 0.55] | 0.65 | 0.09 | 200/200 |
 | ipm | manifest | 2025 | srt | peak | 5.5 [4.3, 6.9] | 0.46 [0.39, 0.53] | 0.72 | 0.06 | 200/200 |
 | ipm | manifest | 2025 | srt | means | 5.9 [4.6, 7.0] | 0.45 [0.38, 0.52] | 0.71 | 0.04 | 200/200 |
 | ipm | manifest | 2024 | srt | peak | 5.9 [4.8, 6.7] | 0.45 [0.39, 0.52] | 0.71 | 0.05 | 199/200 |
@@ -95,6 +103,10 @@ per-patch RANSAC, "means" = distinct GMM means.
 | ipm_mosaic_trained | manifest | 2025 | srt | means | 5.4 [4.6, 6.6] | 0.47 [0.41, 0.54] | 0.77 | 0.03 | 200/200 |
 | ipm_mosaic_trained | manifest | 2024 | srt | peak | 5.6 [4.4, 6.7] | 0.46 [0.39, 0.53] | 0.74 | 0.04 | 200/200 |
 | ipm_mosaic_trained | manifest | 2024 | srt | means | 5.7 [4.3, 6.9] | 0.47 [0.40, 0.54] | 0.73 | 0.04 | 200/200 |
+| ipm_mosaic_trained | manifest_test | 2025 | srt | peak | 4.8 [4.3, 5.6] | 0.52 [0.46, 0.59] | 0.71 | 0.06 | 200/200 |
+| ipm_mosaic_trained | manifest_test | 2025 | srt | means | 4.9 [4.4, 5.6] | 0.52 [0.46, 0.59] | 0.72 | 0.06 | 200/200 |
+| ipm_mosaic_trained | manifest_test | 2024 | srt | peak | 5.3 [4.0, 6.4] | 0.49 [0.42, 0.56] | 0.67 | 0.07 | 200/200 |
+| ipm_mosaic_trained | manifest_test | 2024 | srt | means | 5.1 [3.8, 6.6] | 0.49 [0.42, 0.56] | 0.66 | 0.08 | 200/200 |
 | ipm_se2 | manifest | 2025 | se2 | peak | 5.7 [4.7, 6.9] | 0.44 [0.37, 0.51] | 0.72 | 0.05 | 200/200 |
 | ipm_se2 | manifest | 2025 | se2 | means | 5.5 [4.6, 7.0] | 0.45 [0.39, 0.52] | 0.73 | 0.04 | 200/200 |
 | ipm_se2 | manifest | 2024 | se2 | peak | 6.0 [4.8, 6.7] | 0.45 [0.39, 0.52] | 0.73 | 0.06 | 199/200 |
@@ -119,6 +131,14 @@ per-patch RANSAC, "means" = distinct GMM means.
 | ipm_v2 | manifest_test | 2025 | srt | means | 4.6 [4.0, 6.3] | 0.52 [0.44, 0.58] | 0.67 | 0.08 | 200/200 |
 | ipm_v2 | manifest_test | 2024 | srt | peak | 6.0 [5.0, 7.3] | 0.43 [0.36, 0.50] | 0.63 | 0.12 | 200/200 |
 | ipm_v2 | manifest_test | 2024 | srt | means | 6.4 [4.8, 7.9] | 0.46 [0.39, 0.52] | 0.62 | 0.12 | 200/200 |
+| ipm_v2_mosaic | manifest | 2025 | srt | peak | 4.8 [4.1, 5.9] | 0.52 [0.45, 0.58] | 0.77 | 0.07 | 200/200 |
+| ipm_v2_mosaic | manifest | 2025 | srt | means | 4.8 [4.0, 5.9] | 0.53 [0.46, 0.59] | 0.75 | 0.07 | 200/200 |
+| ipm_v2_mosaic | manifest | 2024 | srt | peak | 5.1 [4.5, 6.5] | 0.48 [0.41, 0.55] | 0.73 | 0.08 | 199/200 |
+| ipm_v2_mosaic | manifest | 2024 | srt | means | 5.1 [4.4, 6.5] | 0.49 [0.42, 0.56] | 0.73 | 0.07 | 199/200 |
+| ipm_v2_mosaic | manifest_test | 2025 | srt | peak | 5.6 [4.8, 6.2] | 0.45 [0.38, 0.52] | 0.70 | 0.09 | 200/200 |
+| ipm_v2_mosaic | manifest_test | 2025 | srt | means | 5.4 [4.8, 6.0] | 0.46 [0.39, 0.53] | 0.71 | 0.07 | 200/200 |
+| ipm_v2_mosaic | manifest_test | 2024 | srt | peak | 5.2 [4.2, 5.9] | 0.48 [0.41, 0.55] | 0.69 | 0.04 | 200/200 |
+| ipm_v2_mosaic | manifest_test | 2024 | srt | means | 5.3 [4.3, 6.4] | 0.47 [0.41, 0.55] | 0.70 | 0.07 | 200/200 |
 | multi | manifest | 2025 | srt | peak | 11.9 [10.7, 14.6] | 0.15 [0.10, 0.20] | 0.40 | 0.12 | 200/200 |
 | multi | manifest | 2025 | srt | means | 11.5 [10.2, 13.4] | 0.15 [0.10, 0.20] | 0.41 | 0.12 | 200/200 |
 | multi | manifest | 2024 | srt | peak | 13.5 [11.6, 15.4] | 0.14 [0.09, 0.18] | 0.37 | 0.12 | 200/200 |
@@ -164,7 +184,7 @@ per-patch RANSAC, "means" = distinct GMM means.
 | centre guess | manifest_test | 2024 | – | chance | 18.3 [16.9, 19.4] | 0.04 [0.01, 0.07] | 0.15 | 0.01 | 200/200 |
 | centre guess | manifest_test | 2025 | – | chance | 18.3 [16.9, 19.4] | 0.04 [0.01, 0.07] | 0.15 | 0.01 | 200/200 |
 
-Sources: eval_aug_manifest.json, eval_aug_manifest_test.json, eval_erp_long_se2_manifest.json, eval_erp_long_se2_manifest_test.json, eval_erp_long_srt_manifest.json, eval_erp_long_srt_manifest_test.json, eval_erp_se2_manifest.json, eval_erp_se2_manifest_test.json, eval_erp_srt_manifest.json, eval_erp_srt_manifest_test.json, eval_hybrid_manifest.json, eval_hybrid_manifest_test.json, eval_hybrid_warm_manifest.json, eval_hybrid_warm_manifest_test.json, eval_ipm_manifest.json, eval_ipm_manifest_test.json, eval_ipm_mosaic025_manifest.json, eval_ipm_mosaic025_manifest_test.json, eval_ipm_mosaic0510_manifest.json, eval_ipm_mosaic0510_manifest_test.json, eval_ipm_mosaic_trained_manifest.json, eval_ipm_se2_manifest.json, eval_ipm_se2_manifest_test.json, eval_ipm_sim_manifest.json, eval_ipm_sim_manifest_test.json, eval_ipm_v2_manifest.json, eval_ipm_v2_manifest_test.json, eval_multi_manifest.json, eval_multi_manifest_test.json, eval_pose_nll_manifest.json, eval_pose_nll_manifest_test.json, eval_seq_manifest.json, eval_seq_manifest_test.json, eval_seq_single_manifest.json, eval_seq_single_manifest_test.json, eval_years_manifest.json, eval_years_manifest_test.json.
+Sources: eval_aug_manifest.json, eval_aug_manifest_test.json, eval_erp_long_se2_manifest.json, eval_erp_long_se2_manifest_test.json, eval_erp_long_srt_manifest.json, eval_erp_long_srt_manifest_test.json, eval_erp_se2_manifest.json, eval_erp_se2_manifest_test.json, eval_erp_srt_manifest.json, eval_erp_srt_manifest_test.json, eval_hybrid_manifest.json, eval_hybrid_manifest_test.json, eval_hybrid_warm_manifest.json, eval_hybrid_warm_manifest_test.json, eval_ipm_long_manifest.json, eval_ipm_long_manifest_test.json, eval_ipm_manifest.json, eval_ipm_manifest_test.json, eval_ipm_mosaic025_manifest.json, eval_ipm_mosaic025_manifest_test.json, eval_ipm_mosaic0510_manifest.json, eval_ipm_mosaic0510_manifest_test.json, eval_ipm_mosaic_trained_manifest.json, eval_ipm_mosaic_trained_manifest_test.json, eval_ipm_se2_manifest.json, eval_ipm_se2_manifest_test.json, eval_ipm_sim_manifest.json, eval_ipm_sim_manifest_test.json, eval_ipm_v2_manifest.json, eval_ipm_v2_manifest_test.json, eval_ipm_v2_mosaic_manifest.json, eval_ipm_v2_mosaic_manifest_test.json, eval_multi_manifest.json, eval_multi_manifest_test.json, eval_pose_nll_manifest.json, eval_pose_nll_manifest_test.json, eval_seq_manifest.json, eval_seq_manifest_test.json, eval_seq_single_manifest.json, eval_seq_single_manifest_test.json, eval_years_manifest.json, eval_years_manifest_test.json.
 
 ## Verdict (running notes; newest first)
 
