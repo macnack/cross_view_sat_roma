@@ -142,13 +142,18 @@ eagle-sync: ## push Fixtor panoramas, manifests and best checkpoints to Eagle sc
 mapillary-seq: ## download one Mapillary sequence by id: SEQ=<sequence id> (env MAPILLARY_TOKEN)
 	MAPILLARY_TOKEN="$$MAPILLARY_TOKEN" $(RUN) -m mapillary_dl --sequence $(SEQ) --out data/mapillary
 
-manifest-val:  ## 200-frame validation manifest on IcRzj (2025+2024)
+MANIFEST_YEARS ?= 2025,2024,2022,2021
+
+manifest-val:  ## 200-frame validation manifest on IcRzj (MANIFEST_YEARS; leaf-on 2025/2024, leaf-off 2022/2021)
 	$(RUN) scripts/build_baseline_manifest.py --config $(CONFIG) --seq Fixtor/IcRzj0wTLZX874qitxVsQa \
-		--out experiments/06_fg2_bevsplat/manifest.json --n 200
+		--out experiments/06_fg2_bevsplat/manifest.json --n 200 --years $(MANIFEST_YEARS)
 
 manifest-test: ## 200-frame TEST manifest on the reserved route irAsBUK (make mapillary-seq SEQ=irAsBUKtGCfhPHuMbmOcLd first)
 	$(RUN) scripts/build_baseline_manifest.py --config $(CONFIG) --seq Fixtor/irAsBUKtGCfhPHuMbmOcLd \
-		--out experiments/06_fg2_bevsplat/manifest_test.json --n 200
+		--out experiments/06_fg2_bevsplat/manifest_test.json --n 200 --years $(MANIFEST_YEARS)
+
+years-viz: ## the same test location in every Poznań orthophoto year (INDEX= manifest_test entry) -> experiments/08_semantic
+	$(RUN) scripts/viz_years.py --config $(CONFIG) --index $(if $(INDEX),$(INDEX),60)
 
 eval-pose: ## score CKPT on MANIFEST with bootstrap CIs and a centre-guess chance row; TAG names the json
 	$(RUN) scripts/eval_pose.py --config $(CONFIG) --ckpt $(CKPT) --manifest $(MANIFEST) --tag $(TAG) $(EVAL_ARGS)
