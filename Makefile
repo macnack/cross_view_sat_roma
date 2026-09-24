@@ -187,6 +187,9 @@ LIMIT ?= 0
 vigor-eval: ## our method on VIGOR (known orientation): CKPT=, SPLIT=crossarea|samearea, TAG=, LIMIT=, VIGOR_ARGS=
 	$(RUN) scripts/eval_vigor.py --config $(CONFIG) --ckpt $(CKPT) --split $(SPLIT) --tag $(TAG) --limit $(LIMIT) $(VIGOR_ARGS)
 
+vigor-check-labels: ## verify the (dy, dx) label convention from the lat/lon in the file names (needs the splits)
+	$(RUN) scripts/vigor_check_labels.py $(VIGOR_ARGS)
+
 vigor-calibrate: ## settle row_sign and camera height on 150 VIGOR samples (CKPT=)
 	$(RUN) scripts/eval_vigor.py --config $(CONFIG) --ckpt $(CKPT) --split $(SPLIT) --tag calib --calibrate $(VIGOR_ARGS)
 
