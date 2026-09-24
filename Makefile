@@ -172,6 +172,9 @@ SEQS ?= Fixtor/iHfmEq03Tc6752Y4Ke8wlC Fixtor/NWVA14Y83pMRsijaGFkmQS Fixtor/gXabF
 semantic-precompute: ## SegFormer class-id maps for every frame of SEQS -> data/mapillary/<seq>/semantic/<id>.png (GPU)
 	$(RUN) scripts/semantic_precompute.py --config $(CONFIG) --seqs $(SEQS)
 
+semantic-sheet: ## panorama + class overlay + the masked picture, from precomputed maps (SEQ=, INDEX="100 400", CONFIG=)
+	$(RUN) scripts/viz_semantic_sheet.py --config $(CONFIG) --seq $(if $(SEQ),$(SEQ),Fixtor/irAsBUKtGCfhPHuMbmOcLd) --index $(if $(INDEX),$(INDEX),100 400 700 1000)
+
 semantic-smoke: ## SegFormer classes + camera-only contact line on one Mapillary panorama (SEQ=, INDEX=)
 	$(RUN) scripts/semantic_erp.py --config $(CONFIG) --seq $(if $(SEQ),$(SEQ),Fixtor/IcRzj0wTLZX874qitxVsQa) --index $(if $(INDEX),$(INDEX),400)
 
