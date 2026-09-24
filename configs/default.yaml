@@ -109,8 +109,9 @@ lift:                              # camera-only spherical Lift-Splat (scripts/t
 
 vigor:                            # src/bevloc/data/vigor.py, scripts/eval_vigor.py (known-orientation protocol)
   root: null                      # default: $VIGOR_DIR
-  row_sign: 1.0                   # label dy is DOWN-positive in tile pixels (+1) or up (-1); calibrated with `make vigor-calibrate`
-  height_m: 2.0                   # panorama camera height for the IPM picture (Google Street View car); calibrated too
+  row_sign: 1.0                   # label dy > 0 = panorama south of the tile centre = down in the image (verified, `make vigor-check-labels`)
+  col_sign: -1.0                  # label dx > 0 = panorama WEST of the tile centre = LEFT in the image (verified)
+  height_m: 2.0                   # panorama camera height for the IPM picture (Google Street View car); `make vigor-calibrate` settles it
 
 erp_query:                        # ERP-token query, placement after matching (task 03, Task 6)
   max_range_m: 40.0               # ground tokens beyond this are not placed (IPM too coarse there)

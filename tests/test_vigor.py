@@ -51,7 +51,8 @@ def test_sample_geometry_matches_the_label(tmp_path):
     scale = CITY_RES["Chicago"] * 640.0 / 640.0 / cfg.grid.cell_m         # tile px -> canvas px
     c = (S - 1) / 2.0
     # camera on the canvas: tile centre + (dx, dy) * scale
-    cam = np.array([c - 24.0 * scale, c + 40.0 * scale, 1.0])
+    # dx = -24 means the panorama is 24 px EAST of the tile centre (dx > 0 = west); dy = +40 = 40 px south
+    cam = np.array([c + 24.0 * scale, c + 40.0 * scale, 1.0])
     o = (n - 1) / 2.0
     p = s["H"].numpy() @ np.array([o, o, 1.0])
     assert np.allclose(p[:2], cam[:2], atol=1e-4)
@@ -61,7 +62,8 @@ def test_sample_geometry_matches_the_label(tmp_path):
     # the tile is smaller than the canvas: its border is black (no data)
     assert ref[:, 0, 0].sum() == 0
     assert s["erp"].shape[0] == 1 and s["R_w2c"].shape == (1, 3, 3)
-    assert abs(float(s["en"][0]) + 24.0 * CITY_RES["Chicago"]) < 1e-6      # east offset in metres
+    assert abs(float(s["en"][0]) - 24.0 * CITY_RES["Chicago"]) < 1e-6      # 24 px east, in metres
+    assert abs(float(s["en"][1]) + 40.0 * CITY_RES["Chicago"]) < 1e-6      # 40 px south = -north
 
 
 def test_row_sign_flips_the_vertical_offset(tmp_path):
@@ -69,6 +71,7 @@ def test_row_sign_flips_the_vertical_offset(tmp_path):
     cfg = _cfg("ipm")
     a = VigorPairs(root, cfg, cities=["Chicago"], row_sign=1.0)[0]["H"].numpy()
     b = VigorPairs(root, cfg, cities=["Chicago"], row_sign=-1.0)[0]["H"].numpy()
+    assert VigorPairs(root, cfg, cities=["Chicago"]).col_sign == -1.0          # the verified default
     o = (cfg.grid.n - 1) / 2.0
     S = cfg.grid.n * cfg.reference.scale
     c = (S - 1) / 2.0

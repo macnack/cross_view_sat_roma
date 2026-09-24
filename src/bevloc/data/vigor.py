@@ -5,8 +5,8 @@ Layout under ``root`` (scripts/fetch_vigor.py):
   <root>/<City>/satellite/<lat,lon,.png>  640x640, north-up, ~0.10-0.12 m/px (CITY_RES, at 640 px)
   <root>/splits/**/<City>/{satellite_list.txt, same_area_balanced_{train,test}.txt, pano_label_balanced.txt}
 Label line: ``pano sat1 dy1 dx1 sat2 dy2 dx2 sat3 dy3 dx3 sat4 dy4 dx4``. sat1 is the positive tile
-(the panorama lies in its central quarter); (dy, dx) is the panorama's offset from that tile's centre in
-tile pixels. ``__corrected`` label files (SliceMatch) are preferred when present.
+(the panorama lies in its central quarter); (dy, dx) are tile pixels with dy > 0 = panorama south of the
+tile centre and dx > 0 = panorama WEST of it (verified against the lat/lon in the file names). ``__corrected`` label files (SliceMatch) are preferred when present.
 
 Protocol used here = the standard "known orientation" one (FG², CCVPE, Loc²): the query is the panorama
 of one location, the reference is its positive tile, the pose to recover is the panorama's position in
@@ -87,11 +87,15 @@ class VigorPairs(Dataset):
     bev (3, n, n) and bev_valid (n, n)."""
 
     def __init__(self, root, cfg, cities=None, split="crossarea", train=False, limit=0, stride=1,
-                 erp_size=(896, 448), row_sign=None, height_m=None, seed=0):
+                 erp_size=(896, 448), row_sign=None, col_sign=None, height_m=None, seed=0):
         self.root = Path(root)
         self.cfg = cfg
         V = getattr(cfg, "vigor", None)
+        # Verified from the file names' lat/lon (scripts/vigor_check_labels.py, median residual 0.05 m over
+        # 3000 labels per city): dy > 0 = panorama SOUTH of the tile centre (row down: sign +1);
+        # dx > 0 = panorama WEST of the tile centre (column right: sign -1).
         self.row_sign = float(row_sign if row_sign is not None else getattr(V, "row_sign", 1.0))
+        self.col_sign = float(col_sign if col_sign is not None else getattr(V, "col_sign", -1.0))
         self.height = float(height_m if height_m is not None else getattr(V, "height_m", 2.0))
         self.erp_w, self.erp_h = erp_size
         self.labels = read_labels(self.root, cities or split_cities(split, train), split, train)
@@ -138,7 +142,7 @@ class VigorPairs(Dataset):
             raise RuntimeError(f"unreadable panorama {lab['city']}/{lab['pano']}")
         pano = cv2.cvtColor(pano, cv2.COLOR_BGR2RGB)
         # camera position on the canvas: tile centre + offset, scaled tile px -> canvas px
-        cx = c + lab["dx"] * s
+        cx = c + self.col_sign * lab["dx"] * s
         cy = c + self.row_sign * lab["dy"] * s
         o = (n - 1) / 2.0                                        # the camera is the BEV centre
         H = np.array([[1.0, 0.0, cx - o], [0.0, 1.0, cy - o], [0.0, 0.0, 1.0]], np.float32)
@@ -151,7 +155,7 @@ class VigorPairs(Dataset):
             R_w2c=torch.from_numpy(R_NORTH.copy())[None], se2=torch.zeros(1, 3),
             ref=torch.from_numpy(canvas).permute(2, 0, 1).float().div(255.0),
             H=torch.from_numpy(H),
-            en=torch.tensor([lab["dx"] * res, -self.row_sign * lab["dy"] * res], dtype=torch.float64),
+            en=torch.tensor([self.col_sign * lab["dx"] * res, -self.row_sign * lab["dy"] * res], dtype=torch.float64),
         )
         if self._query_mode() == "ipm":
             ipm = self.cfg.ipm
