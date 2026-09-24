@@ -67,6 +67,14 @@ per-patch RANSAC, "means" = distinct GMM means.
 | hybrid_warm | manifest_test | 2025 | srt | means | 15.1 [12.8, 17.9] | 0.15 [0.10, 0.20] | 0.36 | 0.13 | 198/200 |
 | hybrid_warm | manifest_test | 2024 | srt | peak | 16.4 [13.7, 20.4] | 0.14 [0.10, 0.20] | 0.34 | 0.17 | 199/200 |
 | hybrid_warm | manifest_test | 2024 | srt | means | 16.0 [13.4, 19.4] | 0.17 [0.11, 0.21] | 0.33 | 0.17 | 199/200 |
+| ipm_cl | manifest | 2025 | srt | peak | 4.9 [4.2, 6.4] | 0.51 [0.45, 0.58] | 0.74 | 0.04 | 200/200 |
+| ipm_cl | manifest | 2025 | srt | means | 5.2 [4.3, 6.4] | 0.49 [0.42, 0.56] | 0.73 | 0.04 | 200/200 |
+| ipm_cl | manifest | 2024 | srt | peak | 5.1 [4.5, 6.4] | 0.48 [0.42, 0.56] | 0.74 | 0.04 | 200/200 |
+| ipm_cl | manifest | 2024 | srt | means | 5.4 [4.5, 6.2] | 0.47 [0.41, 0.55] | 0.73 | 0.04 | 200/200 |
+| ipm_cl | manifest_test | 2025 | srt | peak | 4.3 [3.7, 5.4] | 0.55 [0.47, 0.61] | 0.71 | 0.06 | 200/200 |
+| ipm_cl | manifest_test | 2025 | srt | means | 4.4 [3.7, 5.5] | 0.54 [0.47, 0.60] | 0.73 | 0.06 | 200/200 |
+| ipm_cl | manifest_test | 2024 | srt | peak | 5.4 [3.9, 7.0] | 0.48 [0.41, 0.55] | 0.67 | 0.07 | 200/200 |
+| ipm_cl | manifest_test | 2024 | srt | means | 5.5 [4.0, 6.6] | 0.48 [0.41, 0.55] | 0.67 | 0.07 | 200/200 |
 | ipm_long | manifest | 2025 | srt | peak | 5.6 [4.3, 6.5] | 0.47 [0.41, 0.55] | 0.74 | 0.04 | 200/200 |
 | ipm_long | manifest | 2025 | srt | means | 5.4 [4.3, 6.5] | 0.48 [0.41, 0.55] | 0.77 | 0.04 | 200/200 |
 | ipm_long | manifest | 2024 | srt | peak | 5.3 [4.6, 6.5] | 0.47 [0.41, 0.55] | 0.72 | 0.06 | 200/200 |
@@ -184,7 +192,7 @@ per-patch RANSAC, "means" = distinct GMM means.
 | centre guess | manifest_test | 2024 | – | chance | 18.3 [16.9, 19.4] | 0.04 [0.01, 0.07] | 0.15 | 0.01 | 200/200 |
 | centre guess | manifest_test | 2025 | – | chance | 18.3 [16.9, 19.4] | 0.04 [0.01, 0.07] | 0.15 | 0.01 | 200/200 |
 
-Sources: eval_aug_manifest.json, eval_aug_manifest_test.json, eval_erp_long_se2_manifest.json, eval_erp_long_se2_manifest_test.json, eval_erp_long_srt_manifest.json, eval_erp_long_srt_manifest_test.json, eval_erp_se2_manifest.json, eval_erp_se2_manifest_test.json, eval_erp_srt_manifest.json, eval_erp_srt_manifest_test.json, eval_hybrid_manifest.json, eval_hybrid_manifest_test.json, eval_hybrid_warm_manifest.json, eval_hybrid_warm_manifest_test.json, eval_ipm_long_manifest.json, eval_ipm_long_manifest_test.json, eval_ipm_manifest.json, eval_ipm_manifest_test.json, eval_ipm_mosaic025_manifest.json, eval_ipm_mosaic025_manifest_test.json, eval_ipm_mosaic0510_manifest.json, eval_ipm_mosaic0510_manifest_test.json, eval_ipm_mosaic_trained_manifest.json, eval_ipm_mosaic_trained_manifest_test.json, eval_ipm_se2_manifest.json, eval_ipm_se2_manifest_test.json, eval_ipm_sim_manifest.json, eval_ipm_sim_manifest_test.json, eval_ipm_v2_manifest.json, eval_ipm_v2_manifest_test.json, eval_ipm_v2_mosaic_manifest.json, eval_ipm_v2_mosaic_manifest_test.json, eval_multi_manifest.json, eval_multi_manifest_test.json, eval_pose_nll_manifest.json, eval_pose_nll_manifest_test.json, eval_seq_manifest.json, eval_seq_manifest_test.json, eval_seq_single_manifest.json, eval_seq_single_manifest_test.json, eval_years_manifest.json, eval_years_manifest_test.json.
+Sources: eval_aug_manifest.json, eval_aug_manifest_test.json, eval_erp_long_se2_manifest.json, eval_erp_long_se2_manifest_test.json, eval_erp_long_srt_manifest.json, eval_erp_long_srt_manifest_test.json, eval_erp_se2_manifest.json, eval_erp_se2_manifest_test.json, eval_erp_srt_manifest.json, eval_erp_srt_manifest_test.json, eval_hybrid_manifest.json, eval_hybrid_manifest_test.json, eval_hybrid_warm_manifest.json, eval_hybrid_warm_manifest_test.json, eval_ipm_cl_manifest.json, eval_ipm_cl_manifest_test.json, eval_ipm_long_manifest.json, eval_ipm_long_manifest_test.json, eval_ipm_manifest.json, eval_ipm_manifest_test.json, eval_ipm_mosaic025_manifest.json, eval_ipm_mosaic025_manifest_test.json, eval_ipm_mosaic0510_manifest.json, eval_ipm_mosaic0510_manifest_test.json, eval_ipm_mosaic_trained_manifest.json, eval_ipm_mosaic_trained_manifest_test.json, eval_ipm_se2_manifest.json, eval_ipm_se2_manifest_test.json, eval_ipm_sim_manifest.json, eval_ipm_sim_manifest_test.json, eval_ipm_v2_manifest.json, eval_ipm_v2_manifest_test.json, eval_ipm_v2_mosaic_manifest.json, eval_ipm_v2_mosaic_manifest_test.json, eval_multi_manifest.json, eval_multi_manifest_test.json, eval_pose_nll_manifest.json, eval_pose_nll_manifest_test.json, eval_seq_manifest.json, eval_seq_manifest_test.json, eval_seq_single_manifest.json, eval_seq_single_manifest_test.json, eval_years_manifest.json, eval_years_manifest_test.json.
 
 ## Verdict (running notes; newest first)
 
