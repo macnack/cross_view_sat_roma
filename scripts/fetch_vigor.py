@@ -81,7 +81,9 @@ def main():
         marker.write_text("ok\n")
     z = out / "VIGOR_files" / "splits.zip"
     if z.exists() and not (out / "splits").exists():
-        subprocess.run(["unzip", "-q", "-o", str(z), "-d", str(out / "splits")], check=True)
+        import zipfile                                    # the container has no `unzip`
+        with zipfile.ZipFile(z) as zf:
+            zf.extractall(out / "splits")
     print("done" + (f" with {len(failed)} file(s) still missing" if failed else ""), flush=True)
     if failed:
         sys.exit(2)
