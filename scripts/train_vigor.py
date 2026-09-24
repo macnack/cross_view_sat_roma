@@ -1,6 +1,7 @@
 """Fine-tune a query checkpoint (decoder + any query parameters) on VIGOR, known orientation.
 
   make vigor-train CKPT=checkpoints/05_lift_splat_fixtor_ipm_long_best.pt SPLIT=samearea CITIES="Chicago" STEPS=3000 TAG=chicago
+  make vigor-train CKPT= QUERY=ipm SPLIT=samearea CITIES="Chicago" STEPS=30000 TAG=chicago_noposnan   # no warm start
 
 Same recipe as train_lift_splat.py (coarse CE over reference cells + certainty + neighbour hinge + pose NLL),
 on VigorPairs samples. The training set is the split's train labels for the given cities; validation is a
@@ -31,7 +32,9 @@ from bevloc.model.query import build_query, load_query_state  # noqa: E402
 
 def main():
     ap = C.add_args(argparse.ArgumentParser(description=__doc__))
-    ap.add_argument("--ckpt", required=True, help="warm start")
+    ap.add_argument("--ckpt", default=None, help="warm start; omit to start from the released Sat-RoMa decoder "
+                    "(the no-Poznań ablation) with the query mode given by --query")
+    ap.add_argument("--query", default="ipm", choices=("lift", "ipm", "hybrid", "erp"), help="query mode when no --ckpt")
     ap.add_argument("--root", default=os.environ.get("VIGOR_DIR", "data/vigor"))
     ap.add_argument("--split", default="samearea", choices=("samearea", "crossarea"))
     ap.add_argument("--cities", nargs="*", default=None)
@@ -52,8 +55,8 @@ def main():
     dev = "cuda" if torch.cuda.is_available() else "cpu"
     torch.manual_seed(cfg.train.seed)
     np.random.seed(cfg.train.seed)
-    state = torch.load(a.ckpt, map_location=dev, weights_only=False)
-    mode = state.get("mode", "lift")
+    state = torch.load(a.ckpt, map_location=dev, weights_only=False) if a.ckpt else None
+    mode = state.get("mode", "lift") if state else a.query
     L.query_mode = mode
     tr_cities = a.cities or split_cities(a.split, True)
     va_cities = a.val_cities or (tr_cities if a.split == "samearea" else split_cities(a.split, False))
@@ -67,9 +70,13 @@ def main():
     for n, p in matcher.model.decoder.named_parameters():
         if "conv_refiner" in n:
             p.requires_grad = False
-    matcher.model.decoder.load_state_dict(state["decoder"], strict=False)
+    if state:
+        matcher.model.decoder.load_state_dict(state["decoder"], strict=False)
     query = build_query(cfg, mode).to(dev)
-    load_query_state(query, state)
+    if state:
+        load_query_state(query, state)
+    else:
+        print("no --ckpt: decoder = released Sat-RoMa checkpoint, query untrained", flush=True)
     groups = []
     qp = [p for p in query.parameters() if p.requires_grad]
     if qp:

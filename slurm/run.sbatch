@@ -23,6 +23,7 @@ export VIGOR_DIR="${VIGOR_DIR:-$P/vigor}"
 export HF_HOME="${HF_HOME:-$P/hf_home}"
 export HUGGINGFACE_HUB_CACHE="${HUGGINGFACE_HUB_CACHE:-$P/hf_cache/hub}"
 export HF_HUB_OFFLINE="${HF_HUB_OFFLINE:-1}"
+export TORCH_HOME="${TORCH_HOME:-$P/torch_home}"        # hub/checkpoints/dinov2_vitl14_pretrain.pth for FG²
 export PYTHONPATH="src:.pydeps"
 export SATROMA_INFER_DIR="$PWD/third_party/sat_roma_infer"
 export PYTHONUNBUFFERED=1

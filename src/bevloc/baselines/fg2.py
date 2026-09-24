@@ -15,6 +15,7 @@ from bevloc import config as C
 from bevloc.baselines.common import sha256_file
 
 FG2_ROOT = C.REPO / "third_party" / "FG2"
+MMCV_SHIM = Path(__file__).resolve().parent / "mmcv_shim"   # see mmcv_shim/mmcv/__init__.py
 CKPT_ROOT = C.REPO / "checkpoints" / "baselines" / "fg2" / "VIGOR"
 
 # Native VIGOR settings from third_party/FG2/config.ini (do not force Sat-RoMa sizes).
@@ -62,6 +63,20 @@ def ensure_fg2_on_path():
     pkg.__path__ = [str(utils_dir)]  # type: ignore[attr-defined]
     pkg.__file__ = str(utils_dir / "__init__.py")
     sys.modules["utils"] = pkg
+    ensure_mmcv()
+
+
+def ensure_mmcv():
+    """FG² imports two mmcv layers; use the pure-PyTorch shim when mmcv's compiled ops are unavailable."""
+    try:
+        from mmcv.ops.multi_scale_deform_attn import MultiScaleDeformableAttention  # noqa: F401
+        return
+    except Exception:  # ImportError, or mmcv-lite without ops
+        for k in list(sys.modules):
+            if k == "mmcv" or k.startswith("mmcv."):
+                del sys.modules[k]
+        if str(MMCV_SHIM) not in sys.path:
+            sys.path.insert(0, str(MMCV_SHIM))
 
 
 def checkpoint_path(area: str = "samearea", orientation: str = "known_ori",
