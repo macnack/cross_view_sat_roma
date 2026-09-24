@@ -13,7 +13,7 @@ from pyproj import Geod, Transformer
 from rasterio.windows import Window
 from torch.utils.data import Dataset
 
-from bevloc.bev.ipm_sphere import depression_mask, ipm_erp, mosaic_ipm
+from bevloc.bev.ipm_sphere import contact_feet, depression_mask, ipm_erp, mosaic_ipm, paint_feet
 from bevloc.data.ortho import Oriented, gt_homography, sample_negative_reference, sample_reference
 
 CS92 = "EPSG:2180"
@@ -257,27 +257,54 @@ class MapillaryPairs(Dataset):
     _DYNAMIC_IDS = (11, 12, 13, 14, 15, 16, 17, 18)          # person, rider, car, truck, bus, train, motorcycle, bicycle
     _GROUND_IDS = (0, 1, 8, 9)                                # road, sidewalk, vegetation, terrain
 
+    def _semantic(self, fr, erp_hw):
+        """Precomputed SegFormer class map (H, W) uint8 resized to erp_hw, or None if absent."""
+        p = Path(fr["_seq"]) / "semantic" / f"{fr['id']}.png"
+        if not p.exists():
+            return None
+        sem = cv2.imread(str(p), cv2.IMREAD_UNCHANGED)
+        if sem is None:
+            return None
+        if sem.shape[:2] != tuple(erp_hw):
+            sem = cv2.resize(sem, (erp_hw[1], erp_hw[0]), interpolation=cv2.INTER_NEAREST)
+        return sem
+
     def _erp_valid(self, fr, erp_hw):
         """(H, W) bool validity of the panorama for the IPM picture: ego-body cut by depression angle,
         plus dynamic-object (and optionally non-ground) pixels masked when a precomputed semantic map
-        exists at <seq>/semantic/<id>.png (scripts/semantic_precompute.py). None = no masking."""
+        exists at <seq>/semantic/<id>.png (scripts/semantic_precompute.py)."""
         ipm = self.cfg.ipm
         dep = float(getattr(ipm, "max_depression_deg", 0.0) or 0.0)
         valid = depression_mask(erp_hw, dep) if dep > 0 else np.ones(erp_hw, bool)
         use_dyn = bool(getattr(ipm, "semantic_dynamic_mask", False))
         ground_only = bool(getattr(ipm, "semantic_ground_only", False))
         if use_dyn or ground_only:
-            p = Path(fr["_seq"]) / "semantic" / f"{fr['id']}.png"
-            if p.exists():
-                sem = cv2.imread(str(p), cv2.IMREAD_UNCHANGED)
-                if sem is not None:
-                    if sem.shape[:2] != tuple(erp_hw):
-                        sem = cv2.resize(sem, (erp_hw[1], erp_hw[0]), interpolation=cv2.INTER_NEAREST)
-                    if use_dyn:
-                        valid &= ~np.isin(sem, self._DYNAMIC_IDS)
-                    if ground_only:
-                        valid &= np.isin(sem, self._GROUND_IDS)
+            sem = self._semantic(fr, erp_hw)
+            if sem is not None:
+                if use_dyn:
+                    valid &= ~np.isin(sem, self._DYNAMIC_IDS)
+                if ground_only:
+                    valid &= np.isin(sem, self._GROUND_IDS)
         return valid
+
+    def _paint_contact(self, fr, erp_full, R, bev, bev_valid):
+        """ipm_cl: draw the wall (and hedge) feet of this frame into its IPM picture, in place."""
+        ipm = self.cfg.ipm
+        if not bool(getattr(ipm, "contact_line", False)):
+            return bev, bev_valid
+        sem = self._semantic(fr, erp_full.shape[:2])
+        if sem is None:
+            return bev, bev_valid
+        g = self.cfg.grid
+        classes = [tuple(int(c) for c in getattr(ipm, "contact_classes", (2, 3, 4)))]
+        if bool(getattr(ipm, "contact_vegetation", False)):
+            classes.append((8,))
+        thick = int(getattr(ipm, "contact_thickness_px", 2))
+        rng_max = float(getattr(getattr(self.cfg, "erp_query", None), "max_range_m", 40.0)) if getattr(self.cfg, "erp_query", None) else 40.0
+        for ids in classes:
+            feet = contact_feet(sem, erp_full, ids, R, ipm.height_m, g.n, g.cell_m, max_range_m=rng_max)
+            paint_feet(bev, bev_valid, feet, g.n, g.cell_m, thickness=thick)
+        return bev, bev_valid
 
     def _pose_budget(self, rng):
         L = getattr(self.cfg, "lift", None)
@@ -411,6 +438,7 @@ class MapillaryPairs(Dataset):
                     vals.append(val_j)
                     poses.append(tuple(float(v) for v in se2.tolist()))
                 bev, bev_valid = mosaic_ipm(pics, vals, poses, g.n, g.cell_m)
+            bev, bev_valid = self._paint_contact(fr, erp_full, R_q, bev, bev_valid)   # ipm_cl (off by default)
             bev = self._colour_jitter(bev, rng)
             out["bev"] = torch.from_numpy(np.ascontiguousarray(bev)).permute(2, 0, 1).float().div(255.0)
             out["bev_valid"] = torch.from_numpy(bev_valid)

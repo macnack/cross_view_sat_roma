@@ -104,6 +104,58 @@ def ipm_erp(erp_rgb, R_w2c, height_m, n, cell_m, blind_radius_m=1.2, erp_valid=N
     return img, valid
 
 
+def contact_feet(sem, erp_rgb, class_ids, R_w2c, height_m, n, cell_m, max_range_m=40.0,
+                 facade_rows=12, min_run=3):
+    """Camera-only contact line (kick-off §3.1 with a semantic map instead of LiDAR).
+
+    For every ERP column, the lowest pixel of the given classes (building/wall/fence, or vegetation)
+    is where that object meets the ground as seen from the camera; its flat-ground intersection is
+    the object's foot on the map (the footprint edge an orthophoto shows). Returns a list of
+    (x, y, colour) with ego metres and the mean facade colour sampled ``facade_rows`` above the foot.
+    Columns whose lowest such pixel is above the horizon or beyond ``max_range_m`` are skipped;
+    ``min_run`` consecutive class pixels are required so single mislabelled pixels do not paint."""
+    H, W = sem.shape[:2]
+    cls = np.isin(sem, list(class_ids))
+    rows = np.arange(H)[:, None]
+    lowest = np.where(cls, rows, -1).max(0)                       # (W,) lowest class row per column, -1 = none
+    feet = []
+    for u in range(W):
+        v = int(lowest[u])
+        if v < 0 or v - min_run + 1 < 0 or not cls[v - min_run + 1:v + 1, u].all():
+            continue
+        lat = (0.5 - (v + 0.5) / H) * np.pi
+        if lat >= 0:
+            continue
+        lon = ((u + 0.5) / W - 0.5) * 2 * np.pi
+        # ray in camera axes (x right, y down, z forward) -> world -> ground intersection
+        d_cam = np.array([np.sin(lon) * np.cos(lat), -np.sin(lat), np.cos(lon) * np.cos(lat)])
+        d_w = np.asarray(R_w2c, float).T @ d_cam
+        if d_w[2] >= -1e-6:
+            continue
+        t = -float(height_m) / d_w[2]
+        p = d_w * t
+        fwd, left = ego_to_world_dirs(R_w2c)
+        x, y = float(p @ fwd), float(p @ left)
+        if np.hypot(x, y) > max_range_m:
+            continue
+        top = max(0, v - facade_rows)
+        colour = erp_rgb[top:v + 1, u].reshape(-1, 3).mean(0)
+        feet.append((x, y, colour))
+    return feet
+
+
+def paint_feet(img, valid, feet, n, cell_m, thickness=2):
+    """Draw the contact feet into an IPM picture in place (row 0 forward, col 0 left) and mark them valid."""
+    o = (n - 1) / 2.0
+    for x, y, colour in feet:
+        r = int(round(o - x / cell_m))
+        c = int(round(o - y / cell_m))
+        if 0 <= r < n and 0 <= c < n:
+            cv2.circle(img, (c, r), max(0, thickness - 1), tuple(int(v) for v in colour), -1)
+            valid[max(0, r - thickness + 1):r + thickness, max(0, c - thickness + 1):c + thickness] = True
+    return img, valid
+
+
 def depression_mask(erp_hw, max_depression_deg):
     """(H, W) bool: True where the ERP pixel looks less than ``max_depression_deg`` below the horizon.
     On a car-mounted 360° camera everything steeper than ~20° down is the vehicle's own body."""

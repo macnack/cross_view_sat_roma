@@ -168,6 +168,19 @@ Sources: eval_aug_manifest.json, eval_aug_manifest_test.json, eval_erp_long_se2_
 
 ## Verdict (running notes; newest first)
 
+**2026-09-24, IPM family on the test route (2025, peak row): a plateau.** `ipm` 4.6 m / R@5 0.53 /
+R@10 0.67; 10k steps (`ipm_long`) 4.3 / 0.55 / 0.70; trained mosaic 0/2/5 m 4.8 / 0.52 / 0.71;
+zero-shot mosaic 5.4 / 0.46 / 0.69; ego cut + dynamic mask (`ipm_v2`) 5.0 / 0.49 / 0.67. All within
+one another's intervals; only the mosaic's R@10 moves consistently (+4–5 points on both routes).
+Diagnosis (`make pose-diag-semantic` on `ipm_long`, test route): the quartile of frames with the
+least above-ground structure in the panorama scores 6.5 m median / R@10 0.62, the two most
+structured quartiles 2.8–4.3 m / 0.76–0.80; vegetation fraction is the only class that correlates
+with error (+0.23). The hard set is tree-lined straight road: the road picture cannot break the
+along-road ambiguity and the orthophoto shows canopy where the panorama shows trunks. Next on the
+query side: the camera-only contact-line picture (`ipm_cl`: wall/fence/hedge feet from the semantic
+map painted at their ground foot, kick-off §3.1 H2 without LiDAR), queued. Beyond that the levers
+are the filter (already 4.4 m along the route) and the reference side, not more picture variants.
+
 **2026-09-24, code review of the branch (`/code-review high`, 10 findings) and what was done.**
 Fixed: (1) `sim` solver reported a failed RANSAC (identity from `ransac_init`) as a match — now a miss
 like `srt`; the `ipm_sim` rows above were scored before the fix and may contain a few identity

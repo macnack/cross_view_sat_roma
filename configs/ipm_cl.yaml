@@ -113,12 +113,12 @@ erp_query:                        # ERP-token query, placement after matching (t
 ipm:                              # camera-only flat-ground query on Mapillary (task 03, Task 2)
   height_m: 1.7                   # Mapillary rig height above the road, assumed (not in the files)
   blind_radius_m: 1.2             # disc under the camera (rig / vehicle roof)
-  max_depression_deg: 20.0        # ERP rows looking steeper down than this are the capture car's own body
+  max_depression_deg: 0.0         # ipm_v1: no ego cut (the 2026-09-23 IPM runs were trained this way)
                                   # (semantic probe 2026-09-24: the bottom ~40 % of a Fixtor ERP is car roof);
                                   # on the ground that is a 1.7 / tan 20° = 4.7 m disc, which the mosaic refills
-  semantic_dynamic_mask: true     # mask person/car/bus/... pixels when <seq>/semantic/<id>.png exists
+  semantic_dynamic_mask: false    # ipm_v1: no semantic mask
   semantic_ground_only: false     # keep only road/sidewalk/vegetation/terrain pixels (ablation)
-  contact_line: false             # ipm_cl: paint wall/hedge feet (camera-only contact line from the semantic map)
+  contact_line: true              # ipm_cl: v1 picture + camera-only contact feet (walls, fences, hedges)
   contact_classes: [2, 3, 4]      # Cityscapes ids: building, wall, fence
   contact_vegetation: true        # also paint the feet of vegetation (hedges, tree lines)
   contact_thickness_px: 2         # BEV cells per foot mark

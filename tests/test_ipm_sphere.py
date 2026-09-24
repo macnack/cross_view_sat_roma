@@ -59,6 +59,30 @@ def test_erp_validity_and_depression_mask_propagate_to_cells():
     assert (img[~valid] == 0).all()
 
 
+def test_contact_feet_paint_the_facade_colour_at_the_wall_foot():
+    from bevloc.bev.ipm_sphere import contact_feet, paint_feet
+    h, W, H, n, cell = 1.7, 1280, 640, 64, 0.5
+    # a "building" occupying ERP rows 200..(contact row) in columns around the centre; ground 10 m ahead
+    mu, mv = ground_pixel_coords(np.array([10.0]), np.array([0.0]), R_NORTH, h, (H, W))
+    vc = int(round(mv[0]))                              # contact row of that wall on the ground at 10 m
+    sem = np.full((H, W), 10, np.uint8)                 # sky everywhere
+    sem[vc + 1:, :] = 0                                 # road below the contact
+    u0 = int(round(mu[0]))
+    sem[200:vc + 1, u0 - 20:u0 + 21] = 2                # building down to the contact row
+    erp = np.zeros((H, W, 3), np.uint8)
+    erp[200:vc + 1, u0 - 20:u0 + 21] = (200, 50, 50)    # a red facade
+    feet = contact_feet(sem, erp, (2, 3, 4), R_NORTH, h, n, cell, max_range_m=40.0)
+    assert len(feet) > 0
+    img = np.zeros((n, n, 3), np.uint8)
+    valid = np.zeros((n, n), bool)
+    paint_feet(img, valid, feet, n, cell, thickness=1)
+    r, c = n // 2 - int(round(10.0 / cell)), n // 2
+    band = img[r - 2:r + 3, c - 1:c + 2]
+    assert band[..., 0].max() >= 150 and band[..., 1].max() <= 80   # red foot mark near (10 m, 0)
+    assert valid[r - 2:r + 3, c - 1:c + 2].any()
+    assert not valid[n // 2 + 10, c]                                # nothing painted behind the camera
+
+
 def test_ipm_marker_lands_in_the_forward_cell():
     h, W, H, n, cell = 1.7, 1280, 640, 64, 0.5
     r, c = n // 2 - int(10.0 / cell), n // 2            # row 0 is forward, col 0 is left
