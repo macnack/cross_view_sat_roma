@@ -68,6 +68,15 @@ $X python -c "import timm; timm.create_model('vit_large_patch16_dinov3.sat493m',
 PYTHONPATH=src:.pydeps SATROMA_INFER_DIR=$PWD/third_party/sat_roma_infer $X python -m pytest tests -q   # 61 passed
 ```
 
+## Following jobs from the laptop: `make eagle-watch`
+
+`slurm/watch_list.txt` lists the jobs of the current campaign (`<jobid> <jobname> <grep pattern>`); `make
+eagle-watch` prints the queue and then follows all of them at once (`slurm/watch_all.sh`, one
+`slurm/watch_eval.sh` per job, lines prefixed with the job name), polling every two minutes, and exits when
+the last one leaves the queue. Come back after hours away and run it again: finished jobs print their result
+lines once, running ones continue. Update the list when submitting a new batch (the job ids are printed by
+`make eagle-submit`). A single job: `bash slurm/watch_eval.sh <jobid> <jobname> [pattern]`.
+
 ## Syncing the checkout: `make eagle-pull`, not `git pull`
 
 Submit at least a minute after `make eagle-pull`: on 2026-09-24 a job submitted 5 s after the pull ran the

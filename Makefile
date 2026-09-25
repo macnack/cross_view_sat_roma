@@ -8,7 +8,7 @@ FRAMES  ?= 0 1000 1600 2000
 REF     ?= 200
 RUN      = PYTHONPATH=src:.pydeps $(PY)
 
-.PHONY: fg2-vigor
+.PHONY: fg2-vigor eagle-watch
 .PHONY: help deps test fetch stats mask lens viewer oxts odometry bevs mosaic smoke h1 targets overfit train calib all roma-viz mapillary mapillary-scan mapillary-sample ipm-smoke lift-overfit lift-splat lift-eval lift-splat-years lift-aug-viz lift-layers-viz lift-splat-aug lift-splat-pose-nll lift-splat-seq baselines-manifest fg2-smoke fg2-eval fg2-train bevsplat-smoke bevsplat-eval bevsplat-train baselines-report
 help:
 	@grep -E '^[a-z0-9_-]+:.*##' $(MAKEFILE_LIST) | sed -E 's/:.*## /\t/' | expand -t 12
@@ -217,6 +217,9 @@ eagle-pull: ## on Eagle: sync the checkout to the pushed branch (hard reset; the
 eagle-fetch-vigor: ## on Eagle: download + extract VIGOR from the shared Drive folder (CPU job, resumable) into project_data/.../vigor
 	mkdir -p slurm/logs
 	FETCH_ARGS="$(FETCH_ARGS)" sbatch --export=ALL $(SBATCH_ARGS) slurm/fetch_vigor.sbatch    # FETCH_ARGS="--only-extract" to just extract; SBATCH_ARGS="--begin=..." to retry after the Drive quota resets
+
+eagle-watch: ## from the laptop: follow every job in slurm/watch_list.txt (queue + new log lines) until all have finished
+	bash slurm/watch_all.sh
 
 eagle-submit: ## submit CMD="scripts/x.py ..." JOB=name as one H100 job (run on Eagle, repo root); SBATCH_ARGS="--dependency=afterok:<id>" to chain
 	mkdir -p slurm/logs   # SLURM does not create the --output directory itself

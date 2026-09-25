@@ -1,0 +1,9 @@
+# Jobs to follow from the laptop with `make eagle-watch` (slurm/watch_all.sh). One job per line:
+#   <jobid> <jobname> [grep -E pattern for the log lines to print]
+# Lines starting with # are ignored. Edit this file when submitting new jobs; finished jobs are reported once and skipped.
+# --- 2026-09-25: VIGOR four-city and cross-area runs (docs/decisions.md, experiments/09_vigor) ---
+8765483 vigor_train_4city   ^(step [0-9]*000 VAL| best|wrote|Traceback|.*Error|error:|Killed|OOM|\[run\] exit)
+8765484 vigor_ev_4city_chi  ^([0-9]+ samples|  [0-9]*[05]00 done|[A-Za-z]+ +n +[0-9]+|wrote |Traceback|.*Error|\[run\] exit)
+8765485 vigor_ev_4city_all  ^([0-9]+ samples|  [0-9]*000 done|[A-Za-z]+ +n +[0-9]+|wrote |Traceback|.*Error|\[run\] exit)
+8765486 vigor_train_cross   ^(step [0-9]*000 VAL| best|wrote|Traceback|.*Error|error:|Killed|OOM|\[run\] exit)
+8765487 vigor_ev_cross      ^([0-9]+ samples|  [0-9]*000 done|[A-Za-z]+ +n +[0-9]+|wrote |Traceback|.*Error|\[run\] exit)
