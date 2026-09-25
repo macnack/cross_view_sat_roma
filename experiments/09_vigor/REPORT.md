@@ -11,6 +11,7 @@ Every row is scored on the same sample draw per split (seed 0: 3000 Chicago same
 | Loc² (released same-area checkpoint), weighted Procrustes | 1.70 m (1.63–1.77) | 3.24 m | 82 % | 93 % | 3000 |
 | Ours, 30k, 2 m cells (0.125 m/px) | 1.89 m (1.80–1.98) | 5.19 m | 74 % | 82 % | 3000 |
 | Ours, four-city fine-tune, 60k steps | 2.51 m (2.42–2.60) | 4.95 m | 76 % | 87 % | 3000 |
+| Ours, Chicago-only 30k checkpoint, 2 m cells (all cities) | 2.61 m (2.55–2.67) | 5.92 m | 69 % | 80 % | 12000 |
 | Ours, 30k steps, no Poznań warm start | 2.90 m (2.80–3.02) | 5.44 m | 71 % | 85 % | 3000 |
 | Ours, Chicago fine-tune, 30k steps | 2.90 m (2.79–3.00) | 5.45 m | 70 % | 85 % | 3000 |
 | Ours, 30k, 4-DoF solver (sim) | 2.91 m (2.80–3.02) | 5.50 m | 71 % | 85 % | 3000 |
@@ -30,6 +31,10 @@ Centre-guess chance (predict the tile centre): median 14.26, 14.30 m.
 | Ours, Chicago-only 30k checkpoint (all cities) | NewYork | 5.66 m (5.48–5.90) | 8.64 m | 44 % | 72 % | 3140 |
 | Ours, Chicago-only 30k checkpoint (all cities) | SanFrancisco | 3.67 m (3.57–3.84) | 6.10 m | 64 % | 84 % | 3198 |
 | Ours, Chicago-only 30k checkpoint (all cities) | Seattle | 3.46 m (3.30–3.59) | 6.02 m | 66 % | 83 % | 2718 |
+| Ours, Chicago-only 30k checkpoint, 2 m cells (all cities) | Chicago | 1.85 m (1.77–1.94) | 4.96 m | 75 % | 83 % | 2944 |
+| Ours, Chicago-only 30k checkpoint, 2 m cells (all cities) | NewYork | 4.99 m (4.75–5.20) | 8.56 m | 50 % | 69 % | 3140 |
+| Ours, Chicago-only 30k checkpoint, 2 m cells (all cities) | SanFrancisco | 2.07 m (1.99–2.15) | 4.89 m | 77 % | 85 % | 3198 |
+| Ours, Chicago-only 30k checkpoint, 2 m cells (all cities) | Seattle | 2.41 m (2.33–2.49) | 5.13 m | 76 % | 84 % | 2718 |
 | Ours, four-city fine-tune, 60k steps (all cities) | Chicago | 2.60 m (2.49–2.71) | 4.99 m | 74 % | 86 % | 2944 |
 | Ours, four-city fine-tune, 60k steps (all cities) | NewYork | 4.18 m (4.05–4.37) | 6.47 m | 58 % | 82 % | 3140 |
 | Ours, four-city fine-tune, 60k steps (all cities) | SanFrancisco | 2.78 m (2.71–2.89) | 4.77 m | 74 % | 89 % | 3198 |
@@ -79,7 +84,7 @@ go into the tables above once their json lands here. Decisions and the reasoning
 | 2 | No Poznań warm start | Does the Poznań pre-training transfer? | 8763046 → 8763047 | **Done, null.** 2.90 m = warm-started 2.90 m; curves coincide from step 6k. The plateau is the architecture's. |
 | 3 | 2 m cells: 0.125 m/px so the 71 m tile fills the reference instead of 18 of 56 cells (`configs/vigor_cell0125.yaml`) | Even the best quartile sits on the 4 m-cell quantisation floor (p25 = 1.7 m; the sub-cell mean row gains only 0.1 m) | 8777920 → 8777921 | **Done, works: 1.89 m median (was 2.90), mean 5.19 m, R@5 0.74.** Largest single gain of the campaign; the tail (R@10 0.82) did not move. 0.125 m/px is now the VIGOR configuration. |
 | 3a | 2 m cells at the paper budget: four-city same-area 60k and cross-area 60k, held-out validation | The rows for the table | 8784448 → 8784449/8784450; 8784451 → 8784452 | **Running** (~13 h each). |
-| 3b | Chicago 2 m checkpoint on all four cities | Transfer of the 2 m gain | 8784457 | **Running.** |
+| 3b | Chicago 2 m checkpoint on all four cities | Transfer of the 2 m gain | 8784457 | **Done.** All 2.61 m (was 3.89); SF 2.07, Seattle 2.41, Chicago 1.85, New York 4.99 m (was 5.66): the gain transfers except in New York. |
 | 4 | Worst-20 sheet (`viz/vigor_chicago30k_worst20.jpg`) | Is the 15 % > 10 m tail ambiguity or wrong-mode? | 8777922 | **Done.** 19/20 misses are 31–47 m with diffuse vote maps centred on the tile (a layout prior) and often high inlier ratios; alleys with facade-smeared pictures dominate. |
 | 5 | Solver ablation on the 30k checkpoint: homography (`srt`) vs 4-DoF (`sim`) vs 3-DoF (`se2`) | The sheet's sheared quadrilaterals suggested solver failure | 8778283, 8778284 | **Done, null.** 2.90 / 2.91 / 2.95 m: the tail is a matching failure; `srt` stays. |
 | 6 | Ground-only picture: SegFormer mask (road, sidewalk, terrain) before the flat-ground projection | New York facades smear into the picture as false ground texture | — | Not started. Superseded in priority by idea 9 (the picture itself is the limit per Loc² Tab. 12). |
