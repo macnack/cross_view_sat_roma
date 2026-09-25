@@ -8,7 +8,7 @@ FRAMES  ?= 0 1000 1600 2000
 REF     ?= 200
 RUN      = PYTHONPATH=src:.pydeps $(PY)
 
-.PHONY: fg2-vigor eagle-watch vigor-viz loc2-depth loc2-vigor
+.PHONY: fg2-vigor eagle-watch vigor-viz loc2-depth loc2-vigor vigor-report
 .PHONY: help deps test fetch stats mask lens viewer oxts odometry bevs mosaic smoke h1 targets overfit train calib all roma-viz mapillary mapillary-scan mapillary-sample ipm-smoke lift-overfit lift-splat lift-eval lift-splat-years lift-aug-viz lift-layers-viz lift-splat-aug lift-splat-pose-nll lift-splat-seq baselines-manifest fg2-smoke fg2-eval fg2-train bevsplat-smoke bevsplat-eval bevsplat-train baselines-report
 help:
 	@grep -E '^[a-z0-9_-]+:.*##' $(MAKEFILE_LIST) | sed -E 's/:.*## /\t/' | expand -t 12
@@ -193,6 +193,9 @@ vigor-train: ## fine-tune CKPT on VIGOR (SPLIT=samearea|crossarea, CITIES="Chica
 
 vigor-viz: ## overlay sheet of the worst (PICK=worst) or a spread (PICK=spread) of N frames of EVAL_JSON, re-matched with CKPT; TAG=
 	$(RUN) scripts/viz_vigor.py --config $(CONFIG) --ckpt $(CKPT) --eval-json $(EVAL_JSON) --tag $(TAG) --n $(if $(N),$(N),20) --pick $(if $(PICK),$(PICK),worst)
+
+vigor-report: ## experiments/09_vigor/REPORT.md: one table per split from every eval json there + IDEAS.md (the ideas/jobs ledger)
+	$(RUN) scripts/report_vigor.py --config $(CONFIG)
 
 loc2-depth: ## UniK3D depth (Loc²'s layout) for the VIGOR draw: SPLIT=, CITIES=, LIMIT= (TRAIN=1 for the training labels)
 	$(RUN) scripts/loc2_depth_vigor.py --config $(CONFIG) --split $(SPLIT) --limit $(LIMIT) $(if $(CITIES),--cities $(CITIES),) $(if $(TRAIN),--train,) $(VIGOR_ARGS)

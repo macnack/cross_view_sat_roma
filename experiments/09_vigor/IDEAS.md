@@ -1,0 +1,20 @@
+## Research ideas and their jobs (hand-written ledger, appended to REPORT.md by `make vigor-report`)
+
+Status as of 2026-09-25 15:00. Job ids are Eagle SLURM ids (`slurm/watch_list.txt`, `make eagle-watch`); results
+go into the tables above once their json lands here. Decisions and the reasoning behind each line: docs/decisions.md.
+
+| # | Idea | Why | Jobs | Status / result |
+|---|---|---|---|---|
+| 1 | Train on FG²'s data: all four cities, same-area split | Chicago-only overfit at 5 epochs; FG² trains 25 epochs on 52k pairs | 8765483 → 8765484 / 8765485 | **Done.** Chicago 2.51 m (was 2.90), all cities 2.95 m; New York 4.18 m (was 5.66). Data closes ~0.4 m of a 1.5 m gap. |
+| 1b | Same, cross-area (NY + Seattle → SF + Chicago) | The number reviewers ask for | 8765486 → 8765487 | **Done.** 3.27 m median / 5.61 m mean; Chicago unseen 3.05 m vs 2.51 m seen. |
+| 1c | Reruns with FG²'s validation protocol (20 % of the train list held out, `--val-frac 0.2`) | The first runs selected the checkpoint on a 400-sample draw from the test list | 8777838 → 8777839 / 8777840 (same-area); 8777826 → 8777827 (cross-area) | **Running.** Replace rows 1 and 1b when they land. |
+| 2 | No Poznań warm start | Does the Poznań pre-training transfer? | 8763046 → 8763047 | **Done, null.** 2.90 m = warm-started 2.90 m; curves coincide from step 6k. The plateau is the architecture's. |
+| 3 | 2 m cells: 0.125 m/px so the 71 m tile fills the reference instead of 18 of 56 cells (`configs/vigor_cell0125.yaml`) | Even the best quartile sits on the 4 m-cell quantisation floor (p25 = 1.7 m; the sub-cell mean row gains only 0.1 m) | 8777920 → 8777921 | **Running** (30k steps, Chicago). |
+| 4 | Worst-20 sheet (`viz/vigor_chicago30k_worst20.jpg`) | Is the 15 % > 10 m tail ambiguity or wrong-mode? | 8777922 | **Done.** 19/20 misses are 31–47 m with diffuse vote maps centred on the tile (a layout prior) and often high inlier ratios; alleys with facade-smeared pictures dominate. |
+| 5 | Solver ablation on the 30k checkpoint: homography (`srt`) vs 4-DoF (`sim`) vs 3-DoF (`se2`) | The sheet's sheared quadrilaterals suggested solver failure | 8778283, 8778284 | **Done, null.** 2.90 / 2.91 / 2.95 m: the tail is a matching failure; `srt` stays. |
+| 6 | Ground-only picture: SegFormer mask (road, sidewalk, terrain) before the flat-ground projection | New York facades smear into the picture as false ground texture | — | Not started. Superseded in priority by idea 9 (the picture itself is the limit per Loc² Tab. 12). |
+| 7 | Inlier-ratio gate for the particle filter | Lowest inlier quartile: 5.8 m median, 35 % gross; rest 2.4 m, 5 % | — | Not started (route-level work, not a VIGOR row). |
+| 8 | FG² and Loc² baselines like-for-like (released checkpoints, native sizes, our draws, pure-PyTorch mmcv shim, UniK3D depth) | Published numbers were not on our samples | FG²: 8763034/8763035, 8765488; Loc²: 8778233–8778237 | **Done.** Same-area FG² 1.06 m, Loc² 1.33 m; cross-area FG² 1.41 m, Loc² 1.99 m. Both reproduce their papers within 0.1 m. |
+| 9 | **Task 04: Loc² geometry with the Sat-RoMa decoder as the matcher** — panorama tokens as the query, UniK3D depth placement per token, decoder categorical + certainty + modes, VCE pose loss, optional 2.2 M projection head (`--query erp_depth --head`) | Loc² Tab. 12: BEV-plane matching 8.20 m vs image-plane 1.75 m; RoMa's gain is the match decoder, not the loss form; our plateau is architectural (ideas 1–2) | 8778958 → 8778960/8778961/8778962 (main run; best srt, best se2, last srt); 8778959 → 8778963/8778964 (control with the heat-map pose loss 0.5) | **Running** (10k steps, Chicago, ~3 h). Gate: < 2.90 m on the 3000 draw. |
+| 9b | Task 04 ablations: CE on cosine logits (the "RoMa loss on Loc²" control); no projection head; fine sub-cell offset head with a robust loss; VCE alone vs VCE + CE under unknown orientation | Separate the decoder's contribution from the loss form and the head | — | Planned after the fast check. |
+| 9c | Four-city training of the Task 04 matcher with FG²'s protocol, then cross-area | The rows that go in the paper table | — | After 9 passes its gate. |
