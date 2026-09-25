@@ -94,3 +94,58 @@ them into `src/`. Our module is written from the equations.
 experiments/10_loc2_matcher/: config snapshots, eval JSONs on the same draws as 09_vigor, a REPORT.md with one
 table (Loc², FG², ours-IPM, ours-Loc²-geometry, per split), the overlay sheet of the worst 20, and a decisions.md
 entry per gate.
+
+## Sub-cell stage (ablation 4c): the decoder's own conv refiner — as built, 26 Sep 2026 (for review)
+
+**What the decoder has (read from sat-roma-infer `build.py` / `matcher.py`, checked on the released `0t1q66hy`
+model):** one refinement stage, not four. `decoder_scales = ["16"]`, `conv_refiner = {"16": ConvRefiner}` (17.4 M
+params, 8 depthwise 5×5 blocks), and the DINOv3 encoder emits only `{16: tokens}`: no stride-8/4/2/1 refiners and no
+fine features exist. The refiner runs at the coarse token grid on the same `proj["16"]` features (512 ch) the GP and
+Transformer see. Its input warp is the package's "ToWarp", `cls_to_flow_refine(gm_cls)`: a 5-neighbour soft-argmax
+around each token's argmax cell (not detached in the package). It computes `grid_sample` of the reference features at
+that warp, a displacement embedding of (warp − own coords)·40/32·`scale_factor`, and a 15×15 local correlation around
+the warp. It outputs Δ and Δc, giving `flow = W_in + 16·(Δx/(4w), Δy/(4h))` and `certainty = gm_certainty + Δc`. The
+decoder exposes `flow_pre_delta` (W_in), `delta_flow`, `flow` and `certainty` under `exposed_intermediates`, and it
+always ran: we just never read it. Two caveats for the frozen refiner. (a) Our checkpoints fine-tuned `proj["16"]` and
+the Transformer while the refiner stayed at the released weights, so it now sees drifted features. (b) For an ERP
+token grid (28×56) the displacement is scaled by 1/w, 1/h of that grid (4× / 2× smaller steps than on the 14×14
+grid it was trained on), and its correlation window spans ±0.25 / ±0.5 of the reference instead of ±1. On noise
+inputs the released refiner moves matches by a median of about 2.6 cells, so "sub-cell" is not guaranteed.
+
+**Evaluation (`eval_vigor.py --refine S --refine-init … [--refine-gate C] [--refine-min-cert P]`).**
+`bevloc.model.refine.RefinerTap` hooks the refiner (the package is not edited) and records its inputs, so it can be
+re-run on another warp. `bevloc.match.satroma.refined_for_query` turns the refined warp into correspondences on a
+query grid of stride S px. At S = 16 there is one per token, read exactly. At S < 16 the warp is sampled bilinearly
+between token centres (points outside the token-centre hull are dropped); this adds no information for the picture
+modes, because the decoder has no finer refiner. Pixels are kept where the query is valid (`bev_valid` for the
+picture). For `erp` / `erp_depth` the query pixels are ERP pixels: each is placed through its own ray with its own
+depth (`ErpDepthQuery.placement_at` / `ErpQuery.placement_at`; identical to the token placement at token centres,
+tested). The same solver (`--solver`), inlier threshold and seed then run on these correspondences. Initialisation:
+- `none`: the package path (refiner on the ToWarp warp of `gm_cls`), RANSAC from scratch.
+- `coarse`: the same refined warp, with correspondences gated to within `--refine-gate` cells (default
+  `reproj_cells` = 3) of the coarse peak pose before the RANSAC. cv2's RANSAC takes no initial model, so seeding
+  means this guided-matching gate. If the gated set yields no model, the row falls back to the coarse pose; the
+  fallbacks are counted.
+- `ransac`: the refiner re-run on the RANSAC-consistent coarse warp W_in(token) = H_coarse(token's query point:
+  token centre, or placed point), then gated like `coarse`.
+
+Rows: `pose_refined_m` / `inliers_refined` (one init) or `pose_refined_<init>_m` (several), plus `ncorr_*`,
+`nused_*`, `fallback_*`, next to the unchanged peak / means rows of the same run. `--refine 0` (default) is
+bit-identical to the previous evaluator (tested against a copy of the old loop, and the solver refactor was checked
+on 36 random cases).
+
+**Training (`train_vigor.py --refine-weight W`, `cfg.train.refine_weight`, default 0 = frozen and not saved as
+before).** The refiner is unfrozen and saved in the checkpoint's decoder dict (`eval_vigor` loads it and says so).
+Loss per RoMa §3.4 (2305.15404v2 Eq. 16–18, written from the paper):
+- Regression: a generalised Charbonnier, α = 0.5 and s = c·16 with c = 1e-4 in normalised reference coordinates
+  (RoMa's code units), of |W − W_gt| over the tokens the coarse CE supervises. The loss is shifted to be 0 at the
+  ground truth.
+- Certainty: `certainty_weight` (0.01) × BCE on the refined certainty, target 1 when the ground truth lies within
+  `refine_cert_cells` (0.5) reference cells (Chebyshev) of the refiner's input warp, taken over valid query tokens.
+
+W_gt = H(token centre) for the picture modes and H(placed point) for `erp_depth`. The refiner's inputs (features and
+W_in) are detached, so the fine loss trains the refiner only. Checked on the real model: the fine loss alone gives
+zero gradient to every non-refiner parameter, including the head. That is RoMa's coarse/fine cut; note that RoMa's
+own classifier path does not detach at stride 16. Train and val log `fine_epe_px` (refined) against
+`fine_epe_in_px` (input warp) in reference px. Open for agreement: the gate radius, the certainty-target radius,
+detaching the features as well as the warp, and whether S < 16 is worth keeping.

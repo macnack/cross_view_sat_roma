@@ -7,6 +7,7 @@
 from __future__ import annotations
 
 import argparse
+import contextlib
 import time
 from pathlib import Path
 
@@ -22,16 +23,51 @@ from bevloc.model.coarse import (
     FeatureQueryMatcher, coarse_targets, pose_heatmap_nll, ref_cell_validity, roma_coarse_loss, vce_pose_loss,
 )
 from bevloc.model.query import build_query, load_query_state
+from bevloc.model.refine import (
+    RefinerTap, decoder_state, fine_loss, gt_warp, set_refiner_trainable, token_centres_px,
+)
+
+
+def refine_options(cfg):
+    """RoMa fine-loss settings from cfg.train (refine_alpha, refine_c, refine_cert_cells), with RoMa's defaults."""
+    T = cfg.train
+    return dict(alpha=float(getattr(T, "refine_alpha", 0.5)), c=float(getattr(T, "refine_c", 1e-4)),
+                cert_cells=float(getattr(T, "refine_cert_cells", 0.5)))
+
+
+def refine_step_loss(out16, tap, H, use, tok_valid, query_xy, ref_size, cells, certainty_weight, opts):
+    """RoMa's fine loss on the decoder's stride-16 conv refiner (its only refiner; bevloc.model.refine).
+
+    The refiner ran on detached inputs (`RefinerTap(detach_inputs=True)`), so its loss trains the refiner only.
+    Refined warp = detached W_in + the refiner's displacement; certainty logit = detached gm_certainty + the
+    refiner's delta. Ground truth per token: H applied to its query point (token centre for the picture modes, the
+    placed point for erp / erp_depth); `use` = the coarse CE's supervised tokens."""
+    h, w = tap.x.shape[-2:]
+    if query_xy is None:
+        q = token_centres_px(h, w, device=H.device, dtype=torch.float64)[None].expand(H.shape[0], h, w, 2)
+    else:
+        q = query_xy.double()
+    gt = gt_warp(H.double(), q, ref_size).float()
+    warp = tap.refined_warp()
+    cert = (out16["gm_certainty"].detach().float() + tap.delta_certainty.float())[:, 0]
+    return fine_loss(warp, cert, tap.warp_in.detach().float(), gt, use, tok_valid, cell_norm=2.0 / cells,
+                     stride=16, certainty_weight=certainty_weight, **opts)
+
 
 def step(query, matcher, batch, cfg, min_patch, local_radius, neighbour_radius, neighbour_weight,
-         certainty_weight=0.01, pose_nll_weight=0.0, vce_weight=0.0, vce_opts=None, generator=None):
+         certainty_weight=0.01, pose_nll_weight=0.0, vce_weight=0.0, vce_opts=None, generator=None,
+         refine_weight=0.0, refine_opts=None):
     """vce_weight > 0 adds Loc²'s VCE pose loss (bevloc.model.coarse.vce_pose_loss) on the placed query points;
-    needs a query with `placement` (erp, erp_depth). vce_opts: its keyword arguments (coarse.vce_options)."""
+    needs a query with `placement` (erp, erp_depth). vce_opts: its keyword arguments (coarse.vce_options).
+    refine_weight > 0 adds RoMa's fine loss on the decoder's conv refiner (`refine_step_loss`; refine_opts =
+    `refine_options(cfg)`); the caller unfreezes the refiner (`set_refiner_trainable`)."""
     ref = batch["ref"]
     f_q, patch_frac = query(batch, matcher)          # lift | ipm | hybrid | erp | erp_depth, see bevloc.model.query
     # scale_factor = sqrt(query px area) / 560: 0.4 for the 224 px BEV queries, 1.13 for a 448x896 ERP grid
     sf = float(((f_q.shape[-2] * 16) * (f_q.shape[-1] * 16)) ** 0.5 / 560.0)
-    out = matcher.model.decoder({16: f_q}, matcher.reference_features(ref), scale_factor=sf)
+    tap = RefinerTap(matcher.model.decoder, detach_inputs=True) if refine_weight else contextlib.nullcontext()
+    with tap:
+        out = matcher.model.decoder({16: f_q}, matcher.reference_features(ref), scale_factor=sf)
     gm = out[16]["gm_cls"]
     cert = out[16].get("gm_certainty")
     # Decoder always classifies over a fixed K×K grid (K=56 → 3136 for sat493m),
@@ -79,12 +115,26 @@ def step(query, matcher, batch, cfg, min_patch, local_radius, neighbour_radius, 
         loss = loss + float(vce_weight) * vloss
         st["vce_m"] = vst["vce_m"]
         st["vce_pose_m"] = vst["vce_pose_m"]
+    for k in ("fine_epe_px", "fine_epe_in_px", "fine_epe_med_px", "fine_epe_in_med_px", "fine_reg", "fine_cert"):
+        st[k] = float("nan")
+    if refine_weight:
+        tok_valid = patch_frac >= min_patch
+        if placed is not None:
+            tok_valid = tok_valid & placed[1]
+        rloss, rst = refine_step_loss(out[16], tap, batch["H"], use, tok_valid, query_xy, ref_size, cells,
+                                      certainty_weight, refine_opts or {})
+        loss = loss + float(refine_weight) * rloss
+        px = ref_size / 2.0                                          # normalised -> reference px
+        st.update(fine_epe_px=rst["fine_epe"] * px, fine_epe_in_px=rst["fine_epe_in"] * px,
+                  fine_epe_med_px=rst["fine_epe_med"] * px, fine_epe_in_med_px=rst["fine_epe_in_med"] * px,
+                  fine_reg=rst["fine_reg"], fine_cert=rst["fine_cert"])
     return loss, st
 
 
 @torch.no_grad()
 def validate(query, matcher, loader, cfg, min_patch, local_radius, device, max_batches=32,
-             certainty_weight=0.01, pose_nll_weight=0.0, vce_weight=0.0, vce_opts=None):
+             certainty_weight=0.01, pose_nll_weight=0.0, vce_weight=0.0, vce_opts=None, refine_weight=0.0,
+             refine_opts=None):
     query.eval()
     rows = []
     # a fixed generator: the VCE's match draw is the same at every validation, so the curve is comparable
@@ -95,12 +145,14 @@ def validate(query, matcher, loader, cfg, min_patch, local_radius, device, max_b
         batch = {k: (v.to(device) if torch.is_tensor(v) else v) for k, v in batch.items()}
         _, st = step(query, matcher, batch, cfg, min_patch, local_radius, 0, 0.0,
                      certainty_weight=certainty_weight, pose_nll_weight=pose_nll_weight,
-                     vce_weight=vce_weight, vce_opts=vce_opts, generator=gen)
+                     vce_weight=vce_weight, vce_opts=vce_opts, generator=gen,
+                     refine_weight=refine_weight, refine_opts=refine_opts)
         rows.append(st)
     query.train()
     if not rows:
         return dict(ce=float("nan"), top1=float("nan"), top5=float("nan"), cell_err_m=float("nan"),
-                    pose_nll=float("nan"), pose_err_m=float("nan"), vce_m=float("nan"), vce_pose_m=float("nan"), n=0)
+                    pose_nll=float("nan"), pose_err_m=float("nan"), vce_m=float("nan"), vce_pose_m=float("nan"),
+                    fine_epe_px=float("nan"), fine_epe_in_px=float("nan"), n=0)
     w = np.array([r["n"] for r in rows], float)
 
     def avg(key):
@@ -116,6 +168,7 @@ def validate(query, matcher, loader, cfg, min_patch, local_radius, device, max_b
                 cell_err_m=avg("cell_err") * m_per,
                 pose_nll=avg("pose_nll"), pose_err_m=avg("pose_err") * m_per,
                 vce_m=mean("vce_m"), vce_pose_m=mean("vce_pose_m"),
+                fine_epe_px=mean("fine_epe_px"), fine_epe_in_px=mean("fine_epe_in_px"),
                 n=int(w.sum()))
 
 
@@ -216,9 +269,9 @@ def main():
     it = forever()
 
     matcher = FeatureQueryMatcher(cfg.matcher.checkpoint, dev, train_decoder=L.train_decoder)
-    for n, p in matcher.model.decoder.named_parameters():
-        if "conv_refiner" in n:
-            p.requires_grad = False
+    refine_w = float(getattr(cfg.train, "refine_weight", 0.0) or 0.0)
+    refine_opts = refine_options(cfg)
+    set_refiner_trainable(matcher.model.decoder, refine_w > 0)     # frozen (and not saved) unless the fine loss is on
     query = build_query(cfg, mode).to(dev)
     start_step = 0
     if a.ckpt:
@@ -259,7 +312,8 @@ def main():
         batch = {k: (v.to(dev) if torch.is_tensor(v) else v) for k, v in next(it).items()}
         opt.zero_grad(set_to_none=True)
         loss, st = step(query, matcher, batch, cfg, L.min_patch_valid, local_radius, neigh_r, neigh_w,
-                        certainty_weight=cert_w, pose_nll_weight=pose_w)
+                        certainty_weight=cert_w, pose_nll_weight=pose_w, refine_weight=refine_w,
+                        refine_opts=refine_opts)
         loss.backward()
         opt.step()
         ref_px = int(batch["ref"].shape[-1])
@@ -281,7 +335,7 @@ def main():
         if val_frames and (step_i % val_every == 0 or step_i == steps):
             vst = validate(query, matcher, va_loader, cfg, L.min_patch_valid, local_radius,
                            device=dev, max_batches=L.val_frames, certainty_weight=cert_w,
-                           pose_nll_weight=pose_w)
+                           pose_nll_weight=pose_w, refine_weight=refine_w, refine_opts=refine_opts)
             with log.open("a") as f:
                 f.write(f"{global_step},val,{vst['ce']:.4f},,{vst['top1']:.4f},{vst['top5']:.4f},"
                         f"{vst['cell_err_m']:.2f},{vst['pose_nll']:.4f},{vst['pose_err_m']:.2f},"
@@ -295,8 +349,7 @@ def main():
                 ckpt = C.REPO / "checkpoints" / f"{out.parent.name}_{out.name}_best.pt"
                 ckpt.parent.mkdir(parents=True, exist_ok=True)
                 torch.save({"query": query.state_dict(), "mode": mode,
-                            "decoder": {k: v for k, v in matcher.model.decoder.state_dict().items()
-                                        if "conv_refiner" not in k},
+                            "decoder": decoder_state(matcher.model.decoder, refine_w > 0),
                             "step": global_step, "val": vst}, ckpt)
                 print(f"  best -> {ckpt}", flush=True)
         t0 = time.time()
@@ -304,8 +357,7 @@ def main():
     ckpt = C.REPO / "checkpoints" / f"{out.parent.name}_{out.name}.pt"
     ckpt.parent.mkdir(parents=True, exist_ok=True)
     torch.save({"query": query.state_dict(), "mode": mode,
-                "decoder": {k: v for k, v in matcher.model.decoder.state_dict().items()
-                            if "conv_refiner" not in k},
+                "decoder": decoder_state(matcher.model.decoder, refine_w > 0),
                 "step": start_step + steps}, ckpt)
     print(f"wrote {ckpt}", flush=True)
     for o in orthos.values():

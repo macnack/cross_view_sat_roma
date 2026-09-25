@@ -185,10 +185,10 @@ ipm-picture: ## dump the query picture CONFIG produces (SEQ=, INDEX="400 800", S
 SPLIT ?= crossarea
 LIMIT ?= 0
 
-vigor-eval: ## our method on VIGOR (known orientation): CKPT=, SPLIT=crossarea|samearea, TAG=, LIMIT=, VIGOR_ARGS=
+vigor-eval: ## our method on VIGOR (known orientation): CKPT=, SPLIT=crossarea|samearea, TAG=, LIMIT=, VIGOR_ARGS= (sub-cell rows: "--refine 16|8|4 --refine-init none coarse ransac [--refine-gate CELLS --refine-min-cert P]")
 	$(RUN) scripts/eval_vigor.py --config $(CONFIG) --ckpt $(CKPT) --split $(SPLIT) --tag $(TAG) --limit $(LIMIT) $(VIGOR_ARGS)
 
-vigor-train: ## fine-tune CKPT on VIGOR (SPLIT=samearea|crossarea, CITIES="Chicago", STEPS=3000, TAG=); CKPT= empty + QUERY=ipm|erp|erp_depth = no warm start (erp_depth: loc2-depth TRAIN=1 first; VIGOR_ARGS="--head")
+vigor-train: ## fine-tune CKPT on VIGOR (SPLIT=samearea|crossarea, CITIES="Chicago", STEPS=3000, TAG=); CKPT= empty + QUERY=ipm|erp|erp_depth = no warm start (erp_depth: loc2-depth TRAIN=1 first; VIGOR_ARGS="--head"; "--refine-weight 1" trains the conv refiner with RoMa's fine loss)
 	$(RUN) scripts/train_vigor.py --config $(CONFIG) $(if $(CKPT),--ckpt $(CKPT),--query $(if $(QUERY),$(QUERY),ipm)) --split $(SPLIT) --tag $(TAG) $(if $(CITIES),--cities $(CITIES),) --steps $(if $(STEPS),$(STEPS),3000) $(VIGOR_ARGS)
 
 vigor-viz: ## overlay sheet of the worst (PICK=worst) or a spread (PICK=spread) of N frames of EVAL_JSON, re-matched with CKPT; TAG=
