@@ -26,6 +26,19 @@ def erp_placement(h, w, erp_hw, R_w2c, height_m, n, cell_m, max_range_m=40.0, pa
     H, W = int(erp_hw[0]), int(erp_hw[1])
     device, dtype = R_w2c.device, torch.float32
     dir_cam, _elev = _rays(h, w, H, W, device, dtype, patch)
+    xy, valid = _ground_px(dir_cam, R_w2c, height_m, n, cell_m, max_range_m)
+    return xy.reshape(B, h, w, 2), valid.reshape(B, h, w)
+
+
+def erp_placement_at(uv, erp_hw, R_w2c, height_m, n, cell_m, max_range_m=40.0):
+    """`erp_placement` for arbitrary ERP points: uv (N, 2) continuous ERP coordinates (pixel k spans [k, k + 1),
+    so a token centre is ((j + 0.5) * 16, (i + 0.5) * 16)). Returns xy (B, N, 2) virtual BEV px, valid (B, N)."""
+    dir_cam, _ = rays_at(uv[:, 0].float(), uv[:, 1].float(), int(erp_hw[0]), int(erp_hw[1]))
+    return _ground_px(dir_cam, R_w2c, height_m, n, cell_m, max_range_m)
+
+
+def _ground_px(dir_cam, R_w2c, height_m, n, cell_m, max_range_m):
+    """Flat-ground intersection of camera-frame rays dir_cam (N, 3): virtual BEV px (B, N, 2) and valid (B, N)."""
     R_c2w = R_w2c.float().transpose(-1, -2)                       # (B, 3, 3)
     dir_w = torch.einsum("bij,nj->bni", R_c2w, dir_cam)           # (B, N, 3) world ENU
     fwd = R_c2w[:, :, 2].clone()
@@ -42,8 +55,17 @@ def erp_placement(h, w, erp_hw, R_w2c, height_m, n, cell_m, max_range_m=40.0, pa
     valid = down & (rng <= float(max_range_m)) & (rng >= 0.0)
     u = n / 2 - y / cell_m - 0.5
     v = n / 2 - x / cell_m - 0.5
-    xy = torch.stack([u, v], -1).reshape(B, h, w, 2)
-    return xy, valid.reshape(B, h, w)
+    return torch.stack([u, v], -1), valid
+
+
+def rays_at(u, v, H, W):
+    """Unit directions (camera x right, y down, z forward) and elevation (+up) of continuous ERP points u, v
+    (any matching shapes; pixel k spans [k, k + 1)) on an H x W panorama."""
+    lon = (u / W - 0.5) * (2 * math.pi)
+    lat = (0.5 - v / H) * math.pi
+    cl = torch.cos(lat)
+    dir_cam = torch.stack([torch.sin(lon) * cl, -torch.sin(lat), torch.cos(lon) * cl], -1)
+    return dir_cam, lat
 
 
 def _rays(h, w, H, W, device, dtype, patch):
@@ -52,10 +74,7 @@ def _rays(h, w, H, W, device, dtype, patch):
                             torch.arange(h, device=device, dtype=dtype), indexing="xy")
     u = (jj + 0.5) * patch
     v = (ii + 0.5) * patch
-    lon = (u / W - 0.5) * (2 * math.pi)
-    lat = (0.5 - v / H) * math.pi
-    cl = torch.cos(lat)
-    dir_cam = torch.stack([torch.sin(lon) * cl, -torch.sin(lat), torch.cos(lon) * cl], -1)
+    dir_cam, lat = rays_at(u, v, H, W)
     return dir_cam.reshape(-1, 3), lat.reshape(-1)
 
 
@@ -76,6 +95,12 @@ class ErpQuery(nn.Module):
         H, W = erp.shape[-2:]
         return erp_placement(H // self.patch, W // self.patch, (H, W), batch["R_w2c"][:, 0],
                              self.height, self.n, self.cell, self.max_range, self.patch)
+
+    def placement_at(self, batch, uv):
+        """Placement of arbitrary ERP points uv (N, 2) (continuous coords, see `erp_placement_at`), same rays and
+        ground model as the tokens: xy (B, N, 2) virtual BEV px, valid (B, N). Used by the sub-cell refinement."""
+        H, W = batch["erp"].shape[-2:]
+        return erp_placement_at(uv, (H, W), batch["R_w2c"][:, 0], self.height, self.n, self.cell, self.max_range)
 
     def forward(self, batch, matcher):
         erp = batch["erp"]

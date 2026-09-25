@@ -29,7 +29,7 @@ import torch
 import torch.nn as nn
 import torch.nn.functional as F
 
-from bevloc.model.erp_query import _rays
+from bevloc.model.erp_query import _rays, rays_at
 
 
 def sample_token_depth(depth, h, w):
@@ -60,15 +60,43 @@ def depth_placement_metric(depth, h, w, R_w2c, max_depth_m=35.0, patch=16):
     depth: (B, 1, H, W) metres along the ray. Returns xy_m (B, h, w, 2) and valid (B, h, w) bool."""
     B = R_w2c.shape[0]
     dir_cam, _ = _rays(h, w, h * patch, w * patch, R_w2c.device, torch.float32, patch)   # (N, 3)
+    d = sample_token_depth(depth.float(), h, w).reshape(B, -1)
+    xy, valid = _metric_along_rays(dir_cam, d, R_w2c, max_depth_m)
+    return xy.reshape(B, h, w, 2), valid.reshape(B, h, w)
+
+
+def sample_pixel_depth(depth, uv, erp_hw):
+    """Depth at continuous ERP points uv (N, 2) of an erp_hw = (H, W) panorama: (B, N), nearest depth pixel
+    (floor(u * W_d / W), the rule of `sample_token_depth`, which it equals at token centres)."""
+    if depth.ndim == 4:
+        depth = depth[:, 0]
+    Hd, Wd = depth.shape[-2:]
+    H, W = int(erp_hw[0]), int(erp_hw[1])
+    uv = uv.to(torch.float64)
+    cols = (uv[:, 0] * Wd / W).floor().long().clamp(0, Wd - 1)
+    rows = (uv[:, 1] * Hd / H).floor().long().clamp(0, Hd - 1)
+    return depth[:, rows, cols]
+
+
+def depth_placement_metric_at(depth, uv, erp_hw, R_w2c, max_depth_m=35.0):
+    """`depth_placement_metric` for arbitrary ERP points: uv (N, 2) continuous coords (pixel k spans [k, k + 1);
+    a token centre is ((j + 0.5) * 16, (i + 0.5) * 16)); the depth is read at that pixel and the point goes along
+    that pixel's own ray. Returns xy_m (B, N, 2), valid (B, N)."""
+    dir_cam, _ = rays_at(uv[:, 0].float(), uv[:, 1].float(), int(erp_hw[0]), int(erp_hw[1]))
+    d = sample_pixel_depth(depth.float(), uv, erp_hw)
+    return _metric_along_rays(dir_cam, d, R_w2c, max_depth_m)
+
+
+def _metric_along_rays(dir_cam, d, R_w2c, max_depth_m):
+    """dir_cam (N, 3) camera rays, d (B, N) depth along them -> ego xy (B, N, 2) metres, valid (B, N)."""
     R_c2w, fwd, left = ego_axes(R_w2c)
     dir_w = torch.einsum("bij,nj->bni", R_c2w, dir_cam)                                 # (B, N, 3)
-    d = sample_token_depth(depth.float(), h, w).reshape(B, -1)
     valid = torch.isfinite(d) & (d > 0) & (d < float(max_depth_m))
     d = torch.where(valid, d, torch.zeros_like(d))
     p = dir_w * d[..., None]
     x = (p * fwd[:, None, :]).sum(-1)
     y = (p * left[:, None, :]).sum(-1)
-    return torch.stack([x, y], -1).reshape(B, h, w, 2), valid.reshape(B, h, w)
+    return torch.stack([x, y], -1), valid
 
 
 def metric_to_bev_px(xy_m, n, cell_m):
@@ -141,6 +169,13 @@ class ErpDepthQuery(nn.Module):
             raise KeyError("erp_depth query needs batch['depth'] (VigorPairs with depth, see scripts/loc2_depth_vigor.py)")
         return depth_placement(batch["depth"], H // self.patch, W // self.patch, batch["R_w2c"][:, 0],
                                self.n, self.cell, self.max_depth, self.patch)
+
+    def placement_at(self, batch, uv):
+        """Placement of arbitrary ERP points uv (N, 2) (continuous coords): depth read at each point's own pixel,
+        point along its own ray, the convention of `placement`. xy (B, N, 2) virtual BEV px, valid (B, N)."""
+        H, W = batch["erp"].shape[-2:]
+        xy_m, valid = depth_placement_metric_at(batch["depth"], uv, (H, W), batch["R_w2c"][:, 0], self.max_depth)
+        return metric_to_bev_px(xy_m, self.n, self.cell), valid
 
     def forward(self, batch, matcher):
         erp = batch["erp"]

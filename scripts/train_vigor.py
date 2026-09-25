@@ -16,6 +16,11 @@ Saves `<tag>_best.pt` by validation pose error in the same {"query", "mode", "de
 whose panorama has no depth file are dropped and counted), plus Loc²'s VCE pose loss (cfg.train.vce_weight, auto = 1
 for this mode; --vce-weight overrides). With VCE on, the checkpoint is selected by the validation Procrustes pose
 error (vce_pose_m, fixed match draw) instead of the heat-map proxy.
+
+--refine-weight W (cfg.train.refine_weight, default 0 = the refiner frozen and left out of the checkpoint, as before):
+RoMa's fine loss on the decoder's conv refiner (its only refiner, stride 16; train_lift_splat.refine_step_loss): the
+refiner is unfrozen, trained on detached coarse inputs, and saved in the checkpoint's decoder dict, from which
+eval_vigor.py --refine then reads it. Validation logs the refined vs input-warp end-point error (fine_epe_px).
 """
 from __future__ import annotations
 
@@ -31,12 +36,13 @@ import torch
 from torch.utils.data import DataLoader
 
 sys.path.insert(0, str(Path(__file__).resolve().parent))
-from train_lift_splat import step, validate  # noqa: E402
+from train_lift_splat import refine_options, step, validate  # noqa: E402
 
 from bevloc import config as C  # noqa: E402
 from bevloc.data.vigor import VigorPairs, collate_vigor, split_cities  # noqa: E402
 from bevloc.model.coarse import FeatureQueryMatcher, resolve_vce_weight, vce_options  # noqa: E402
 from bevloc.model.query import apply_query_cfg, build_query, load_query_state  # noqa: E402
+from bevloc.model.refine import REFINER_KEY, decoder_state, set_refiner_trainable  # noqa: E402
 
 
 def main():
@@ -65,6 +71,9 @@ def main():
                     help="erp_depth: train the projection head (sets cfg.erp_depth.head; default off = ablation 4b)")
     ap.add_argument("--vce-weight", type=float, default=None,
                     help="Loc² VCE pose loss weight (default cfg.train.vce_weight: auto = 1 for erp_depth, else 0)")
+    ap.add_argument("--refine-weight", type=float, default=None,
+                    help="RoMa fine loss on the decoder's conv refiner (default cfg.train.refine_weight, 0 = off: "
+                         "refiner frozen and not saved)")
     ap.add_argument("--local-radius", type=int, default=0, help="CE window in cells (0 = full 56x56 map: the tile IS the search area)")
     ap.add_argument("--tag", required=True)
     ap.add_argument("--out", default="experiments/09_vigor")
@@ -85,11 +94,15 @@ def main():
     vce_opts = vce_options(cfg)
     if a.pose_nll_weight is None:
         a.pose_nll_weight = 0.0 if mode == "erp_depth" else 0.5
+    refine_w = float(getattr(cfg.train, "refine_weight", 0.0) or 0.0) if a.refine_weight is None else float(a.refine_weight)
+    refine_opts = refine_options(cfg)
     placed = mode == "erp_depth"          # heat-map "pose" = argmax of the token votes, not a pose for placed tokens
     train_meta = dict(pose_nll_weight=a.pose_nll_weight, vce_weight=vce_w, vce_opts=vce_opts if vce_w else None,
                       neighbour_radius=a.neighbour_radius, neighbour_weight=a.neighbour_weight, steps=a.steps,
-                      batch=a.batch, local_radius=a.local_radius)
-    print(f"pose NLL weight {a.pose_nll_weight}", flush=True)
+                      batch=a.batch, local_radius=a.local_radius, refine_weight=refine_w,
+                      refine_opts=refine_opts if refine_w else None)
+    print(f"pose NLL weight {a.pose_nll_weight}  refine weight {refine_w}" + (f" {refine_opts}" if refine_w else ""),
+          flush=True)
     tr_cities = a.cities or split_cities(a.split, True)
     va_cities = a.val_cities or (tr_cities if a.split == "samearea" else split_cities(a.split, False))
     tr = VigorPairs(a.root, cfg, cities=tr_cities, split=a.split, train=True)
@@ -118,11 +131,16 @@ def main():
     va_loader = DataLoader(va, batch_size=a.batch, shuffle=False, num_workers=a.workers, collate_fn=collate_vigor)
 
     matcher = FeatureQueryMatcher(cfg.matcher.checkpoint, dev, train_decoder=True)
-    for n, p in matcher.model.decoder.named_parameters():
-        if "conv_refiner" in n:
-            p.requires_grad = False
+    n_ref = set_refiner_trainable(matcher.model.decoder, refine_w > 0)
+    if refine_w:
+        print(f"conv refiner unfrozen: {n_ref / 1e6:.2f} M parameters (fine loss weight {refine_w})", flush=True)
     if state:
         matcher.model.decoder.load_state_dict(state["decoder"], strict=False)
+    # a warm start that carries a trained refiner keeps it in every checkpoint, even with the fine loss off
+    # (it is then frozen at those weights): silently dropping trained weights would revert eval to the released ones
+    keep_refiner = refine_w > 0 or bool(state and any(REFINER_KEY in k for k in state["decoder"]))
+    if keep_refiner and not refine_w:
+        print("warm start carries a trained conv refiner: kept (frozen) and saved in the checkpoints", flush=True)
     query = build_query(cfg, mode).to(dev)
     if state:
         load_query_state(query, state)
@@ -142,17 +160,18 @@ def main():
     out.mkdir(parents=True, exist_ok=True)
     C.snapshot(cfg, out, dict(tag=a.tag, ckpt=a.ckpt, split=a.split, train_cities=tr_cities, val_cities=va_cities,
                               val_frac=a.val_frac, val_samples=a.val_samples, query_mode=mode,
-                              vce_weight=vce_w, no_depth=n_no_depth, pose_nll_weight=a.pose_nll_weight))
+                              vce_weight=vce_w, no_depth=n_no_depth, pose_nll_weight=a.pose_nll_weight,
+                              refine_weight=refine_w))
     ckpt_path = C.REPO / "checkpoints" / f"vigor_{a.tag}_best.pt"
     ckpt_path.parent.mkdir(parents=True, exist_ok=True)
     log = out / f"train_{a.tag}.csv"
-    log.write_text("step,split,ce,top1,cell_err_m,pose_nll,pose_err_m,n,sec,vce_m,vce_pose_m\n")
+    log.write_text("step,split,ce,top1,cell_err_m,pose_nll,pose_err_m,n,sec,vce_m,vce_pose_m,fine_epe_px,fine_epe_in_px\n")
 
     def ckpt_state(k, v):
         return {"query": query.state_dict(), "mode": mode,
                 "erp_depth": vars(cfg.erp_depth) if mode == "erp_depth" else None,
                 "train": train_meta,
-                "decoder": {kk: vv for kk, vv in matcher.model.decoder.state_dict().items() if "conv_refiner" not in kk},
+                "decoder": decoder_state(matcher.model.decoder, include_refiner=keep_refiner),
                 "step": k, "val": v}
 
     def forever():
@@ -169,31 +188,36 @@ def main():
         opt.zero_grad(set_to_none=True)
         loss, st = step(query, matcher, batch, cfg, L.min_patch_valid, a.local_radius,
                         a.neighbour_radius, a.neighbour_weight, certainty_weight=0.01,
-                        pose_nll_weight=a.pose_nll_weight, vce_weight=vce_w, vce_opts=vce_opts)
+                        pose_nll_weight=a.pose_nll_weight, vce_weight=vce_w, vce_opts=vce_opts,
+                        refine_weight=refine_w, refine_opts=refine_opts)
         loss.backward()
         opt.step()
         with log.open("a") as f:
             f.write(f"{k},train,{st['ce']:.4f},{st['acc']:.4f},{st['cell_err'] * m_per_cell:.2f},"
                     f"{st['pose_nll']:.4f},{st['pose_err'] * m_per_cell:.2f},{st['n']},{time.time() - t0:.1f},"
-                    f"{st['vce_m']:.3f},{st['vce_pose_m']:.3f}\n")
+                    f"{st['vce_m']:.3f},{st['vce_pose_m']:.3f},{st['fine_epe_px']:.3f},{st['fine_epe_in_px']:.3f}\n")
         if k == 1 or k % 25 == 0:
             print(f"step {k} TRAIN  CE {st['ce']:.3f}  poseNLL {st['pose_nll']:.3f}  top1 {st['acc']:.1%}  "
                   f"arg {st['cell_err'] * m_per_cell:.1f} m  n {st['n']}"
                   + (f"  VCE {st['vce_m']:.2f} m  procrustes {st['vce_pose_m']:.2f} m" if vce_w else "")
+                  + (f"  fine EPE {st['fine_epe_px']:.2f} px (input {st['fine_epe_in_px']:.2f})" if refine_w else "")
                   + f"  ({time.time() - t0:.0f}s)", flush=True)
         if k % a.val_every == 0 or k == a.steps:
             v = validate(query, matcher, va_loader, cfg, L.min_patch_valid, a.local_radius, device=dev,
                          max_batches=max(1, a.val_samples // a.batch), certainty_weight=0.01,
-                         pose_nll_weight=a.pose_nll_weight, vce_weight=vce_w, vce_opts=vce_opts)
+                         pose_nll_weight=a.pose_nll_weight, vce_weight=vce_w, vce_opts=vce_opts,
+                         refine_weight=refine_w, refine_opts=refine_opts)
             with log.open("a") as f:
                 f.write(f"{k},val,{v['ce']:.4f},{v['top1']:.4f},{v['cell_err_m'] / (cfg.grid.cell_m * 16) * m_per_cell:.2f},"
                         f"{v['pose_nll']:.4f},{v['pose_err_m'] / (cfg.grid.cell_m * 16) * m_per_cell:.2f},{v['n']},{time.time() - t0:.1f},"
-                        f"{v['vce_m']:.3f},{v['vce_pose_m']:.3f}\n")
+                        f"{v['vce_m']:.3f},{v['vce_pose_m']:.3f},{v['fine_epe_px']:.3f},{v['fine_epe_in_px']:.3f}\n")
             pose_m = v["pose_err_m"] / (cfg.grid.cell_m * 16) * m_per_cell
             print(f"step {k} VAL    CE {v['ce']:.3f}  poseNLL {v['pose_nll']:.3f}  top1 {v['top1']:.1%}  "
                   + (f"{'heatmap-argmax (not a pose)' if placed else 'pose'} {pose_m:.1f} m  " if a.pose_nll_weight else "")
                   + f"n {v['n']}"
-                  + (f"  VCE {v['vce_m']:.2f} m  procrustes {v['vce_pose_m']:.2f} m" if vce_w else ""), flush=True)
+                  + (f"  VCE {v['vce_m']:.2f} m  procrustes {v['vce_pose_m']:.2f} m" if vce_w else "")
+                  + (f"  fine EPE {v['fine_epe_px']:.2f} px (input {v['fine_epe_in_px']:.2f})" if refine_w else ""),
+                  flush=True)
             score = v["vce_pose_m"] if vce_w and v["vce_pose_m"] == v["vce_pose_m"] else pose_m
             if score < best:
                 best, best_step = score, k

@@ -74,6 +74,10 @@ train:                             # scripts/train_fusion.py
   val_frames: 32
   seed: 0
   vce_weight: auto                 # Loc² VCE pose loss weight (task 04): auto = 1.0 for query erp_depth, 0 otherwise
+  refine_weight: 0.0               # RoMa fine loss on the decoder's conv refiner (stride 16, its only one); 0 = refiner frozen + not saved
+  refine_alpha: 0.5                # generalised Charbonnier alpha (RoMa §3.4 Eq. 16)
+  refine_c: 1.0e-4                 # Charbonnier scale s = c * stride, normalised reference coords (RoMa code: c = 1e-4)
+  refine_cert_cells: 0.5           # refiner certainty target: GT within this many reference cells (Chebyshev) of its input warp
 
 lift:                              # camera-only spherical Lift-Splat (scripts/train_lift_splat.py)
   erp_size: [896, 448]             # width, height; 2:1 keeps the panorama geometry for sat493m

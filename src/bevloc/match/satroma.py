@@ -178,6 +178,14 @@ class SatRoMa:
         _, counts = np.unique(np.round(pts_A, 3), axis=0, return_counts=True)
         n_patches, n_multi = int(len(counts)), int((counts > 1).sum())
         tgt = np.asarray(means_B if self.use_means else peaks_B, np.float64)
+        return SatRoMa._fit_grid(self, placed, tgt, 14, int(round(gm.shape[0] ** 0.5)), n_patches, n_multi)
+
+    @staticmethod
+    def _fit_grid(self, placed, tgt, in_dim, out_dim, n_patches, n_multi, argmax_cells=None) -> Match:
+        """Consensus of grid-unit correspondences placed (N, 2) query patches -> tgt (N, 2) reference cells
+        (cell-centre convention), with this instance's solver / threshold / seed; H converted to query px ->
+        reference px. The tail of `consensus_from_gm`, shared with `refined_consensus`."""
+        n_modes = int(placed.shape[0])
         cv2.setRNGSeed(self.seed)
         if self.solver == "se2":
             from bevloc.match.se2 import se2_ransac
@@ -202,10 +210,35 @@ class SatRoMa:
         ha = wa = int(self.m.im_a_size)
         hb = wb = int(self.m.im_b_size)
         H = np.asarray(convert_to_pixel_homography(
-            Hf, in_patch_dim=14, out_patch_dim=int(round(gm.shape[0] ** 0.5)),
+            Hf, in_patch_dim=in_dim, out_patch_dim=out_dim,
             crop_res=(ha, wa), map_res=(hb, wb), cell_convention="center"), dtype=np.float64)
         c = np.array([[0, 0, 1], [wa - 1, 0, 1], [wa - 1, ha - 1, 1], [0, ha - 1, 1]], float) @ H.T
         return Match(H, c[:, :2] / c[:, 2:3], n_modes, n_patches, n_multi, inl, argmax_cells)
+
+    @staticmethod
+    def refined_consensus(self, q_px, r_px, cells=56, H_seed=None, gate_cells=None, min_corr=None):
+        """Consensus on dense (sub-cell) correspondences: q_px (N, 2) query px (the 224 px picture, or virtual BEV
+        px of placed ERP pixels) -> r_px (N, 2) reference px. Same solver, threshold (in reference cells) and seed
+        as the coarse rows; H is query px -> reference px as there.
+
+        H_seed (3, 3) query px -> reference px, gate_cells: keep only correspondences within gate_cells reference
+        cells of H_seed's prediction before the RANSAC ("seeded by the coarse pose": cv2's RANSAC takes no initial
+        model, so the seed acts as a guided-matching gate). min_corr: fewer surviving correspondences than this
+        -> no model (H None), rather than a 2- or 3-point fit. Returns (Match, n_used)."""
+        q_px = np.asarray(q_px, np.float64).reshape(-1, 2)
+        r_px = np.asarray(r_px, np.float64).reshape(-1, 2)
+        sa = float(self.m.im_a_size) / 14.0
+        sb = float(self.m.im_b_size) / float(cells)
+        if H_seed is not None and gate_cells is not None and len(q_px):
+            p = np.c_[q_px, np.ones(len(q_px))] @ np.asarray(H_seed, np.float64).T
+            keep = np.linalg.norm(p[:, :2] / p[:, 2:3] - r_px, axis=1) <= float(gate_cells) * sb
+            q_px, r_px = q_px[keep], r_px[keep]
+        placed = (q_px - (sa / 2 - 0.5)) / sa                       # grid units, cell-centre convention
+        tgt = (r_px - (sb / 2 - 0.5)) / sb
+        n = int(len(placed))
+        if min_corr is not None and n < int(min_corr):
+            return Match(None, None, n, n, 0, 0.0), n
+        return SatRoMa._fit_grid(self, placed, tgt, 14, int(cells), n, 0), n
 
     def _argmax_cells(self, gm, mask, H_gt):
         """Mean coarse-cell error of the per-patch argmax against H_gt (query px -> ref px)."""
@@ -292,3 +325,87 @@ def consensus_for_query(cons, gm, query, batch, frac, n, min_frac=0.05):
     gmm = gm.clone()
     gmm[:, ~cons.query_patches(mask)] = 0.0
     return cons._ransac(gmm, None)
+
+
+REFINE_INITS = ("none", "coarse", "ransac")
+
+
+def refined_for_query(cons, o16, tap, query, batch, stride, init="coarse", coarse=None, gate_cells=None,
+                      min_cert=0.0, frac=None, min_frac=0.05, min_corr=8):
+    """Sub-cell consensus for one decoded sample from the decoder's stride-16 conv refiner (bevloc.model.refine).
+
+    o16: the decoder's scale-16 output dict (``flow``, ``certainty``, ``flow_pre_delta``, ``gm_certainty``,
+    ``gm_cls``; batch of one); tap: the `RefinerTap` that was active during that decode (its recorded features let
+    the refiner re-run on an injected warp); coarse: this sample's coarse `Match` (the "peak" row), the seed.
+    init:
+      none   - refiner fed the package's own coarse warp (cls_to_flow_refine of gm_cls, i.e. o16["flow"] as decoded);
+               RANSAC from scratch on the refined correspondences.
+      coarse - same refined warp; correspondences gated to within gate_cells reference cells of the coarse pose
+               before the RANSAC (seeding).
+      ransac - the refiner re-run on the RANSAC-consistent coarse warp W_in(token) = H_coarse(token's query point)
+               (valid tokens; others keep the package's warp), then gated as `coarse`.
+    Correspondences: the refined warp sampled on a query grid of stride `stride` px (bilinear between token
+    centres; read exactly at stride 16), kept where the query is valid: picture modes at stride 16 = the token set
+    of the coarse rows (`query_patches` of the valid fraction >= min_frac, as in `consensus_for_query`), at
+    stride < 16 the pixel's own bev_valid; erp_depth / erp = the pixel's own depth / ground placement (its query
+    point is the placed ego point of that ERP pixel in virtual BEV px). If min_cert > 0, also
+    sigmoid(refined certainty) >= min_cert. Seeded inits fall back to the coarse match when fewer than min_corr
+    correspondences survive the gate or the gated set gives no model. Returns (Match, info)."""
+    import torch
+    from bevloc.model.refine import apply_h, norm_to_px, px_to_norm, token_centres_px, warp_samples
+    if init not in REFINE_INITS:
+        raise ValueError(f"refine init must be one of {REFINE_INITS}, got {init!r}")
+    ref_size = int(cons.m.im_b_size)
+    cells = int(round(o16["gm_cls"].shape[1] ** 0.5))
+    placed = hasattr(query, "placement")
+    seeded = init in ("coarse", "ransac")
+    H_c = None if coarse is None else coarse.H
+    info = dict(n_corr=0, n_used=0, fallback=False)
+    if seeded and H_c is None:                                      # nothing to seed from: the coarse miss stands
+        return Match(None, None, 0, 0, 0, 0.0), info
+    flow, cert = o16["flow"][0].float(), o16["certainty"][0, 0].float()
+    if init == "ransac":
+        h, w = flow.shape[-2:]
+        if placed:
+            xy, vt = query.placement(batch)
+            q, vt = xy[0].double(), vt[0]
+        else:
+            q = token_centres_px(h, w, device=flow.device, dtype=torch.float64)
+            vt = torch.ones(h, w, dtype=torch.bool, device=flow.device)
+        w_inj = px_to_norm(apply_h(torch.as_tensor(H_c), q), ref_size).permute(2, 0, 1).float()
+        w_inj = torch.where(vt[None], w_inj, o16["flow_pre_delta"][0].float())
+        flow_r, dc = tap.rerun(w_inj[None])
+        flow, cert = flow_r[0].float(), (o16["gm_certainty"] + dc)[0, 0].float()
+    if placed:
+        uv, _, wv, cv = warp_samples(flow, cert, batch["erp"].shape[-2:], stride)
+        xy, ok = query.placement_at(batch, uv + 0.5)                # continuous ERP coords: pixel k spans [k, k+1)
+        q_px, ok = xy[0], ok[0]
+    elif int(stride) == 16:                                         # one per token: the coarse rows' token set
+        n_px = int(cons.m.im_a_size)
+        mask = torch.nn.functional.interpolate(frac[:, None].float(), size=(n_px, n_px), mode="nearest")[0, 0] >= min_frac
+        uv, _, wv, cv = warp_samples(flow, cert, (n_px, n_px), stride)
+        q_px, ok = uv, cons.query_patches(mask).to(flow.device).reshape(-1)
+    else:
+        if "bev_valid" in batch:
+            valid = batch["bev_valid"][0] != 0
+        else:                                                       # lift / hybrid: the patch mask of the coarse rows
+            n_px = int(cons.m.im_a_size)
+            valid = torch.nn.functional.interpolate(
+                (frac[:, None].float() >= min_frac).float(), size=(n_px, n_px), mode="nearest")[0, 0] > 0
+        uv, idx, wv, cv = warp_samples(flow, cert, valid.shape[-2:], stride)
+        q_px, ok = uv, valid[idx[:, 1], idx[:, 0]]
+    if min_cert > 0:
+        ok = ok & (torch.sigmoid(cv) >= float(min_cert))
+    r_px = norm_to_px(wv, ref_size)
+    ok_np = ok.cpu().numpy().astype(bool)
+    q_np = q_px.detach().double().cpu().numpy()[ok_np]
+    r_np = r_px.detach().double().cpu().numpy()[ok_np]
+    info["n_corr"] = int(ok_np.sum())
+    m, info["n_used"] = SatRoMa.refined_consensus(cons, q_np, r_np, cells=cells,
+                                                  H_seed=H_c if seeded else None,
+                                                  gate_cells=gate_cells if seeded else None,
+                                                  min_corr=min_corr if seeded else None)
+    if seeded and m.H is None:
+        info["fallback"] = True
+        return coarse, info
+    return m, info
