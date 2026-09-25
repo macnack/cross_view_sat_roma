@@ -4,6 +4,7 @@
   ipm    — RGB flat-ground IPM picture through the frozen sat493m encoder [kick-off H2 lower bound]
   hybrid — dense IPM ground features + learned depth above the horizon   [task 03, Task 3]
   erp    — the panorama's own tokens; placement after matching (Loc²)     [task 03, Task 6]
+  erp_depth — erp tokens [+ projection head], placed from metric depth    [task 04, Step 2]
 """
 from __future__ import annotations
 
@@ -62,6 +63,9 @@ def build_query(cfg, mode):
     if mode == "erp":
         from bevloc.model.erp_query import ErpQuery
         return ErpQuery(cfg)
+    if mode == "erp_depth":
+        from bevloc.model.depth_query import ErpDepthQuery
+        return ErpDepthQuery(cfg)
     raise ValueError(f"unknown query mode {mode!r}")
 
 

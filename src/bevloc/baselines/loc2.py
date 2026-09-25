@@ -117,5 +117,7 @@ def spherical_camera(width: int, height: int):
 
 
 def depth_png_path(root, city: str, pano: str) -> Path:
-    """Where Loc²'s dataloader looks for the depth of ``<root>/<city>/panorama/<pano>``."""
-    return Path(root) / city / "unik3d_depth" / (Path(pano).stem + ".png")
+    """Where Loc²'s dataloader looks for the depth of ``<root>/<city>/panorama/<pano>`` (one definition, shared
+    with the VigorPairs depth reader)."""
+    from bevloc.data.vigor import depth_png_path as _p
+    return _p(root, city, pano)
