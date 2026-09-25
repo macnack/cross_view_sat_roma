@@ -13,7 +13,9 @@ bootstrap intervals, query modes (lift | ipm | hybrid | erp), solver ablation, p
 verdicts: experiments/05_lift_splat/REPORT.md + VERDICT.md, experiments/07_track/REPORT.md. Task 01 is
 reported (experiments/01_kickoff/REPORT.md, H1 falsified); task 02 (FG²/BevSplat) is blocked on data/env.
 Method of record since 2026-09-24: camera-only IPM picture + Sat-RoMa (`--query ipm`); learned lifts are
-ablation rows only. Open design decisions are listed at the end of docs/decisions.md.
+ablation rows only. VIGOR benchmark rows (ours, FG², Loc², like-for-like draws): experiments/09_vigor/.
+Next task (agreed 2026-09-25): docs/tasks/04_loc2_matcher.md — Loc² geometry with the Sat-RoMa decoder as matcher.
+Open design decisions are listed at the end of docs/decisions.md.
 
 ## Repo layout
 - third_party/   read-only: Dur360BEV, RoMa, RoMaV2, FG2, VIGOR, bev-patch-pf, lift-splat-shoot. Wrap, never edit.

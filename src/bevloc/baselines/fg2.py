@@ -51,10 +51,15 @@ def ensure_fg2_on_path():
             continue
         if Path(p).resolve() == FG2_ROOT.resolve():
             continue
+        if "third_party/Loc2" in p.replace("\\", "/"):      # Loc2's regular `models` package would shadow FG2's namespace one
+            continue
         cleaned.append(p)
     sys.path[:] = [root] + cleaned
+    # Drop cached top-level packages of the same names that live elsewhere (Loc2 ships its own `models`, ...).
     for k in list(sys.modules):
-        if k == "utils" or k.startswith("utils."):
+        top = k.split(".")[0]
+        if top == "utils" or (top in ("models", "dataloaders", "att_layers", "DINO_modules")
+                              and root not in (getattr(sys.modules[k], "__file__", None) or "")):
             del sys.modules[k]
     # FG2 ships utils/*.py without __init__.py — make it a real package at runtime.
     import types
