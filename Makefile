@@ -8,7 +8,7 @@ FRAMES  ?= 0 1000 1600 2000
 REF     ?= 200
 RUN      = PYTHONPATH=src:.pydeps $(PY)
 
-.PHONY: fg2-vigor eagle-watch
+.PHONY: fg2-vigor eagle-watch vigor-viz
 .PHONY: help deps test fetch stats mask lens viewer oxts odometry bevs mosaic smoke h1 targets overfit train calib all roma-viz mapillary mapillary-scan mapillary-sample ipm-smoke lift-overfit lift-splat lift-eval lift-splat-years lift-aug-viz lift-layers-viz lift-splat-aug lift-splat-pose-nll lift-splat-seq baselines-manifest fg2-smoke fg2-eval fg2-train bevsplat-smoke bevsplat-eval bevsplat-train baselines-report
 help:
 	@grep -E '^[a-z0-9_-]+:.*##' $(MAKEFILE_LIST) | sed -E 's/:.*## /\t/' | expand -t 12
@@ -190,6 +190,9 @@ vigor-eval: ## our method on VIGOR (known orientation): CKPT=, SPLIT=crossarea|s
 
 vigor-train: ## fine-tune CKPT on VIGOR (SPLIT=samearea|crossarea, CITIES="Chicago", STEPS=3000, TAG=); CKPT= empty + QUERY=ipm = no warm start
 	$(RUN) scripts/train_vigor.py --config $(CONFIG) $(if $(CKPT),--ckpt $(CKPT),--query $(if $(QUERY),$(QUERY),ipm)) --split $(SPLIT) --tag $(TAG) $(if $(CITIES),--cities $(CITIES),) --steps $(if $(STEPS),$(STEPS),3000) $(VIGOR_ARGS)
+
+vigor-viz: ## overlay sheet of the worst (PICK=worst) or a spread (PICK=spread) of N frames of EVAL_JSON, re-matched with CKPT; TAG=
+	$(RUN) scripts/viz_vigor.py --config $(CONFIG) --ckpt $(CKPT) --eval-json $(EVAL_JSON) --tag $(TAG) --n $(if $(N),$(N),20) --pick $(if $(PICK),$(PICK),worst)
 
 fg2-vigor: ## FG² released checkpoint on the same VIGOR samples as vigor-eval (SPLIT=, CITIES=, LIMIT=, TAG=, VIGOR_ARGS=)
 	$(RUN) scripts/eval_fg2_vigor.py --config $(CONFIG) --split $(SPLIT) --tag $(TAG) --limit $(LIMIT) $(if $(CITIES),--cities $(CITIES),) $(VIGOR_ARGS)

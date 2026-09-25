@@ -1,0 +1,150 @@
+# VIGOR at 0.125 m/px: reference 896 px = 112 m (the 71 m tile fills it instead of 18 of 56 cells), classifier
+# cells 2 m instead of 4 m; query 224 px = 28 m (the flat-ground picture carries little beyond 15 m anyway).
+# Everything else = default.yaml. Idea 1 of 2026-09-25 (docs/decisions.md): is the 1.7 m 25th-percentile floor
+# the 4 m cell quantisation?
+# Single source of parameters for task 01 (kick-off). Every script takes --config and
+# writes a snapshot of the resolved config next to its outputs.
+data:
+  root: data/dur360bev
+  ortho: data/ortho/durham/2009_ea_irrgb/durham_2009_25cm.vrt   # PARTIAL: 6 of 122 EA 2009 tiles, ~36% of frames fully covered (docs/decisions.md)
+
+erp:
+  size: [1280, 640]                # width, height
+  lens: dur360                     # dur360 (196/203 piecewise, verified) | equidistant203 (fisheye_tools remap)
+  lens_params: {fov_inner_deg: 196.0, fov_outer_deg: 203.0, alpha: 1.0}
+  valid_mask: experiments/00_calib/erp_valid_1280x640.npy
+
+calib:                             # see docs/decisions.md; all provisional until cross-checked
+  cam_from_lidar_rpy_deg: [0.0, 0.0, 0.0]
+  cam_from_lidar_t_m: [0.0, 0.0, -0.27]      # camera 0.27 m above the LiDAR origin
+  lidar_height_m: 1.57                        # above road; preliminary (5 frames)
+
+grid:
+  n: 224
+  cell_m: 0.125
+
+ground:
+  floor_cell_m: 0.5
+  ground_tol_m: 0.20
+  max_floor_dev_m: 1.2
+  max_range_m: 40.0
+  contact_max_height_m: 0.7        # only returns this close to the floor define a contact (not canopy/signs)
+
+edges:
+  min_obj_height_m: 1.5
+  max_jump_m: 0.75
+
+mask:                              # ego-vehicle / seam mask estimation (scripts/calib_erp_mask.py)
+  frames: {ranges: [[500, 1450], [1900, 2700]], stride: 10}   # moving frames only
+  std_thresh: 5.0
+  meanhp_thresh: 6.0
+  min_blob_px: 80
+  margin_px: 6
+  seam_halfwidth_px: 4
+  horizon_frac: 0.53
+
+oxts:                              # scripts/oxts_check.py
+  convention: ccw_from_east        # VERIFIED on data (scripts/oxts_check.py): std 2.5 deg vs 124 deg for cw
+  min_speed_mps: 2.0               # GNSS jitter has no direction below this
+  smooth: 2                        # +-samples for the travel-direction difference (10 Hz)
+
+matcher:
+  checkpoint: 0t1q66hy             # aerial cross-scale search; same 224/896/4x geometry as 4adxis71
+  use_means: false                 # false = published config (one peak per patch)
+  min_valid_frac: 0.5              # PROPOSED, not yet agreed (package default 1.0)
+  reproj_cells: 3.0
+  seed: 0
+  solver: srt                     # srt = Sat-RoMa 4-DoF similarity (published); se2 = fixed-scale 2-point SE(2) (task 03, H7)
+
+fusion:                            # camera + LiDAR fusion BEV (src/bevloc/model/fusion_bev.py)
+  backbone: convnext_tiny.dinov3_lvd1689m     # frozen; same ground backbone as BEV-Patch-PF
+  dim: 128
+  ground_fill: true                # camera-visible ground (flat-ground projection up to the first LiDAR obstacle)
+
+train:                             # scripts/train_fusion.py
+  steps: 2000
+  batch: 2                         # 12 GB laptop; raise on Eagle
+  lr_bev: 2.0e-4
+  lr_decoder: 1.0e-5               # 0 = keep the released Sat-RoMa decoder frozen
+  weight_decay: 0.01
+  min_patch_valid: 0.25            # a query patch is supervised if this fraction of its cells has LiDAR returns
+  min_ref_cell_valid: 0.5          # a query patch's TARGET is usable if this fraction of that reference cell is non-black
+  val_ranges: [[710, 2400]]        # contiguous block held out, inside the EA-2009-covered corridor (not random frames: neighbours overlap)
+  val_every: 250
+  val_frames: 32
+  seed: 0
+
+lift:                              # camera-only spherical Lift-Splat (scripts/train_lift_splat.py)
+  erp_size: [896, 448]             # width, height; 2:1 keeps the panorama geometry for sat493m
+  dim: 128
+  depth_bins: 16
+  d_min: 1.0
+  d_max: 40.0
+  max_elev_deg: -5.0               # only rays looking this far below the horizon are splat
+  min_patch_valid: 0.05
+  train_decoder: true
+  lr_lift: 2.0e-4
+  steps: 2000
+  batch: 1                         # 12 GB: sat493m on 896x448 + decoder
+  local_radius: 6                  # ~24 m Chebyshev; local window like the RoMa-RGB track
+  max_offset_frac: 0.10            # local centre locus (~22 m on a 224 m reference)
+  max_rot_deg: 10.0
+  margin_m: 120.0                  # GPS must sit this far inside a tile (query+ref footprint)
+  val_every: 200
+  val_frames: 48
+  neighbour_radius: 0
+  neighbour_weight: 0.5
+  # Training augmentations (batch must stay 1 when ref_scales vary)
+  ref_scales: [3, 4, 5, 6]         # query:ref linear scales; 0t1q66hy trained 1:2–1:8
+  offset_range: [0.05, 0.18]       # random pose window per sample (frac of ref edge)
+  rot_range: [3.0, 20.0]           # degrees
+  colour_jitter: true
+  attitude_noise_deg: 2.0          # small noise on computed_rotation
+  # No-match negatives: GT pose off the reference crop. Sat-RoMa has no unmatched
+  # class in gm_cls — these train gm_certainty toward 0 (CE skipped for the sample).
+  neg_frac: 0.15
+  neg_sep_frac: [0.70, 1.40]       # offset as fraction of ref edge (beyond half-edge)
+  certainty_weight: 0.01           # RoMa ce_weight; still applies on positive patches
+  pose_nll_weight: 0.0             # OrienterNet-style pose heatmap NLL; set 0.5 for tonight deep-dive
+  seq_dists_m: [0.0]               # metres behind query; [0,2,5] = multi-frame soft-splat
+  query_mode: lift                # lift | ipm | hybrid (task 03)
+  min_elev_deg: -3.5              # hybrid: rays below this hit ground inside ground_max_range_m and are placed by IPM
+  ground_max_range_m: 28.0
+
+vigor:                            # src/bevloc/data/vigor.py, scripts/eval_vigor.py (known-orientation protocol)
+  root: null                      # default: $VIGOR_DIR
+  row_sign: 1.0                   # label dy > 0 = panorama south of the tile centre = down in the image (verified, `make vigor-check-labels`)
+  col_sign: -1.0                  # label dx > 0 = panorama WEST of the tile centre = LEFT in the image (verified)
+  height_m: 2.5                   # panorama camera height for the IPM picture; calibrated 2026-09-24 on 150 Chicago samples
+                                  # (1.6 m: 7.9, 2.0 m: 5.6, 2.5 m: 4.4, 3.0 m: 4.9 m median; wrong row sign: 18-20 m)
+  fg2_batch: 24                   # scripts/eval_fg2_vigor.py: FG²'s own default batch (native 714x1428 / 630x630 inputs)
+
+erp_query:                        # ERP-token query, placement after matching (task 03, Task 6)
+  max_range_m: 40.0               # ground tokens beyond this are not placed (IPM too coarse there)
+
+ipm:                              # camera-only flat-ground query on Mapillary (task 03, Task 2)
+  height_m: 1.7                   # Mapillary rig height above the road, assumed (not in the files)
+  blind_radius_m: 1.2             # disc under the camera (rig / vehicle roof)
+  max_depression_deg: 20.0        # ERP rows looking steeper down than this are the capture car's own body
+                                  # (semantic probe 2026-09-24: the bottom ~40 % of a Fixtor ERP is car roof);
+                                  # on the ground that is a 1.7 / tan 20° = 4.7 m disc, which the mosaic refills
+  semantic_dynamic_mask: true     # mask person/car/bus/... pixels when <seq>/semantic/<id>.png exists
+  semantic_ground_only: false     # keep only road/sidewalk/vegetation/terrain pixels (ablation)
+  contact_line: false             # ipm_cl: paint wall/hedge feet (camera-only contact line from the semantic map)
+  contact_classes: [2, 3, 4]      # Cityscapes ids: building, wall, fence
+  contact_vegetation: true        # also paint the feet of vegetation (hedges, tree lines)
+  contact_thickness_px: 2         # BEV cells per foot mark
+
+reference:
+  scale: 4
+  max_offset_frac: 0.30
+  max_rot_deg: 55.0
+
+pf:                               # scripts/track_route.py (task 03, Task 5): SE(2) particle filter
+  n: 512
+  init_sigma_xy: 10.0             # m, initial spread around the first proxy pose
+  init_sigma_yaw: 5.0             # deg
+  sigma_xy: 1.0                   # m per frame: injected motion noise = process noise
+  sigma_yaw: 1.0                  # deg per frame
+  sigma_yaw_obs: 5.0              # deg, compass observation
+  temperature: 1.0                # multiplies the heatmap log-likelihood (< 1 tempers over-confidence)
