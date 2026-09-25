@@ -65,3 +65,12 @@
 8789516 t04_train_cross_2m      ^(train |depth:|step [0-9]*[05]000 VAL|wrote|Traceback|.*Error|error:|Killed|OOM|\[run\] exit)
 8789517 t04_ev_cross_2m_last    ^([A-Za-z]+ +n +[0-9]+|wrote |Traceback|.*Error|\[run\] exit)
 8789518 t04_ev_cross_2m_best    ^([A-Za-z]+ +n +[0-9]+|wrote |Traceback|.*Error|\[run\] exit)
+# --- sub-cell stage: frozen refiner on the two 2 m checkpoints, and the refiner trained with the fine loss ---
+8790275 ref_ipm_s16 ^([0-9]+ samples|[A-Za-z]+ +n +[0-9]+|refined|wrote |Traceback|.*Error|\[run\] exit)
+8790276 ref_t04_s16 ^([0-9]+ samples|[A-Za-z]+ +n +[0-9]+|refined|wrote |Traceback|.*Error|\[run\] exit)
+8790277 ref_ipm_s8 ^([0-9]+ samples|[A-Za-z]+ +n +[0-9]+|refined|wrote |Traceback|.*Error|\[run\] exit)
+8790278 ref_t04_s8 ^([0-9]+ samples|[A-Za-z]+ +n +[0-9]+|refined|wrote |Traceback|.*Error|\[run\] exit)
+8790279 ref_ipm_s4 ^([0-9]+ samples|[A-Za-z]+ +n +[0-9]+|refined|wrote |Traceback|.*Error|\[run\] exit)
+8790280 ref_t04_s4 ^([0-9]+ samples|[A-Za-z]+ +n +[0-9]+|refined|wrote |Traceback|.*Error|\[run\] exit)
+8790282 t04_ev_refine1 ^([0-9]+ samples|[A-Za-z]+ +n +[0-9]+|refined|wrote |Traceback|.*Error|\[run\] exit)
+8790281 t04_train_refine1 ^(train |refin|step [0-9]*[05]000 VAL|wrote|Traceback|.*Error|error:|Killed|OOM|\[run\] exit)
