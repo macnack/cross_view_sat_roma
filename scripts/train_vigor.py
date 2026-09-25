@@ -36,7 +36,7 @@ from train_lift_splat import step, validate  # noqa: E402
 from bevloc import config as C  # noqa: E402
 from bevloc.data.vigor import VigorPairs, collate_vigor, split_cities  # noqa: E402
 from bevloc.model.coarse import FeatureQueryMatcher, resolve_vce_weight, vce_options  # noqa: E402
-from bevloc.model.query import build_query, load_query_state  # noqa: E402
+from bevloc.model.query import apply_query_cfg, build_query, load_query_state  # noqa: E402
 
 
 def main():
@@ -59,6 +59,8 @@ def main():
     ap.add_argument("--neighbour-radius", type=int, default=4)
     ap.add_argument("--neighbour-weight", type=float, default=0.5)
     ap.add_argument("--pose-nll-weight", type=float, default=0.5)
+    ap.add_argument("--head", action="store_true",
+                    help="erp_depth: train the projection head (sets cfg.erp_depth.head; default off = ablation 4b)")
     ap.add_argument("--vce-weight", type=float, default=None,
                     help="Loc² VCE pose loss weight (default cfg.train.vce_weight: auto = 1 for erp_depth, else 0)")
     ap.add_argument("--local-radius", type=int, default=0, help="CE window in cells (0 = full 56x56 map: the tile IS the search area)")
@@ -72,6 +74,10 @@ def main():
     np.random.seed(cfg.train.seed)
     state = torch.load(a.ckpt, map_location=dev, weights_only=False) if a.ckpt else None
     mode = state.get("mode", "lift") if state else a.query
+    if state:
+        apply_query_cfg(cfg, state)                 # e.g. an erp_depth warm start keeps its head setting
+    if a.head:
+        cfg.erp_depth.head = True
     L.query_mode = mode
     vce_w = resolve_vce_weight(cfg, mode) if a.vce_weight is None else float(a.vce_weight)
     vce_opts = vce_options(cfg)
@@ -173,6 +179,7 @@ def main():
             if score < best:
                 best = score
                 torch.save({"query": query.state_dict(), "mode": mode,
+                            "erp_depth": vars(cfg.erp_depth) if mode == "erp_depth" else None,
                             "decoder": {kk: vv for kk, vv in matcher.model.decoder.state_dict().items() if "conv_refiner" not in kk},
                             "step": k, "val": v}, ckpt_path)
                 print(f"  best -> {ckpt_path}", flush=True)

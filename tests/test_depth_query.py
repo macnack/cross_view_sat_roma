@@ -236,3 +236,18 @@ def test_placement_requires_depth():
     q = build_query(_cfg(), "erp_depth")
     with pytest.raises(KeyError):
         q.placement(dict(erp=torch.rand(1, 1, 3, 448, 896), R_w2c=R_N[None]))
+
+
+def test_checkpoint_head_setting_is_restored_by_the_evaluators():
+    from types import SimpleNamespace
+    from bevloc.model.query import apply_query_cfg
+    cfg_train = _cfg(head=True)
+    cfg_train.erp_depth.head_dim = 64
+    q = build_query(cfg_train, "erp_depth")
+    state = {"query": q.state_dict(), "mode": "erp_depth", "erp_depth": vars(cfg_train.erp_depth)}
+    cfg_eval = apply_query_cfg(_cfg(head=False), state)      # the evaluator's config has the head off
+    assert isinstance(cfg_eval.erp_depth, SimpleNamespace) and cfg_eval.erp_depth.head is True
+    q2 = build_query(cfg_eval, "erp_depth")
+    assert load_query_state(q2, state) == (len(q.state_dict()),) * 2
+    cfg_ipm = apply_query_cfg(_cfg("ipm"), {"query": {}, "mode": "ipm"})   # other checkpoints: untouched
+    assert cfg_ipm.erp_depth.head is False

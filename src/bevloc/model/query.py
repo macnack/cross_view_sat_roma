@@ -97,3 +97,16 @@ def lift_state_dict(state):
     if "query" in state:
         return {k[len("lift."):]: v for k, v in state["query"].items() if k.startswith("lift.")}
     raise KeyError("checkpoint has neither 'lift' nor 'query'")
+
+
+def apply_query_cfg(cfg, state):
+    """Restore the query-shaping config a checkpoint was trained with (today: the erp_depth block, whose `head`
+    decides whether the query has parameters at all), so an evaluator builds the same module. Without this an
+    erp_depth checkpoint with a head, evaluated under a head-off config, would silently load nothing."""
+    from types import SimpleNamespace
+    E = state.get("erp_depth") if isinstance(state, dict) else None
+    if E:
+        base = vars(getattr(cfg, "erp_depth", SimpleNamespace())).copy()
+        base.update(E)
+        cfg.erp_depth = SimpleNamespace(**base)
+    return cfg

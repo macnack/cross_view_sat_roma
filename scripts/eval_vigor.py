@@ -29,7 +29,7 @@ from bevloc.eval.metrics import pose_errors
 from bevloc.eval.report import summarise_pose
 from bevloc.match.satroma import SatRoMa, consensus_for_query
 from bevloc.model.coarse import FeatureQueryMatcher
-from bevloc.model.query import build_query, load_query_state
+from bevloc.model.query import apply_query_cfg, build_query, load_query_state
 
 
 def score(ds, query, matcher, cons, cfg, dev, n_max=0, verbose=False):
@@ -91,6 +91,7 @@ def main():
     state = torch.load(a.ckpt, map_location=dev, weights_only=False)
     mode = state.get("mode", "lift")
     cfg.lift.query_mode = mode
+    apply_query_cfg(cfg, state)
     matcher = FeatureQueryMatcher(cfg.matcher.checkpoint, dev, train_decoder=False)
     matcher.model.decoder.load_state_dict(state["decoder"], strict=False)
     query = build_query(cfg, mode).to(dev)

@@ -127,7 +127,7 @@ erp_depth:                        # ERP tokens placed from metric depth + Sat-Ro
   head_dim: 256                   # head width (1x1 down 1024 -> dim, convs, one self-attention block, 1x1 up)
   head_convs: 2                   # 3x3 convs (circular padding along the azimuth)
   head_heads: 4                   # self-attention heads
-  head_ff_mult: 2                 # feed-forward width = mult * dim; 256 / 2 convs / 2 -> ~1.6 M params
+  head_ff_mult: 2                 # feed-forward width = mult * dim; 256, 2 convs, mult 2 -> 2.2 M params
   lr_head: 2.0e-4                 # head learning rate (the decoder uses train.lr_decoder)
   vce_samples: 1024               # (token, reference cell) pairs drawn per sample for the Procrustes (Loc²: 1024)
   vce_mode: sample                # sample = Loc²: multinomial draw, gradient through the pair weights; expect = soft-argmax cell per token

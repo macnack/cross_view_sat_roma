@@ -30,7 +30,7 @@ from bevloc.data.vigor import VigorPairs, split_cities  # noqa: E402
 from bevloc.eval.metrics import pose_errors  # noqa: E402
 from bevloc.match.satroma import SatRoMa, consensus_for_query  # noqa: E402
 from bevloc.model.coarse import FeatureQueryMatcher  # noqa: E402
-from bevloc.model.query import build_query, load_query_state  # noqa: E402
+from bevloc.model.query import apply_query_cfg, build_query, load_query_state  # noqa: E402
 from bevloc.viz import fit, pose_overlay  # noqa: E402
 
 
@@ -67,6 +67,7 @@ def main():
     state = torch.load(a.ckpt, map_location=dev, weights_only=False)
     mode = state.get("mode", "lift")
     cfg.lift.query_mode = mode
+    apply_query_cfg(cfg, state)
     ds = VigorPairs(a.root, cfg, cities=cities, split=split, train=False,
                     row_sign=meta.get("row_sign"), height_m=meta.get("height_m"))
     by_id = {f"{lab['city']}/{lab['pano']}": i for i, lab in enumerate(ds.labels)}
