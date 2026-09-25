@@ -10,5 +10,7 @@ Every row is scored on the same sample draw per split (seed 0: 3000 Chicago same
 | Task 04 erp_depth + head, 10k steps, last (step 10000), homography | 3.69 m (3.54–3.83) | 6.45 m | 64 % | 84 % | 3000 |
 | Task 04 erp_depth + head, 10k steps, best (step 8500), se2 | 3.71 m (3.57–3.86) | 5.91 m | 63 % | 84 % | 3000 |
 | Task 04 erp_depth + head, 10k steps, best (step 8500), homography | 3.80 m (3.67–3.95) | 6.23 m | 63 % | 84 % | 3000 |
+| Task 04 erp_depth, no head, heat-map loss, 30k, last, se2 | 4.27 m (4.14–4.51) | 7.16 m | 56 % | 78 % | 3000 |
+| Task 04 erp_depth, no head, heat-map loss, 30k, best, se2 | 4.39 m (4.19–4.61) | 7.26 m | 55 % | 78 % | 3000 |
 
 Centre-guess chance (predict the tile centre): median 14.30 m.
