@@ -16,8 +16,9 @@ from pathlib import Path
 from bevloc import config as C
 
 LABELS = {
-    "vigor_ipm_long_zeroshot_chicago": "Ours, zero-shot (Poznań IPM checkpoint)",
+    "vigor_ipm_long_zeroshot_chicago": "Ours, zero-shot (Poznań IPM checkpoint), Chicago only",
     "vigor_ipm_long_zeroshot": "Ours, zero-shot (Poznań IPM checkpoint)",
+    "vigor_ipm_long_zeroshot_crossarea": "Ours, zero-shot (Poznań IPM checkpoint)",
     "vigor_ft_chicago_same": "Ours, Chicago fine-tune, 3k steps",
     "vigor_ft_chicago_same_30k": "Ours, Chicago fine-tune, 30k steps",
     "vigor_ft_chicago_same_30k_nopoznan": "Ours, 30k steps, no Poznań warm start",

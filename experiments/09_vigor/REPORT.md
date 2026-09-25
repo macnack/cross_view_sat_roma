@@ -17,7 +17,7 @@ Every row is scored on the same sample draw per split (seed 0: 3000 Chicago same
 | Ours, 30k, 3-DoF solver (se2) | 2.95 m (2.83–3.05) | 5.44 m | 70 % | 85 % | 3000 |
 | Ours, Chicago fine-tune, 3k steps | 3.61 m (3.47–3.78) | 6.35 m | 62 % | 80 % | 3000 |
 | Ours, Chicago-only 30k checkpoint (all cities) | 3.89 m (3.81–3.97) | 6.63 m | 60 % | 81 % | 12000 |
-| Ours, zero-shot (Poznań IPM checkpoint) | 5.59 m (5.33–5.91) | 10.07 m | 45 % | 67 % | 3000 |
+| Ours, zero-shot (Poznań IPM checkpoint), Chicago only | 5.59 m (5.33–5.91) | 10.07 m | 45 % | 67 % | 3000 |
 
 Centre-guess chance (predict the tile centre): median 14.26, 14.30 m.
 
@@ -43,8 +43,8 @@ Centre-guess chance (predict the tile centre): median 14.26, 14.30 m.
 | Loc² (released cross-area checkpoint), RANSAC | 1.99 m (1.94–2.03) | 3.65 m | 87 % | 93 % | 5999 |
 | Loc² (released cross-area checkpoint), weighted Procrustes | 2.21 m (2.15–2.26) | 3.67 m | 81 % | 93 % | 5999 |
 | Ours, NY + Seattle fine-tune, 60k steps | 3.27 m (3.17–3.34) | 5.61 m | 69 % | 86 % | 6000 |
-| Ours, zero-shot (Poznań IPM checkpoint) | 5.85 m (5.59–6.11) | 10.18 m | 44 % | 67 % | 3000 |
-| vigor_ipm_long_zeroshot_crossarea | 6.09 m (5.90–6.35) | 10.23 m | 42 % | 66 % | 6000 |
+| Ours, zero-shot (Poznań IPM checkpoint), Chicago only | 5.85 m (5.59–6.11) | 10.18 m | 44 % | 67 % | 3000 |
+| Ours, zero-shot (Poznań IPM checkpoint) | 6.09 m (5.90–6.35) | 10.23 m | 42 % | 66 % | 6000 |
 
 Centre-guess chance (predict the tile centre): median 14.08, 14.85 m.
 
@@ -62,8 +62,8 @@ Centre-guess chance (predict the tile centre): median 14.08, 14.85 m.
 | Loc² (released cross-area checkpoint), weighted Procrustes | SanFrancisco | 1.94 m (1.88–2.02) | 3.13 m | 85 % | 95 % | 3139 |
 | Ours, NY + Seattle fine-tune, 60k steps | Chicago | 3.05 m (2.92–3.15) | 5.74 m | 70 % | 84 % | 2861 |
 | Ours, NY + Seattle fine-tune, 60k steps | SanFrancisco | 3.43 m (3.33–3.53) | 5.49 m | 69 % | 87 % | 3139 |
-| vigor_ipm_long_zeroshot_crossarea | Chicago | 5.86 m (5.56–6.11) | 10.08 m | 45 % | 67 % | 2861 |
-| vigor_ipm_long_zeroshot_crossarea | SanFrancisco | 6.41 m (6.06–6.81) | 10.37 m | 40 % | 65 % | 3139 |
+| Ours, zero-shot (Poznań IPM checkpoint) | Chicago | 5.86 m (5.56–6.11) | 10.08 m | 45 % | 67 % | 2861 |
+| Ours, zero-shot (Poznań IPM checkpoint) | SanFrancisco | 6.41 m (6.06–6.81) | 10.37 m | 40 % | 65 % | 3139 |
 
 ## Research ideas and their jobs (hand-written ledger, appended to REPORT.md by `make vigor-report`)
 
