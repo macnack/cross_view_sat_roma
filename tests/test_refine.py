@@ -23,6 +23,17 @@ from bevloc.model.refine import (
 
 sys.path.insert(0, str(Path(__file__).resolve().parents[1] / "scripts"))
 sys.path.insert(0, str(Path(__file__).resolve().parent))
+
+
+def _eval_vigor_module():
+    """scripts/eval_vigor.py under a unique module name: third_party/Loc2 also ships an `eval_vigor.py`, and the
+    Loc² baseline tests put that directory first on sys.path."""
+    import importlib.util
+    path = Path(__file__).resolve().parents[1] / "scripts" / "eval_vigor.py"
+    spec = importlib.util.spec_from_file_location("bevloc_scripts_eval_vigor", path)
+    mod = importlib.util.module_from_spec(spec)
+    spec.loader.exec_module(mod)
+    return mod
 from tiny_satroma import (  # noqa: E402
     C_ENC, StubPictureQuery, cfg_stub, plant_translation, tiny_decoder, tiny_matcher,
 )
@@ -229,7 +240,7 @@ def _old_score(ds, query, matcher, cons, cfg):
 
 @pytest.mark.parametrize("solver", ["se2", "srt"])
 def test_refine_zero_is_bit_identical_and_refined_rows_do_not_touch_the_coarse_rows(solver):
-    from eval_vigor import score
+    score = _eval_vigor_module().score
     t = (300.0, 280.0)
     cfg = cfg_stub(solver)
     matcher = tiny_matcher(plant_translation(tiny_decoder(), t))
@@ -331,7 +342,7 @@ def test_null_refiner_on_a_cell_aligned_translation_localises_exactly():
     """With the refiner's output zeroed the refined warp is the package's ToWarp soft-argmax; on a classifier planted
     at a cell-aligned translation that is exact, so the refined row must be 0 m: the px / normalised / grid / pixel-
     homography conventions agree end to end. (Samples 1, 2 carry a known GT shift of 3.9 px = 0.489 m per step.)"""
-    from eval_vigor import score
+    score = _eval_vigor_module().score
     t = (304.0, 288.0)                                        # 19 and 18 cells: every token lands on a cell centre
     dec = plant_translation(tiny_decoder(), t)
     with torch.no_grad():
