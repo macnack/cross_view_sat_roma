@@ -7,6 +7,9 @@ Per sample: IPM picture of the north-aligned panorama (or the checkpoint's own q
 encoder + decoder -> Sat-RoMa consensus (peak and means rows) against the positive tile. The estimated
 pose is the panorama's position in the tile; the error is the distance in metres (per-city resolution).
 Also reported: the centre guess (predict the tile centre), which is this protocol's chance level.
+Queries with placed tokens (erp, erp_depth) go through the placed-token consensus (`SatRoMa.consensus_from_gm`, the
+consensus half of `match_placed`); an erp_depth checkpoint evaluates only the panoramas of the draw that have a depth
+file (`make loc2-depth` with the same SPLIT / CITIES / LIMIT), and reports how many were dropped.
 Calibration mode scores row_sign in {+1, -1} x height in {1.6, 2.0, 2.5, 3.0} on a small subset and prints
 the table; the best pair is what `vigor:` in configs/default.yaml should carry.
 """
@@ -24,9 +27,9 @@ from bevloc import config as C
 from bevloc.data.vigor import CITY_RES, VigorPairs, split_cities
 from bevloc.eval.metrics import pose_errors
 from bevloc.eval.report import summarise_pose
-from bevloc.match.satroma import SatRoMa
+from bevloc.match.satroma import SatRoMa, consensus_for_query
 from bevloc.model.coarse import FeatureQueryMatcher
-from bevloc.model.query import build_query, load_query_state
+from bevloc.model.query import apply_query_cfg, build_query, load_query_state
 
 
 def score(ds, query, matcher, cons, cfg, dev, n_max=0, verbose=False):
@@ -48,11 +51,8 @@ def score(ds, query, matcher, cons, cfg, dev, n_max=0, verbose=False):
                 gm = matcher.model.decoder({16: f_q}, f_s, scale_factor=sf)[16]["gm_cls"][0]
         H = s["H"].numpy().astype(float)
         row = dict(id=s["id"], city=s["city"], centre_guess_m=ds.centre_guess_m(i))
-        mask = torch.nn.functional.interpolate(frac[:, None].float(), size=(n, n), mode="nearest")[0, 0] >= 0.05
         for tag, c in cons.items():
-            gmm = gm.clone()
-            gmm[:, ~c.query_patches(mask)] = 0.0
-            m = c._ransac(gmm, None)
+            m = consensus_for_query(c, gm, query, batch, frac, n, min_frac=0.05)
             err = pose_errors(m.H, H, n, float(cfg.grid.cell_m)) if m.H is not None else None
             row[f"pose_{tag}_m"] = None if err is None else err["position_m"]
             row[f"yaw_{tag}_deg"] = None if err is None else err["yaw_deg"]
@@ -91,6 +91,9 @@ def main():
     state = torch.load(a.ckpt, map_location=dev, weights_only=False)
     mode = state.get("mode", "lift")
     cfg.lift.query_mode = mode
+    apply_query_cfg(cfg, state)
+    train_meta = state.get("train")
+    print(f"checkpoint {a.ckpt}: mode {mode}, step {state.get('step')}, training {train_meta}", flush=True)
     matcher = FeatureQueryMatcher(cfg.matcher.checkpoint, dev, train_decoder=False)
     matcher.model.decoder.load_state_dict(state["decoder"], strict=False)
     query = build_query(cfg, mode).to(dev)
@@ -121,6 +124,9 @@ def main():
 
     ds = VigorPairs(a.root, cfg, cities=cities, split=a.split, train=a.train_split, limit=a.limit,
                     stride=a.stride, row_sign=a.row_sign, height_m=a.height)
+    n_no_depth = ds.keep_with_depth() if ds.depth else 0      # after the draw: a subset of the same samples
+    if ds.depth:
+        print(f"depth: {n_no_depth} panoramas of the draw have no depth file (skipped)", flush=True)
     print(f"{len(ds)} samples, split {a.split}, cities {cities}, row_sign {ds.row_sign:+.0f}, height {ds.height} m", flush=True)
     rows = score(ds, query, matcher, cons, cfg, dev, verbose=True)
     summary = {}
@@ -135,6 +141,8 @@ def main():
     path = out / f"eval_vigor_{a.tag}_{a.split}.json"
     path.write_text(json.dumps(dict(meta=dict(ckpt=a.ckpt, mode=mode, split=a.split, cities=cities, n=len(rows),
                                               row_sign=ds.row_sign, height_m=ds.height, solver=cfg.matcher.solver,
+                                              skipped_no_depth=n_no_depth, ckpt_step=state.get("step"),
+                                              train=train_meta,
                                               city_res=CITY_RES),
                                     frames=rows, summary=summary), indent=2))
     for name, s in summary.items():

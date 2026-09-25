@@ -35,7 +35,14 @@ src/bevloc/
   bev/variants.py         the kick-off query variants (ipm_raw, ipm_cl, ipm_edge, oracle_a, oracle_b, ipm_fp)
   bev/mask.py             ego-vehicle + seam validity mask
   bev/mosaic.py           multi-frame mosaic from relative poses
-  match/satroma.py        Sat-RoMa wrapper (+ mode / inlier statistics, patch-validity threshold)
+  data/vigor.py           VIGOR pairs (panorama, positive tile on the reference canvas, GT H / en), UniK3D depth PNGs
+  model/coarse.py         decoder fed by query features; coarse CE / certainty / pose-NLL; Loc² VCE pose loss
+                          on a differentiable weighted 2-D Procrustes (task 04)
+  model/query.py          query modes: lift | ipm | hybrid | erp | erp_depth (build_query, checkpoint loading)
+  model/erp_query.py      erp: the panorama's own tokens, flat-ground placement after matching (task 03)
+  model/depth_query.py    erp_depth: erp tokens [+ projection head], placed from metric depth along the ray (task 04)
+  match/satroma.py        Sat-RoMa wrapper (+ mode / inlier statistics, patch-validity threshold, placed-token consensus)
+  match/se2.py            fixed-scale SE(2) RANSAC
   eval/metrics.py         position / corner / yaw error, recall
   viz.py                  display only
 scripts/                  thin CLIs (see `make help`); scripts/attic = rejected approaches, with reasons

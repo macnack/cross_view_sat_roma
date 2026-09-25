@@ -274,3 +274,21 @@ class SatRoMa:
             cell_convention="center"), dtype=np.float64)
         c = np.array([[0, 0, 1], [wa - 1, 0, 1], [wa - 1, ha - 1, 1], [0, ha - 1, 1]], float) @ H.T
         return Match(H, c[:, :2] / c[:, 2:3], n_modes, n_patches, n_multi, inl, argmax_cells)
+
+
+def consensus_for_query(cons, gm, query, batch, frac, n, min_frac=0.05):
+    """Consensus for one decoded sample, whatever the query mode (evaluators share this).
+
+    Queries with `placement` (erp, erp_depth): the tokens' placed points go through `consensus_from_gm`
+    (= `match_placed` without a second decode). BEV queries (lift, ipm, hybrid): the per-patch validity
+    `frac` (1, h, w) masks the 14 x 14 patch grid, then the package RANSAC (`_ransac`).
+    gm (K*K, h, w) logits of the sample; batch holds that one sample with a leading batch axis."""
+    import torch
+    import torch.nn.functional as F
+    if hasattr(query, "placement"):
+        xy, valid = query.placement(batch)
+        return SatRoMa.consensus_from_gm(cons, gm, xy[0], valid[0])
+    mask = F.interpolate(frac[:, None].float(), size=(n, n), mode="nearest")[0, 0] >= min_frac
+    gmm = gm.clone()
+    gmm[:, ~cons.query_patches(mask)] = 0.0
+    return cons._ransac(gmm, None)

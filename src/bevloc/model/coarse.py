@@ -261,3 +261,141 @@ class FeatureQueryMatcher(nn.Module):
 
 def to_tensor(img_uint8, device):
     return torch.from_numpy(np.ascontiguousarray(img_uint8)).to(device).permute(2, 0, 1).float().div(255.0)[None]
+
+
+# ---- Loc² VCE pose loss on a differentiable weighted Procrustes (task 04, Step 2) ------------------------------
+# Written from Loc² (2509.09792v3) Eq. 2-6; nothing copied from third_party/Loc2 (AGPL-3.0).
+
+
+def procrustes_2d(A, B, w, eps=1e-8):
+    """Weighted rigid 2-D fit B ≈ R·A + t with the scale fixed to 1 (metric depth, shared GSD).
+
+    A, B: (Bt, N, 2); w: (Bt, N) >= 0. Closed form of the 2-D Procrustes (no SVD, smooth gradients):
+    with weighted centroids removed, cos θ ∝ Σ w a·b and sin θ ∝ Σ w a×b. Returns R (Bt, 2, 2), t (Bt, 2).
+    Degenerate input (both sums ~0: coincident points or zero weights) gives the identity rotation, not zeros."""
+    wn = w / w.sum(1, keepdim=True).clamp_min(eps)
+    ma = (wn[..., None] * A).sum(1)
+    mb = (wn[..., None] * B).sum(1)
+    ac, bc = A - ma[:, None], B - mb[:, None]
+    s = (wn * (ac[..., 0] * bc[..., 1] - ac[..., 1] * bc[..., 0])).sum(1)
+    c = (wn * (ac * bc).sum(-1)).sum(1)
+    r = torch.sqrt(s * s + c * c + eps * eps)
+    degenerate = (s.abs() <= eps) & (c.abs() <= eps)
+    cos = torch.where(degenerate, torch.ones_like(c), c / r)
+    sin = torch.where(degenerate, torch.zeros_like(s), s / r)
+    R = torch.stack([torch.stack([cos, -sin], -1), torch.stack([sin, cos], -1)], -2)
+    t = mb - (R @ ma[..., None])[..., 0]
+    return R, t
+
+
+def virtual_points(n, cell_m, grid_m=5.0, points=10, device=None):
+    """(points², 2) virtual BEV px on a grid_m square centred on the camera (Loc²: 10 x 10 over 5 m)."""
+    o = (n - 1) / 2.0
+    ax = torch.linspace(-grid_m / 2, grid_m / 2, int(points), device=device) / float(cell_m)
+    gu, gv = torch.meshgrid(ax, ax, indexing="ij")
+    return torch.stack([gu.reshape(-1) + o, gv.reshape(-1) + o], -1)
+
+
+def vce_distance(R, t, H_gt, X, cell_m):
+    """Loc² Eq. 6: mean Euclidean distance (metres) between the virtual points X (P, 2) BEV px mapped by the
+    estimate (R, t) and by the ground truth H_gt (Bt, 3, 3) BEV px -> reference px. Returns (Bt,)."""
+    Xh = torch.cat([X, torch.ones_like(X[:, :1])], -1)                       # (P, 3)
+    g = Xh[None] @ H_gt.float().transpose(1, 2)                              # (Bt, P, 3)
+    g = g[..., :2] / g[..., 2:3]
+    p = X[None] @ R.transpose(1, 2) + t[:, None]
+    return (p - g).norm(dim=-1).mean(-1) * float(cell_m)
+
+
+def cell_centres(cells, ref_size, device=None):
+    """(cells², 2) reference px (x, y) of every class centre, class = row * cells + col (coarse_targets' binning)."""
+    s = float(ref_size) / cells
+    c = (torch.arange(cells, device=device, dtype=torch.float32) + 0.5) * s - 0.5
+    rr, cc = torch.meshgrid(c, c, indexing="ij")
+    return torch.stack([cc.reshape(-1), rr.reshape(-1)], -1)
+
+
+def vce_pose_loss(gm_cls, query_xy, token_valid, H_gt, cell_m, n, ref_size=896, gm_certainty=None,
+                  mode="sample", n_samples=1024, grid_m=5.0, points=10, use_certainty=True, generator=None,
+                  min_tokens=3, ref_valid=None, min_weight=1e-8):
+    """Loc²'s VCE pose loss with the Sat-RoMa decoder as the matcher.
+
+    gm_cls (B, K², h, w) logits; query_xy (B, h, w, 2) placed query points (virtual BEV px); token_valid (B, h, w);
+    H_gt (B, 3, 3) BEV px -> reference px. Reference and BEV share the GSD cell_m, so the pose is rigid (scale 1).
+
+    mode "sample": n_samples (token, cell) pairs drawn in two stages, with replacement: a token from p(token) ∝
+    valid·sigmoid(certainty), then a cell from that token's p(cell | token). Each pair is weighted in the Procrustes by
+    its probability p(token)·p(cell | token), so the gradient reaches the logits (and certainty) through the weights.
+    The pairs have the joint's distribution, but this is NOT Loc²'s code, which draws one multinomial over the flat
+    (aerial × ground) matching matrix (and torch caps a multinomial at 2^24 categories: 1568 × 3136 is close for
+    larger grids). mode "expect": one pair per valid token, its reference point = the expected cell centre under
+    p(cell | token), weight = p(token).
+    ref_valid (B, K, K) bool: reference cells with content (`ref_cell_validity`, the mask the coarse CE uses);
+    the logits of the others are -inf before the softmax, so no pair or expectation lands on the black canvas.
+    Samples are left out (like the coarse CE's unusable patches) when they have < min_tokens valid tokens, token
+    weights summing to <= min_weight, or no valid reference cell.
+    Returns (loss scalar = mean VCE in metres over the samples kept, stats)."""
+    B, K2, h, w = gm_cls.shape
+    k = int(round(K2 ** 0.5))
+    dev = gm_cls.device
+    N = h * w
+    logits = gm_cls.float().reshape(B, K2, N).transpose(1, 2)                           # (B, N, K2)
+    ok = token_valid.reshape(B, N).sum(1) >= min_tokens
+    if ref_valid is not None:
+        rv = ref_valid.reshape(B, K2).bool()
+        has = rv.any(1)
+        ok = ok & has
+        rv = rv | ~has[:, None]                              # excluded samples: unmasked, only to stay finite
+        logits = logits.masked_fill(~rv[:, None, :], float("-inf"))
+    logp = F.log_softmax(logits, dim=-1)
+    tw = token_valid.reshape(B, N).float()
+    if use_certainty and gm_certainty is not None:
+        c = gm_certainty[:, 0] if gm_certainty.ndim == 4 else gm_certainty
+        tw = tw * torch.sigmoid(c.float().reshape(B, N))
+    ok = ok & (tw.sum(1) > min_weight)
+    if not bool(ok.any()):
+        z = gm_cls.sum() * 0.0
+        return z, dict(vce_m=float("nan"), vce_pose_m=float("nan"), n_vce=0)
+    tw = torch.where(ok[:, None], tw, torch.ones_like(tw))                             # keep rows samplable
+    ptok = tw / tw.sum(1, keepdim=True).clamp_min(1e-12)
+    xy = query_xy.reshape(B, N, 2).float()
+    centres = cell_centres(k, ref_size, dev)                                            # (K2, 2)
+    if mode == "sample":
+        # two-stage draw = a draw from the joint, without a (N·K²)-way multinomial (torch caps categories at 2^24)
+        S = int(n_samples)
+        tok = torch.multinomial(ptok.detach(), S, replacement=True, generator=generator)         # (B, S)
+        lp_tok = torch.gather(logp, 1, tok[..., None].expand(-1, -1, K2))                        # (B, S, K2)
+        cls = torch.multinomial(lp_tok.detach().exp().reshape(B * S, K2), 1, generator=generator).reshape(B, S)
+        A = torch.gather(xy, 1, tok[..., None].expand(-1, -1, 2))
+        Bp = centres[cls]
+        wts = torch.gather(ptok, 1, tok) * torch.gather(lp_tok, 2, cls[..., None])[..., 0].exp()  # joint prob of the pair
+    elif mode == "expect":
+        A = xy
+        Bp = logp.exp() @ centres                                                       # (B, N, 2); exp(-inf) = 0
+        wts = ptok
+    else:
+        raise ValueError(f"vce mode must be 'sample' or 'expect', got {mode!r}")
+    R, t = procrustes_2d(A, Bp, wts)
+    X = virtual_points(n, cell_m, grid_m, points, dev)
+    vce = vce_distance(R, t, H_gt, X, cell_m)
+    loss = vce[ok].mean()
+    with torch.no_grad():
+        o = torch.full((1, 2), (n - 1) / 2.0, device=dev)
+        pose = vce_distance(R, t, H_gt, o, cell_m)
+    return loss, dict(vce_m=float(loss.detach()), vce_pose_m=float(pose[ok].mean()), n_vce=int(ok.sum()))
+
+
+def resolve_vce_weight(cfg, mode):
+    """cfg.train.vce_weight: a number, or "auto"/missing = 1.0 for the erp_depth query and 0 otherwise."""
+    v = getattr(getattr(cfg, "train", None), "vce_weight", "auto")
+    if v is None or (isinstance(v, str) and v.lower() == "auto"):
+        return 1.0 if mode == "erp_depth" else 0.0
+    return float(v)
+
+
+def vce_options(cfg):
+    """VCE keyword arguments from cfg.erp_depth (defaults = Loc²)."""
+    E = getattr(cfg, "erp_depth", None)
+    g = (lambda k, d: getattr(E, k, d) if E is not None else d)
+    return dict(mode=str(g("vce_mode", "sample")), n_samples=int(g("vce_samples", 1024)),
+                grid_m=float(g("vce_grid_m", 5.0)), points=int(g("vce_points", 10)),
+                use_certainty=bool(g("vce_use_certainty", True)))

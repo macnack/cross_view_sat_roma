@@ -18,6 +18,10 @@ Sample geometry (same conventions as MapillaryPairs so every query mode and the 
   * the reference is the tile resampled to cfg.grid.cell_m and centred in a (size x size) black canvas
     (size = 224 * cfg.reference.scale, i.e. the 896 px crop the checkpoint expects); black = no data;
   * H (BEV px -> reference px) is a pure translation, so pose_errors(H_est, H) is in metres.
+
+Depth (query mode ``erp_depth``, task 04): UniK3D metric depth in Loc²'s layout, ``<root>/<City>/unik3d_depth/<stem>.png``
+(uint16 millimetres along the ray, clipped at 65 m; scripts/loc2_depth_vigor.py). The sample carries it as ``depth``
+(1, h, w) metres at the ERP size (nearest resampling); panoramas without a file are dropped by `keep_with_depth`.
 """
 from __future__ import annotations
 
@@ -72,6 +76,23 @@ def read_labels(root, cities, split, train):
     return out
 
 
+def depth_png_path(root, city: str, pano: str) -> Path:
+    """Loc²'s depth layout (same as bevloc.baselines.loc2.depth_png_path, kept here so the reader needs no baseline import)."""
+    return Path(root) / city / "unik3d_depth" / (Path(pano).stem + ".png")
+
+
+def read_depth_png(path) -> np.ndarray:
+    """uint16 millimetres -> float32 metres (H, W). Raises RuntimeError when unreadable."""
+    raw = cv2.imread(str(path), cv2.IMREAD_UNCHANGED)
+    if raw is None:
+        raise RuntimeError(f"unreadable depth {path}")
+    if raw.ndim == 3:
+        raw = raw[..., 0]
+    if raw.dtype != np.uint16:
+        raise RuntimeError(f"depth {path} is {raw.dtype}, expected uint16 millimetres")
+    return raw.astype(np.float32) / 1000.0
+
+
 def split_cities(split: str, train: bool):
     if split == "samearea":
         return list(CITIES)
@@ -84,10 +105,13 @@ class VigorPairs(Dataset):
     Keys: id, city, year (0), scale, negative (False), erp (1, 3, h, w) float in [0, 1] (resized to
     ``erp_size`` for the lifted modes), R_w2c (1, 3, 3), se2 (1, 3), H (3, 3), en (2,) (offset of the
     camera from the tile centre in metres, east/north), ref (3, S, S), plus for query_mode "ipm":
-    bev (3, n, n) and bev_valid (n, n)."""
+    bev (3, n, n) and bev_valid (n, n); with depth (default: query_mode "erp_depth") and a depth file present:
+    depth (1, h, w) float metres along the ray at the ERP size.
+
+    erp_size None = cfg.erp_depth.erp_size for query_mode "erp_depth", else (896, 448)."""
 
     def __init__(self, root, cfg, cities=None, split="crossarea", train=False, limit=0, stride=1,
-                 erp_size=(896, 448), row_sign=None, col_sign=None, height_m=None, seed=0):
+                 erp_size=None, row_sign=None, col_sign=None, height_m=None, seed=0, depth=None):
         self.root = Path(root)
         self.cfg = cfg
         V = getattr(cfg, "vigor", None)
@@ -97,7 +121,12 @@ class VigorPairs(Dataset):
         self.row_sign = float(row_sign if row_sign is not None else getattr(V, "row_sign", 1.0))
         self.col_sign = float(col_sign if col_sign is not None else getattr(V, "col_sign", -1.0))
         self.height = float(height_m if height_m is not None else getattr(V, "height_m", 2.0))
-        self.erp_w, self.erp_h = erp_size
+        mode = self._query_mode()
+        if erp_size is None:
+            E = getattr(cfg, "erp_depth", None)
+            erp_size = tuple(E.erp_size) if (mode == "erp_depth" and E is not None and hasattr(E, "erp_size")) else (896, 448)
+        self.erp_w, self.erp_h = (int(v) for v in erp_size)
+        self.depth = bool(mode == "erp_depth") if depth is None else bool(depth)
         self.labels = read_labels(self.root, cities or split_cities(split, train), split, train)
         if stride > 1:
             self.labels = self.labels[::stride]
@@ -108,6 +137,16 @@ class VigorPairs(Dataset):
 
     def __len__(self):
         return len(self.labels)
+
+    def depth_path(self, i):
+        lab = self.labels[i]
+        return depth_png_path(self.root, lab["city"], lab["pano"])
+
+    def keep_with_depth(self):
+        """Drop the labels whose panorama has no depth file; returns the number dropped."""
+        before = len(self.labels)
+        self.labels = [lab for lab in self.labels if depth_png_path(self.root, lab["city"], lab["pano"]).is_file()]
+        return before - len(self.labels)
 
     def _query_mode(self):
         L = getattr(self.cfg, "lift", None)
@@ -157,6 +196,11 @@ class VigorPairs(Dataset):
             H=torch.from_numpy(H),
             en=torch.tensor([self.col_sign * lab["dx"] * res, -self.row_sign * lab["dy"] * res], dtype=torch.float64),
         )
+        if self.depth:
+            dp = depth_png_path(self.root, lab["city"], lab["pano"])
+            if dp.is_file():
+                d = cv2.resize(read_depth_png(dp), (self.erp_w, self.erp_h), interpolation=cv2.INTER_NEAREST)
+                out["depth"] = torch.from_numpy(d)[None]
         if self._query_mode() == "ipm":
             ipm = self.cfg.ipm
             bev, valid = ipm_erp(pano, R_NORTH, self.height, n, float(g.cell_m), float(ipm.blind_radius_m))
@@ -172,8 +216,12 @@ class VigorPairs(Dataset):
 
 
 def collate_vigor(batch):
+    has_depth = ["depth" in b for b in batch]
+    if any(has_depth) and not all(has_depth):
+        raise KeyError("some samples have no depth: filter with VigorPairs.keep_with_depth() first")
     out = {k: torch.stack([b[k] for b in batch]) for k in
-           ("erp", "R_w2c", "se2", "H", "en", "ref") + (("bev", "bev_valid") if "bev" in batch[0] else ())}
+           ("erp", "R_w2c", "se2", "H", "en", "ref") + (("bev", "bev_valid") if "bev" in batch[0] else ())
+           + (("depth",) if all(has_depth) else ())}
     out["id"] = [b["id"] for b in batch]
     out["city"] = [b["city"] for b in batch]
     out["year"] = [0] * len(batch)
