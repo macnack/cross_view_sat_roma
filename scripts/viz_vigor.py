@@ -28,7 +28,7 @@ from viz_pose import label  # noqa: E402
 from bevloc import config as C  # noqa: E402
 from bevloc.data.vigor import VigorPairs, split_cities  # noqa: E402
 from bevloc.eval.metrics import pose_errors  # noqa: E402
-from bevloc.match.satroma import SatRoMa  # noqa: E402
+from bevloc.match.satroma import SatRoMa, consensus_for_query  # noqa: E402
 from bevloc.model.coarse import FeatureQueryMatcher  # noqa: E402
 from bevloc.model.query import build_query, load_query_state  # noqa: E402
 from bevloc.viz import fit, pose_overlay  # noqa: E402
@@ -90,10 +90,7 @@ def main():
             with matcher.model.exposed_intermediates():
                 gm = matcher.model.decoder({16: f_q}, f_s, scale_factor=sf)[16]["gm_cls"][0]
         H_gt = s["H"].numpy().astype(float)
-        mask = torch.nn.functional.interpolate(frac[:, None].float(), size=(n, n), mode="nearest")[0, 0] >= 0.05
-        gmm = gm.clone()
-        gmm[:, ~cons.query_patches(mask)] = 0.0
-        m = cons._ransac(gmm, None)
+        m = consensus_for_query(cons, gm, query, batch, frac, n, min_frac=0.05)
         err = pose_errors(m.H, H_gt, n, cell) if m.H is not None else None
         o = np.array([[(n - 1) / 2.0, (n - 1) / 2.0, 1.0]])
         g = (o @ H_gt.T)[0]
@@ -115,7 +112,7 @@ def main():
         cv2.drawMarker(hm, (int(gx - x0), int(gy - y0)), (0, 255, 0), cv2.MARKER_CROSS, 24, 2)
         h = 300
         parts = [label(fit(cv2.cvtColor(erp, cv2.COLOR_RGB2BGR), h), "1 panorama (north at the centre column)"),
-                 label(fit(cv2.cvtColor(qpic, cv2.COLOR_RGB2BGR), h), f"2 query: IPM picture ({n * cell:.0f} m, {cell} m/px)"),
+                 label(fit(cv2.cvtColor(qpic, cv2.COLOR_RGB2BGR), h), (f"2 query: IPM picture ({n * cell:.0f} m, {cell} m/px)" if "bev" in s else "2 query: panorama tokens")),
                  label(fit(zoom, h), f"3 tile, {2 * rz * cell:.0f} m window: green = label, red = RANSAC"),
                  label(fit(hm, h), "4 classifier votes over reference cells (green = label)")]
         sheet = np.hstack(parts)

@@ -19,14 +19,16 @@ from bevloc.data.mapillary import (
     TRAIN_SEQS, VAL_SEQS, MapillaryPairs, PoznanOrtho, collate, load_frames, poznan_tiles,
 )
 from bevloc.model.coarse import (
-    FeatureQueryMatcher, coarse_targets, pose_heatmap_nll, ref_cell_validity, roma_coarse_loss,
+    FeatureQueryMatcher, coarse_targets, pose_heatmap_nll, ref_cell_validity, roma_coarse_loss, vce_pose_loss,
 )
 from bevloc.model.query import build_query, load_query_state
 
 def step(query, matcher, batch, cfg, min_patch, local_radius, neighbour_radius, neighbour_weight,
-         certainty_weight=0.01, pose_nll_weight=0.0):
+         certainty_weight=0.01, pose_nll_weight=0.0, vce_weight=0.0, vce_opts=None, generator=None):
+    """vce_weight > 0 adds Loc²'s VCE pose loss (bevloc.model.coarse.vce_pose_loss) on the placed query points;
+    needs a query with `placement` (erp, erp_depth). vce_opts: its keyword arguments (coarse.vce_options)."""
     ref = batch["ref"]
-    f_q, patch_frac = query(batch, matcher)          # lift | ipm | hybrid | erp, see bevloc.model.query
+    f_q, patch_frac = query(batch, matcher)          # lift | ipm | hybrid | erp | erp_depth, see bevloc.model.query
     # scale_factor = sqrt(query px area) / 560: 0.4 for the 224 px BEV queries, 1.13 for a 448x896 ERP grid
     sf = float(((f_q.shape[-2] * 16) * (f_q.shape[-1] * 16)) ** 0.5 / 560.0)
     out = matcher.model.decoder({16: f_q}, matcher.reference_features(ref), scale_factor=sf)
@@ -39,7 +41,8 @@ def step(query, matcher, batch, cfg, min_patch, local_radius, neighbour_radius, 
     rv = ref_cell_validity(ref, cells=cells, min_frac=cfg.train.min_ref_cell_valid)
     # ERP-token query: tokens are placed on the virtual BEV after matching, so their GT cell is
     # where the placed point lands (plan Task 6); other queries use the patch-centre grid.
-    query_xy = query.placement(batch)[0] if hasattr(query, "placement") else None
+    placed = query.placement(batch) if hasattr(query, "placement") else None
+    query_xy = placed[0] if placed is not None else None
     idx, use = coarse_targets(batch["H"], patch_frac >= min_patch, ref_valid=rv,
                               ref_size=ref_size, cells=cells, query_xy=query_xy)
     # No-match pairs: GT pose is off the crop. Sat-RoMa has no unmatched class bin —
@@ -62,34 +65,56 @@ def step(query, matcher, batch, cfg, min_patch, local_radius, neighbour_radius, 
         loss = loss + float(pose_nll_weight) * pnll
         st["pose_nll"] = pst["pose_nll"]
         st["pose_err"] = pst["pose_err"]
+    st["vce_m"] = float("nan")
+    st["vce_pose_m"] = float("nan")
+    if vce_weight:
+        if placed is None:
+            raise ValueError("vce_weight > 0 needs a query with placed tokens (erp, erp_depth)")
+        tok_ok = placed[1] & (patch_frac >= min_patch)
+        if neg is not None and bool(neg.any()):
+            tok_ok = tok_ok & ~neg[:, None, None]
+        vloss, vst = vce_pose_loss(gm, query_xy, tok_ok, batch["H"], float(cfg.grid.cell_m), int(cfg.grid.n),
+                                   ref_size=ref_size, gm_certainty=cert, generator=generator, **(vce_opts or {}))
+        loss = loss + float(vce_weight) * vloss
+        st["vce_m"] = vst["vce_m"]
+        st["vce_pose_m"] = vst["vce_pose_m"]
     return loss, st
 
 
 @torch.no_grad()
 def validate(query, matcher, loader, cfg, min_patch, local_radius, device, max_batches=32,
-             certainty_weight=0.01, pose_nll_weight=0.0):
+             certainty_weight=0.01, pose_nll_weight=0.0, vce_weight=0.0, vce_opts=None):
     query.eval()
     rows = []
+    # a fixed generator: the VCE's match draw is the same at every validation, so the curve is comparable
+    gen = torch.Generator(device=device).manual_seed(0) if vce_weight else None
     for i, batch in enumerate(loader):
         if i >= max_batches:
             break
         batch = {k: (v.to(device) if torch.is_tensor(v) else v) for k, v in batch.items()}
         _, st = step(query, matcher, batch, cfg, min_patch, local_radius, 0, 0.0,
-                     certainty_weight=certainty_weight, pose_nll_weight=pose_nll_weight)
+                     certainty_weight=certainty_weight, pose_nll_weight=pose_nll_weight,
+                     vce_weight=vce_weight, vce_opts=vce_opts, generator=gen)
         rows.append(st)
     query.train()
     if not rows:
         return dict(ce=float("nan"), top1=float("nan"), top5=float("nan"), cell_err_m=float("nan"),
-                    pose_nll=float("nan"), pose_err_m=float("nan"), n=0)
+                    pose_nll=float("nan"), pose_err_m=float("nan"), vce_m=float("nan"), vce_pose_m=float("nan"), n=0)
     w = np.array([r["n"] for r in rows], float)
 
     def avg(key):
         return float(np.nansum([r.get(key, float("nan")) * r["n"] for r in rows]) / max(w.sum(), 1))
 
+    def mean(key):                                   # per-batch quantities (already in metres)
+        v = [r.get(key, float("nan")) for r in rows]
+        v = [x for x in v if x == x]
+        return float(np.mean(v)) if v else float("nan")
+
     m_per = cfg.grid.cell_m * 16  # val fixed scale-4
     return dict(ce=avg("ce"), top1=avg("acc"), top5=avg("top5"),
                 cell_err_m=avg("cell_err") * m_per,
                 pose_nll=avg("pose_nll"), pose_err_m=avg("pose_err") * m_per,
+                vce_m=mean("vce_m"), vce_pose_m=mean("vce_pose_m"),
                 n=int(w.sum()))
 
 
