@@ -35,3 +35,11 @@
 8778962 t04_ev_erp_depth_last_srt     ^([0-9]+ samples|[A-Za-z]+ +n +[0-9]+|wrote |Traceback|.*Error|\[run\] exit)
 8778963 t04_ev_erp_depth_nll_best_srt ^([0-9]+ samples|[A-Za-z]+ +n +[0-9]+|wrote |Traceback|.*Error|\[run\] exit)
 8778964 t04_ev_erp_depth_nll_best_se2 ^([0-9]+ samples|[A-Za-z]+ +n +[0-9]+|wrote |Traceback|.*Error|\[run\] exit)
+# --- Task 04 at 30k steps (heat-map loss on; head on / off), best+last x srt/se2 ---
+8781939 t04_train_erp_depth_30k        ^(train |step [0-9]*000 VAL| best|wrote|Traceback|.*Error|error:|Killed|OOM|\[run\] exit)
+8781940 t04_train_erp_depth_30k_nohead ^(train |step [0-9]*000 VAL| best|wrote|Traceback|.*Error|error:|Killed|OOM|\[run\] exit)
+8781941 t04_ev_30k_erp_depth_best_srt        ^([A-Za-z]+ +n +[0-9]+|wrote |Traceback|.*Error|\[run\] exit)
+8781942 t04_ev_30k_erp_depth_best_se2        ^([A-Za-z]+ +n +[0-9]+|wrote |Traceback|.*Error|\[run\] exit)
+8781943 t04_ev_30k_erp_depth_last_se2        ^([A-Za-z]+ +n +[0-9]+|wrote |Traceback|.*Error|\[run\] exit)
+8781944 t04_ev_30k_erp_depth_nohead_best_se2 ^([A-Za-z]+ +n +[0-9]+|wrote |Traceback|.*Error|\[run\] exit)
+8781945 t04_ev_30k_erp_depth_nohead_last_se2 ^([A-Za-z]+ +n +[0-9]+|wrote |Traceback|.*Error|\[run\] exit)
