@@ -10,3 +10,7 @@
 # --- cross-area rerun with held-out validation (train_vigor --val-frac 0.2), starts after 8765486 ---
 8777826 vigor_train_cross_v2 ^(train |step [0-9]*000 VAL| best|wrote|Traceback|.*Error|error:|Killed|OOM|\[run\] exit)
 8777827 vigor_ev_cross_v2    ^([0-9]+ samples|  [0-9]*000 done|[A-Za-z]+ +n +[0-9]+|wrote |Traceback|.*Error|\[run\] exit)
+# --- same-area rerun with held-out validation, starts after 8765483 ---
+8777838 vigor_train_4city_v2 ^(train |step [0-9]*000 VAL| best|wrote|Traceback|.*Error|error:|Killed|OOM|\[run\] exit)
+8777839 vigor_ev_4city_v2_chi ^([0-9]+ samples|  [0-9]*[05]00 done|[A-Za-z]+ +n +[0-9]+|wrote |Traceback|.*Error|\[run\] exit)
+8777840 vigor_ev_4city_v2_all ^([0-9]+ samples|  [0-9]*000 done|[A-Za-z]+ +n +[0-9]+|wrote |Traceback|.*Error|\[run\] exit)
