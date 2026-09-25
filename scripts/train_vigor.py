@@ -4,14 +4,17 @@
   make vigor-train CKPT= QUERY=ipm SPLIT=samearea CITIES="Chicago" STEPS=30000 TAG=chicago_noposnan   # no warm start
 
 Same recipe as train_lift_splat.py (coarse CE over reference cells + certainty + neighbour hinge + pose NLL),
-on VigorPairs samples. The training set is the split's train labels for the given cities; validation is a
-fixed random subset of the matching test labels, scored with the windowed loss and the argmax/pose proxies
-every --val-every steps (the RANSAC evaluation is scripts/eval_vigor.py). Saves `<tag>_best.pt` by validation
-pose error in the same {"query", "mode", "decoder"} layout every evaluator loads.
+on VigorPairs samples. The training set is the split's train labels for the given cities minus a held-out
+--val-frac (FG²'s protocol: the train list shuffled with seed 0, 80/20); validation = the first --val-samples
+of the held-out part, scored with the windowed loss and the argmax/pose proxies every --val-every steps (the
+RANSAC evaluation is scripts/eval_vigor.py). --val-frac 0 restores the earlier draw from the TEST labels of
+--val-cities (checkpoint selection then peeks at the test cities: cross-area runs before 2026-09-25 did this).
+Saves `<tag>_best.pt` by validation pose error in the same {"query", "mode", "decoder"} layout every evaluator loads.
 """
 from __future__ import annotations
 
 import argparse
+import copy
 import os
 import sys
 import time
@@ -44,6 +47,8 @@ def main():
     ap.add_argument("--workers", type=int, default=0, help="DataLoader workers (the IPM picture is built on the CPU per sample)")
     ap.add_argument("--val-every", type=int, default=500)
     ap.add_argument("--val-samples", type=int, default=200)
+    ap.add_argument("--val-frac", type=float, default=0.2,
+                    help="hold out this fraction of the TRAINING labels for validation (seed 0); 0 = draw from the test labels")
     ap.add_argument("--neighbour-radius", type=int, default=4)
     ap.add_argument("--neighbour-weight", type=float, default=0.5)
     ap.add_argument("--pose-nll-weight", type=float, default=0.5)
@@ -62,8 +67,18 @@ def main():
     tr_cities = a.cities or split_cities(a.split, True)
     va_cities = a.val_cities or (tr_cities if a.split == "samearea" else split_cities(a.split, False))
     tr = VigorPairs(a.root, cfg, cities=tr_cities, split=a.split, train=True)
-    va = VigorPairs(a.root, cfg, cities=va_cities, split=a.split, train=False, limit=a.val_samples, seed=1)
-    print(f"train {len(tr)} ({tr_cities})  val {len(va)} ({va_cities})  mode {mode}  batch {a.batch}", flush=True)
+    if a.val_frac > 0:
+        idx = np.random.default_rng(0).permutation(len(tr.labels))
+        n_tr = int(len(idx) * (1.0 - a.val_frac))
+        va = copy.copy(tr)
+        va.labels = [tr.labels[i] for i in idx[n_tr:n_tr + a.val_samples]]
+        tr.labels = [tr.labels[i] for i in idx[:n_tr]]
+        va_cities = tr_cities
+        print(f"train {len(tr)} ({tr_cities})  val {len(va)} of {len(idx) - n_tr} held out from the train list "
+              f"(val_frac {a.val_frac})  mode {mode}  batch {a.batch}", flush=True)
+    else:
+        va = VigorPairs(a.root, cfg, cities=va_cities, split=a.split, train=False, limit=a.val_samples, seed=1)
+        print(f"train {len(tr)} ({tr_cities})  val {len(va)} from the TEST labels ({va_cities})  mode {mode}  batch {a.batch}", flush=True)
     tr_loader = DataLoader(tr, batch_size=a.batch, shuffle=True, num_workers=a.workers, collate_fn=collate_vigor,
                            drop_last=True, persistent_workers=a.workers > 0)
     va_loader = DataLoader(va, batch_size=a.batch, shuffle=False, num_workers=a.workers, collate_fn=collate_vigor)
@@ -88,7 +103,8 @@ def main():
     opt = torch.optim.AdamW(groups, weight_decay=cfg.train.weight_decay)
     out = Path(a.out)
     out.mkdir(parents=True, exist_ok=True)
-    C.snapshot(cfg, out, dict(tag=a.tag, ckpt=a.ckpt, split=a.split, train_cities=tr_cities, val_cities=va_cities))
+    C.snapshot(cfg, out, dict(tag=a.tag, ckpt=a.ckpt, split=a.split, train_cities=tr_cities, val_cities=va_cities,
+                              val_frac=a.val_frac, val_samples=a.val_samples))
     ckpt_path = C.REPO / "checkpoints" / f"vigor_{a.tag}_best.pt"
     ckpt_path.parent.mkdir(parents=True, exist_ok=True)
     log = out / f"train_{a.tag}.csv"
