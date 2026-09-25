@@ -271,7 +271,8 @@ def procrustes_2d(A, B, w, eps=1e-8):
     """Weighted rigid 2-D fit B ≈ R·A + t with the scale fixed to 1 (metric depth, shared GSD).
 
     A, B: (Bt, N, 2); w: (Bt, N) >= 0. Closed form of the 2-D Procrustes (no SVD, smooth gradients):
-    with weighted centroids removed, cos θ ∝ Σ w a·b and sin θ ∝ Σ w a×b. Returns R (Bt, 2, 2), t (Bt, 2)."""
+    with weighted centroids removed, cos θ ∝ Σ w a·b and sin θ ∝ Σ w a×b. Returns R (Bt, 2, 2), t (Bt, 2).
+    Degenerate input (both sums ~0: coincident points or zero weights) gives the identity rotation, not zeros."""
     wn = w / w.sum(1, keepdim=True).clamp_min(eps)
     ma = (wn[..., None] * A).sum(1)
     mb = (wn[..., None] * B).sum(1)
@@ -279,7 +280,9 @@ def procrustes_2d(A, B, w, eps=1e-8):
     s = (wn * (ac[..., 0] * bc[..., 1] - ac[..., 1] * bc[..., 0])).sum(1)
     c = (wn * (ac * bc).sum(-1)).sum(1)
     r = torch.sqrt(s * s + c * c + eps * eps)
-    cos, sin = c / r, s / r
+    degenerate = (s.abs() <= eps) & (c.abs() <= eps)
+    cos = torch.where(degenerate, torch.ones_like(c), c / r)
+    sin = torch.where(degenerate, torch.zeros_like(s), s / r)
     R = torch.stack([torch.stack([cos, -sin], -1), torch.stack([sin, cos], -1)], -2)
     t = mb - (R @ ma[..., None])[..., 0]
     return R, t
@@ -313,27 +316,42 @@ def cell_centres(cells, ref_size, device=None):
 
 def vce_pose_loss(gm_cls, query_xy, token_valid, H_gt, cell_m, n, ref_size=896, gm_certainty=None,
                   mode="sample", n_samples=1024, grid_m=5.0, points=10, use_certainty=True, generator=None,
-                  min_tokens=3):
+                  min_tokens=3, ref_valid=None, min_weight=1e-8):
     """Loc²'s VCE pose loss with the Sat-RoMa decoder as the matcher.
 
     gm_cls (B, K², h, w) logits; query_xy (B, h, w, 2) placed query points (virtual BEV px); token_valid (B, h, w);
     H_gt (B, 3, 3) BEV px -> reference px. Reference and BEV share the GSD cell_m, so the pose is rigid (scale 1).
 
-    mode "sample" (Loc²): draw n_samples (token, cell) pairs from the joint p(token)·p(cell | token), with
-    p(token) ∝ valid·sigmoid(certainty); the Procrustes weights are the pairs' probabilities, so the gradient
-    reaches the logits (and certainty) through the weights. mode "expect": one pair per valid token, its reference
-    point = the expected cell centre under p(cell | token), weight = p(token).
-    Returns (loss scalar = mean VCE in metres over samples with >= min_tokens valid tokens, stats)."""
+    mode "sample": n_samples (token, cell) pairs drawn in two stages, with replacement: a token from p(token) ∝
+    valid·sigmoid(certainty), then a cell from that token's p(cell | token). Each pair is weighted in the Procrustes by
+    its probability p(token)·p(cell | token), so the gradient reaches the logits (and certainty) through the weights.
+    The pairs have the joint's distribution, but this is NOT Loc²'s code, which draws one multinomial over the flat
+    (aerial × ground) matching matrix (and torch caps a multinomial at 2^24 categories: 1568 × 3136 is close for
+    larger grids). mode "expect": one pair per valid token, its reference point = the expected cell centre under
+    p(cell | token), weight = p(token).
+    ref_valid (B, K, K) bool: reference cells with content (`ref_cell_validity`, the mask the coarse CE uses);
+    the logits of the others are -inf before the softmax, so no pair or expectation lands on the black canvas.
+    Samples are left out (like the coarse CE's unusable patches) when they have < min_tokens valid tokens, token
+    weights summing to <= min_weight, or no valid reference cell.
+    Returns (loss scalar = mean VCE in metres over the samples kept, stats)."""
     B, K2, h, w = gm_cls.shape
     k = int(round(K2 ** 0.5))
     dev = gm_cls.device
     N = h * w
-    logp = F.log_softmax(gm_cls.float().reshape(B, K2, N).transpose(1, 2), dim=-1)      # (B, N, K2)
+    logits = gm_cls.float().reshape(B, K2, N).transpose(1, 2)                           # (B, N, K2)
+    ok = token_valid.reshape(B, N).sum(1) >= min_tokens
+    if ref_valid is not None:
+        rv = ref_valid.reshape(B, K2).bool()
+        has = rv.any(1)
+        ok = ok & has
+        rv = rv | ~has[:, None]                              # excluded samples: unmasked, only to stay finite
+        logits = logits.masked_fill(~rv[:, None, :], float("-inf"))
+    logp = F.log_softmax(logits, dim=-1)
     tw = token_valid.reshape(B, N).float()
     if use_certainty and gm_certainty is not None:
         c = gm_certainty[:, 0] if gm_certainty.ndim == 4 else gm_certainty
         tw = tw * torch.sigmoid(c.float().reshape(B, N))
-    ok = token_valid.reshape(B, N).sum(1) >= min_tokens
+    ok = ok & (tw.sum(1) > min_weight)
     if not bool(ok.any()):
         z = gm_cls.sum() * 0.0
         return z, dict(vce_m=float("nan"), vce_pose_m=float("nan"), n_vce=0)
@@ -352,7 +370,7 @@ def vce_pose_loss(gm_cls, query_xy, token_valid, H_gt, cell_m, n, ref_size=896, 
         wts = torch.gather(ptok, 1, tok) * torch.gather(lp_tok, 2, cls[..., None])[..., 0].exp()  # joint prob of the pair
     elif mode == "expect":
         A = xy
-        Bp = logp.exp() @ centres                                                       # (B, N, 2)
+        Bp = logp.exp() @ centres                                                       # (B, N, 2); exp(-inf) = 0
         wts = ptok
     else:
         raise ValueError(f"vce mode must be 'sample' or 'expect', got {mode!r}")

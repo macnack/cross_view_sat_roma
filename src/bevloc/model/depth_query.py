@@ -93,6 +93,10 @@ class ProjectionHead(nn.Module):
 
     def __init__(self, in_dim=1024, dim=256, heads=4, n_convs=2, ff_mult=2):
         super().__init__()
+        if int(dim) % 8:
+            raise ValueError(f"erp_depth.head_dim must be divisible by 8 (GroupNorm with 8 groups), got {dim}")
+        if int(dim) % int(heads):
+            raise ValueError(f"erp_depth.head_dim {dim} must be divisible by head_heads {heads}")
         self.down = nn.Conv2d(in_dim, dim, 1)
         self.convs = nn.ModuleList([nn.Conv2d(dim, dim, 3, padding=0) for _ in range(int(n_convs))])
         self.norms = nn.ModuleList([nn.GroupNorm(8, dim) for _ in range(int(n_convs))])

@@ -92,6 +92,8 @@ def main():
     mode = state.get("mode", "lift")
     cfg.lift.query_mode = mode
     apply_query_cfg(cfg, state)
+    train_meta = state.get("train")
+    print(f"checkpoint {a.ckpt}: mode {mode}, step {state.get('step')}, training {train_meta}", flush=True)
     matcher = FeatureQueryMatcher(cfg.matcher.checkpoint, dev, train_decoder=False)
     matcher.model.decoder.load_state_dict(state["decoder"], strict=False)
     query = build_query(cfg, mode).to(dev)
@@ -139,7 +141,8 @@ def main():
     path = out / f"eval_vigor_{a.tag}_{a.split}.json"
     path.write_text(json.dumps(dict(meta=dict(ckpt=a.ckpt, mode=mode, split=a.split, cities=cities, n=len(rows),
                                               row_sign=ds.row_sign, height_m=ds.height, solver=cfg.matcher.solver,
-                                              skipped_no_depth=n_no_depth,
+                                              skipped_no_depth=n_no_depth, ckpt_step=state.get("step"),
+                                              train=train_meta,
                                               city_res=CITY_RES),
                                     frames=rows, summary=summary), indent=2))
     for name, s in summary.items():

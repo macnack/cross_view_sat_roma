@@ -74,7 +74,8 @@ def step(query, matcher, batch, cfg, min_patch, local_radius, neighbour_radius, 
         if neg is not None and bool(neg.any()):
             tok_ok = tok_ok & ~neg[:, None, None]
         vloss, vst = vce_pose_loss(gm, query_xy, tok_ok, batch["H"], float(cfg.grid.cell_m), int(cfg.grid.n),
-                                   ref_size=ref_size, gm_certainty=cert, generator=generator, **(vce_opts or {}))
+                                   ref_size=ref_size, gm_certainty=cert, generator=generator, ref_valid=rv,
+                                   **(vce_opts or {}))
         loss = loss + float(vce_weight) * vloss
         st["vce_m"] = vst["vce_m"]
         st["vce_pose_m"] = vst["vce_pose_m"]

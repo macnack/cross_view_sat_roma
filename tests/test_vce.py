@@ -261,3 +261,81 @@ def test_training_step_with_erp_depth_and_vce_backpropagates():
     # vce_weight 0 (every other mode): the loss is exactly the previous objective, no VCE stats
     l0, s0 = step(q, mt, batch, cfg, 0.05, 0, 4, 0.5, certainty_weight=0.01, pose_nll_weight=0.5)
     assert s0["vce_m"] != s0["vce_m"]
+
+
+# ---- review follow-ups: reference-validity mask, degenerate guards, head_dim check ------------------------------
+
+@pytest.mark.parametrize("mode", ["sample", "expect"])
+def test_vce_pairs_stay_on_valid_reference_cells(mode, monkeypatch):
+    import bevloc.model.coarse as co
+    h, w = 6, 8
+    g = torch.Generator().manual_seed(4)
+    xy = (N_BEV - 1) / 2.0 + (torch.rand(1, h, w, 2, generator=g) - 0.5) * 120
+    valid = torch.ones(1, h, w, dtype=torch.bool)
+    gm = torch.randn(1, K * K, h, w, generator=g) * 3
+    rv = torch.zeros(1, K, K, dtype=torch.bool)
+    rv[0, 20:23, 30:33] = True                             # only a 3 x 3 block of the canvas has content
+    seen = {}
+    real = co.procrustes_2d
+
+    def spy(A, B, wts, *args, **kw):
+        seen["B"], seen["w"] = B.detach().clone(), wts.detach().clone()
+        return real(A, B, wts, *args, **kw)
+    monkeypatch.setattr(co, "procrustes_2d", spy)
+    loss, st = vce_pose_loss(gm, xy, valid, torch.eye(3)[None], CELL, N_BEV, ref_size=REF, mode=mode,
+                             n_samples=512, generator=torch.Generator().manual_seed(0), ref_valid=rv)
+    assert st["n_vce"] == 1 and torch.isfinite(loss)
+    s = REF / K
+    lo = torch.tensor([30 * s - 0.5, 20 * s - 0.5])        # block edges in reference px (x, y)
+    hi = torch.tensor([33 * s - 0.5, 23 * s - 0.5])
+    B = seen["B"][0]
+    assert bool(((B >= lo) & (B <= hi)).all()), B.min(0).values.tolist() + B.max(0).values.tolist()
+    if mode == "sample":                                   # every drawn cell index is one of the block's centres
+        cols = torch.floor((B[:, 0] + 0.5) / s).long()
+        rows = torch.floor((B[:, 1] + 0.5) / s).long()
+        assert bool(((rows >= 20) & (rows < 23) & (cols >= 30) & (cols < 33)).all())
+        assert bool((seen["w"] > 0).all())
+
+
+def test_vce_sample_without_valid_reference_cells_is_left_out():
+    gm = torch.randn(2, K * K, 4, 4, requires_grad=True)
+    xy = torch.rand(2, 4, 4, 2) * 200
+    rv = torch.ones(2, K, K, dtype=torch.bool)
+    rv[1] = False
+    loss, st = vce_pose_loss(gm, xy, torch.ones(2, 4, 4, dtype=torch.bool), torch.eye(3).repeat(2, 1, 1), CELL, N_BEV,
+                             n_samples=64, generator=torch.Generator().manual_seed(0), ref_valid=rv)
+    assert st["n_vce"] == 1 and torch.isfinite(loss)
+    loss.backward()
+    assert torch.isfinite(gm.grad).all() and float(gm.grad[1].abs().sum()) == 0.0
+
+
+def test_procrustes_degenerate_input_gives_identity_rotation():
+    A = torch.full((2, 5, 2), 3.0)                          # coincident points
+    B = torch.full((2, 5, 2), 7.0)
+    R, t = procrustes_2d(A, B, torch.ones(2, 5))
+    assert torch.allclose(R, torch.eye(2).expand(2, 2, 2)) and torch.allclose(t, torch.full((2, 2), 4.0))
+    R0, t0 = procrustes_2d(torch.rand(1, 5, 2), torch.rand(1, 5, 2), torch.zeros(1, 5))   # all weights zero
+    assert torch.allclose(R0, torch.eye(2)[None]) and torch.isfinite(t0).all()
+
+
+def test_vce_sample_with_zero_token_weight_is_left_out_not_an_error():
+    gm = torch.randn(2, K * K, 4, 4, requires_grad=True)
+    cert = torch.zeros(2, 1, 4, 4)
+    cert[1] = -1e4                                          # sigmoid underflows to exactly 0: no token weight
+    xy = torch.rand(2, 4, 4, 2) * 200
+    for mode in ("sample", "expect"):
+        loss, st = vce_pose_loss(gm, xy, torch.ones(2, 4, 4, dtype=torch.bool), torch.eye(3).repeat(2, 1, 1), CELL,
+                                 N_BEV, gm_certainty=cert, mode=mode, n_samples=64,
+                                 generator=torch.Generator().manual_seed(0))
+        assert st["n_vce"] == 1 and torch.isfinite(loss)
+    cert[0] = -1e4
+    loss, st = vce_pose_loss(gm, xy, torch.ones(2, 4, 4, dtype=torch.bool), torch.eye(3).repeat(2, 1, 1), CELL, N_BEV,
+                             gm_certainty=cert, n_samples=64)
+    assert st["n_vce"] == 0 and float(loss) == 0.0
+
+
+def test_projection_head_rejects_a_width_not_divisible_by_8():
+    from bevloc.model.depth_query import ProjectionHead
+    with pytest.raises(ValueError, match="divisible by 8"):
+        ProjectionHead(dim=100)
+    ProjectionHead(dim=64, heads=4)

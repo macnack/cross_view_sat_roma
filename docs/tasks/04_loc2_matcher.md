@@ -28,9 +28,12 @@
   `SatRoMa.consensus_from_gm` (this also makes the `erp` mode evaluable there: the 14×14 BEV patch mask they used does not fit a
   28×56 token grid). `scale_factor` = √(h·16·w·16)/560 (1.13 for 56×28) as in `step`; in the decoder it only
   feeds the frozen conv refiner's displacement embedding, which runs after `gm_cls` / `gm_certainty` are produced.
-- Open for review: pose NLL (weight 0.5 in train_vigor) pushes every token's mass toward the *camera's* cell, which is
-  not the target of a placed token; kept for comparability with the 30k IPM run, `--pose-nll-weight 0` is the
-  obvious ablation. Also: the `srt` solver is an 8-DoF homography with the published refine=False (see the note in
+- After review (25 Sep): VCE pairs and expectations are restricted to reference cells with content (the coarse CE's
+  `ref_cell_validity` mask); samples with no token weight or no valid cell are left out; degenerate Procrustes
+  returns the identity. Pose NLL pushes every token's mass toward the *camera's* cell, which is not a placed token's
+  target, so `train_vigor.py` defaults it to 0 for erp_depth (0.5 for the other modes; `--pose-nll-weight`
+  overrides; the effective value is stored in the checkpoint's `train` dict and logged by `eval_vigor.py`).
+  `train_vigor.py` also writes `vigor_<tag>_last.pt` next to `_best.pt`. Also: the `srt` solver is an 8-DoF homography with the published refine=False (see the note in
   `SatRoMa.__init__`), not "Loc²'s scale-aware Procrustes" as the Design paragraph says; `sim` (4-DoF) and `se2`
   (3-DoF, fixed scale: the metric-depth case) are the Procrustes-like ones (`eval_vigor.py --solver`).
 

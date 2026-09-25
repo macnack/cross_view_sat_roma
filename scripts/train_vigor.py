@@ -58,7 +58,9 @@ def main():
                     help="hold out this fraction of the TRAINING labels for validation (seed 0); 0 = draw from the test labels")
     ap.add_argument("--neighbour-radius", type=int, default=4)
     ap.add_argument("--neighbour-weight", type=float, default=0.5)
-    ap.add_argument("--pose-nll-weight", type=float, default=0.5)
+    ap.add_argument("--pose-nll-weight", type=float, default=None,
+                    help="heat-map pose NLL weight (default 0.5; 0 for erp_depth, whose placed tokens do not "
+                         "target the camera cell the NLL rewards)")
     ap.add_argument("--head", action="store_true",
                     help="erp_depth: train the projection head (sets cfg.erp_depth.head; default off = ablation 4b)")
     ap.add_argument("--vce-weight", type=float, default=None,
@@ -81,6 +83,13 @@ def main():
     L.query_mode = mode
     vce_w = resolve_vce_weight(cfg, mode) if a.vce_weight is None else float(a.vce_weight)
     vce_opts = vce_options(cfg)
+    if a.pose_nll_weight is None:
+        a.pose_nll_weight = 0.0 if mode == "erp_depth" else 0.5
+    placed = mode == "erp_depth"          # heat-map "pose" = argmax of the token votes, not a pose for placed tokens
+    train_meta = dict(pose_nll_weight=a.pose_nll_weight, vce_weight=vce_w, vce_opts=vce_opts if vce_w else None,
+                      neighbour_radius=a.neighbour_radius, neighbour_weight=a.neighbour_weight, steps=a.steps,
+                      batch=a.batch, local_radius=a.local_radius)
+    print(f"pose NLL weight {a.pose_nll_weight}", flush=True)
     tr_cities = a.cities or split_cities(a.split, True)
     va_cities = a.val_cities or (tr_cities if a.split == "samearea" else split_cities(a.split, False))
     tr = VigorPairs(a.root, cfg, cities=tr_cities, split=a.split, train=True)
@@ -133,11 +142,18 @@ def main():
     out.mkdir(parents=True, exist_ok=True)
     C.snapshot(cfg, out, dict(tag=a.tag, ckpt=a.ckpt, split=a.split, train_cities=tr_cities, val_cities=va_cities,
                               val_frac=a.val_frac, val_samples=a.val_samples, query_mode=mode,
-                              vce_weight=vce_w, no_depth=n_no_depth))
+                              vce_weight=vce_w, no_depth=n_no_depth, pose_nll_weight=a.pose_nll_weight))
     ckpt_path = C.REPO / "checkpoints" / f"vigor_{a.tag}_best.pt"
     ckpt_path.parent.mkdir(parents=True, exist_ok=True)
     log = out / f"train_{a.tag}.csv"
     log.write_text("step,split,ce,top1,cell_err_m,pose_nll,pose_err_m,n,sec,vce_m,vce_pose_m\n")
+
+    def ckpt_state(k, v):
+        return {"query": query.state_dict(), "mode": mode,
+                "erp_depth": vars(cfg.erp_depth) if mode == "erp_depth" else None,
+                "train": train_meta,
+                "decoder": {kk: vv for kk, vv in matcher.model.decoder.state_dict().items() if "conv_refiner" not in kk},
+                "step": k, "val": v}
 
     def forever():
         while True:
@@ -146,7 +162,8 @@ def main():
     it = forever()
     m_per_cell = (cfg.grid.n * cfg.reference.scale / 56.0) * cfg.grid.cell_m
     query.train()
-    best, t0 = float("inf"), time.time()
+    best, best_step, t0 = float("inf"), None, time.time()
+    v = None
     for k in range(1, a.steps + 1):
         batch = {kk: (v.to(dev) if torch.is_tensor(v) else v) for kk, v in next(it).items()}
         opt.zero_grad(set_to_none=True)
@@ -173,18 +190,19 @@ def main():
                         f"{v['pose_nll']:.4f},{v['pose_err_m'] / (cfg.grid.cell_m * 16) * m_per_cell:.2f},{v['n']},{time.time() - t0:.1f},"
                         f"{v['vce_m']:.3f},{v['vce_pose_m']:.3f}\n")
             pose_m = v["pose_err_m"] / (cfg.grid.cell_m * 16) * m_per_cell
-            print(f"step {k} VAL    CE {v['ce']:.3f}  poseNLL {v['pose_nll']:.3f}  top1 {v['top1']:.1%}  pose {pose_m:.1f} m  n {v['n']}"
+            print(f"step {k} VAL    CE {v['ce']:.3f}  poseNLL {v['pose_nll']:.3f}  top1 {v['top1']:.1%}  "
+                  + (f"{'heatmap-argmax (not a pose)' if placed else 'pose'} {pose_m:.1f} m  " if a.pose_nll_weight else "")
+                  + f"n {v['n']}"
                   + (f"  VCE {v['vce_m']:.2f} m  procrustes {v['vce_pose_m']:.2f} m" if vce_w else ""), flush=True)
             score = v["vce_pose_m"] if vce_w and v["vce_pose_m"] == v["vce_pose_m"] else pose_m
             if score < best:
-                best = score
-                torch.save({"query": query.state_dict(), "mode": mode,
-                            "erp_depth": vars(cfg.erp_depth) if mode == "erp_depth" else None,
-                            "decoder": {kk: vv for kk, vv in matcher.model.decoder.state_dict().items() if "conv_refiner" not in kk},
-                            "step": k, "val": v}, ckpt_path)
+                best, best_step = score, k
+                torch.save(ckpt_state(k, v), ckpt_path)
                 print(f"  best -> {ckpt_path}", flush=True)
             query.train()
-    print(f"wrote {ckpt_path}", flush=True)
+    last_path = ckpt_path.with_name(f"vigor_{a.tag}_last.pt")   # a late (multimodal) checkpoint stays evaluable
+    torch.save(ckpt_state(a.steps, v if a.steps else None), last_path)
+    print(f"wrote {ckpt_path} (best, step {best_step}) and {last_path} (last, step {a.steps})", flush=True)
 
 
 if __name__ == "__main__":
