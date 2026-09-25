@@ -346,3 +346,56 @@ def test_null_refiner_on_a_cell_aligned_translation_localises_exactly():
     for i, r in enumerate(rows):
         for init in ("none", "coarse", "ransac"):
             assert abs(r[f"pose_refined_{init}_m"] - i * shift_m) < 1e-3, (i, init, r)
+
+
+def _picture_cons(solver="se2"):
+    cfg = cfg_stub(solver)
+    return SatRoMa.from_wrapper(tiny_matcher(tiny_decoder()).wrapper, cfg, use_means=False, min_valid_frac=0.05)
+
+
+def test_stride16_uses_the_coarse_rows_token_set_not_the_centre_pixel():
+    valid = torch.ones(1, 224, 224)
+    valid[0, :16, :16] = 0
+    valid[0, :4, :4] = 1                                      # 16 / 256 = 6 % of token (0, 0) valid, centre invalid
+    assert valid[0, 7, 7] == 0 and valid[0, 8, 8] == 0
+    frac = torch.nn.functional.avg_pool2d(valid[:, None], 16)[:, 0]
+    batch = dict(bev_valid=valid)
+    cons = _picture_cons()
+    t = (304.0, 288.0)
+    flow = _translation_flow(t).float()[None]
+    o16 = dict(flow=flow, flow_pre_delta=flow, certainty=torch.zeros(1, 1, 14, 14),
+               gm_certainty=torch.zeros(1, 1, 14, 14), gm_cls=torch.zeros(1, 56 * 56, 14, 14))
+    m, info = refined_for_query(cons, o16, None, StubPictureQuery(), batch, 16, init="none", frac=frac, min_frac=0.05)
+    patches = cons.query_patches(torch.nn.functional.interpolate(frac[:, None], size=(224, 224))[0, 0] >= 0.05)
+    assert bool(patches[0, 0]) and info["n_corr"] == int(patches.sum()) == 196     # token (0, 0) is in
+    assert np.abs(m.H[:2, 2] - np.array(t)).max() < 1e-3
+    # below the token stride the per-pixel validity stays: the invalid block's pixels are out
+    _, info8 = refined_for_query(cons, o16, None, StubPictureQuery(), batch, 8, init="none", frac=frac)
+    assert info8["n_corr"] == 26 * 26 - 1                    # grid point (11.5, 11.5) lies in the invalid block
+
+
+def test_gated_set_below_min_corr_falls_back_to_the_coarse_pose():
+    t = np.array([304.0, 288.0])
+    uv, _, wv, _ = warp_samples(_translation_flow(tuple(t)), torch.zeros(14, 14), (224, 224), 16)
+    r = norm_to_px(wv.double(), 896).numpy()
+    r[5:] += 200.0                                           # only 5 correspondences agree with the seed
+    seed = np.eye(3)
+    seed[:2, 2] = t
+    few, n = SatRoMa.refined_consensus(_cons("se2"), uv.numpy(), r, H_seed=seed, gate_cells=3.0, min_corr=8)
+    assert n == 5 and few.H is None
+    fit, _ = SatRoMa.refined_consensus(_cons("se2"), uv.numpy(), r, H_seed=seed, gate_cells=3.0, min_corr=None)
+    assert fit.H is not None                                 # without the minimum se2 would fit those five
+    # through refined_for_query: the coarse match comes back, flagged as a fallback
+    flow = px_to_norm(torch.from_numpy(r).float(), 896).T.reshape(2, 14, 14)[None]
+    o16 = dict(flow=flow, flow_pre_delta=flow, certainty=torch.zeros(1, 1, 14, 14),
+               gm_certainty=torch.zeros(1, 1, 14, 14), gm_cls=torch.zeros(1, 56 * 56, 14, 14))
+    coarse = NS(H=seed + 0.0)
+    batch = dict(bev_valid=torch.ones(1, 224, 224))
+    frac = torch.ones(1, 14, 14)
+    for init in ("coarse",):
+        m, info = refined_for_query(_picture_cons(), o16, None, StubPictureQuery(), batch, 16, init=init,
+                                    coarse=coarse, gate_cells=3.0, frac=frac, min_corr=8)
+        assert info["fallback"] and info["n_used"] == 5 and m is coarse
+    m, info = refined_for_query(_picture_cons(), o16, None, StubPictureQuery(), batch, 16, init="coarse",
+                                coarse=coarse, gate_cells=3.0, frac=frac, min_corr=5)
+    assert not info["fallback"] and m.H is not None

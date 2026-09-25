@@ -42,7 +42,7 @@ from bevloc import config as C  # noqa: E402
 from bevloc.data.vigor import VigorPairs, collate_vigor, split_cities  # noqa: E402
 from bevloc.model.coarse import FeatureQueryMatcher, resolve_vce_weight, vce_options  # noqa: E402
 from bevloc.model.query import apply_query_cfg, build_query, load_query_state  # noqa: E402
-from bevloc.model.refine import decoder_state, set_refiner_trainable  # noqa: E402
+from bevloc.model.refine import REFINER_KEY, decoder_state, set_refiner_trainable  # noqa: E402
 
 
 def main():
@@ -136,6 +136,11 @@ def main():
         print(f"conv refiner unfrozen: {n_ref / 1e6:.2f} M parameters (fine loss weight {refine_w})", flush=True)
     if state:
         matcher.model.decoder.load_state_dict(state["decoder"], strict=False)
+    # a warm start that carries a trained refiner keeps it in every checkpoint, even with the fine loss off
+    # (it is then frozen at those weights): silently dropping trained weights would revert eval to the released ones
+    keep_refiner = refine_w > 0 or bool(state and any(REFINER_KEY in k for k in state["decoder"]))
+    if keep_refiner and not refine_w:
+        print("warm start carries a trained conv refiner: kept (frozen) and saved in the checkpoints", flush=True)
     query = build_query(cfg, mode).to(dev)
     if state:
         load_query_state(query, state)
@@ -166,7 +171,7 @@ def main():
         return {"query": query.state_dict(), "mode": mode,
                 "erp_depth": vars(cfg.erp_depth) if mode == "erp_depth" else None,
                 "train": train_meta,
-                "decoder": decoder_state(matcher.model.decoder, include_refiner=refine_w > 0),
+                "decoder": decoder_state(matcher.model.decoder, include_refiner=keep_refiner),
                 "step": k, "val": v}
 
     def forever():

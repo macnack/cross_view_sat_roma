@@ -47,7 +47,7 @@ def refine_tags(inits):
 
 
 def score(ds, query, matcher, cons, cfg, dev, n_max=0, verbose=False, refine=0, refine_inits=("coarse",),
-          refine_gate=None, refine_min_cert=0.0):
+          refine_gate=None, refine_min_cert=0.0, refine_min_corr=8):
     """refine = 0: the coarse rows only (identical to before the sub-cell stage). refine = S > 0: also the refined
     row(s) from the decoder's stride-16 refiner, correspondences on a stride-S query grid (see module doc)."""
     rows = []
@@ -82,7 +82,8 @@ def score(ds, query, matcher, cons, cfg, dev, n_max=0, verbose=False, refine=0, 
             with torch.no_grad():
                 m, info = refined_for_query(cons["peak"], o16, tap, query, batch, refine, init=init,
                                             coarse=coarse["peak"], gate_cells=refine_gate,
-                                            min_cert=refine_min_cert, frac=frac, min_frac=0.05)
+                                            min_cert=refine_min_cert, frac=frac, min_frac=0.05,
+                                            min_corr=refine_min_corr)
             err = pose_errors(m.H, H, n, float(cfg.grid.cell_m)) if m.H is not None else None
             row[f"pose_{tag}_m"] = None if err is None else err["position_m"]
             row[f"yaw_{tag}_deg"] = None if err is None else err["yaw_deg"]
@@ -124,6 +125,9 @@ def main():
                          "(default cfg.matcher.reproj_cells)")
     ap.add_argument("--refine-min-cert", type=float, default=0.0,
                     help="keep refined correspondences with sigmoid(refined certainty) >= this (0 = all)")
+    ap.add_argument("--refine-min-corr", type=int, default=8,
+                    help="seeded inits: fewer correspondences than this after the gate -> fall back to the coarse "
+                         "pose (counted as a fallback)")
     ap.add_argument("--out", default="experiments/09_vigor")
     ap.add_argument("--tag", required=True)
     a = ap.parse_args()
@@ -178,7 +182,7 @@ def main():
         print(f"depth: {n_no_depth} panoramas of the draw have no depth file (skipped)", flush=True)
     print(f"{len(ds)} samples, split {a.split}, cities {cities}, row_sign {ds.row_sign:+.0f}, height {ds.height} m", flush=True)
     rows = score(ds, query, matcher, cons, cfg, dev, verbose=True, refine=a.refine, refine_inits=tuple(a.refine_init),
-                 refine_gate=refine_gate, refine_min_cert=a.refine_min_cert)
+                 refine_gate=refine_gate, refine_min_cert=a.refine_min_cert, refine_min_corr=a.refine_min_corr)
     rtags = list(refine_tags(a.refine_init).values()) if a.refine else []
     summary = {}
     for name in ["all"] + sorted({r["city"] for r in rows}):
@@ -200,7 +204,8 @@ def main():
                                               skipped_no_depth=n_no_depth, ckpt_step=state.get("step"),
                                               train=train_meta,
                                               refine=dict(stride=a.refine, inits=a.refine_init, gate_cells=refine_gate,
-                                                          min_cert=a.refine_min_cert, trained_refiner=trained_refiner,
+                                                          min_cert=a.refine_min_cert, min_corr=a.refine_min_corr,
+                                                          trained_refiner=trained_refiner,
                                                           path="decoder conv_refiner['16'] (the only refiner): input "
                                                                "warp = cls_to_flow_refine(gm_cls) for none/coarse, "
                                                                "H_coarse(query point) for ransac")
