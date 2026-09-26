@@ -9,14 +9,21 @@ Every row is scored on the same sample draw per split (seed 0: 3000 Chicago same
 | FG² (released same-area checkpoint), weighted Procrustes | 1.13 m (1.09–1.16) | 2.12 m | 91 % | 96 % | 3000 |
 | Loc² (released same-area checkpoint), RANSAC | 1.33 m (1.29–1.37) | 2.93 m | 88 % | 93 % | 3000 |
 | Loc² (released same-area checkpoint), weighted Procrustes | 1.70 m (1.63–1.77) | 3.24 m | 82 % | 93 % | 3000 |
+| Ours, four-city fine-tune, 60k steps, 2 m cells | 1.71 m (1.64–1.79) | 4.55 m | 78 % | 86 % | 3000 |
+| vigor_chicago_same_30k_cell0125_se2_ref16 | 1.86 m (1.79–1.94) | 5.20 m | 74 % | 82 % | 3000 |
+| vigor_chicago_same_30k_cell0125_se2_ref4 | 1.86 m (1.79–1.94) | 5.20 m | 74 % | 82 % | 3000 |
+| vigor_chicago_same_30k_cell0125_se2_ref8 | 1.86 m (1.79–1.94) | 5.20 m | 74 % | 82 % | 3000 |
 | Ours, 30k, 2 m cells (0.125 m/px) | 1.89 m (1.80–1.98) | 5.19 m | 74 % | 82 % | 3000 |
+| Ours, four-city fine-tune, 60k steps, 2 m cells (all cities) | 1.93 m (1.89–1.98) | 4.59 m | 77 % | 86 % | 12000 |
 | Ours, four-city fine-tune, 60k steps | 2.51 m (2.42–2.60) | 4.95 m | 76 % | 87 % | 3000 |
+| Ours, four-city, held-out validation (v2) | 2.59 m (2.49–2.67) | 4.99 m | 74 % | 87 % | 3000 |
 | Ours, Chicago-only 30k checkpoint, 2 m cells (all cities) | 2.61 m (2.55–2.67) | 5.92 m | 69 % | 80 % | 12000 |
 | Ours, 30k steps, no Poznań warm start | 2.90 m (2.80–3.02) | 5.44 m | 71 % | 85 % | 3000 |
 | Ours, Chicago fine-tune, 30k steps | 2.90 m (2.79–3.00) | 5.45 m | 70 % | 85 % | 3000 |
 | Ours, 30k, 4-DoF solver (sim) | 2.91 m (2.80–3.02) | 5.50 m | 71 % | 85 % | 3000 |
 | Ours, four-city fine-tune, 60k steps (all cities) | 2.95 m (2.90–3.01) | 5.16 m | 71 % | 87 % | 12000 |
 | Ours, 30k, 3-DoF solver (se2) | 2.95 m (2.83–3.05) | 5.44 m | 70 % | 85 % | 3000 |
+| Ours, four-city, held-out validation (v2, all cities) | 3.05 m (3.00–3.10) | 5.25 m | 70 % | 87 % | 12000 |
 | Ours, Chicago fine-tune, 3k steps | 3.61 m (3.47–3.78) | 6.35 m | 62 % | 80 % | 3000 |
 | Ours, Chicago-only 30k checkpoint (all cities) | 3.89 m (3.81–3.97) | 6.63 m | 60 % | 81 % | 12000 |
 | Ours, zero-shot (Poznań IPM checkpoint), Chicago only | 5.59 m (5.33–5.91) | 10.07 m | 45 % | 67 % | 3000 |
@@ -39,6 +46,14 @@ Centre-guess chance (predict the tile centre): median 14.26, 14.30 m.
 | Ours, four-city fine-tune, 60k steps (all cities) | NewYork | 4.18 m (4.05–4.37) | 6.47 m | 58 % | 82 % | 3140 |
 | Ours, four-city fine-tune, 60k steps (all cities) | SanFrancisco | 2.78 m (2.71–2.89) | 4.77 m | 74 % | 89 % | 3198 |
 | Ours, four-city fine-tune, 60k steps (all cities) | Seattle | 2.41 m (2.33–2.52) | 4.27 m | 78 % | 90 % | 2718 |
+| Ours, four-city fine-tune, 60k steps, 2 m cells (all cities) | Chicago | 1.67 m (1.61–1.75) | 4.53 m | 78 % | 85 % | 2944 |
+| Ours, four-city fine-tune, 60k steps, 2 m cells (all cities) | NewYork | 3.78 m (3.60–3.94) | 6.57 m | 62 % | 80 % | 3140 |
+| Ours, four-city fine-tune, 60k steps, 2 m cells (all cities) | SanFrancisco | 1.53 m (1.48–1.60) | 3.74 m | 83 % | 90 % | 3198 |
+| Ours, four-city fine-tune, 60k steps, 2 m cells (all cities) | Seattle | 1.49 m (1.43–1.55) | 3.35 m | 84 % | 91 % | 2718 |
+| Ours, four-city, held-out validation (v2, all cities) | Chicago | 2.64 m (2.56–2.74) | 5.00 m | 74 % | 87 % | 2944 |
+| Ours, four-city, held-out validation (v2, all cities) | NewYork | 4.20 m (4.07–4.37) | 6.58 m | 58 % | 82 % | 3140 |
+| Ours, four-city, held-out validation (v2, all cities) | SanFrancisco | 2.90 m (2.81–2.99) | 4.94 m | 73 % | 89 % | 3198 |
+| Ours, four-city, held-out validation (v2, all cities) | Seattle | 2.52 m (2.43–2.61) | 4.35 m | 77 % | 90 % | 2718 |
 
 ## Cross-area (train New York + Seattle, test San Francisco + Chicago)
 
@@ -48,7 +63,9 @@ Centre-guess chance (predict the tile centre): median 14.26, 14.30 m.
 | FG² (released cross-area checkpoint), weighted Procrustes | 1.60 m (1.55–1.63) | 2.80 m | 88 % | 95 % | 6000 |
 | Loc² (released cross-area checkpoint), RANSAC | 1.99 m (1.94–2.03) | 3.65 m | 87 % | 93 % | 5999 |
 | Loc² (released cross-area checkpoint), weighted Procrustes | 2.21 m (2.15–2.26) | 3.67 m | 81 % | 93 % | 5999 |
+| Ours, NY + Seattle fine-tune, 60k steps, 2 m cells | 2.27 m (2.22–2.33) | 4.70 m | 78 % | 87 % | 6000 |
 | Ours, NY + Seattle fine-tune, 60k steps | 3.27 m (3.17–3.34) | 5.61 m | 69 % | 86 % | 6000 |
+| Ours, NY + Seattle, held-out validation (v2) | 3.34 m (3.24–3.40) | 5.69 m | 68 % | 85 % | 6000 |
 | Ours, zero-shot (Poznań IPM checkpoint), Chicago only | 5.85 m (5.59–6.11) | 10.18 m | 44 % | 67 % | 3000 |
 | Ours, zero-shot (Poznań IPM checkpoint) | 6.09 m (5.90–6.35) | 10.23 m | 42 % | 66 % | 6000 |
 
@@ -68,6 +85,10 @@ Centre-guess chance (predict the tile centre): median 14.08, 14.85 m.
 | Loc² (released cross-area checkpoint), weighted Procrustes | SanFrancisco | 1.94 m (1.88–2.02) | 3.13 m | 85 % | 95 % | 3139 |
 | Ours, NY + Seattle fine-tune, 60k steps | Chicago | 3.05 m (2.92–3.15) | 5.74 m | 70 % | 84 % | 2861 |
 | Ours, NY + Seattle fine-tune, 60k steps | SanFrancisco | 3.43 m (3.33–3.53) | 5.49 m | 69 % | 87 % | 3139 |
+| Ours, NY + Seattle fine-tune, 60k steps, 2 m cells | Chicago | 2.12 m (2.04–2.22) | 4.99 m | 76 % | 84 % | 2861 |
+| Ours, NY + Seattle fine-tune, 60k steps, 2 m cells | SanFrancisco | 2.40 m (2.32–2.47) | 4.45 m | 81 % | 89 % | 3139 |
+| Ours, NY + Seattle, held-out validation (v2) | Chicago | 3.17 m (3.08–3.29) | 5.77 m | 69 % | 84 % | 2861 |
+| Ours, NY + Seattle, held-out validation (v2) | SanFrancisco | 3.46 m (3.35–3.58) | 5.61 m | 68 % | 86 % | 3139 |
 | Ours, zero-shot (Poznań IPM checkpoint) | Chicago | 5.86 m (5.56–6.11) | 10.08 m | 45 % | 67 % | 2861 |
 | Ours, zero-shot (Poznań IPM checkpoint) | SanFrancisco | 6.41 m (6.06–6.81) | 10.37 m | 40 % | 65 % | 3139 |
 
@@ -80,10 +101,10 @@ go into the tables above once their json lands here. Decisions and the reasoning
 |---|---|---|---|---|
 | 1 | Train on FG²'s data: all four cities, same-area split | Chicago-only overfit at 5 epochs; FG² trains 25 epochs on 52k pairs | 8765483 → 8765484 / 8765485 | **Done.** Chicago 2.51 m (was 2.90), all cities 2.95 m; New York 4.18 m (was 5.66). Data closes ~0.4 m of a 1.5 m gap. |
 | 1b | Same, cross-area (NY + Seattle → SF + Chicago) | The number reviewers ask for | 8765486 → 8765487 | **Done.** 3.27 m median / 5.61 m mean; Chicago unseen 3.05 m vs 2.51 m seen. |
-| 1c | Reruns with FG²'s validation protocol (20 % of the train list held out, `--val-frac 0.2`) | The first runs selected the checkpoint on a 400-sample draw from the test list | 8777838 → 8777839 / 8777840 (same-area); 8777826 → 8777827 (cross-area) | **Running.** Replace rows 1 and 1b when they land. |
+| 1c | Reruns with FG²'s validation protocol (20 % of the train list held out, `--val-frac 0.2`) | The first runs selected the checkpoint on a 400-sample draw from the test list | 8777838 → 8777839 / 8777840 (same-area); 8777826 → 8777827 (cross-area) | **Done.** 2.59 m Chicago / 3.05 m all cities / 3.34 m cross-area: ~0.1 m behind the provisional rows; these are the clean 4 m rows. |
 | 2 | No Poznań warm start | Does the Poznań pre-training transfer? | 8763046 → 8763047 | **Done, null.** 2.90 m = warm-started 2.90 m; curves coincide from step 6k. The plateau is the architecture's. |
 | 3 | 2 m cells: 0.125 m/px so the 71 m tile fills the reference instead of 18 of 56 cells (`configs/vigor_cell0125.yaml`) | Even the best quartile sits on the 4 m-cell quantisation floor (p25 = 1.7 m; the sub-cell mean row gains only 0.1 m) | 8777920 → 8777921 | **Done, works: 1.89 m median (was 2.90), mean 5.19 m, R@5 0.74.** Largest single gain of the campaign; the tail (R@10 0.82) did not move. 0.125 m/px is now the VIGOR configuration. |
-| 3a | 2 m cells at the paper budget: four-city same-area 60k and cross-area 60k, held-out validation | The rows for the table | 8784448 → 8784449/8784450; 8784451 → 8784452 | **Running** (~13 h each). |
+| 3a | 2 m cells at the paper budget: four-city same-area 60k and cross-area 60k, held-out validation | The rows for the table | 8784448 → 8784449/8784450; 8784451 → 8784452 | **Done.** Same-area 1.71 m Chicago / 1.93 m all cities (mean 4.6 m, R@5 0.78); cross-area 2.27 m / 4.70 m / 0.78. Within 0.3 m of Loc² cross-area, 0.6 m same-area; tail still 1.5× Loc²'s. |
 | 3b | Chicago 2 m checkpoint on all four cities | Transfer of the 2 m gain | 8784457 | **Done.** All 2.61 m (was 3.89); SF 2.07, Seattle 2.41, Chicago 1.85, New York 4.99 m (was 5.66): the gain transfers except in New York. |
 | 4 | Worst-20 sheet (`viz/vigor_chicago30k_worst20.jpg`) | Is the 15 % > 10 m tail ambiguity or wrong-mode? | 8777922 | **Done.** 19/20 misses are 31–47 m with diffuse vote maps centred on the tile (a layout prior) and often high inlier ratios; alleys with facade-smeared pictures dominate. |
 | 5 | Solver ablation on the 30k checkpoint: homography (`srt`) vs 4-DoF (`sim`) vs 3-DoF (`se2`) | The sheet's sheared quadrilaterals suggested solver failure | 8778283, 8778284 | **Done, null.** 2.90 / 2.91 / 2.95 m: the tail is a matching failure; `srt` stays. |
@@ -91,9 +112,9 @@ go into the tables above once their json lands here. Decisions and the reasoning
 | 7 | Inlier-ratio gate for the particle filter | Lowest inlier quartile: 5.8 m median, 35 % gross; rest 2.4 m, 5 % | — | Not started (route-level work, not a VIGOR row). |
 | 8 | FG² and Loc² baselines like-for-like (released checkpoints, native sizes, our draws, pure-PyTorch mmcv shim, UniK3D depth) | Published numbers were not on our samples | FG²: 8763034/8763035, 8765488; Loc²: 8778233–8778237 | **Done.** Same-area FG² 1.06 m, Loc² 1.33 m; cross-area FG² 1.41 m, Loc² 1.99 m. Both reproduce their papers within 0.1 m. |
 | 9 | **Task 04: Loc² geometry with the Sat-RoMa decoder as the matcher** — panorama tokens as the query, UniK3D depth placement per token, decoder categorical + certainty + modes, VCE pose loss, optional 2.2 M projection head (`--query erp_depth --head`) | Loc² Tab. 12: BEV-plane matching 8.20 m vs image-plane 1.75 m; RoMa's gain is the match decoder, not the loss form; our plateau is architectural (ideas 1–2) | 8778958 → 8778960/8778961/8778962 (main run; best srt, best se2, last srt); 8778959 → 8778963/8778964 (control with the heat-map pose loss 0.5) | **Done, gate not met at 10k steps:** 3.45–3.80 m median depending on solver/loss (best: heat-map loss on, se2 solver, 3.45 m); IPM picture was 3.61 m at 3k steps and 2.90 m at 30k, so the budget was not like-for-like. |
-| 9a | Task 04 at the picture run's budget: 30k steps, heat-map loss on, head on vs off, best and last checkpoints, srt and se2 solvers | Same budget as the 2.90 m row; also settles head and checkpoint selection | 8781939 → 8781941/8781942/8781943 (head); 8781940 → 8781944/8781945 (no head) | **No head: done, 4.27–4.39 m** (worse than head at 10k = 3.45 m): the head is necessary. Head run restarted by SLURM at 20:50 (node failure, no resume), lands ~02:30. |
+| 9a | Task 04 at the picture run's budget: 30k steps, heat-map loss on, head on vs off, best and last checkpoints, srt and se2 solvers | Same budget as the 2.90 m row; also settles head and checkpoint selection | 8781939 → 8781941/8781942/8781943 (head); 8781940 → 8781944/8781945 (no head) | **Done.** Head: 2.79 m (se2) / 4.68 m mean / R@5 0.75 — same median as the picture at 4 m, lighter tail. No head: 4.27–4.39 m, the head is necessary. |
 | 9d | Task 04 matcher at 2 m cells (`erp_depth` + head + heat-map loss, `vigor_cell0125.yaml`, 30k) | The reference canvas has the same black border for the depth-placed query | 8784453 → 8784454/8784455/8784456 | **Done, gate passed: 1.76 m median (last, se2) / 4.16 m mean / R@5 0.82 / R@10 0.88.** Same median as the picture at 2 m (1.89) but a much lighter tail (mean 5.19 → 4.16, R@5 0.74 → 0.82). |
-| 10 | Sub-cell stage: Sat-RoMa's own stride-16 conv refiner, frozen at eval (`--refine 16`, inits none/coarse/ransac) and trained with RoMa's fine loss (`--refine-weight 1`) | At 2 m cells the median (1.76–1.89 m) sits 2.3× above the quantisation floor; the GMM-mean row gained only 0.1 m | frozen: 8790275/8790277/8790279 (picture ckpt), 8790276/8790278/8790280 (Task 04 ckpt); trained: 8790281 → 8790282 | **Running.** |
+| 10 | Sub-cell stage: Sat-RoMa's own stride-16 conv refiner, frozen at eval (`--refine 16`, inits none/coarse/ransac) and trained with RoMa's fine loss (`--refine-weight 1`) | At 2 m cells the median (1.76–1.89 m) sits 2.3× above the quantisation floor; the GMM-mean row gained only 0.1 m | frozen: 8790275/8790277/8790279 (picture ckpt), 8790276/8790278/8790280 (Task 04 ckpt); trained: 8790281 → 8790282 | Frozen: **+0.1 m on the picture (1.86 → 1.75), harmful on the panorama grid (1.76 → 3.3 m gated)**, S=8/4 = S=16. Trained: **diverged to NaN at step 23k (fp16)** after the fine EPE had fallen 113 → 21 px; fix + rerun pending. |
 | 11 | Denser query tokens: panorama at 1792×896 → 112×56 tokens (`vigor_cell0125_erp1792.yaml`) | Median now sits 2.3× above the 2 m quantisation floor: token-level precision; each token spans 6.4° of azimuth | 8794134 → 8794135/8794136 | **Running** (batch 2, 60k, ~10 h). |
 | 12 | Coarse-to-fine second pass: 56 m window around the coarse pose at 0.0625 m/px (1 m cells), fine decoder trained on jittered windows; LoFTR sanity check first | A finer global grid no longer covers the tile | — (being implemented) | Delegated; jobs after review. |
 | 13 | Certainty that means something (`docs/tasks/06_certainty.md`): vote-map statistics, calibrator + abstention/conformal, bootstrap spread; later a pose-correctness head | Inlier ratio is a weak gate; misses are diffuse vote blobs | — (being implemented) | Delegated; jobs after review. |

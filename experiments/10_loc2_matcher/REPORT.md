@@ -5,9 +5,15 @@ Every row is scored on the same sample draw per split (seed 0: 3000 Chicago same
 
 | Method | Median (95 % CI) | Mean | ≤ 5 m | ≤ 10 m | n |
 |---|---|---|---|---|---|
+| vigor_chicago_same_30k_erp_depth_cell0125_last_se2_ref16 | 1.76 m (1.68–1.84) | 4.16 m | 82 % | 88 % | 3000 |
+| vigor_chicago_same_30k_erp_depth_cell0125_last_se2_ref4 | 1.76 m (1.68–1.84) | 4.16 m | 82 % | 88 % | 3000 |
+| vigor_chicago_same_30k_erp_depth_cell0125_last_se2_ref8 | 1.76 m (1.68–1.84) | 4.16 m | 82 % | 88 % | 3000 |
 | Task 04 erp_depth + head + heat-map loss, 2 m cells, 30k, last, se2 | 1.76 m (1.68–1.84) | 4.16 m | 82 % | 88 % | 3000 |
 | Task 04 erp_depth + head + heat-map loss, 2 m cells, 30k, best, homography | 1.83 m (1.77–1.89) | 4.17 m | 81 % | 88 % | 3000 |
 | Task 04 erp_depth + head + heat-map loss, 2 m cells, 30k, best, se2 | 1.84 m (1.77–1.90) | 4.11 m | 82 % | 88 % | 3000 |
+| Task 04 erp_depth + head + heat-map loss, 30k, best, se2 | 2.79 m (2.68–2.89) | 4.68 m | 75 % | 89 % | 3000 |
+| Task 04 erp_depth + head + heat-map loss, 30k, last, se2 | 2.83 m (2.76–2.94) | 4.69 m | 75 % | 89 % | 3000 |
+| Task 04 erp_depth + head + heat-map loss, 30k, best, homography | 2.84 m (2.73–2.95) | 5.12 m | 75 % | 89 % | 3000 |
 | Task 04 erp_depth + head + heat-map loss, 10k, best (step 9500), se2 | 3.45 m (3.30–3.58) | 5.76 m | 66 % | 85 % | 3000 |
 | Task 04 erp_depth + head + heat-map loss, 10k, best (step 9500), homography | 3.52 m (3.38–3.71) | 6.88 m | 65 % | 85 % | 3000 |
 | Task 04 erp_depth + head, 10k steps, last (step 10000), homography | 3.69 m (3.54–3.83) | 6.45 m | 64 % | 84 % | 3000 |
