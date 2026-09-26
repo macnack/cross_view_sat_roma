@@ -1,3 +1,12 @@
+# VIGOR coarse-to-fine SECOND PASS (task 04, docs/tasks/04_loc2_matcher.md "Coarse-to-fine second pass"):
+# = configs/vigor_cell0125.yaml with grid.cell_m 0.0625 and a reference WINDOW instead of the whole tile.
+# At 0.0625 m/px the 896 px reference canvas is 56 m (1 m classifier cells), too small for the ~71 m tile, so the
+# reference is a 56 m window of the tile (vigor.ref_window_m) centred on the coarse pose at evaluation
+# (scripts/eval_vigor.py --fine-config/--fine-ckpt) and on the true position + a uniform disc jitter of
+# vigor.ref_jitter_m in training/validation. The picture query at this GSD is 224 px = 14 m (near field only);
+# erp_depth tokens keep their metric placement (virtual BEV px at 0.0625 m).
+# vigor_cell0125.yaml header, kept: VIGOR at 0.125 m/px: reference 896 px = 112 m (the 71 m tile fills it instead of
+# 18 of 56 cells), classifier cells 2 m instead of 4 m; query 224 px = 28 m.
 # Single source of parameters for task 01 (kick-off). Every script takes --config and
 # writes a snapshot of the resolved config next to its outputs.
 data:
@@ -17,7 +26,7 @@ calib:                             # see docs/decisions.md; all provisional unti
 
 grid:
   n: 224
-  cell_m: 0.25
+  cell_m: 0.0625                   # second pass: 896 px reference = 56 m window, 1 m cells; query picture 14 m
 
 ground:
   floor_cell_m: 0.5
@@ -108,7 +117,7 @@ lift:                              # camera-only spherical Lift-Splat (scripts/t
   certainty_weight: 0.01           # RoMa ce_weight; still applies on positive patches
   pose_nll_weight: 0.0             # OrienterNet-style pose heatmap NLL; set 0.5 for tonight deep-dive
   seq_dists_m: [0.0]               # metres behind query; [0,2,5] = multi-frame soft-splat
-  query_mode: lift                # lift | ipm | hybrid | erp (task 03) | erp_depth (task 04)
+  query_mode: lift                # lift | ipm | hybrid (task 03)
   min_elev_deg: -3.5              # hybrid: rays below this hit ground inside ground_max_range_m and are placed by IPM
   ground_max_range_m: 28.0
 
@@ -119,10 +128,9 @@ vigor:                            # src/bevloc/data/vigor.py, scripts/eval_vigor
   height_m: 2.5                   # panorama camera height for the IPM picture; calibrated 2026-09-24 on 150 Chicago samples
                                   # (1.6 m: 7.9, 2.0 m: 5.6, 2.5 m: 4.4, 3.0 m: 4.9 m median; wrong row sign: 18-20 m)
   fg2_batch: 24                   # scripts/eval_fg2_vigor.py: FG²'s own default batch (native 714x1428 / 630x630 inputs)
-  loc2_batch: 24                  # scripts/eval_loc2_vigor.py (Loc² uses 80 on an H100; 24 keeps the shim's PyTorch attention comfortable)
-  ref_window_m: null              # null = whole tile centred in the canvas; a number = a window of the tile this wide
-                                  # (the coarse-to-fine second pass, configs/vigor_cell00625_fine.yaml)
-  ref_jitter_m: 0.0               # window mode, train/val: centre = true position + uniform disc jitter of this radius
+  ref_window_m: 56                # reference = a 56 m window of the tile (= the 896 px canvas at 0.0625 m/px)
+  ref_jitter_m: 6                 # train/val window centre = true position + uniform jitter over a disc of this radius
+                                  # (~ the coarse pass's typical error: 1.8 m median, R@5 0.74-0.82)
 
 erp_query:                        # ERP-token query, placement after matching (task 03, Task 6)
   max_range_m: 40.0               # ground tokens beyond this are not placed (IPM too coarse there)

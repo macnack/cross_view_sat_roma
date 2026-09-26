@@ -158,3 +158,67 @@ features as well is our addition (in RoMa the fine features come from a separate
 checkpoint carries a trained refiner keeps saving it even with `--refine-weight 0` (frozen at those weights). Train and val log `fine_epe_px` (refined) against
 `fine_epe_in_px` (input warp) in reference px. Open for agreement: the gate radius, the certainty-target radius,
 detaching the features as well as the warp, and whether S < 16 is worth keeping.
+
+## Coarse-to-fine second pass — as built, 26 Sep 2026 (for review; not yet run on VIGOR)
+
+**Why.** Halving the reference grid spacing 0.25 → 0.125 m/px (4 m → 2 m cells) took the Chicago median from 2.90 m
+to 1.89 m (picture) and gives 1.76 m for erp_depth. Another halving cannot be global: at 0.0625 m/px the 896 px canvas
+is 56 m and no longer holds the ~71 m tile. So the second pass matches again, at 0.0625 m/px (1 m cells), inside a
+56 m window of the tile around the first pass's pose.
+
+**Reference window (`VigorPairs`, `configs/vigor_cell00625_fine.yaml`).** `vigor.ref_window_m` (null = whole tile,
+unchanged bit for bit) turns the reference into a window of the tile at `cfg.grid.cell_m`. Conventions:
+- Tile frame = the frame of the sample's `en`: east, north metres from the tile centre; the tile centre is pixel
+  ((w0 − 1)/2, (h0 − 1)/2) with pixel centres at integer coordinates, metres per tile px = `CITY_RES[city] · 640 / w0`.
+- The window's centre is the canvas centre pixel ((S − 1)/2), placed at `ref_centre_en` (a new sample key; zeros for
+  the whole tile). The window is one `cv2.warpAffine` of the tile with the exact canvas → tile affine
+  (`window_affine`; area pre-filter when downsampling), black off the tile and outside `ref_window_m`.
+- H (BEV px → window px) is a translation whose camera pixel is `en_to_canvas(en, ref_centre_en)`; any pose on any
+  canvas maps back to the tile frame with `pose_en(H, ref_centre_en, n, cell_m, S)` (the BEV centre is the camera).
+  Verified on a synthetic tile with a Gaussian marker painted at the label's pixel: the marker centroid in the window
+  is within 0.013 px of H's camera pixel at 0.0625 and 0.25 m/px, for centres offset up to 25 m, including windows
+  that run off the tile (tests/test_vigor_window.py). The whole-tile path's own content sits within ≈ 0.5 px of its H
+  (integer placement of the resized tile, unchanged, ≈ 6 cm at 0.125 m/px; it is the path the coarse checkpoints use).
+- Queries are unchanged: their placement is in metres. The picture is `ipm_erp` at the config's cell, so at
+  0.0625 m/px it is 224 px = 14 m (near field only; the 1.2 m blind disc covers 4× the pixels, tested); erp_depth tokens
+  are placed in virtual BEV px of 0.0625 m (2× the pixel offsets of 0.125 m, tested), so their targets reach up to the
+  35 m depth cap but only those landing inside the 56 m window (and on tile content) are supervised / vote.
+
+**How the window is chosen.** Training / validation: true camera position + a jitter uniform over the disc of radius
+`vigor.ref_jitter_m` (6 m, comparable to the coarse error: median 1.8 m, R@5 0.74–0.82). A training draw is fresh
+each time (seeded from the torch RNG, so runs repeat); the `--val-frac` validation copy has `jitter_seed = 0`: the same
+distribution with one fixed draw per sample, so its curve is comparable across steps. Evaluation: the coarse RANSAC
+pose (`peak` row), or the tile centre when the coarse pass returned nothing (counted: `no_coarse_fine`).
+
+**Training.** `train_vigor.py --config configs/vigor_cell00625_fine.yaml`, otherwise unchanged (the jittered window is
+the only difference; a warm start from the matching 0.125 m checkpoint).
+
+**Evaluation (`eval_vigor.py --fine-config configs/vigor_cell00625_fine.yaml --fine-ckpt <pt> [--fine-gate 6]`).**
+The coarse rows are computed exactly as before (tested: identical keys and values with and without the fine pass).
+Then per sample: the fine window centred on the coarse `peak` pose, the query rebuilt at the fine GSD from the same
+panorama, the fine decoder, and the same consensus (`--solver`, `reproj_cells` threshold in cells, i.e. 3 m → 3 × 1 m,
+seed; the fine config's matcher block is replaced by the coarse run's). The fine pose is mapped back to the tile frame
+and scored there. Rows: `pose_fine_m`, `yaw_fine_deg`, `inliers_fine`, `pose_fine_gated_m` (the coarse pose when the
+fine pose is missing or more than `--fine-gate` m from the coarse pose: `fallback_fine`, summary
+`fallback_fine_gated`), plus `en_gt`, `en_coarse`, `en_fine`, `fine_centre_en`, `fine_shift_m`; the summary adds
+`fine` / `fine_gated` rows, `nopose_fine` and `no_coarse_fine`. An erp_depth fine checkpoint behind a picture coarse
+checkpoint drops the panoramas without depth from both passes (counted in `meta.fine`). Two decoders are loaded
+(two encoder copies; fine on an H100). A fine pass that raises keeps the sample: coarse columns intact, fine columns
+None, `fine_error` = exception class and message, counted as `fine_errors` (CUDA out-of-memory is re-raised).
+`train_vigor.py` records `train.grid` = {cell_m, ref_window_m, ref_jitter_m} in every checkpoint, and `--fine-ckpt`
+refuses a checkpoint whose recorded cell_m differs from the fine config's (older checkpoints without the record: a
+warning). `make vigor-report` lists the `fine` / `fine_gated` (and `refined*` / `hyp*`) rows after each file's peak row.
+
+**LoFTR sanity check (`make loftr-fine`, `scripts/loftr_fine_vigor.py`).** The same coarse pass and fine window, then
+kornia's pretrained LoFTR (outdoor) between the greyscale picture at 0.0625 m/px (invalid pixels black; matches on them
+dropped) and the greyscale window; the pose from the same consensus on LoFTR's matches (`SatRoMa.refined_consensus`),
+the same rows plus `nmatch_fine` / `nused_fine`. kornia is not in the laptop env; the script imports it only when run.
+LoFTR's weights come from `$TORCH_HOME/hub/checkpoints/loftr_outdoor.ckpt` (or `--loftr-weights`): Eagle compute
+nodes have no internet, so that file must be placed first.
+
+Tests (tests/test_vigor_window.py, tests/test_two_pass.py; CPU, synthetic tiles, planted toy decoders): window H
+exactness for five centres × two GSDs incl. off-tile windows (black padding checked column by column), the jitter
+distribution (uniform on the disc, seeded repeatability, fixed validation draw), the fine → tile back-mapping of an
+injected pose with rotation, the two-pass evaluator returning the injected fine pose (se2 and homography), the gate
+(far fine pose, missing fine pose, wider gate), `run()` end to end writing the JSON, and the LoFTR plumbing with a
+fake matcher (a sub-pixel translation with 1 in 7 outliers recovered exactly).

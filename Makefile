@@ -8,7 +8,7 @@ FRAMES  ?= 0 1000 1600 2000
 REF     ?= 200
 RUN      = PYTHONPATH=src:.pydeps $(PY)
 
-.PHONY: fg2-vigor eagle-watch vigor-viz loc2-depth loc2-vigor vigor-report
+.PHONY: fg2-vigor eagle-watch vigor-viz loc2-depth loc2-vigor vigor-report loftr-fine
 .PHONY: help deps test fetch stats mask lens viewer oxts odometry bevs mosaic smoke h1 targets overfit train calib all roma-viz mapillary mapillary-scan mapillary-sample ipm-smoke lift-overfit lift-splat lift-eval lift-splat-years lift-aug-viz lift-layers-viz lift-splat-aug lift-splat-pose-nll lift-splat-seq baselines-manifest fg2-smoke fg2-eval fg2-train bevsplat-smoke bevsplat-eval bevsplat-train baselines-report
 help:
 	@grep -E '^[a-z0-9_-]+:.*##' $(MAKEFILE_LIST) | sed -E 's/:.*## /\t/' | expand -t 12
@@ -185,10 +185,14 @@ ipm-picture: ## dump the query picture CONFIG produces (SEQ=, INDEX="400 800", S
 SPLIT ?= crossarea
 LIMIT ?= 0
 
-vigor-eval: ## our method on VIGOR (known orientation): CKPT=, SPLIT=crossarea|samearea, TAG=, LIMIT=, VIGOR_ARGS= (sub-cell rows: "--refine 16|8|4 --refine-init none coarse ransac [--refine-gate CELLS --refine-min-cert P]")
+vigor-eval: ## our method on VIGOR (known orientation): CKPT=, SPLIT=crossarea|samearea, TAG=, LIMIT=, VIGOR_ARGS= (sub-cell rows: "--refine 16|8|4 --refine-init none coarse ransac [--refine-gate CELLS --refine-min-cert P]"; coarse-to-fine second pass: "--fine-config configs/vigor_cell00625_fine.yaml --fine-ckpt <pt> [--fine-gate 6]")
 	$(RUN) scripts/eval_vigor.py --config $(CONFIG) --ckpt $(CKPT) --split $(SPLIT) --tag $(TAG) --limit $(LIMIT) $(VIGOR_ARGS)
 
-vigor-train: ## fine-tune CKPT on VIGOR (SPLIT=samearea|crossarea, CITIES="Chicago", STEPS=3000, TAG=); CKPT= empty + QUERY=ipm|erp|erp_depth = no warm start (erp_depth: loc2-depth TRAIN=1 first; VIGOR_ARGS="--head"; "--refine-weight 1" trains the conv refiner with RoMa's fine loss)
+LOFTR_OUT ?= experiments/10_loc2_matcher
+loftr-fine: ## second-pass sanity check: coarse CKPT (CONFIG=configs/vigor_cell0125.yaml) + kornia LoFTR outdoor on the 56 m / 0.0625 m/px window around the coarse pose; SPLIT=, TAG=, LIMIT=, LOFTR_OUT= (default experiments/10_loc2_matcher; experiments/09_vigor for non-Task-04 checkpoints), VIGOR_ARGS="--cities Chicago --solver se2 [--loftr-weights PATH]"
+	$(RUN) scripts/loftr_fine_vigor.py --config $(CONFIG) --ckpt $(CKPT) --split $(SPLIT) --tag $(TAG) --limit $(LIMIT) --out $(LOFTR_OUT) $(VIGOR_ARGS)
+
+vigor-train: ## fine-tune CKPT on VIGOR (SPLIT=samearea|crossarea, CITIES="Chicago", STEPS=3000, TAG=); CKPT= empty + QUERY=ipm|erp|erp_depth = no warm start (erp_depth: loc2-depth TRAIN=1 first; VIGOR_ARGS="--head"; "--refine-weight 1" trains the conv refiner with RoMa's fine loss; CONFIG=configs/vigor_cell00625_fine.yaml = second-pass decoder on jittered 56 m windows)
 	$(RUN) scripts/train_vigor.py --config $(CONFIG) $(if $(CKPT),--ckpt $(CKPT),--query $(if $(QUERY),$(QUERY),ipm)) --split $(SPLIT) --tag $(TAG) $(if $(CITIES),--cities $(CITIES),) --steps $(if $(STEPS),$(STEPS),3000) $(VIGOR_ARGS)
 
 vigor-viz: ## overlay sheet of the worst (PICK=worst) or a spread (PICK=spread) of N frames of EVAL_JSON, re-matched with CKPT; TAG=

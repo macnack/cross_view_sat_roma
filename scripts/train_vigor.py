@@ -21,6 +21,11 @@ error (vce_pose_m, fixed match draw) instead of the heat-map proxy.
 RoMa's fine loss on the decoder's conv refiner (its only refiner, stride 16; train_lift_splat.refine_step_loss): the
 refiner is unfrozen, trained on detached coarse inputs, and saved in the checkpoint's decoder dict, from which
 eval_vigor.py --refine then reads it. Validation logs the refined vs input-warp end-point error (fine_epe_px).
+
+Second-pass decoder (coarse-to-fine, task 04): `--config configs/vigor_cell00625_fine.yaml` trains unchanged except
+for the reference, which VigorPairs then builds as a 56 m window at 0.0625 m/px centred on the true position plus a
+uniform disc jitter of cfg.vigor.ref_jitter_m (a fresh draw every time in training; the --val-frac validation copy
+uses the same distribution with one fixed draw per sample, so the validation curve is comparable across steps).
 """
 from __future__ import annotations
 
@@ -100,7 +105,10 @@ def main():
     train_meta = dict(pose_nll_weight=a.pose_nll_weight, vce_weight=vce_w, vce_opts=vce_opts if vce_w else None,
                       neighbour_radius=a.neighbour_radius, neighbour_weight=a.neighbour_weight, steps=a.steps,
                       batch=a.batch, local_radius=a.local_radius, refine_weight=refine_w,
-                      refine_opts=refine_opts if refine_w else None)
+                      refine_opts=refine_opts if refine_w else None,
+                      grid=dict(cell_m=float(cfg.grid.cell_m),
+                                ref_window_m=getattr(getattr(cfg, "vigor", None), "ref_window_m", None),
+                                ref_jitter_m=float(getattr(getattr(cfg, "vigor", None), "ref_jitter_m", 0.0) or 0.0)))
     print(f"pose NLL weight {a.pose_nll_weight}  refine weight {refine_w}" + (f" {refine_opts}" if refine_w else ""),
           flush=True)
     tr_cities = a.cities or split_cities(a.split, True)
@@ -110,6 +118,7 @@ def main():
         idx = np.random.default_rng(0).permutation(len(tr.labels))
         n_tr = int(len(idx) * (1.0 - a.val_frac))
         va = copy.copy(tr)
+        va.jitter_seed = 0          # window mode: the training jitter distribution, one fixed draw per val sample
         va.labels = [tr.labels[i] for i in idx[n_tr:n_tr + a.val_samples]]
         tr.labels = [tr.labels[i] for i in idx[:n_tr]]
         va_cities = tr_cities
@@ -118,6 +127,10 @@ def main():
     else:
         va = VigorPairs(a.root, cfg, cities=va_cities, split=a.split, train=False, limit=a.val_samples, seed=1)
         print(f"train {len(tr)} ({tr_cities})  val {len(va)} from the TEST labels ({va_cities})  mode {mode}  batch {a.batch}", flush=True)
+    if tr.ref_window_m is not None:
+        print(f"reference: {tr.ref_window_m} m window at {cfg.grid.cell_m} m/px centred on the true position + a "
+              f"uniform disc jitter of radius {tr.ref_jitter_m} m (train: fresh per draw; val: fixed per sample, "
+              f"jitter_seed {va.jitter_seed})", flush=True)
     n_no_depth = {}
     if tr.depth:                                    # after the split, so the held-out part is the same as without depth
         n_no_depth = dict(train=tr.keep_with_depth(), val=va.keep_with_depth())

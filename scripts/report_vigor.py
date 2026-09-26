@@ -70,18 +70,36 @@ def rows_of(path: Path):
     tag, split = m.group(1), m.group(2)
     meta, summ = d["meta"], d["summary"]
     method = meta.get("method", "ours")
-    solvers = ["peak"] if method == "ours" else [k for k in ("ransac", "procrustes") if k in summ["all"]]
+    solvers = ["peak"] + extra_rows(summ["all"]) if method == "ours" else \
+        [k for k in ("ransac", "procrustes") if k in summ["all"]]
     cities = [c for c in summ if c != "all"]
     out = []
-    for solver in solvers:
+    for order, solver in enumerate(solvers):
         for city in ["all"] + (cities if len(cities) > 1 else []):
             s = summ[city]
             p = s[solver]
-            mean = s["mean_peak_m"] if solver == "peak" else s[f"mean_{solver}_m"]
-            label = LABELS.get(tag, tag) + SOLVER_LABEL[solver]
+            mean = s["mean_peak_m"] if solver == "peak" else s.get(f"mean_{solver}_m", float("nan"))
+            label = LABELS.get(tag, tag) + SOLVER_LABEL.get(solver, f", {solver}")
             out.append(dict(split=split, city=city, label=label, n=p["n"], line=fmt(p, mean),
-                            centre=s["centre_guess"]["median_m"], file=path.name))
+                            centre=s["centre_guess"]["median_m"], file=path.name, order=order,
+                            median=p["median_m"]))
     return out
+
+
+def extra_rows(s):
+    """Summary rows of an "ours" JSON besides peak: the second pass (fine, fine_gated), sub-cell (refined*), hyp*."""
+    keys = [k for k in s if isinstance(s[k], dict) and "median_m" in s[k]
+            and (k in ("fine", "fine_gated") or k.startswith("refined") or k.startswith("hyp"))]
+    first = [k for k in ("fine", "fine_gated") if k in keys]
+    return first + sorted(k for k in keys if k not in first)
+
+
+def sort_rows(sub):
+    """Files ordered by their first (peak) row's median; within a file, the peak row first, then the extra rows."""
+    def shown(r):                                   # the printed (2-decimal) median, as the table was always sorted
+        return round(r["median"], 2)
+    key_of = {r["file"]: shown(r) for r in sub if r["order"] == 0}
+    return sorted(sub, key=lambda r: (key_of.get(r["file"], shown(r)), r["file"], r["order"]))
 
 
 def main():
@@ -104,7 +122,7 @@ def main():
         sub = [r for r in rows if r["split"] == split and r["city"] == "all"]
         if not sub:
             continue
-        sub.sort(key=lambda r: float(r["line"].split(" m")[0]))
+        sub = sort_rows(sub)
         out.append(f"\n## {title}\n\n" + head + "".join(f"| {r['label']} | {r['line']} |\n" for r in sub))
         centre = sorted({round(r["centre"], 2) for r in sub})
         out.append(f"\nCentre-guess chance (predict the tile centre): median {', '.join(f'{c:.2f}' for c in centre)} m.\n")

@@ -19,6 +19,16 @@ Sample geometry (same conventions as MapillaryPairs so every query mode and the 
     (size = 224 * cfg.reference.scale, i.e. the 896 px crop the checkpoint expects); black = no data;
   * H (BEV px -> reference px) is a pure translation, so pose_errors(H_est, H) is in metres.
 
+Reference window (coarse-to-fine second pass, task 04): with ``cfg.vigor.ref_window_m`` set (or an explicit
+``ref_centre_en`` passed to `VigorPairs.item`), the reference is instead a window of the tile, resampled to
+cfg.grid.cell_m, whose centre sits at the canvas centre ((S - 1) / 2) and at ``ref_centre_en`` (east, north metres
+from the tile centre, the frame of ``en``) in the tile. Without an explicit centre (training, validation) that is the
+true camera position plus a jitter drawn uniformly over the disc of radius ``cfg.vigor.ref_jitter_m``; the evaluator
+passes the coarse pose instead. The window is one exact affine resampling of the tile (cv2.warpAffine; tile pixel
+centres at integer coordinates, tile centre at ((w0 - 1) / 2, (h0 - 1) / 2)); what falls off the tile, or outside
+ref_window_m, is black, and H stays the exact BEV px -> window px map (tests/test_vigor_window.py). The whole-tile
+path (ref_window_m None, no centre passed) is unchanged, bit for bit.
+
 Depth (query mode ``erp_depth``, task 04): UniK3D metric depth in Loc²'s layout, ``<root>/<City>/unik3d_depth/<stem>.png``
 (uint16 millimetres along the ray, clipped at 65 m; scripts/loc2_depth_vigor.py). The sample carries it as ``depth``
 (1, h, w) metres at the ERP size (nearest resampling); panoramas without a file are dropped by `keep_with_depth`.
@@ -39,6 +49,54 @@ CITIES = ("NewYork", "Seattle", "SanFrancisco", "Chicago")
 CITY_RES = {"NewYork": 0.113248, "Seattle": 0.100817, "SanFrancisco": 0.118141, "Chicago": 0.111262}
 # world ENU -> camera for a north-aligned panorama: camera x = east, y = down, z = north (forward)
 R_NORTH = np.array([[1.0, 0.0, 0.0], [0.0, 0.0, -1.0], [0.0, 1.0, 0.0]], np.float32)
+
+
+def canvas_to_en(uv, centre_en, cell_m, size):
+    """Canvas px (u, v) -> (east, north) metres from the tile centre, for a canvas of `size` px at `cell_m` whose
+    centre pixel ((size - 1) / 2) sits at `centre_en` (zeros for the whole-tile canvas). uv (..., 2)."""
+    uv = np.asarray(uv, np.float64)
+    c = (float(size) - 1.0) / 2.0
+    ce = np.asarray(centre_en, np.float64)
+    return np.stack([ce[0] + (uv[..., 0] - c) * cell_m, ce[1] - (uv[..., 1] - c) * cell_m], -1)
+
+
+def en_to_canvas(en, centre_en, cell_m, size):
+    """Inverse of `canvas_to_en`."""
+    en = np.asarray(en, np.float64)
+    c = (float(size) - 1.0) / 2.0
+    ce = np.asarray(centre_en, np.float64)
+    return np.stack([c + (en[..., 0] - ce[0]) / cell_m, c - (en[..., 1] - ce[1]) / cell_m], -1)
+
+
+def pose_en(H, centre_en, n, cell_m, size):
+    """Camera position (east, north) metres from the tile centre for H (BEV px -> canvas px): the camera is the BEV
+    centre ((n - 1) / 2, (n - 1) / 2). None when H is None."""
+    if H is None:
+        return None
+    o = (float(n) - 1.0) / 2.0
+    p = np.asarray(H, np.float64) @ np.array([o, o, 1.0])
+    return canvas_to_en(p[:2] / p[2], centre_en, cell_m, size)
+
+
+def window_affine(w0, h0, res_m, cell_m, size, centre_en):
+    """2x3 map canvas px -> tile px (the cv2.WARP_INVERSE_MAP matrix) of a `size` px window at `cell_m` whose centre
+    pixel is `centre_en` metres (east, north) from the tile centre; `res_m` = metres per tile px. Pixel centres at
+    integer coordinates in both images."""
+    k = float(cell_m) / float(res_m)                             # tile px per canvas px
+    c = (float(size) - 1.0) / 2.0
+    tcx, tcy = (w0 - 1) / 2.0, (h0 - 1) / 2.0
+    ce = np.asarray(centre_en, np.float64)
+    return np.array([[k, 0.0, tcx + ce[0] / res_m - k * c],
+                     [0.0, k, tcy - ce[1] / res_m - k * c]], np.float64)
+
+
+def jitter_disc(rng, radius_m):
+    """(east, north) offset drawn uniformly over the disc of radius `radius_m` (zeros when the radius is 0)."""
+    if not radius_m:
+        return np.zeros(2)
+    r = float(radius_m) * np.sqrt(rng.random())
+    a = 2.0 * np.pi * rng.random()
+    return np.array([r * np.cos(a), r * np.sin(a)])
 
 
 def find_label_root(root: Path) -> Path:
@@ -108,7 +166,14 @@ class VigorPairs(Dataset):
     bev (3, n, n) and bev_valid (n, n); with depth (default: query_mode "erp_depth") and a depth file present:
     depth (1, h, w) float metres along the ray at the ERP size.
 
-    erp_size None = cfg.erp_depth.erp_size for query_mode "erp_depth", else (896, 448)."""
+    Also ``ref_centre_en`` (2,) float64: the tile-frame position (east, north metres from the tile centre) of the
+    reference canvas centre, zeros for the whole-tile canvas; `pose_en(H, ref_centre_en, ...)` maps a pose on the
+    canvas back to the tile frame of ``en``.
+
+    erp_size None = cfg.erp_depth.erp_size for query_mode "erp_depth", else (896, 448).
+    Window mode (cfg.vigor.ref_window_m, module doc): ``jitter_seed`` None = a fresh jitter per draw, taken from the
+    torch RNG so that seeded runs repeat (training); an int = a fixed jitter per index (validation; the default for
+    train=False). `item(i, ref_centre_en)` builds the window around a given centre (the evaluator's second pass)."""
 
     def __init__(self, root, cfg, cities=None, split="crossarea", train=False, limit=0, stride=1,
                  erp_size=None, row_sign=None, col_sign=None, height_m=None, seed=0, depth=None):
@@ -127,6 +192,10 @@ class VigorPairs(Dataset):
             erp_size = tuple(E.erp_size) if (mode == "erp_depth" and E is not None and hasattr(E, "erp_size")) else (896, 448)
         self.erp_w, self.erp_h = (int(v) for v in erp_size)
         self.depth = bool(mode == "erp_depth") if depth is None else bool(depth)
+        w = getattr(V, "ref_window_m", None)
+        self.ref_window_m = None if w is None else float(w)
+        self.ref_jitter_m = float(getattr(V, "ref_jitter_m", 0.0) or 0.0)
+        self.jitter_seed = None if train else int(seed)
         self.labels = read_labels(self.root, cities or split_cities(split, train), split, train)
         if stride > 1:
             self.labels = self.labels[::stride]
@@ -171,8 +240,57 @@ class VigorPairs(Dataset):
                                                     max(0, -x0):max(0, -x0) + (x1 - max(0, x0))]
         return canvas, s, (size - 1) / 2.0, (w0, h0)
 
+    def _tile(self, city, sat_name):
+        img = cv2.imread(str(self.root / city / "satellite" / sat_name), cv2.IMREAD_COLOR)
+        if img is None:
+            raise RuntimeError(f"unreadable tile {city}/{sat_name}")
+        return cv2.cvtColor(img, cv2.COLOR_BGR2RGB)
+
+    def window_reference(self, city, sat_name, centre_en, img=None):
+        """Window of the tile at cfg.grid.cell_m: its centre pixel on the canvas centre and at `centre_en` (east,
+        north metres from the tile centre) in the tile. Off-tile and outside-ref_window_m pixels are black.
+        Returns (canvas, metres per tile px, (w0, h0))."""
+        g = self.cfg.grid
+        size = int(g.n * self.cfg.reference.scale)
+        img = self._tile(city, sat_name) if img is None else img
+        h0, w0 = img.shape[:2]
+        res = CITY_RES[city] * 640.0 / w0
+        M = window_affine(w0, h0, res, float(g.cell_m), size, centre_en)
+        src = img
+        if M[0, 0] > 1.0:                                        # downsampling: area-average first, then resample
+            nw, nh = max(1, int(round(w0 / M[0, 0]))), max(1, int(round(h0 / M[1, 1])))
+            src = cv2.resize(img, (nw, nh), interpolation=cv2.INTER_AREA)
+            sx, sy = nw / w0, nh / h0                            # tile px x -> (x + 0.5) * sx - 0.5 in src
+            M = np.array([[M[0, 0] * sx, 0.0, (M[0, 2] + 0.5) * sx - 0.5],
+                          [0.0, M[1, 1] * sy, (M[1, 2] + 0.5) * sy - 0.5]])
+        canvas = cv2.warpAffine(src, M, (size, size), flags=cv2.INTER_LINEAR | cv2.WARP_INVERSE_MAP,
+                                borderMode=cv2.BORDER_CONSTANT, borderValue=(0, 0, 0))
+        if self.ref_window_m is not None:
+            half = self.ref_window_m / 2.0 / float(g.cell_m)
+            out = np.abs(np.arange(size) - (size - 1) / 2.0) > half
+            canvas[out, :] = 0
+            canvas[:, out] = 0
+        return canvas, res, (w0, h0)
+
+    def window_centre(self, i, en_true):
+        """Training / validation window centre: the true camera position plus a jitter uniform over the disc of
+        radius ref_jitter_m (fresh per draw when jitter_seed is None, else fixed per index)."""
+        if self.jitter_seed is None:
+            rng = np.random.default_rng(int(torch.randint(0, 2 ** 31 - 1, (1,)).item()))
+        else:
+            rng = np.random.default_rng([int(self.jitter_seed), int(i)])
+        return np.asarray(en_true, np.float64) + jitter_disc(rng, self.ref_jitter_m)
+
     def __getitem__(self, i):
+        return self.item(i)
+
+    def item(self, i, ref_centre_en=None):
+        """Sample i. ref_centre_en (east, north metres from the tile centre): the reference is the window centred
+        there (the second pass passes the coarse pose). None = the configured reference: the whole tile, or, with
+        ref_window_m, a window around the jittered true position."""
         lab = self.labels[i]
+        if ref_centre_en is not None or self.ref_window_m is not None:
+            return self._window_item(i, lab, ref_centre_en)
         g = self.cfg.grid
         n = int(g.n)
         canvas, s, c, (w0, h0) = self.reference(lab["city"], lab["sat"])
@@ -195,7 +313,45 @@ class VigorPairs(Dataset):
             ref=torch.from_numpy(canvas).permute(2, 0, 1).float().div(255.0),
             H=torch.from_numpy(H),
             en=torch.tensor([self.col_sign * lab["dx"] * res, -self.row_sign * lab["dy"] * res], dtype=torch.float64),
+            ref_centre_en=torch.zeros(2, dtype=torch.float64),
         )
+        return self._query_part(out, lab, pano)
+
+    def _window_item(self, i, lab, ref_centre_en):
+        g = self.cfg.grid
+        n, size, cell = int(g.n), int(g.n * self.cfg.reference.scale), float(g.cell_m)
+        img = self._tile(lab["city"], lab["sat"])
+        res = CITY_RES[lab["city"]] * 640.0 / img.shape[1]
+        en = np.array([self.col_sign * lab["dx"] * res, -self.row_sign * lab["dy"] * res], np.float64)
+        if ref_centre_en is None:
+            centre = self.window_centre(i, en)
+        else:
+            centre = torch.as_tensor(ref_centre_en, dtype=torch.float64).detach().cpu().numpy().reshape(2).copy()
+        canvas, _, _ = self.window_reference(lab["city"], lab["sat"], centre, img=img)
+        pano = cv2.imread(str(self.root / lab["city"] / "panorama" / lab["pano"]), cv2.IMREAD_COLOR)
+        if pano is None:
+            raise RuntimeError(f"unreadable panorama {lab['city']}/{lab['pano']}")
+        pano = cv2.cvtColor(pano, cv2.COLOR_BGR2RGB)
+        cam = en_to_canvas(en, centre, cell, size)               # the camera on the window canvas
+        o = (n - 1) / 2.0
+        H = np.array([[1.0, 0.0, cam[0] - o], [0.0, 1.0, cam[1] - o], [0.0, 0.0, 1.0]], np.float32)
+        erp = cv2.resize(pano, (self.erp_w, self.erp_h), interpolation=cv2.INTER_AREA)
+        out = dict(
+            id=f"{lab['city']}/{lab['pano']}", city=lab["city"], year=0, scale=int(self.cfg.reference.scale),
+            negative=False,
+            erp=torch.from_numpy(erp).permute(2, 0, 1).float().div(255.0)[None],
+            R_w2c=torch.from_numpy(R_NORTH.copy())[None], se2=torch.zeros(1, 3),
+            ref=torch.from_numpy(np.ascontiguousarray(canvas)).permute(2, 0, 1).float().div(255.0),
+            H=torch.from_numpy(H),
+            en=torch.from_numpy(en),
+            ref_centre_en=torch.from_numpy(centre),
+        )
+        return self._query_part(out, lab, pano)
+
+    def _query_part(self, out, lab, pano):
+        """The query keys, identical for the whole-tile and the window reference (placement is in metres)."""
+        g = self.cfg.grid
+        n = int(g.n)
         if self.depth:
             dp = depth_png_path(self.root, lab["city"], lab["pano"])
             if dp.is_file():
@@ -220,7 +376,7 @@ def collate_vigor(batch):
     if any(has_depth) and not all(has_depth):
         raise KeyError("some samples have no depth: filter with VigorPairs.keep_with_depth() first")
     out = {k: torch.stack([b[k] for b in batch]) for k in
-           ("erp", "R_w2c", "se2", "H", "en", "ref") + (("bev", "bev_valid") if "bev" in batch[0] else ())
+           ("erp", "R_w2c", "se2", "H", "en", "ref", "ref_centre_en") +(("bev", "bev_valid") if "bev" in batch[0] else ())
            + (("depth",) if all(has_depth) else ())}
     out["id"] = [b["id"] for b in batch]
     out["city"] = [b["city"] for b in batch]
