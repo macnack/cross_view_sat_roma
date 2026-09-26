@@ -105,7 +105,10 @@ def main():
     train_meta = dict(pose_nll_weight=a.pose_nll_weight, vce_weight=vce_w, vce_opts=vce_opts if vce_w else None,
                       neighbour_radius=a.neighbour_radius, neighbour_weight=a.neighbour_weight, steps=a.steps,
                       batch=a.batch, local_radius=a.local_radius, refine_weight=refine_w,
-                      refine_opts=refine_opts if refine_w else None)
+                      refine_opts=refine_opts if refine_w else None,
+                      grid=dict(cell_m=float(cfg.grid.cell_m),
+                                ref_window_m=getattr(getattr(cfg, "vigor", None), "ref_window_m", None),
+                                ref_jitter_m=float(getattr(getattr(cfg, "vigor", None), "ref_jitter_m", 0.0) or 0.0)))
     print(f"pose NLL weight {a.pose_nll_weight}  refine weight {refine_w}" + (f" {refine_opts}" if refine_w else ""),
           flush=True)
     tr_cities = a.cities or split_cities(a.split, True)

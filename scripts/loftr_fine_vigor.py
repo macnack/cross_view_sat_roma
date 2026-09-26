@@ -107,7 +107,12 @@ def make_loftr_fine(weights, min_conf):
 def main():
     ap = EV.build_parser(__doc__)
     ap.set_defaults(fine_config=str(Path(__file__).resolve().parents[1] / "configs/vigor_cell00625_fine.yaml"),
-                    out="experiments/10_loc2_matcher")
+                    out=None)
+    # --out is required: the rows belong next to the coarse checkpoint's results (experiments/10_loc2_matcher for
+    # Task 04 checkpoints, experiments/09_vigor otherwise); `make loftr-fine` passes LOFTR_OUT
+    for act in ap._actions:
+        if act.dest == "out":
+            act.required = True
     ap.add_argument("--loftr-weights", default=None, help="loftr_outdoor.ckpt (default: torch.hub cache / download)")
     ap.add_argument("--loftr-min-conf", type=float, default=0.0, help="drop LoFTR matches below this confidence")
     a = ap.parse_args()

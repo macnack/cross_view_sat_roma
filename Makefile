@@ -188,8 +188,9 @@ LIMIT ?= 0
 vigor-eval: ## our method on VIGOR (known orientation): CKPT=, SPLIT=crossarea|samearea, TAG=, LIMIT=, VIGOR_ARGS= (sub-cell rows: "--refine 16|8|4 --refine-init none coarse ransac [--refine-gate CELLS --refine-min-cert P]"; coarse-to-fine second pass: "--fine-config configs/vigor_cell00625_fine.yaml --fine-ckpt <pt> [--fine-gate 6]")
 	$(RUN) scripts/eval_vigor.py --config $(CONFIG) --ckpt $(CKPT) --split $(SPLIT) --tag $(TAG) --limit $(LIMIT) $(VIGOR_ARGS)
 
-loftr-fine: ## second-pass sanity check: coarse CKPT (CONFIG=configs/vigor_cell0125.yaml) + kornia LoFTR outdoor on the 56 m / 0.0625 m/px window around the coarse pose; SPLIT=, TAG=, LIMIT=, VIGOR_ARGS="--cities Chicago --solver se2 [--loftr-weights PATH]"
-	$(RUN) scripts/loftr_fine_vigor.py --config $(CONFIG) --ckpt $(CKPT) --split $(SPLIT) --tag $(TAG) --limit $(LIMIT) $(VIGOR_ARGS)
+LOFTR_OUT ?= experiments/10_loc2_matcher
+loftr-fine: ## second-pass sanity check: coarse CKPT (CONFIG=configs/vigor_cell0125.yaml) + kornia LoFTR outdoor on the 56 m / 0.0625 m/px window around the coarse pose; SPLIT=, TAG=, LIMIT=, LOFTR_OUT= (default experiments/10_loc2_matcher; experiments/09_vigor for non-Task-04 checkpoints), VIGOR_ARGS="--cities Chicago --solver se2 [--loftr-weights PATH]"
+	$(RUN) scripts/loftr_fine_vigor.py --config $(CONFIG) --ckpt $(CKPT) --split $(SPLIT) --tag $(TAG) --limit $(LIMIT) --out $(LOFTR_OUT) $(VIGOR_ARGS)
 
 vigor-train: ## fine-tune CKPT on VIGOR (SPLIT=samearea|crossarea, CITIES="Chicago", STEPS=3000, TAG=); CKPT= empty + QUERY=ipm|erp|erp_depth = no warm start (erp_depth: loc2-depth TRAIN=1 first; VIGOR_ARGS="--head"; "--refine-weight 1" trains the conv refiner with RoMa's fine loss; CONFIG=configs/vigor_cell00625_fine.yaml = second-pass decoder on jittered 56 m windows)
 	$(RUN) scripts/train_vigor.py --config $(CONFIG) $(if $(CKPT),--ckpt $(CKPT),--query $(if $(QUERY),$(QUERY),ipm)) --split $(SPLIT) --tag $(TAG) $(if $(CITIES),--cities $(CITIES),) --steps $(if $(STEPS),$(STEPS),3000) $(VIGOR_ARGS)

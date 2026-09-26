@@ -83,6 +83,16 @@ class DecoderFine:
         return m, s
 
 
+FINE_KEYS = ("pose_fine_m", "yaw_fine_deg", "inliers_fine", "pose_fine_gated_m", "fine_shift_m", "no_coarse_fine",
+             "en_gt", "en_coarse", "en_fine", "fine_centre_en")
+
+
+def _is_oom(e):
+    """CUDA out-of-memory must stop the run, not become a per-sample error row."""
+    oom = getattr(torch.cuda, "OutOfMemoryError", None)
+    return (oom is not None and isinstance(e, oom)) or "out of memory" in str(e).lower()
+
+
 def fine_pass_row(s, i, coarse, cfg, fine, gate_m):
     """The second-pass columns of one sample. s: the coarse sample, coarse: its `peak` Match, cfg: the coarse config,
     fine: a callable (i, centre_en) -> (Match, window sample) with a `.cfg` (the fine config). Every pose is taken to
@@ -108,7 +118,8 @@ def fine_pass_row(s, i, coarse, cfg, fine, gate_m):
            "pose_fine_gated_m": err(en_g), "fallback_fine": bool(fallback), "fine_shift_m": shift,
            "no_coarse_fine": en_c is None,
            "en_gt": en_gt.tolist(), "en_coarse": None if en_c is None else en_c.tolist(),
-           "en_fine": None if en_f is None else en_f.tolist(), "fine_centre_en": np.asarray(centre_f).tolist()}
+           "en_fine": None if en_f is None else en_f.tolist(), "fine_centre_en": np.asarray(centre_f).tolist(),
+           "fine_error": None}
     out.update(getattr(fine, "last_info", None) or {})             # matcher-specific counts (LoFTR: nmatch_fine, ...)
     return out
 
@@ -160,9 +171,13 @@ def score(ds, query, matcher, cons, cfg, dev, n_max=0, verbose=False, refine=0, 
         if fine is not None:
             try:
                 row.update(fine_pass_row(s, i, coarse["peak"], cfg, fine, fine_gate))
-            except RuntimeError as e:                               # unreadable image on the second read
-                print(f"  skip {i} (fine): {e}", flush=True)
-                continue
+            except Exception as e:                                  # keep the coarse row; the fine columns are None
+                if _is_oom(e):
+                    raise
+                print(f"  fine pass failed on {i}: {type(e).__name__}: {e}", flush=True)
+                row.update({k: None for k in FINE_KEYS})
+                row["fallback_fine"] = None
+                row["fine_error"] = f"{type(e).__name__}: {e}"
         rows.append(row)
         if verbose and len(rows) % 25 == 0:
             print(f"  {len(rows)} done  peak median so far "
@@ -224,10 +239,24 @@ def fine_config(a, cfg):
 def fine_dataset(a, cfg_f, ds):
     """VigorPairs with the fine config (window, GSD, query mode) over exactly the coarse run's labels (the draw after
     any depth filtering)."""
-    ds_f = VigorPairs(a.root, cfg_f, cities=a.cities or split_cities(a.split, a.train_split), split=a.split,
-                      train=a.train_split, row_sign=ds.row_sign, height_m=ds.height)
+    train_labels = bool(a.train_split or getattr(a, "calib", False))   # a calibration draw reads the train lists
+    ds_f = VigorPairs(a.root, cfg_f, cities=a.cities or split_cities(a.split, train_labels), split=a.split,
+                      train=train_labels, row_sign=ds.row_sign, height_m=ds.height)
     ds_f.labels = ds.labels
     return ds_f
+
+
+def check_fine_grid(state, cfg_f, ckpt, config):
+    """Refuse a fine checkpoint trained at another GSD than the fine config's (train_vigor.py records
+    train.grid.cell_m). Checkpoints written before that record carry none: warned, not refused."""
+    grid = ((state.get("train") or {}).get("grid") or {}) if isinstance(state, dict) else {}
+    rec = grid.get("cell_m")
+    if rec is None:
+        print(f"WARNING: {ckpt} records no grid cell_m (older checkpoint); cannot check it against {config}", flush=True)
+        return
+    if abs(float(rec) - float(cfg_f.grid.cell_m)) > 1e-9:
+        raise SystemExit(f"--fine-ckpt {ckpt} was trained at cell_m {rec} m/px, but --fine-config {config} has "
+                         f"{cfg_f.grid.cell_m} m/px: the fine pass needs a checkpoint trained with that config")
 
 
 def decoder_fine(a, cfg, ds, dev):
@@ -235,6 +264,7 @@ def decoder_fine(a, cfg, ds, dev):
     depth file when the fine query needs depth, so both passes score the same samples. Returns (fine, meta)."""
     cfg_f = fine_config(a, cfg)
     state = torch.load(a.fine_ckpt, map_location=dev, weights_only=False)
+    check_fine_grid(state, cfg_f, a.fine_ckpt, a.fine_config)
     mode = state.get("mode", "lift")
     cfg_f.lift.query_mode = mode
     apply_query_cfg(cfg_f, state)
@@ -340,6 +370,7 @@ def run(a, make_fine=None):
             summary[name]["nopose_fine"] = int(sum(r["pose_fine_m"] is None for r in sub))
             summary[name]["fallback_fine_gated"] = int(sum(bool(r["fallback_fine"]) for r in sub))
             summary[name]["no_coarse_fine"] = int(sum(bool(r["no_coarse_fine"]) for r in sub))
+            summary[name]["fine_errors"] = int(sum(r.get("fine_error") is not None for r in sub))
     path = out / f"eval_vigor_{a.tag}_{a.split}.json"
     path.write_text(json.dumps(dict(meta=dict(ckpt=a.ckpt, mode=mode, split=a.split, cities=cities, n=len(rows),
                                               row_sign=ds.row_sign, height_m=ds.height, solver=cfg.matcher.solver,
@@ -362,7 +393,7 @@ def run(a, make_fine=None):
               f"| centre guess median {c['median_m']:.2f} m", flush=True)
         for t in rtags + ftags:
             r = s[t]
-            tail = {"fine": f"no pose {s.get('nopose_fine')}",
+            tail = {"fine": f"no pose {s.get('nopose_fine')}  (errors: {s.get('fine_errors')})",
                     "fine_gated": f"fallback {s.get('fallback_fine_gated')}  (no coarse pose: {s.get('no_coarse_fine')})"
                     }.get(t, f"fallback {s.get(f'fallback_{t}')}")
             print(f"{'':13s} {t:>14s} median {r['median_m']:.2f} m {tuple(round(v, 2) for v in r['median_ci'])}  "

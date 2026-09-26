@@ -203,7 +203,11 @@ fine pose is missing or more than `--fine-gate` m from the coarse pose: `fallbac
 `fallback_fine_gated`), plus `en_gt`, `en_coarse`, `en_fine`, `fine_centre_en`, `fine_shift_m`; the summary adds
 `fine` / `fine_gated` rows, `nopose_fine` and `no_coarse_fine`. An erp_depth fine checkpoint behind a picture coarse
 checkpoint drops the panoramas without depth from both passes (counted in `meta.fine`). Two decoders are loaded
-(two encoder copies; fine on an H100).
+(two encoder copies; fine on an H100). A fine pass that raises keeps the sample: coarse columns intact, fine columns
+None, `fine_error` = exception class and message, counted as `fine_errors` (CUDA out-of-memory is re-raised).
+`train_vigor.py` records `train.grid` = {cell_m, ref_window_m, ref_jitter_m} in every checkpoint, and `--fine-ckpt`
+refuses a checkpoint whose recorded cell_m differs from the fine config's (older checkpoints without the record: a
+warning). `make vigor-report` lists the `fine` / `fine_gated` (and `refined*` / `hyp*`) rows after each file's peak row.
 
 **LoFTR sanity check (`make loftr-fine`, `scripts/loftr_fine_vigor.py`).** The same coarse pass and fine window, then
 kornia's pretrained LoFTR (outdoor) between the greyscale picture at 0.0625 m/px (invalid pixels black; matches on them

@@ -232,3 +232,76 @@ def test_decoder_fine_config_uses_the_coarse_matcher_options(tmp_path):
     assert cfg_f.grid.cell_m == 0.0625 and cfg_f.vigor.ref_window_m == 56 and cfg_f.vigor.ref_jitter_m == 6
     assert cfg_f.matcher.solver == "se2" and cfg_f.matcher.reproj_cells == 2.5
     assert int(cfg_f.grid.n * cfg_f.reference.scale) * cfg_f.grid.cell_m == 56.0   # the canvas IS the window
+
+
+# ---- review follow-ups ------------------------------------------------------------------------------------------
+
+def test_a_failing_fine_pass_keeps_the_coarse_row_and_records_the_error(tmp_path):
+    ev, ds, query, matcher, cons, cfg, fine = _setup(tmp_path, (352.0, 320.0))
+    plain = ev.score(ds, query, matcher, cons, cfg, "cpu")
+
+    class Boom:
+        cfg = fine.cfg
+
+        def __call__(self, i, centre_en):
+            raise ValueError("bad window")
+    rows = ev.score(ds, query, matcher, cons, cfg, "cpu", fine=Boom(), fine_gate=6.0)
+    assert len(rows) == 1
+    r = rows[0]
+    assert {k: r[k] for k in plain[0]} == plain[0]
+    assert r["fine_error"] == "ValueError: bad window"
+    assert all(r[k] is None for k in ev.FINE_KEYS) and r["fallback_fine"] is None
+
+    class Oom(Boom):
+        def __call__(self, i, centre_en):
+            raise RuntimeError("CUDA out of memory. Tried to allocate 2.00 GiB")
+    with pytest.raises(RuntimeError, match="out of memory"):
+        ev.score(ds, query, matcher, cons, cfg, "cpu", fine=Oom(), fine_gate=6.0)
+    ok = ev.score(ds, query, matcher, cons, cfg, "cpu", fine=fine, fine_gate=6.0)[0]
+    assert ok["fine_error"] is None
+
+
+def test_fine_checkpoint_at_another_gsd_is_refused():
+    ev = _eval_vigor()
+    cfg_f = _cfg(0.0625, window=56.0)
+    ev.check_fine_grid({"train": {"grid": {"cell_m": 0.0625, "ref_window_m": 56.0}}}, cfg_f, "a.pt", "f.yaml")
+    ev.check_fine_grid({"train": {"pose_nll_weight": 0.5}}, cfg_f, "old.pt", "f.yaml")      # no record: warned only
+    with pytest.raises(SystemExit, match="cell_m 0.125"):
+        ev.check_fine_grid({"train": {"grid": {"cell_m": 0.125}}}, cfg_f, "coarse.pt", "f.yaml")
+
+
+@pytest.mark.parametrize("flags,train", [(dict(train_split=False), False), (dict(train_split=True), True),
+                                         (dict(train_split=False, calib=True), True)])
+def test_fine_dataset_reads_the_label_lists_of_the_coarse_draw(monkeypatch, flags, train):
+    ev = _eval_vigor()
+    seen = {}
+
+    class Fake:
+        def __init__(self, root, cfg, cities=None, split=None, train=False, **kw):
+            seen.update(cities=cities, train=train)
+            self.labels = []
+    monkeypatch.setattr(ev, "VigorPairs", Fake)
+    a = NS(root="r", split="crossarea", cities=None, **flags)
+    ds_f = ev.fine_dataset(a, None, NS(row_sign=1.0, height=2.5, labels=["x"]))
+    assert seen["train"] is train and ds_f.labels == ["x"]
+    assert seen["cities"] == (["NewYork", "Seattle"] if train else ["SanFrancisco", "Chicago"])
+
+
+def test_report_lists_the_fine_rows_after_the_peak_row(tmp_path):
+    import json
+    spec = importlib.util.spec_from_file_location(
+        "bevloc_scripts_report_vigor", Path(__file__).resolve().parents[1] / "scripts" / "report_vigor.py")
+    rep = importlib.util.module_from_spec(spec)
+    spec.loader.exec_module(rep)
+
+    def p(med):
+        return {"median_m": med, "median_ci": [med - 0.1, med + 0.1], "recall@5m": 0.8, "recall@10m": 0.9, "n": 3000}
+    s = {"peak": p(1.8), "means": p(1.9), "centre_guess": p(14.3), "mean_peak_m": 4.0, "fine": p(1.2),
+         "mean_fine_m": 3.9, "fine_gated": p(1.3), "mean_fine_gated_m": 3.8, "nopose_fine": 0}
+    f = tmp_path / "eval_vigor_x_twopass_samearea.json"
+    f.write_text(json.dumps(dict(meta={}, summary={"all": s})))
+    rows = rep.rows_of(f)
+    assert [r["label"] for r in rows] == ["vigor_x_twopass", "vigor_x_twopass, fine", "vigor_x_twopass, fine_gated"]
+    other = dict(rows[0], file="b", order=0, median=1.5, label="other")
+    assert [r["label"] for r in rep.sort_rows(rows[::-1] + [other])] == \
+        ["other", "vigor_x_twopass", "vigor_x_twopass, fine", "vigor_x_twopass, fine_gated"]
