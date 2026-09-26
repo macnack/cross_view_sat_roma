@@ -17,6 +17,16 @@ the coarse warp; see bevloc.model.refine), sample the refined warp on a query gr
 none|coarse|ransac (several = several rows, `refined_<init>`): refiner on the package's own coarse warp, RANSAC from
 scratch | same warp, correspondences gated around the coarse (peak) pose | refiner re-run on the coarse-RANSAC-
 consistent warp, then gated. See `bevloc.match.satroma.refined_for_query`.
+--fine-config <yaml> --fine-ckpt <pt> (task 04, coarse-to-fine second pass; off by default, and then every number is
+what it was): after the coarse rows, build the fine reference (a window of the tile at the fine config's GSD,
+configs/vigor_cell00625_fine.yaml: 56 m at 0.0625 m/px) centred on the coarse `peak` pose (the tile centre when the
+coarse RANSAC found nothing, counted as `no_coarse`), rebuild the query at the fine GSD from the same panorama (the
+picture: a new ipm_erp call at the fine cell; erp_depth: the placement in fine virtual BEV px), run the fine decoder +
+the same consensus (solver, threshold in cells, seed), map the fine pose back to the tile frame (`pose_en`) and add
+`pose_fine_m`, `yaw_fine_deg`, `inliers_fine`, plus `pose_fine_gated_m`: the coarse pose when the fine one is more than
+--fine-gate metres from it or missing (`fallback_fine`). Errors of both rows are distances in the tile frame (metres
+east/north of the tile centre, the frame of the sample's `en`). scripts/loftr_fine_vigor.py reuses this path with
+LoFTR as the second-pass matcher.
 Calibration mode scores row_sign in {+1, -1} x height in {1.6, 2.0, 2.5, 3.0} on a small subset and prints
 the table; the best pair is what `vigor:` in configs/default.yaml should carry.
 """
@@ -32,7 +42,7 @@ import numpy as np
 import torch
 
 from bevloc import config as C
-from bevloc.data.vigor import CITY_RES, VigorPairs, split_cities
+from bevloc.data.vigor import CITY_RES, VigorPairs, pose_en, split_cities
 from bevloc.eval.metrics import pose_errors
 from bevloc.eval.report import summarise_pose
 from bevloc.match.satroma import REFINE_INITS, SatRoMa, consensus_for_query, refined_for_query
@@ -46,10 +56,68 @@ def refine_tags(inits):
     return {i: "refined" if len(inits) == 1 else f"refined_{i}" for i in inits}
 
 
+def _centre_of(s):
+    c = s.get("ref_centre_en")
+    return np.zeros(2) if c is None else np.asarray(torch.as_tensor(c, dtype=torch.float64).cpu().numpy(), float)
+
+
+class DecoderFine:
+    """Second-pass matcher: a Sat-RoMa decoder (fine-tuned on jittered windows) at the fine config's GSD.
+
+    ds: VigorPairs built with the fine config over the same labels as the coarse pass; query / matcher / cons: built
+    from the fine config and checkpoint. Called with (i, centre_en) -> (Match on the window, the window sample)."""
+
+    def __init__(self, ds, query, matcher, cons, cfg, dev):
+        self.ds, self.query, self.matcher, self.cons, self.cfg, self.dev = ds, query, matcher, cons, cfg, dev
+
+    def __call__(self, i, centre_en):
+        s = self.ds.item(i, ref_centre_en=centre_en)
+        batch = {k: (v[None].to(self.dev) if torch.is_tensor(v) else v) for k, v in s.items()}
+        with torch.no_grad():
+            f_q, frac = self.query(batch, self.matcher)
+            f_s = self.matcher.reference_features(batch["ref"])
+            sf = float(((f_q.shape[-2] * 16) * (f_q.shape[-1] * 16)) ** 0.5 / 560.0)
+            with self.matcher.model.exposed_intermediates():
+                gm = self.matcher.model.decoder({16: f_q}, f_s, scale_factor=sf)[16]["gm_cls"][0]
+        m = consensus_for_query(self.cons, gm, self.query, batch, frac, int(self.cfg.grid.n), min_frac=0.05)
+        return m, s
+
+
+def fine_pass_row(s, i, coarse, cfg, fine, gate_m):
+    """The second-pass columns of one sample. s: the coarse sample, coarse: its `peak` Match, cfg: the coarse config,
+    fine: a callable (i, centre_en) -> (Match, window sample) with a `.cfg` (the fine config). Every pose is taken to
+    the tile frame (east, north metres from the tile centre) with `pose_en`, and errors are distances there."""
+    n, S, cell = int(cfg.grid.n), int(s["ref"].shape[-1]), float(cfg.grid.cell_m)
+    centre_c = _centre_of(s)
+    en_gt = pose_en(s["H"].numpy().astype(float), centre_c, n, cell, S)
+    en_c = pose_en(coarse.H, centre_c, n, cell, S) if coarse.H is not None else None
+    centre_f = en_c if en_c is not None else np.zeros(2)          # no coarse pose: the tile centre (chance level)
+    m, sf = fine(i, torch.from_numpy(np.asarray(centre_f, np.float64)))
+    nf, Sf, cell_f = int(fine.cfg.grid.n), int(sf["ref"].shape[-1]), float(fine.cfg.grid.cell_m)
+    en_f = pose_en(m.H, _centre_of(sf), nf, cell_f, Sf) if m.H is not None else None
+    shift = None if en_f is None or en_c is None else float(np.linalg.norm(en_f - en_c))
+    # gate: keep the coarse pose when the fine pose is missing or jumped more than gate_m (no coarse pose: nothing to
+    # compare with, the fine pose stands)
+    fallback = en_f is None or (shift is not None and shift > float(gate_m))
+    en_g = en_c if fallback else en_f
+
+    def err(en):
+        return None if en is None else float(np.linalg.norm(en - en_gt))
+    yaw = pose_errors(m.H, sf["H"].numpy().astype(float), nf, cell_f)["yaw_deg"] if m.H is not None else None
+    out = {"pose_fine_m": err(en_f), "yaw_fine_deg": yaw, "inliers_fine": m.inlier_ratio,
+           "pose_fine_gated_m": err(en_g), "fallback_fine": bool(fallback), "fine_shift_m": shift,
+           "no_coarse_fine": en_c is None,
+           "en_gt": en_gt.tolist(), "en_coarse": None if en_c is None else en_c.tolist(),
+           "en_fine": None if en_f is None else en_f.tolist(), "fine_centre_en": np.asarray(centre_f).tolist()}
+    out.update(getattr(fine, "last_info", None) or {})             # matcher-specific counts (LoFTR: nmatch_fine, ...)
+    return out
+
+
 def score(ds, query, matcher, cons, cfg, dev, n_max=0, verbose=False, refine=0, refine_inits=("coarse",),
-          refine_gate=None, refine_min_cert=0.0, refine_min_corr=8):
+          refine_gate=None, refine_min_cert=0.0, refine_min_corr=8, fine=None, fine_gate=6.0):
     """refine = 0: the coarse rows only (identical to before the sub-cell stage). refine = S > 0: also the refined
-    row(s) from the decoder's stride-16 refiner, correspondences on a stride-S query grid (see module doc)."""
+    row(s) from the decoder's stride-16 refiner, correspondences on a stride-S query grid (see module doc).
+    fine (e.g. `DecoderFine`): also the second-pass rows around the coarse `peak` pose (`fine_pass_row`)."""
     rows = []
     tags = refine_tags(refine_inits) if refine else {}
     n = int(cfg.grid.n)
@@ -89,6 +157,12 @@ def score(ds, query, matcher, cons, cfg, dev, n_max=0, verbose=False, refine=0, 
             row[f"yaw_{tag}_deg"] = None if err is None else err["yaw_deg"]
             row[f"inliers_{tag}"] = m.inlier_ratio
             row[f"ncorr_{tag}"], row[f"nused_{tag}"], row[f"fallback_{tag}"] = info["n_corr"], info["n_used"], info["fallback"]
+        if fine is not None:
+            try:
+                row.update(fine_pass_row(s, i, coarse["peak"], cfg, fine, fine_gate))
+            except RuntimeError as e:                               # unreadable image on the second read
+                print(f"  skip {i} (fine): {e}", flush=True)
+                continue
         rows.append(row)
         if verbose and len(rows) % 25 == 0:
             print(f"  {len(rows)} done  peak median so far "
@@ -100,8 +174,8 @@ def med(rows, key="pose_peak_m"):
     return float(np.median([np.inf if r[key] is None else r[key] for r in rows])) if rows else float("nan")
 
 
-def main():
-    ap = C.add_args(argparse.ArgumentParser(description=__doc__))
+def build_parser(doc=__doc__):
+    ap = C.add_args(argparse.ArgumentParser(description=doc))
     ap.add_argument("--ckpt", required=True)
     ap.add_argument("--root", default=os.environ.get("VIGOR_DIR", "data/vigor"))
     ap.add_argument("--split", default="crossarea", choices=("crossarea", "samearea"))
@@ -128,9 +202,68 @@ def main():
     ap.add_argument("--refine-min-corr", type=int, default=8,
                     help="seeded inits: fewer correspondences than this after the gate -> fall back to the coarse "
                          "pose (counted as a fallback)")
+    ap.add_argument("--fine-config", default=None,
+                    help="second pass: config of the fine window (e.g. configs/vigor_cell00625_fine.yaml)")
+    ap.add_argument("--fine-ckpt", default=None, help="second pass: decoder checkpoint trained with --fine-config")
+    ap.add_argument("--fine-gate", type=float, default=6.0,
+                    help="second pass: keep the coarse pose when the fine pose is farther than this (metres) from "
+                         "it (row pose_fine_gated_m; counted as fallbacks)")
     ap.add_argument("--out", default="experiments/09_vigor")
     ap.add_argument("--tag", required=True)
-    a = ap.parse_args()
+    return ap
+
+
+def fine_config(a, cfg):
+    """The fine config, with the coarse run's matcher block (solver, threshold in cells, seed: the same options)."""
+    import copy
+    cfg_f = C.load(a.fine_config)
+    cfg_f.matcher = copy.deepcopy(cfg.matcher)
+    return cfg_f
+
+
+def fine_dataset(a, cfg_f, ds):
+    """VigorPairs with the fine config (window, GSD, query mode) over exactly the coarse run's labels (the draw after
+    any depth filtering)."""
+    ds_f = VigorPairs(a.root, cfg_f, cities=a.cities or split_cities(a.split, a.train_split), split=a.split,
+                      train=a.train_split, row_sign=ds.row_sign, height_m=ds.height)
+    ds_f.labels = ds.labels
+    return ds_f
+
+
+def decoder_fine(a, cfg, ds, dev):
+    """Build the Sat-RoMa second pass from --fine-config / --fine-ckpt. Filters ds (in place) to the panoramas with a
+    depth file when the fine query needs depth, so both passes score the same samples. Returns (fine, meta)."""
+    cfg_f = fine_config(a, cfg)
+    state = torch.load(a.fine_ckpt, map_location=dev, weights_only=False)
+    mode = state.get("mode", "lift")
+    cfg_f.lift.query_mode = mode
+    apply_query_cfg(cfg_f, state)
+    matcher = FeatureQueryMatcher(cfg_f.matcher.checkpoint, dev, train_decoder=False)
+    matcher.model.decoder.load_state_dict(state["decoder"], strict=False)
+    query = build_query(cfg_f, mode).to(dev)
+    load_query_state(query, state)
+    query.eval()
+    ds_f = fine_dataset(a, cfg_f, ds)
+    n_drop = 0
+    if ds_f.depth:
+        n_drop = ds.keep_with_depth()
+        ds_f.labels = ds.labels
+    cons = SatRoMa.from_wrapper(matcher.wrapper, cfg_f, use_means=False, min_valid_frac=0.05)
+    print(f"fine pass: {a.fine_ckpt} (mode {mode}, step {state.get('step')}), cell {cfg_f.grid.cell_m} m, window "
+          f"{ds_f.ref_window_m} m, gate {a.fine_gate} m, solver {cfg_f.matcher.solver}"
+          + (f"; {n_drop} panoramas without depth dropped from both passes" if n_drop else ""), flush=True)
+    meta = dict(config=a.fine_config, ckpt=a.fine_ckpt, mode=mode, ckpt_step=state.get("step"), train=state.get("train"),
+                cell_m=float(cfg_f.grid.cell_m), window_m=ds_f.ref_window_m, gate_m=a.fine_gate,
+                matcher="Sat-RoMa decoder", skipped_no_depth=n_drop)
+    return DecoderFine(ds_f, query, matcher, cons, cfg_f, dev), meta
+
+
+def _mean_capped(rows, key):
+    return float(np.mean([min(np.inf if r[key] is None else r[key], 1e3) for r in rows]))
+
+
+def run(a, make_fine=None):
+    """The evaluation. make_fine(a, cfg, ds, dev) -> (fine, meta) adds the second pass (None: coarse rows only)."""
     cfg = C.load(a.config)
     if a.solver:
         cfg.matcher.solver = a.solver
@@ -180,10 +313,13 @@ def main():
     n_no_depth = ds.keep_with_depth() if ds.depth else 0      # after the draw: a subset of the same samples
     if ds.depth:
         print(f"depth: {n_no_depth} panoramas of the draw have no depth file (skipped)", flush=True)
+    fine, fine_meta = make_fine(a, cfg, ds, dev) if make_fine is not None else (None, None)
     print(f"{len(ds)} samples, split {a.split}, cities {cities}, row_sign {ds.row_sign:+.0f}, height {ds.height} m", flush=True)
     rows = score(ds, query, matcher, cons, cfg, dev, verbose=True, refine=a.refine, refine_inits=tuple(a.refine_init),
-                 refine_gate=refine_gate, refine_min_cert=a.refine_min_cert, refine_min_corr=a.refine_min_corr)
+                 refine_gate=refine_gate, refine_min_cert=a.refine_min_cert, refine_min_corr=a.refine_min_corr,
+                 fine=fine, fine_gate=a.fine_gate)
     rtags = list(refine_tags(a.refine_init).values()) if a.refine else []
+    ftags = ["fine", "fine_gated"] if fine is not None else []
     summary = {}
     for name in ["all"] + sorted({r["city"] for r in rows}):
         sub = rows if name == "all" else [r for r in rows if r["city"] == name]
@@ -191,13 +327,19 @@ def main():
             "peak": summarise_pose([r["pose_peak_m"] for r in sub]),
             "means": summarise_pose([r["pose_means_m"] for r in sub]),
             "centre_guess": summarise_pose([r["centre_guess_m"] for r in sub]),
-            "mean_peak_m": float(np.mean([min(np.inf if r["pose_peak_m"] is None else r["pose_peak_m"], 1e3) for r in sub])),
+            "mean_peak_m": _mean_capped(sub, "pose_peak_m"),
         }
         for t in rtags:
             summary[name][t] = summarise_pose([r[f"pose_{t}_m"] for r in sub])
-            summary[name][f"mean_{t}_m"] = float(np.mean([min(np.inf if r[f"pose_{t}_m"] is None else r[f"pose_{t}_m"], 1e3)
-                                                         for r in sub]))
+            summary[name][f"mean_{t}_m"] = _mean_capped(sub, f"pose_{t}_m")
             summary[name][f"fallback_{t}"] = int(sum(bool(r[f"fallback_{t}"]) for r in sub))
+        for t in ftags:
+            summary[name][t] = summarise_pose([r[f"pose_{t}_m"] for r in sub])
+            summary[name][f"mean_{t}_m"] = _mean_capped(sub, f"pose_{t}_m")
+        if ftags:
+            summary[name]["nopose_fine"] = int(sum(r["pose_fine_m"] is None for r in sub))
+            summary[name]["fallback_fine_gated"] = int(sum(bool(r["fallback_fine"]) for r in sub))
+            summary[name]["no_coarse_fine"] = int(sum(bool(r["no_coarse_fine"]) for r in sub))
     path = out / f"eval_vigor_{a.tag}_{a.split}.json"
     path.write_text(json.dumps(dict(meta=dict(ckpt=a.ckpt, mode=mode, split=a.split, cities=cities, n=len(rows),
                                               row_sign=ds.row_sign, height_m=ds.height, solver=cfg.matcher.solver,
@@ -210,6 +352,7 @@ def main():
                                                                "warp = cls_to_flow_refine(gm_cls) for none/coarse, "
                                                                "H_coarse(query point) for ransac")
                                               if a.refine else None,
+                                              fine=fine_meta,
                                               city_res=CITY_RES),
                                     frames=rows, summary=summary), indent=2))
     for name, s in summary.items():
@@ -217,12 +360,22 @@ def main():
         print(f"{name:13s} n {p['n']:5d}  peak median {p['median_m']:.2f} m {tuple(round(v, 2) for v in p['median_ci'])}  "
               f"mean {s['mean_peak_m']:.2f} m  R@5 {p['recall@5m']:.2f}  R@10 {p['recall@10m']:.2f}  "
               f"| centre guess median {c['median_m']:.2f} m", flush=True)
-        for t in rtags:
+        for t in rtags + ftags:
             r = s[t]
+            tail = {"fine": f"no pose {s.get('nopose_fine')}",
+                    "fine_gated": f"fallback {s.get('fallback_fine_gated')}  (no coarse pose: {s.get('no_coarse_fine')})"
+                    }.get(t, f"fallback {s.get(f'fallback_{t}')}")
             print(f"{'':13s} {t:>14s} median {r['median_m']:.2f} m {tuple(round(v, 2) for v in r['median_ci'])}  "
-                  f"mean {s[f'mean_{t}_m']:.2f} m  R@5 {r['recall@5m']:.2f}  R@10 {r['recall@10m']:.2f}  "
-                  f"fallback {s[f'fallback_{t}']}", flush=True)
+                  f"mean {s[f'mean_{t}_m']:.2f} m  R@5 {r['recall@5m']:.2f}  R@10 {r['recall@10m']:.2f}  {tail}",
+                  flush=True)
     print(f"wrote {path}", flush=True)
+
+
+def main():
+    a = build_parser().parse_args()
+    if bool(a.fine_config) != bool(a.fine_ckpt):
+        raise SystemExit("--fine-config and --fine-ckpt go together")
+    run(a, decoder_fine if a.fine_ckpt else None)
 
 
 if __name__ == "__main__":
