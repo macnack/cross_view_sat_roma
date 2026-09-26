@@ -526,7 +526,7 @@ def test_solver_linalg_error_falls_back_instead_of_raising(monkeypatch):
 
 
 def test_a_nan_refiner_through_the_evaluator_gives_the_coarse_rows_and_counts_it():
-    from eval_vigor import score
+    score = _eval_vigor_module().score
     t = (300.0, 280.0)
     cfg = cfg_stub("se2")
     matcher = tiny_matcher(_nan_refiner(plant_translation(tiny_decoder(), t)))
