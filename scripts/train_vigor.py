@@ -113,6 +113,8 @@ def main():
           flush=True)
     tr_cities = a.cities or split_cities(a.split, True)
     va_cities = a.val_cities or (tr_cities if a.split == "samearea" else split_cities(a.split, False))
+    # the held-out split, so eval_vigor.py --calib can reproduce it and skip the frames used for selection (task 06)
+    train_meta.update(split=a.split, cities=list(tr_cities), val_frac=a.val_frac, val_samples=a.val_samples)
     tr = VigorPairs(a.root, cfg, cities=tr_cities, split=a.split, train=True)
     if a.val_frac > 0:
         idx = np.random.default_rng(0).permutation(len(tr.labels))

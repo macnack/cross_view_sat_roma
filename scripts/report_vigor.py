@@ -54,7 +54,8 @@ LABELS = {
     "loc2_chicago_same": "Loc² (released same-area checkpoint)",
     "loc2_crossarea": "Loc² (released cross-area checkpoint)",
 }
-SOLVER_LABEL = {"peak": "", "procrustes": ", weighted Procrustes", "ransac": ", RANSAC"}
+SOLVER_LABEL = {"peak": "", "procrustes": ", weighted Procrustes", "ransac": ", RANSAC",
+                "hyp_med": ", medoid of the bootstrap RANSAC hypotheses"}
 SKIP = ("smoke",)
 
 
@@ -69,6 +70,8 @@ def rows_of(path: Path):
     m = re.match(r"eval_(.+?)_(samearea|crossarea)\.json$", path.name)
     tag, split = m.group(1), m.group(2)
     meta, summ = d["meta"], d["summary"]
+    if meta.get("calib"):                          # eval_vigor.py --calib: held-out TRAINING frames, not a test row
+        return []
     method = meta.get("method", "ours")
     solvers = ["peak"] + extra_rows(summ["all"]) if method == "ours" else \
         [k for k in ("ransac", "procrustes") if k in summ["all"]]

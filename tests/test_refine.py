@@ -14,6 +14,7 @@ import torch
 from bevloc.data.vigor import R_NORTH
 from bevloc.eval.metrics import pose_errors
 from bevloc.match.satroma import SatRoMa, consensus_for_query, refined_for_query
+from bevloc.match.vote_stats import STAT_KEYS
 from bevloc.model.depth_query import ErpDepthQuery, depth_placement_metric, depth_placement_metric_at
 from bevloc.model.erp_query import erp_placement, erp_placement_at
 from bevloc.model.refine import (
@@ -249,7 +250,9 @@ def test_refine_zero_is_bit_identical_and_refined_rows_do_not_touch_the_coarse_r
             for tag, means in (("peak", False), ("means", True))}
     old = _old_score(ds, query, matcher, cons, cfg)
     new0 = score(ds, query, matcher, cons, cfg, "cpu", refine=0)
-    assert new0 == old                                       # every key, every float, bit for bit
+    # every existing key, every float, bit for bit; the only additions are the task-06 statistics
+    assert [{k: r[k] for k in r_old} for r, r_old in zip(new0, old)] == old
+    assert all(set(r) - set(r_old) == set(STAT_KEYS) for r, r_old in zip(new0, old))
     assert any(r["pose_peak_m"] is not None for r in old)
     new = score(ds, query, matcher, cons, cfg, "cpu", refine=16, refine_inits=("none", "coarse", "ransac"),
                 refine_gate=3.0)
