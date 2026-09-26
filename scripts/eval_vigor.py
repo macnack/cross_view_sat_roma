@@ -125,7 +125,8 @@ def fine_pass_row(s, i, coarse, cfg, fine, gate_m):
 
 
 def score(ds, query, matcher, cons, cfg, dev, n_max=0, verbose=False, refine=0, refine_inits=("coarse",),
-          refine_gate=None, refine_min_cert=0.0, refine_min_corr=8, fine=None, fine_gate=6.0):
+          refine_gate=None, refine_min_cert=0.0, refine_min_corr=8, fine=None, fine_gate=6.0,
+          refine_precision=None):
     """refine = 0: the coarse rows only (identical to before the sub-cell stage). refine = S > 0: also the refined
     row(s) from the decoder's stride-16 refiner, correspondences on a stride-S query grid (see module doc).
     fine (e.g. `DecoderFine`): also the second-pass rows around the coarse `peak` pose (`fine_pass_row`)."""
@@ -144,7 +145,7 @@ def score(ds, query, matcher, cons, cfg, dev, n_max=0, verbose=False, refine=0, 
             f_q, frac = query(batch, matcher)
             f_s = matcher.reference_features(batch["ref"])
             sf = float(((f_q.shape[-2] * 16) * (f_q.shape[-1] * 16)) ** 0.5 / 560.0)
-            tap = RefinerTap(matcher.model.decoder) if refine else contextlib.nullcontext()
+            tap = RefinerTap(matcher.model.decoder, precision=refine_precision) if refine else contextlib.nullcontext()
             with matcher.model.exposed_intermediates(), tap:
                 o16 = matcher.model.decoder({16: f_q}, f_s, scale_factor=sf)[16]
             gm = o16["gm_cls"][0]
@@ -168,6 +169,7 @@ def score(ds, query, matcher, cons, cfg, dev, n_max=0, verbose=False, refine=0, 
             row[f"yaw_{tag}_deg"] = None if err is None else err["yaw_deg"]
             row[f"inliers_{tag}"] = m.inlier_ratio
             row[f"ncorr_{tag}"], row[f"nused_{tag}"], row[f"fallback_{tag}"] = info["n_corr"], info["n_used"], info["fallback"]
+            row[f"nonfinite_{tag}"], row[f"error_{tag}"] = info["nonfinite"], info["error"]
         if fine is not None:
             try:
                 row.update(fine_pass_row(s, i, coarse["peak"], cfg, fine, fine_gate))
@@ -307,8 +309,12 @@ def run(a, make_fine=None):
     matcher = FeatureQueryMatcher(cfg.matcher.checkpoint, dev, train_decoder=False)
     matcher.model.decoder.load_state_dict(state["decoder"], strict=False)
     trained_refiner = any(REFINER_KEY in k for k in state["decoder"])
+    # a refiner trained with the fine loss runs at its training precision (float32 since 2026-09-26); the released
+    # (frozen) refiner keeps the package's float16 autocast
+    refine_precision = ((train_meta or {}).get("refine_opts") or {}).get("precision") if trained_refiner else None
     refine_gate = float(cfg.matcher.reproj_cells if a.refine_gate is None else a.refine_gate)
     if a.refine:
+        print(f"refine precision: {refine_precision or 'package default (float16 autocast on CUDA)'}", flush=True)
         print(f"refine: stride {a.refine}, init {a.refine_init}, gate {refine_gate} cells, min cert "
               f"{a.refine_min_cert}, refiner {'from the checkpoint (trained)' if trained_refiner else 'released (frozen)'}",
               flush=True)
@@ -347,7 +353,7 @@ def run(a, make_fine=None):
     print(f"{len(ds)} samples, split {a.split}, cities {cities}, row_sign {ds.row_sign:+.0f}, height {ds.height} m", flush=True)
     rows = score(ds, query, matcher, cons, cfg, dev, verbose=True, refine=a.refine, refine_inits=tuple(a.refine_init),
                  refine_gate=refine_gate, refine_min_cert=a.refine_min_cert, refine_min_corr=a.refine_min_corr,
-                 fine=fine, fine_gate=a.fine_gate)
+                 fine=fine, fine_gate=a.fine_gate, refine_precision=refine_precision)
     rtags = list(refine_tags(a.refine_init).values()) if a.refine else []
     ftags = ["fine", "fine_gated"] if fine is not None else []
     summary = {}
@@ -363,6 +369,8 @@ def run(a, make_fine=None):
             summary[name][t] = summarise_pose([r[f"pose_{t}_m"] for r in sub])
             summary[name][f"mean_{t}_m"] = _mean_capped(sub, f"pose_{t}_m")
             summary[name][f"fallback_{t}"] = int(sum(bool(r[f"fallback_{t}"]) for r in sub))
+            summary[name][f"nonfinite_samples_{t}"] = int(sum(r[f"nonfinite_{t}"] > 0 for r in sub))
+            summary[name][f"errors_{t}"] = int(sum(bool(r[f"error_{t}"]) for r in sub))
         for t in ftags:
             summary[name][t] = summarise_pose([r[f"pose_{t}_m"] for r in sub])
             summary[name][f"mean_{t}_m"] = _mean_capped(sub, f"pose_{t}_m")
@@ -395,7 +403,8 @@ def run(a, make_fine=None):
             r = s[t]
             tail = {"fine": f"no pose {s.get('nopose_fine')}  (errors: {s.get('fine_errors')})",
                     "fine_gated": f"fallback {s.get('fallback_fine_gated')}  (no coarse pose: {s.get('no_coarse_fine')})"
-                    }.get(t, f"fallback {s.get(f'fallback_{t}')}")
+                    }.get(t, f"fallback {s.get(f'fallback_{t}')}  non-finite samples "
+                             f"{s.get(f'nonfinite_samples_{t}')}  solver errors {s.get(f'errors_{t}')}")
             print(f"{'':13s} {t:>14s} median {r['median_m']:.2f} m {tuple(round(v, 2) for v in r['median_ci'])}  "
                   f"mean {s[f'mean_{t}_m']:.2f} m  R@5 {r['recall@5m']:.2f}  R@10 {r['recall@10m']:.2f}  {tail}",
                   flush=True)

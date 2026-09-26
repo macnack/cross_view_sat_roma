@@ -224,9 +224,13 @@ class SatRoMa:
         H_seed (3, 3) query px -> reference px, gate_cells: keep only correspondences within gate_cells reference
         cells of H_seed's prediction before the RANSAC ("seeded by the coarse pose": cv2's RANSAC takes no initial
         model, so the seed acts as a guided-matching gate). min_corr: fewer surviving correspondences than this
-        -> no model (H None), rather than a 2- or 3-point fit. Returns (Match, n_used)."""
+        -> no model (H None), rather than a 2- or 3-point fit. Non-finite correspondences are dropped first; a solver
+        failure on degenerate input (numpy LinAlgError, cv2.error) returns no model instead of raising.
+        Returns (Match, n_used)."""
         q_px = np.asarray(q_px, np.float64).reshape(-1, 2)
         r_px = np.asarray(r_px, np.float64).reshape(-1, 2)
+        fin = np.isfinite(q_px).all(1) & np.isfinite(r_px).all(1)
+        q_px, r_px = q_px[fin], r_px[fin]
         sa = float(self.m.im_a_size) / 14.0
         sb = float(self.m.im_b_size) / float(cells)
         if H_seed is not None and gate_cells is not None and len(q_px):
@@ -238,7 +242,13 @@ class SatRoMa:
         n = int(len(placed))
         if min_corr is not None and n < int(min_corr):
             return Match(None, None, n, n, 0, 0.0), n
-        return SatRoMa._fit_grid(self, placed, tgt, 14, int(cells), n, 0), n
+        try:
+            m = SatRoMa._fit_grid(self, placed, tgt, 14, int(cells), n, 0)
+        except (np.linalg.LinAlgError, cv2.error, ValueError):
+            return Match(None, None, n, n, 0, 0.0), n
+        if m.H is not None and not np.isfinite(m.H).all():
+            return Match(None, None, n, n, 0, 0.0), n
+        return m, n
 
     def _argmax_cells(self, gm, mask, H_gt):
         """Mean coarse-cell error of the per-patch argmax against H_gt (query px -> ref px)."""
@@ -349,8 +359,10 @@ def refined_for_query(cons, o16, tap, query, batch, stride, init="coarse", coars
     of the coarse rows (`query_patches` of the valid fraction >= min_frac, as in `consensus_for_query`), at
     stride < 16 the pixel's own bev_valid; erp_depth / erp = the pixel's own depth / ground placement (its query
     point is the placed ego point of that ERP pixel in virtual BEV px). If min_cert > 0, also
-    sigmoid(refined certainty) >= min_cert. Seeded inits fall back to the coarse match when fewer than min_corr
-    correspondences survive the gate or the gated set gives no model. Returns (Match, info)."""
+    sigmoid(refined certainty) >= min_cert. Non-finite warps / certainties / placements are dropped (counted in
+    info["nonfinite"]). Every init falls back to the coarse match (info["fallback"]) when fewer than min_corr
+    correspondences remain (after the gate for the seeded inits) or the solver gives no model or fails; it never
+    raises on degenerate input (info["error"] marks a caught solver exception). Returns (Match, info)."""
     import torch
     from bevloc.model.refine import apply_h, norm_to_px, px_to_norm, token_centres_px, warp_samples
     if init not in REFINE_INITS:
@@ -360,7 +372,7 @@ def refined_for_query(cons, o16, tap, query, batch, stride, init="coarse", coars
     placed = hasattr(query, "placement")
     seeded = init in ("coarse", "ransac")
     H_c = None if coarse is None else coarse.H
-    info = dict(n_corr=0, n_used=0, fallback=False)
+    info = dict(n_corr=0, n_used=0, fallback=False, nonfinite=0, error=False)
     if seeded and H_c is None:                                      # nothing to seed from: the coarse miss stands
         return Match(None, None, 0, 0, 0, 0.0), info
     flow, cert = o16["flow"][0].float(), o16["certainty"][0, 0].float()
@@ -394,6 +406,9 @@ def refined_for_query(cons, o16, tap, query, batch, stride, init="coarse", coars
                 (frac[:, None].float() >= min_frac).float(), size=(n_px, n_px), mode="nearest")[0, 0] > 0
         uv, idx, wv, cv = warp_samples(flow, cert, valid.shape[-2:], stride)
         q_px, ok = uv, valid[idx[:, 1], idx[:, 0]]
+    finite = torch.isfinite(wv).all(1) & torch.isfinite(cv) & torch.isfinite(q_px).all(-1)
+    info["nonfinite"] = int((ok & ~finite).sum())                   # a diverged refiner: NaN warps / certainties
+    ok = ok & finite
     if min_cert > 0:
         ok = ok & (torch.sigmoid(cv) >= float(min_cert))
     r_px = norm_to_px(wv, ref_size)
@@ -401,11 +416,14 @@ def refined_for_query(cons, o16, tap, query, batch, stride, init="coarse", coars
     q_np = q_px.detach().double().cpu().numpy()[ok_np]
     r_np = r_px.detach().double().cpu().numpy()[ok_np]
     info["n_corr"] = int(ok_np.sum())
-    m, info["n_used"] = SatRoMa.refined_consensus(cons, q_np, r_np, cells=cells,
-                                                  H_seed=H_c if seeded else None,
-                                                  gate_cells=gate_cells if seeded else None,
-                                                  min_corr=min_corr if seeded else None)
-    if seeded and m.H is None:
+    try:
+        m, info["n_used"] = SatRoMa.refined_consensus(cons, q_np, r_np, cells=cells,
+                                                      H_seed=H_c if seeded else None,
+                                                      gate_cells=gate_cells if seeded else None,
+                                                      min_corr=min_corr)
+    except (np.linalg.LinAlgError, cv2.error, ValueError):          # belt and braces: never raise on one sample
+        m, info["error"] = Match(None, None, 0, 0, 0, 0.0), True
+    if m.H is None and coarse is not None and coarse.H is not None:
         info["fallback"] = True
         return coarse, info
     return m, info

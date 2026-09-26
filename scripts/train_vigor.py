@@ -26,6 +26,13 @@ Second-pass decoder (coarse-to-fine, task 04): `--config configs/vigor_cell00625
 for the reference, which VigorPairs then builds as a 56 m window at 0.0625 m/px centred on the true position plus a
 uniform disc jitter of cfg.vigor.ref_jitter_m (a fresh draw every time in training; the --val-frac validation copy
 uses the same distribution with one fixed draw per sample, so the validation curve is comparable across steps).
+
+Numerics (after the 2026-09-26 run went NaN at step 23,425 under float16 autocast): the refiner trains in
+cfg.train.refine_precision (float32), its gradient norm is clipped to cfg.train.refine_grad_clip, a batch whose
+refined warp / fine loss is non-finite trains the coarse terms only (counted), a step whose total loss or refiner
+gradient is non-finite does not update (counted), and more than cfg.train.refine_max_nonfinite such steps in a row
+stop the run with an error. A validation with any non-finite logged value is never saved as `_best.pt`;
+`_last_finite.pt` is the last checkpoint whose validation was fully finite.
 """
 from __future__ import annotations
 
@@ -47,7 +54,10 @@ from bevloc import config as C  # noqa: E402
 from bevloc.data.vigor import VigorPairs, collate_vigor, split_cities  # noqa: E402
 from bevloc.model.coarse import FeatureQueryMatcher, resolve_vce_weight, vce_options  # noqa: E402
 from bevloc.model.query import apply_query_cfg, build_query, load_query_state  # noqa: E402
-from bevloc.model.refine import REFINER_KEY, decoder_state, set_refiner_trainable  # noqa: E402
+from bevloc.model.refine import (  # noqa: E402
+    REFINER_KEY, NonFiniteGuard, best_candidate, clip_refiner_grads, decoder_state, refiner_parameters,
+    set_refiner_trainable,
+)
 
 
 def main():
@@ -101,6 +111,8 @@ def main():
         a.pose_nll_weight = 0.0 if mode == "erp_depth" else 0.5
     refine_w = float(getattr(cfg.train, "refine_weight", 0.0) or 0.0) if a.refine_weight is None else float(a.refine_weight)
     refine_opts = refine_options(cfg)
+    grad_clip = float(getattr(cfg.train, "refine_grad_clip", 1.0))
+    guard = NonFiniteGuard(int(getattr(cfg.train, "refine_max_nonfinite", 20)))
     placed = mode == "erp_depth"          # heat-map "pose" = argmax of the token votes, not a pose for placed tokens
     train_meta = dict(pose_nll_weight=a.pose_nll_weight, vce_weight=vce_w, vce_opts=vce_opts if vce_w else None,
                       neighbour_radius=a.neighbour_radius, neighbour_weight=a.neighbour_weight, steps=a.steps,
@@ -108,7 +120,9 @@ def main():
                       refine_opts=refine_opts if refine_w else None,
                       grid=dict(cell_m=float(cfg.grid.cell_m),
                                 ref_window_m=getattr(getattr(cfg, "vigor", None), "ref_window_m", None),
-                                ref_jitter_m=float(getattr(getattr(cfg, "vigor", None), "ref_jitter_m", 0.0) or 0.0)))
+                                ref_jitter_m=float(getattr(getattr(cfg, "vigor", None), "ref_jitter_m", 0.0) or 0.0)),
+                      refine_grad_clip=grad_clip if refine_w else None,
+                      refine_max_nonfinite=guard.max if refine_w else None)
     print(f"pose NLL weight {a.pose_nll_weight}  refine weight {refine_w}" + (f" {refine_opts}" if refine_w else ""),
           flush=True)
     tr_cities = a.cities or split_cities(a.split, True)
@@ -178,7 +192,12 @@ def main():
     ckpt_path = C.REPO / "checkpoints" / f"vigor_{a.tag}_best.pt"
     ckpt_path.parent.mkdir(parents=True, exist_ok=True)
     log = out / f"train_{a.tag}.csv"
-    log.write_text("step,split,ce,top1,cell_err_m,pose_nll,pose_err_m,n,sec,vce_m,vce_pose_m,fine_epe_px,fine_epe_in_px\n")
+    log.write_text("step,split,ce,top1,cell_err_m,pose_nll,pose_err_m,n,sec,vce_m,vce_pose_m,fine_epe_px,fine_epe_in_px,"
+                   "fine_skipped\n")
+    val_keys = (["ce", "top1"] + (["pose_nll", "pose_err_m"] if a.pose_nll_weight else [])
+                + (["vce_m", "vce_pose_m"] if vce_w else []) + (["fine_epe_px", "fine_epe_in_px"] if refine_w else []))
+    ref_params = refiner_parameters(matcher.model.decoder) if refine_w else []
+    last_finite_path = ckpt_path.with_name(f"vigor_{a.tag}_last_finite.pt")
 
     def ckpt_state(k, v):
         return {"query": query.state_dict(), "mode": mode,
@@ -196,6 +215,7 @@ def main():
     query.train()
     best, best_step, t0 = float("inf"), None, time.time()
     v = None
+    n_skip_step = 0
     for k in range(1, a.steps + 1):
         batch = {kk: (v.to(dev) if torch.is_tensor(v) else v) for kk, v in next(it).items()}
         opt.zero_grad(set_to_none=True)
@@ -203,17 +223,31 @@ def main():
                         a.neighbour_radius, a.neighbour_weight, certainty_weight=0.01,
                         pose_nll_weight=a.pose_nll_weight, vce_weight=vce_w, vce_opts=vce_opts,
                         refine_weight=refine_w, refine_opts=refine_opts)
-        loss.backward()
-        opt.step()
+        bad = not bool(torch.isfinite(loss.detach()))
+        if bad:                                        # no update at all from a non-finite total loss
+            n_skip_step += 1
+            print(f"step {k}: non-finite loss, no update ({n_skip_step} so far)", flush=True)
+        else:
+            loss.backward()
+            if ref_params:
+                _, g_ok = clip_refiner_grads(ref_params, grad_clip)
+                if not g_ok:
+                    print(f"step {k}: non-finite refiner gradient, refiner not updated", flush=True)
+                bad = not g_ok
+            opt.step()
+        bad = bad or bool(st.get("fine_skipped", 0))
+        guard.update(bad, k)                           # raises after refine_max_nonfinite bad steps in a row
         with log.open("a") as f:
             f.write(f"{k},train,{st['ce']:.4f},{st['acc']:.4f},{st['cell_err'] * m_per_cell:.2f},"
                     f"{st['pose_nll']:.4f},{st['pose_err'] * m_per_cell:.2f},{st['n']},{time.time() - t0:.1f},"
-                    f"{st['vce_m']:.3f},{st['vce_pose_m']:.3f},{st['fine_epe_px']:.3f},{st['fine_epe_in_px']:.3f}\n")
+                    f"{st['vce_m']:.3f},{st['vce_pose_m']:.3f},{st['fine_epe_px']:.3f},{st['fine_epe_in_px']:.3f},"
+                    f"{st.get('fine_skipped', 0)}\n")
         if k == 1 or k % 25 == 0:
             print(f"step {k} TRAIN  CE {st['ce']:.3f}  poseNLL {st['pose_nll']:.3f}  top1 {st['acc']:.1%}  "
                   f"arg {st['cell_err'] * m_per_cell:.1f} m  n {st['n']}"
                   + (f"  VCE {st['vce_m']:.2f} m  procrustes {st['vce_pose_m']:.2f} m" if vce_w else "")
-                  + (f"  fine EPE {st['fine_epe_px']:.2f} px (input {st['fine_epe_in_px']:.2f})" if refine_w else "")
+                  + (f"  fine EPE {st['fine_epe_px']:.2f} px (input {st['fine_epe_in_px']:.2f})"
+                     f"  non-finite steps {guard.total}" if refine_w else "")
                   + f"  ({time.time() - t0:.0f}s)", flush=True)
         if k % a.val_every == 0 or k == a.steps:
             v = validate(query, matcher, va_loader, cfg, L.min_patch_valid, a.local_radius, device=dev,
@@ -223,7 +257,8 @@ def main():
             with log.open("a") as f:
                 f.write(f"{k},val,{v['ce']:.4f},{v['top1']:.4f},{v['cell_err_m'] / (cfg.grid.cell_m * 16) * m_per_cell:.2f},"
                         f"{v['pose_nll']:.4f},{v['pose_err_m'] / (cfg.grid.cell_m * 16) * m_per_cell:.2f},{v['n']},{time.time() - t0:.1f},"
-                        f"{v['vce_m']:.3f},{v['vce_pose_m']:.3f},{v['fine_epe_px']:.3f},{v['fine_epe_in_px']:.3f}\n")
+                        f"{v['vce_m']:.3f},{v['vce_pose_m']:.3f},{v['fine_epe_px']:.3f},{v['fine_epe_in_px']:.3f},"
+                        f"{v.get('fine_skipped', 0)}\n")
             pose_m = v["pose_err_m"] / (cfg.grid.cell_m * 16) * m_per_cell
             print(f"step {k} VAL    CE {v['ce']:.3f}  poseNLL {v['pose_nll']:.3f}  top1 {v['top1']:.1%}  "
                   + (f"{'heatmap-argmax (not a pose)' if placed else 'pose'} {pose_m:.1f} m  " if a.pose_nll_weight else "")
@@ -232,14 +267,21 @@ def main():
                   + (f"  fine EPE {v['fine_epe_px']:.2f} px (input {v['fine_epe_in_px']:.2f})" if refine_w else ""),
                   flush=True)
             score = v["vce_pose_m"] if vce_w and v["vce_pose_m"] == v["vce_pose_m"] else pose_m
-            if score < best:
+            finite, is_best = best_candidate(v, score, best, val_keys)
+            if not finite:
+                print(f"  WARNING step {k}: validation not finite ({ {kk: v.get(kk) for kk in val_keys} }, "
+                      f"fine batches skipped {v.get('fine_skipped', 0)}): not a checkpoint candidate", flush=True)
+            else:
+                torch.save(ckpt_state(k, v), last_finite_path)
+            if is_best:
                 best, best_step = score, k
                 torch.save(ckpt_state(k, v), ckpt_path)
                 print(f"  best -> {ckpt_path}", flush=True)
             query.train()
     last_path = ckpt_path.with_name(f"vigor_{a.tag}_last.pt")   # a late (multimodal) checkpoint stays evaluable
     torch.save(ckpt_state(a.steps, v if a.steps else None), last_path)
-    print(f"wrote {ckpt_path} (best, step {best_step}) and {last_path} (last, step {a.steps})", flush=True)
+    print(f"wrote {ckpt_path} (best, step {best_step}), {last_finite_path} (last finite validation) and {last_path} "
+          f"(last, step {a.steps}); non-finite steps {guard.total}, no-update steps {n_skip_step}", flush=True)
 
 
 if __name__ == "__main__":

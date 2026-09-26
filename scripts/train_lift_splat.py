@@ -24,15 +24,21 @@ from bevloc.model.coarse import (
 )
 from bevloc.model.query import build_query, load_query_state
 from bevloc.model.refine import (
-    RefinerTap, decoder_state, fine_loss, gt_warp, set_refiner_trainable, token_centres_px,
+    NonFiniteGuard, RefinerTap, clip_refiner_grads, decoder_state, fine_loss, gt_warp, refiner_parameters,
+    set_refiner_trainable, token_centres_px,
 )
 
 
 def refine_options(cfg):
-    """RoMa fine-loss settings from cfg.train (refine_alpha, refine_c, refine_cert_cells), with RoMa's defaults."""
+    """RoMa fine-loss settings from cfg.train (refine_alpha, refine_c, refine_cert_cells), with RoMa's defaults, and
+    the refiner's training precision (refine_precision, default float32)."""
     T = cfg.train
     return dict(alpha=float(getattr(T, "refine_alpha", 0.5)), c=float(getattr(T, "refine_c", 1e-4)),
-                cert_cells=float(getattr(T, "refine_cert_cells", 0.5)))
+                cert_cells=float(getattr(T, "refine_cert_cells", 0.5)),
+                precision=str(getattr(T, "refine_precision", "float32")))
+
+
+FINE_KEYS = ("fine_epe_px", "fine_epe_in_px", "fine_epe_med_px", "fine_epe_in_med_px", "fine_reg", "fine_cert")
 
 
 def refine_step_loss(out16, tap, H, use, tok_valid, query_xy, ref_size, cells, certainty_weight, opts):
@@ -41,7 +47,9 @@ def refine_step_loss(out16, tap, H, use, tok_valid, query_xy, ref_size, cells, c
     The refiner ran on detached inputs (`RefinerTap(detach_inputs=True)`), so its loss trains the refiner only.
     Refined warp = detached W_in + the refiner's displacement; certainty logit = detached gm_certainty + the
     refiner's delta. Ground truth per token: H applied to its query point (token centre for the picture modes, the
-    placed point for erp / erp_depth); `use` = the coarse CE's supervised tokens."""
+    placed point for erp / erp_depth); `use` = the coarse CE's supervised tokens.
+    Returns (loss, stats), or (None, stats with fine_skipped = 1) when the refined warp, the certainty or the loss is
+    non-finite: the batch then trains the coarse terms only."""
     h, w = tap.x.shape[-2:]
     if query_xy is None:
         q = token_centres_px(h, w, device=H.device, dtype=torch.float64)[None].expand(H.shape[0], h, w, 2)
@@ -50,8 +58,17 @@ def refine_step_loss(out16, tap, H, use, tok_valid, query_xy, ref_size, cells, c
     gt = gt_warp(H.double(), q, ref_size).float()
     warp = tap.refined_warp()
     cert = (out16["gm_certainty"].detach().float() + tap.delta_certainty.float())[:, 0]
-    return fine_loss(warp, cert, tap.warp_in.detach().float(), gt, use, tok_valid, cell_norm=2.0 / cells,
-                     stride=16, certainty_weight=certainty_weight, **opts)
+    skipped = dict(fine_skipped=1, fine_reg=float("nan"), fine_cert=float("nan"), fine_epe=float("nan"),
+                   fine_epe_in=float("nan"), fine_epe_med=float("nan"), fine_epe_in_med=float("nan"), fine_n=0)
+    if not (bool(torch.isfinite(warp).all()) and bool(torch.isfinite(cert).all())):
+        return None, skipped
+    opts = {k: v for k, v in opts.items() if k != "precision"}
+    loss, st = fine_loss(warp, cert, tap.warp_in.detach().float(), gt, use, tok_valid, cell_norm=2.0 / cells,
+                         stride=16, certainty_weight=certainty_weight, **opts)
+    if not bool(torch.isfinite(loss)):
+        return None, skipped
+    st["fine_skipped"] = 0
+    return loss, st
 
 
 def step(query, matcher, batch, cfg, min_patch, local_radius, neighbour_radius, neighbour_weight,
@@ -65,7 +82,9 @@ def step(query, matcher, batch, cfg, min_patch, local_radius, neighbour_radius, 
     f_q, patch_frac = query(batch, matcher)          # lift | ipm | hybrid | erp | erp_depth, see bevloc.model.query
     # scale_factor = sqrt(query px area) / 560: 0.4 for the 224 px BEV queries, 1.13 for a 448x896 ERP grid
     sf = float(((f_q.shape[-2] * 16) * (f_q.shape[-1] * 16)) ** 0.5 / 560.0)
-    tap = RefinerTap(matcher.model.decoder, detach_inputs=True) if refine_weight else contextlib.nullcontext()
+    tap = (RefinerTap(matcher.model.decoder, detach_inputs=True,
+                      precision=(refine_opts or {}).get("precision", "float32"))
+           if refine_weight else contextlib.nullcontext())
     with tap:
         out = matcher.model.decoder({16: f_q}, matcher.reference_features(ref), scale_factor=sf)
     gm = out[16]["gm_cls"]
@@ -115,15 +134,18 @@ def step(query, matcher, batch, cfg, min_patch, local_radius, neighbour_radius, 
         loss = loss + float(vce_weight) * vloss
         st["vce_m"] = vst["vce_m"]
         st["vce_pose_m"] = vst["vce_pose_m"]
-    for k in ("fine_epe_px", "fine_epe_in_px", "fine_epe_med_px", "fine_epe_in_med_px", "fine_reg", "fine_cert"):
+    for k in FINE_KEYS:
         st[k] = float("nan")
+    st["fine_skipped"] = 0
     if refine_weight:
         tok_valid = patch_frac >= min_patch
         if placed is not None:
             tok_valid = tok_valid & placed[1]
         rloss, rst = refine_step_loss(out[16], tap, batch["H"], use, tok_valid, query_xy, ref_size, cells,
                                       certainty_weight, refine_opts or {})
-        loss = loss + float(refine_weight) * rloss
+        st["fine_skipped"] = rst["fine_skipped"]
+        if rloss is not None:
+            loss = loss + float(refine_weight) * rloss
         px = ref_size / 2.0                                          # normalised -> reference px
         st.update(fine_epe_px=rst["fine_epe"] * px, fine_epe_in_px=rst["fine_epe_in"] * px,
                   fine_epe_med_px=rst["fine_epe_med"] * px, fine_epe_in_med_px=rst["fine_epe_in_med"] * px,
@@ -152,7 +174,7 @@ def validate(query, matcher, loader, cfg, min_patch, local_radius, device, max_b
     if not rows:
         return dict(ce=float("nan"), top1=float("nan"), top5=float("nan"), cell_err_m=float("nan"),
                     pose_nll=float("nan"), pose_err_m=float("nan"), vce_m=float("nan"), vce_pose_m=float("nan"),
-                    fine_epe_px=float("nan"), fine_epe_in_px=float("nan"), n=0)
+                    fine_epe_px=float("nan"), fine_epe_in_px=float("nan"), fine_skipped=0, n=0)
     w = np.array([r["n"] for r in rows], float)
 
     def avg(key):
@@ -169,6 +191,7 @@ def validate(query, matcher, loader, cfg, min_patch, local_radius, device, max_b
                 pose_nll=avg("pose_nll"), pose_err_m=avg("pose_err") * m_per,
                 vce_m=mean("vce_m"), vce_pose_m=mean("vce_pose_m"),
                 fine_epe_px=mean("fine_epe_px"), fine_epe_in_px=mean("fine_epe_in_px"),
+                fine_skipped=int(sum(int(r.get("fine_skipped", 0)) for r in rows)),
                 n=int(w.sum()))
 
 
@@ -272,6 +295,8 @@ def main():
     refine_w = float(getattr(cfg.train, "refine_weight", 0.0) or 0.0)
     refine_opts = refine_options(cfg)
     set_refiner_trainable(matcher.model.decoder, refine_w > 0)     # frozen (and not saved) unless the fine loss is on
+    ref_params = refiner_parameters(matcher.model.decoder) if refine_w > 0 else []
+    guard = NonFiniteGuard(int(getattr(cfg.train, "refine_max_nonfinite", 20)))
     query = build_query(cfg, mode).to(dev)
     start_step = 0
     if a.ckpt:
@@ -314,8 +339,13 @@ def main():
         loss, st = step(query, matcher, batch, cfg, L.min_patch_valid, local_radius, neigh_r, neigh_w,
                         certainty_weight=cert_w, pose_nll_weight=pose_w, refine_weight=refine_w,
                         refine_opts=refine_opts)
-        loss.backward()
-        opt.step()
+        bad = not bool(torch.isfinite(loss.detach()))
+        if not bad:
+            loss.backward()
+            if ref_params:
+                bad = not clip_refiner_grads(ref_params, float(getattr(cfg.train, "refine_grad_clip", 1.0)))[1]
+            opt.step()
+        guard.update(bad or bool(st.get("fine_skipped", 0)), step_i)
         ref_px = int(batch["ref"].shape[-1])
         m_per_cell = (ref_px / 56.0) * cfg.grid.cell_m
         cell_m = st["cell_err"] * m_per_cell if st["n"] else float("nan")
