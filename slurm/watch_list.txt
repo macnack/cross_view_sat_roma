@@ -84,3 +84,10 @@
 8794335 fine2p_ipm     ^([0-9]+ samples|[A-Za-z]+ +n +[0-9]+|.*fine|wrote |Traceback|.*Error|\[run\] exit)
 8794336 fine2p_erpd    ^([0-9]+ samples|[A-Za-z]+ +n +[0-9]+|.*fine|wrote |Traceback|.*Error|\[run\] exit)
 8794337 loftr_fine     ^([0-9]+ samples|  [0-9]*[05]00 done|[A-Za-z]+ +n +[0-9]+|.*fine|wrote |Traceback|.*Error|\[run\] exit)
+# --- refiner training repeated with the hardened fine stage; certainty evaluations and calibrator ---
+8794469 t04_train_refine1b ^(train |refin|non-finite|WARNING|step [0-9]*[05]000 VAL|wrote|Traceback|.*Error|error:|Killed|OOM|\[run\] exit)
+8794470 t04_ev_refine1b_last_finite ^([A-Za-z]+ +n +[0-9]+|.*refined|wrote |Traceback|.*Error|\[run\] exit)
+8794471 t04_ev_refine1b_last ^([A-Za-z]+ +n +[0-9]+|.*refined|wrote |Traceback|.*Error|\[run\] exit)
+8794472 cert_test  ^([0-9]+ samples|[A-Za-z]+ +n +[0-9]+|.*hyp|wrote |Traceback|.*Error|\[run\] exit)
+8794473 cert_calib ^([0-9]+ samples|calib|[A-Za-z]+ +n +[0-9]+|wrote |Traceback|.*Error|\[run\] exit)
+8794474 cert_fit   ^(AUROC|coverage|gate|wrote |Traceback|.*Error|\[run\] exit)
