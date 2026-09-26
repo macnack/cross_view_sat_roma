@@ -74,3 +74,7 @@
 8790280 ref_t04_s4 ^([0-9]+ samples|[A-Za-z]+ +n +[0-9]+|refined|wrote |Traceback|.*Error|\[run\] exit)
 8790282 t04_ev_refine1 ^([0-9]+ samples|[A-Za-z]+ +n +[0-9]+|refined|wrote |Traceback|.*Error|\[run\] exit)
 8790281 t04_train_refine1 ^(train |refin|step [0-9]*[05]000 VAL|wrote|Traceback|.*Error|error:|Killed|OOM|\[run\] exit)
+# --- denser query tokens (112x56), 60k steps at batch 2 ---
+8794134 t04_train_erp1792   ^(train |step [0-9]*[05]000 VAL|wrote|Traceback|.*Error|error:|Killed|OOM|\[run\] exit)
+8794135 t04_ev_erp1792_last ^([A-Za-z]+ +n +[0-9]+|wrote |Traceback|.*Error|\[run\] exit)
+8794136 t04_ev_erp1792_best ^([A-Za-z]+ +n +[0-9]+|wrote |Traceback|.*Error|\[run\] exit)
