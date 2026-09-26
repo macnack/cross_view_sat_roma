@@ -27,6 +27,16 @@ the same consensus (solver, threshold in cells, seed), map the fine pose back to
 --fine-gate metres from it or missing (`fallback_fine`). Errors of both rows are distances in the tile frame (metres
 east/north of the tile centre, the frame of the sample's `en`). scripts/loftr_fine_vigor.py reuses this path with
 LoFTR as the second-pass matcher.
+Per frame, also the vote-map statistics of task 06 (`bevloc.match.vote_stats.STAT_KEYS`: vote entropy / effective
+support / top-1 mass / mass within 2 cells of the pose, modes seen and kept, peak-vs-means pose agreement, distance of
+the pose from the tile centre, certainty logits over the valid tokens, valid tokens, mean placed range of erp_depth
+tokens), computed from the logits already decoded: the inputs of `make vigor-certainty`. They are new keys; every
+existing key is what it was. --hyp K (0 = off) adds `pose_hyp_med_m` / `spread_hyp_m` / `n_hyp_ok`: K RANSAC runs on
+bootstrap resamples of the peak row's modes, the pose of their medoid and the median distance of the K poses from it.
+--calib: score the held-out part of the TRAINING list instead (train_vigor.py's --val-frac rule: train labels of the
+cities shuffled with seed 0, the last val_frac held out), skipping its first val_samples (they selected the checkpoint)
+and taking the next --limit frames: the calibration set of task 06, never the test draw (`calib_split`; the split is
+read from the checkpoint and checked, --assume-train-split for checkpoints that predate that record).
 Calibration mode scores row_sign in {+1, -1} x height in {1.6, 2.0, 2.5, 3.0} on a small subset and prints
 the table; the best pair is what `vigor:` in configs/default.yaml should carry.
 """
@@ -46,6 +56,7 @@ from bevloc.data.vigor import CITY_RES, VigorPairs, pose_en, split_cities
 from bevloc.eval.metrics import pose_errors
 from bevloc.eval.report import summarise_pose
 from bevloc.match.satroma import REFINE_INITS, SatRoMa, consensus_for_query, refined_for_query
+from bevloc.match.vote_stats import pose_px, ref_cell_valid, stats_row
 from bevloc.model.coarse import FeatureQueryMatcher
 from bevloc.model.query import apply_query_cfg, build_query, load_query_state
 from bevloc.model.refine import REFINER_KEY, RefinerTap
@@ -79,7 +90,8 @@ class DecoderFine:
             sf = float(((f_q.shape[-2] * 16) * (f_q.shape[-1] * 16)) ** 0.5 / 560.0)
             with self.matcher.model.exposed_intermediates():
                 gm = self.matcher.model.decoder({16: f_q}, f_s, scale_factor=sf)[16]["gm_cls"][0]
-        m = consensus_for_query(self.cons, gm, self.query, batch, frac, int(self.cfg.grid.n), min_frac=0.05)
+        m = consensus_for_query(self.cons, gm, self.query, batch, frac, int(self.cfg.grid.n), min_frac=0.05,
+                                stats=False)
         return m, s
 
 
@@ -124,15 +136,64 @@ def fine_pass_row(s, i, coarse, cfg, fine, gate_m):
     return out
 
 
+def certainty_cfg(cfg):
+    """The `certainty:` block (statistics radius, reference-cell validity): the run's config, else configs/default.yaml
+    (the VIGOR configs are full copies written before the block existed; one source for the defaults)."""
+    return getattr(cfg, "certainty", None) or C.load().certainty
+
+
+def calib_split(n_labels, train_meta, val_frac, cities, limit, assume=None):
+    """Indices (into the full training label list of `cities`) of the --calib frames and a record of the rule.
+
+    The held-out part is train_vigor.py's: permutation(seed 0) of the n_labels training labels, the last val_frac held
+    out; its first val_samples were the validation frames that selected the checkpoint, so they are skipped:
+    idx[n_tr + val_samples : n_tr + val_samples + limit] (limit 0 = the rest). The split is read from the checkpoint's
+    `train` dict (train_vigor.py stores split / cities / val_frac / val_samples since task 06). Refused (ValueError):
+    no val_frac in the checkpoint (old protocol, or trained before the split was stored) unless `assume` =
+    dict(val_frac, val_samples, cities) is given (--assume-train-split: the user asserts the training settings), a
+    val_frac different from --val-frac, cities different from the training cities, or nothing left after the skip."""
+    tm = dict(train_meta or {})
+    source = "checkpoint"
+    if tm.get("val_frac") is None:
+        if assume is None:
+            raise ValueError("--calib: the checkpoint's train dict has no val_frac (old protocol, or trained before "
+                             "train_vigor.py stored its split): its held-out frames cannot be reproduced. If you know "
+                             "it was trained with the held-out split, pass --assume-train-split with --val-frac, "
+                             "--val-samples and --cities as used in training")
+        tm.update(assume)
+        source = "asserted (--assume-train-split)"
+    if not float(tm["val_frac"]) > 0:
+        raise ValueError(f"--calib: the checkpoint was trained with val_frac {tm['val_frac']}: no held-out frames")
+    if abs(float(tm["val_frac"]) - float(val_frac)) > 1e-12:
+        raise ValueError(f"--calib: --val-frac {val_frac} differs from the checkpoint's val_frac {tm['val_frac']}")
+    if tm.get("cities") is None or sorted(tm["cities"]) != sorted(cities):
+        raise ValueError(f"--calib: cities {sorted(cities)} differ from the training cities {tm.get('cities')}")
+    vs = int(tm.get("val_samples") or 0)
+    idx = np.random.default_rng(0).permutation(n_labels)
+    n_tr = int(n_labels * (1.0 - float(val_frac)))
+    lo = n_tr + vs
+    hi = n_labels if not limit else min(n_labels, lo + int(limit))
+    if hi <= lo:
+        raise ValueError(f"--calib: nothing left: {n_labels - n_tr} held out, {vs} used for checkpoint selection")
+    info = dict(val_frac=float(val_frac), val_samples_skipped=vs, cities=sorted(cities), source=source,
+                n_train_list=int(n_labels), n_heldout=int(n_labels - n_tr),
+                heldout_slice=[int(lo - n_tr), int(hi - n_tr)], n=int(hi - lo),
+                rule="permutation(seed 0) of the train labels; idx[n_tr + val_samples : n_tr + val_samples + limit]")
+    return idx[lo:hi], info
+
+
 def score(ds, query, matcher, cons, cfg, dev, n_max=0, verbose=False, refine=0, refine_inits=("coarse",),
-          refine_gate=None, refine_min_cert=0.0, refine_min_corr=8, fine=None, fine_gate=6.0,
+          refine_gate=None, refine_min_cert=0.0, refine_min_corr=8, fine=None, fine_gate=6.0, hyp=0,
           refine_precision=None):
-    """refine = 0: the coarse rows only (identical to before the sub-cell stage). refine = S > 0: also the refined
-    row(s) from the decoder's stride-16 refiner, correspondences on a stride-S query grid (see module doc).
-    fine (e.g. `DecoderFine`): also the second-pass rows around the coarse `peak` pose (`fine_pass_row`)."""
+    """refine = 0: the coarse rows only (identical to before the sub-cell stage, plus the STAT_KEYS statistics of the
+    peak row). refine = S > 0: also the refined row(s) from the decoder's stride-16 refiner, correspondences on a
+    stride-S query grid (see module doc); refine_precision = the refiner's autocast dtype (from a trained refiner's
+    checkpoint, else the package default). fine (e.g. `DecoderFine`): also the second-pass rows around the coarse
+    `peak` pose (`fine_pass_row`). hyp = K > 0: also the bootstrap-hypothesis keys (HYP_KEYS) of the peak row."""
     rows = []
     tags = refine_tags(refine_inits) if refine else {}
     n = int(cfg.grid.n)
+    cc = certainty_cfg(cfg)
     idx = range(len(ds)) if not n_max else range(min(n_max, len(ds)))
     for i in idx:
         try:
@@ -149,15 +210,30 @@ def score(ds, query, matcher, cons, cfg, dev, n_max=0, verbose=False, refine=0, 
             with matcher.model.exposed_intermediates(), tap:
                 o16 = matcher.model.decoder({16: f_q}, f_s, scale_factor=sf)[16]
             gm = o16["gm_cls"][0]
+        cert = o16["gm_certainty"][0, 0] if o16.get("gm_certainty") is not None else None
+        ref_valid = ref_cell_valid(batch["ref"], int(round(gm.shape[0] ** 0.5)), min_frac=float(cc.ref_cell_min_frac))
         H = s["H"].numpy().astype(float)
         row = dict(id=s["id"], city=s["city"], centre_guess_m=ds.centre_guess_m(i))
         coarse = {}
         for tag, c in cons.items():
-            m = coarse[tag] = consensus_for_query(c, gm, query, batch, frac, n, min_frac=0.05)
+            c.stats_radius = float(cc.stats_radius_cells)
+            m = coarse[tag] = consensus_for_query(c, gm, query, batch, frac, n, min_frac=0.05, certainty=cert,
+                                                  ref_valid=ref_valid, stats=tag == "peak")
             err = pose_errors(m.H, H, n, float(cfg.grid.cell_m)) if m.H is not None else None
             row[f"pose_{tag}_m"] = None if err is None else err["position_m"]
             row[f"yaw_{tag}_deg"] = None if err is None else err["yaw_deg"]
             row[f"inliers_{tag}"] = m.inlier_ratio
+        if "peak" in coarse:
+            mh = coarse["means"].H if "means" in coarse else None
+            row.update(stats_row(coarse["peak"].stats, None if mh is None else pose_px(mh, int(cons["peak"].m.im_a_size)),
+                                 float(cfg.grid.cell_m)))
+            if hyp:
+                hs = SatRoMa.hypothesis_spread(cons["peak"], coarse["peak"], int(hyp), seed=int(cfg.matcher.seed))
+                ok = hs is not None and hs["H"] is not None
+                row["pose_hyp_med_m"] = pose_errors(hs["H"], H, n, float(cfg.grid.cell_m))["position_m"] if ok else None
+                row["spread_hyp_m"] = (hs["spread_px"] * float(cfg.grid.cell_m)
+                                       if ok and hs["spread_px"] is not None else None)        # < 2 hypotheses: None
+                row["n_hyp_ok"] = 0 if hs is None else int(hs["n_ok"])
         for init, tag in tags.items():
             with torch.no_grad():
                 m, info = refined_for_query(cons["peak"], o16, tap, query, batch, refine, init=init,
@@ -225,6 +301,22 @@ def build_parser(doc=__doc__):
     ap.add_argument("--fine-gate", type=float, default=6.0,
                     help="second pass: keep the coarse pose when the fine pose is farther than this (metres) from "
                          "it (row pose_fine_gated_m; counted as fallbacks)")
+    ap.add_argument("--hyp", type=int, default=0,
+                    help="multi-hypothesis spread: K RANSAC runs on bootstrap resamples of the peak row's modes -> "
+                         "pose_hyp_med_m (medoid pose), spread_hyp_m; 0 = off (default)")
+    ap.add_argument("--calib", action="store_true",
+                    help="score the held-out --val-frac of the TRAINING list (train_vigor.py's split: seed-0 "
+                         "shuffle, last val_frac held out), after the val_samples that selected the checkpoint, "
+                         "--limit frames (0 = all): the calibration set for make vigor-certainty. Not --calibrate "
+                         "(row_sign / height)")
+    ap.add_argument("--val-frac", type=float, default=0.2,
+                    help="--calib: held-out fraction; must equal the checkpoint's (train_vigor.py --val-frac)")
+    ap.add_argument("--val-samples", type=int, default=None,
+                    help="--calib with --assume-train-split: the training run's --val-samples (skipped)")
+    ap.add_argument("--assume-train-split", action="store_true",
+                    help="--calib for a checkpoint that does not record its split (trained before task 06): assert "
+                         "that it was trained with --val-frac / --val-samples / --cities as given here; recorded "
+                         "in meta.calib.source")
     ap.add_argument("--out", default="experiments/09_vigor")
     ap.add_argument("--tag", required=True)
     return ap
@@ -323,7 +415,7 @@ def run(a, make_fine=None):
     query.eval()
     cons = {tag: SatRoMa.from_wrapper(matcher.wrapper, cfg, use_means=means, min_valid_frac=0.05)
             for tag, means in (("peak", False), ("means", True))}
-    cities = a.cities or split_cities(a.split, a.train_split)
+    cities = a.cities or split_cities(a.split, a.train_split or a.calib)
     out = Path(a.out)
     out.mkdir(parents=True, exist_ok=True)
 
@@ -344,8 +436,27 @@ def run(a, make_fine=None):
         print(f"best: row_sign {best['row_sign']:+.0f}, height {best['height_m']:.1f} m  ({best['median_m']:.2f} m)")
         return
 
-    ds = VigorPairs(a.root, cfg, cities=cities, split=a.split, train=a.train_split, limit=a.limit,
-                    stride=a.stride, row_sign=a.row_sign, height_m=a.height)
+    calib = None
+    if a.calib:
+        # train_vigor.py's held-out split, bit for bit: the full train list, permutation(seed 0), last val_frac held out
+        ds = VigorPairs(a.root, cfg, cities=cities, split=a.split, train=True, row_sign=a.row_sign, height_m=a.height)
+        assume = None
+        if a.assume_train_split:
+            if a.val_samples is None:
+                raise SystemExit("--assume-train-split needs --val-samples (the training run's)")
+            assume = dict(val_frac=a.val_frac, val_samples=a.val_samples, cities=list(cities))
+        try:
+            held, calib = calib_split(len(ds.labels), train_meta, a.val_frac, cities, a.limit, assume)
+        except ValueError as e:
+            raise SystemExit(str(e))
+        ds.labels = [ds.labels[i] for i in held]
+        calib["ids"] = [f"{lab['city']}/{lab['pano']}" for lab in ds.labels]      # before the depth filter
+        print(f"calib: held-out frames {calib['heldout_slice'][0]}..{calib['heldout_slice'][1]} of "
+              f"{calib['n_heldout']} (the first {calib['val_samples_skipped']} selected the checkpoint; split from "
+              f"{calib['source']})", flush=True)
+    else:
+        ds = VigorPairs(a.root, cfg, cities=cities, split=a.split, train=a.train_split, limit=a.limit,
+                        stride=a.stride, row_sign=a.row_sign, height_m=a.height)
     n_no_depth = ds.keep_with_depth() if ds.depth else 0      # after the draw: a subset of the same samples
     if ds.depth:
         print(f"depth: {n_no_depth} panoramas of the draw have no depth file (skipped)", flush=True)
@@ -353,7 +464,7 @@ def run(a, make_fine=None):
     print(f"{len(ds)} samples, split {a.split}, cities {cities}, row_sign {ds.row_sign:+.0f}, height {ds.height} m", flush=True)
     rows = score(ds, query, matcher, cons, cfg, dev, verbose=True, refine=a.refine, refine_inits=tuple(a.refine_init),
                  refine_gate=refine_gate, refine_min_cert=a.refine_min_cert, refine_min_corr=a.refine_min_corr,
-                 fine=fine, fine_gate=a.fine_gate, refine_precision=refine_precision)
+                 fine=fine, fine_gate=a.fine_gate, hyp=a.hyp, refine_precision=refine_precision)
     rtags = list(refine_tags(a.refine_init).values()) if a.refine else []
     ftags = ["fine", "fine_gated"] if fine is not None else []
     summary = {}
@@ -379,6 +490,11 @@ def run(a, make_fine=None):
             summary[name]["fallback_fine_gated"] = int(sum(bool(r["fallback_fine"]) for r in sub))
             summary[name]["no_coarse_fine"] = int(sum(bool(r["no_coarse_fine"]) for r in sub))
             summary[name]["fine_errors"] = int(sum(r.get("fine_error") is not None for r in sub))
+        if a.hyp:
+            summary[name]["hyp_med"] = summarise_pose([r["pose_hyp_med_m"] for r in sub])
+            summary[name]["mean_hyp_med_m"] = _mean_capped(sub, "pose_hyp_med_m")
+            sp = [r["spread_hyp_m"] for r in sub if r["spread_hyp_m"] is not None]
+            summary[name]["spread_hyp_median_m"] = float(np.median(sp)) if sp else None
     path = out / f"eval_vigor_{a.tag}_{a.split}.json"
     path.write_text(json.dumps(dict(meta=dict(ckpt=a.ckpt, mode=mode, split=a.split, cities=cities, n=len(rows),
                                               row_sign=ds.row_sign, height_m=ds.height, solver=cfg.matcher.solver,
@@ -392,7 +508,10 @@ def run(a, make_fine=None):
                                                                "H_coarse(query point) for ransac")
                                               if a.refine else None,
                                               fine=fine_meta,
-                                              city_res=CITY_RES),
+                                              city_res=CITY_RES, hyp=a.hyp, calib=calib,
+                                              stats=dict(radius_cells=float(certainty_cfg(cfg).stats_radius_cells),
+                                                         ref_cell_min_frac=float(certainty_cfg(cfg).ref_cell_min_frac),
+                                                         row="peak")),
                                     frames=rows, summary=summary), indent=2))
     for name, s in summary.items():
         p, c = s["peak"], s["centre_guess"]
@@ -408,6 +527,10 @@ def run(a, make_fine=None):
             print(f"{'':13s} {t:>14s} median {r['median_m']:.2f} m {tuple(round(v, 2) for v in r['median_ci'])}  "
                   f"mean {s[f'mean_{t}_m']:.2f} m  R@5 {r['recall@5m']:.2f}  R@10 {r['recall@10m']:.2f}  {tail}",
                   flush=True)
+        if a.hyp:
+            r = s["hyp_med"]
+            print(f"{'':13s} {'hyp medoid':>14s} median {r['median_m']:.2f} m  R@5 {r['recall@5m']:.2f}  "
+                  f"R@10 {r['recall@10m']:.2f}  median spread {s['spread_hyp_median_m']} m (K={a.hyp})", flush=True)
     print(f"wrote {path}", flush=True)
 
 

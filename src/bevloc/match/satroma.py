@@ -8,7 +8,7 @@ from __future__ import annotations
 
 import os
 import sys
-from dataclasses import dataclass
+from dataclasses import dataclass, field
 from pathlib import Path
 
 import cv2
@@ -40,6 +40,12 @@ class Match:
     n_multimodal: int           # query patches with > 1 mode
     inlier_ratio: float         # modes within the RANSAC threshold of H
     argmax_cells: float | None = None   # mean |argmax - GT cell|, when H_gt was passed
+    n_inliers: int = 0                  # modes within the RANSAC threshold of H ("kept")
+    # vote-map statistics of the frame (task 06; `attach_stats`), in cells / reference px; None = not computed
+    stats: dict | None = field(default=None, compare=False)
+    # the correspondences the consensus saw: (placed (N, 2), tgt (N, 2), in_dim, out_dim) grid units, for
+    # `hypothesis_spread`; None when there were none
+    modes: tuple | None = field(default=None, repr=False, compare=False)
 
 
 class SatRoMa:
@@ -154,8 +160,11 @@ class SatRoMa:
         return SatRoMa.consensus_from_gm(self, gm, xy, valid, H_gt=H_gt)
 
     @staticmethod
-    def consensus_from_gm(self, gm, xy, valid, H_gt=None) -> Match:
+    def consensus_from_gm(self, gm, xy, valid, H_gt=None, certainty=None, ref_valid=None, stats=True) -> Match:
         """gm (K*K, h, w) logits; xy (h, w, 2) placed query px; valid (h, w).
+        certainty (h, w) decoder certainty logits and ref_valid (K, K) valid reference cells, both optional, only
+        feed the vote-map statistics (`attach_stats`; stats=False skips them, Match.stats None); the pose does not
+        depend on any of the three.
 
         Static with an explicit ``self`` so a test can pass a stub carrying only
         m.im_a_size / m.im_b_size, use_means, reproj, seed and solver."""
@@ -163,6 +172,18 @@ class SatRoMa:
         valid_t = torch.as_tensor(valid, dtype=torch.bool, device=gm.device)
         gm = gm.clone()
         gm[:, ~valid_t] = 0.0                                          # invalid tokens contribute no mode
+        xy_np = torch.as_tensor(xy).detach().float().cpu().numpy()
+        m = SatRoMa._consensus_placed(self, gm, xy_np)
+        if not stats:
+            return m
+        vt_np = valid_t.cpu().numpy()
+        c = (float(self.m.im_a_size) - 1.0) / 2.0                      # the ego in virtual BEV px
+        extra = dict(placed_range_px=float(np.linalg.norm(xy_np[vt_np] - c, axis=-1).mean()) if vt_np.any() else None)
+        return SatRoMa.attach_stats(self, m, gm, vt_np, certainty=certainty, ref_valid=ref_valid, extra=extra,
+                                    q_xy=xy_np)
+
+    @staticmethod
+    def _consensus_placed(self, gm, xy_np) -> Match:
         pts_A, means_B, peaks_B, covs_B = find_gaussians(
             gm.detach().float().cpu(), adaptive_gauss_fit=False, log_missing_gaussians=False,
             fixed_threshold=0.008, fixed_window_size=4)
@@ -170,7 +191,6 @@ class SatRoMa:
         argmax_cells = None
         if n_modes == 0:
             return Match(None, None, 0, 0, 0, 0.0, argmax_cells)
-        xy_np = torch.as_tensor(xy).detach().float().cpu().numpy()
         cols, rows = pts_A[:, 0].astype(int), pts_A[:, 1].astype(int)
         placed_px = xy_np[rows, cols]                                  # (N, 2) virtual query pixels
         s = float(self.m.im_a_size) / 14.0                             # 16 px per virtual patch
@@ -178,7 +198,82 @@ class SatRoMa:
         _, counts = np.unique(np.round(pts_A, 3), axis=0, return_counts=True)
         n_patches, n_multi = int(len(counts)), int((counts > 1).sum())
         tgt = np.asarray(means_B if self.use_means else peaks_B, np.float64)
-        return SatRoMa._fit_grid(self, placed, tgt, 14, int(round(gm.shape[0] ** 0.5)), n_patches, n_multi)
+        out_dim = int(round(gm.shape[0] ** 0.5))
+        m = SatRoMa._fit_grid(self, placed, tgt, 14, out_dim, n_patches, n_multi)
+        m.modes = (placed, tgt, 14, out_dim)
+        return m
+
+    # ---- vote-map statistics and hypothesis spread (task 06) ------------------------------------------------------
+
+    @staticmethod
+    def attach_stats(self, m, gm, valid=None, certainty=None, ref_valid=None, extra=None, q_xy=None) -> Match:
+        """Set m.stats from the logits the consensus already had (no forward pass): vote-map shape
+        (`bevloc.match.vote_stats.vote_stats`, mass around this match's pose), modes seen / kept, the pose in reference
+        px and its distance from the reference centre, and the certainty logits over the valid tokens. gm (K*K, h, w)
+        with the masked tokens' logits zeroed; valid (h, w) bool or None (= the non-zero columns); q_xy (h, w, 2) query
+        px of each token for the ego (Hough) map: None = the token centres of a picture query, placed queries pass
+        their placed points. The pose-mass radius is `self.stats_radius` (cells; the evaluator sets it from
+        cfg.certainty.stats_radius_cells), 2 when the instance has none."""
+        import torch
+        from bevloc.match import vote_stats as V
+        vt = V.token_valid(gm, valid)
+        p, n_tok = V.vote_map(gm, vt)
+        k = int(round(gm.shape[0] ** 0.5))
+        ref_px = int(self.m.im_b_size)
+        pose = None if m.H is None else V.pose_px(m.H, int(self.m.im_a_size))
+        radius = float(getattr(self, "stats_radius", 2.0))
+        pose_cell = None if pose is None else V.px_to_cell(pose, ref_px, k)
+        if p is None:
+            st = dict(vote_entropy=None, vote_support_cells=None, vote_top1=None, vote_mass_2cells=None,
+                      vote_offtile_mass=None)
+        else:
+            st = V.vote_stats(p, ref_valid, pose_cell, radius)
+        st.update(n_modes=int(m.n_modes), n_inlier_modes=int(m.n_inliers), n_valid_tokens=n_tok,
+                  pose_px=None if pose is None else [float(pose[0]), float(pose[1])],
+                  pose_centre_px=None if pose is None else float(np.linalg.norm(pose - (ref_px - 1) / 2.0)),
+                  cert_mean=None, cert_median=None, placed_range_px=None)
+        qa = int(self.m.im_a_size)
+        pe = None if p is None else V.ego_vote_map(
+            gm, V.token_centres(gm.shape[-2], gm.shape[-1], qa) if q_xy is None else q_xy, vt, qa, ref_px)
+        es = V.vote_stats(pe if pe is not None else np.zeros((k, k)), ref_valid, pose_cell, radius)
+        st.update({f"ego_{key[5:]}": val for key, val in es.items()})           # vote_x -> ego_x
+        st["ego_peak_pose_px"] = None
+        if pe is not None and pose is not None:
+            r, c = np.unravel_index(int(np.argmax(pe)), pe.shape)
+            s_ref = ref_px / k
+            st["ego_peak_pose_px"] = float(np.hypot((c + 0.5) * s_ref - 0.5 - pose[0], (r + 0.5) * s_ref - 0.5 - pose[1]))
+        if certainty is not None and n_tok:
+            c = torch.as_tensor(certainty).detach().float().cpu().numpy().reshape(vt.shape)[vt].astype(np.float64)
+            st.update(cert_mean=float(c.mean()), cert_median=float(np.median(c)))
+        st.update(extra or {})
+        m.stats = st
+        return m
+
+    @staticmethod
+    def hypothesis_spread(self, m, k, seed=0):
+        """K RANSAC runs (this instance's solver / threshold / seed) on bootstrap resamples (with replacement, same
+        size) of the correspondences m's consensus saw. Returns dict(H = the medoid hypothesis (query px -> reference
+        px) or None, spread_px = median distance of the other successful poses from their medoid (reference px; the
+        medoid's own zero distance excluded; None when fewer than 2 hypotheses produced a model, since one pose has
+        no spread), n_ok = hypotheses that produced a model), or None when k <= 0 or m had no modes.
+        For the package path (`_ransac`) the "srt" resamples go through the cv2 homography RANSAC of `_fit_grid`
+        (the package's own init is the same cv2.findHomography call)."""
+        from bevloc.match import vote_stats as V
+        if k <= 0 or m.modes is None:
+            return None
+        placed, tgt, in_dim, out_dim = m.modes
+        n = len(placed)
+        rng = np.random.default_rng(seed)
+        Hs = []
+        for _ in range(int(k)):
+            idx = rng.integers(0, n, n)
+            h = SatRoMa._fit_grid(self, placed[idx], tgt[idx], in_dim, out_dim, 0, 0).H
+            if h is not None:
+                Hs.append(h)
+        if not Hs:
+            return dict(H=None, spread_px=None, n_ok=0)
+        i, spread = V.medoid([V.pose_px(h, int(self.m.im_a_size)) for h in Hs])
+        return dict(H=Hs[i], spread_px=spread, n_ok=len(Hs))
 
     @staticmethod
     def _fit_grid(self, placed, tgt, in_dim, out_dim, n_patches, n_multi, argmax_cells=None) -> Match:
@@ -213,7 +308,8 @@ class SatRoMa:
             Hf, in_patch_dim=in_dim, out_patch_dim=out_dim,
             crop_res=(ha, wa), map_res=(hb, wb), cell_convention="center"), dtype=np.float64)
         c = np.array([[0, 0, 1], [wa - 1, 0, 1], [wa - 1, ha - 1, 1], [0, ha - 1, 1]], float) @ H.T
-        return Match(H, c[:, :2] / c[:, 2:3], n_modes, n_patches, n_multi, inl, argmax_cells)
+        return Match(H, c[:, :2] / c[:, 2:3], n_modes, n_patches, n_multi, inl, argmax_cells,
+                     n_inliers=int((err <= self.reproj).sum()))
 
     @staticmethod
     def refined_consensus(self, q_px, r_px, cells=56, H_seed=None, gate_cells=None, min_corr=None):
@@ -264,8 +360,15 @@ class SatRoMa:
         _, st = coarse_loss(gm[None].float(), idx, use)
         return None if st["n"] == 0 else st["cell_err"]
 
-    def _ransac(self, gm, argmax_cells) -> Match:
-        import torch
+    def _ransac(self, gm, argmax_cells, valid=None, certainty=None, ref_valid=None, stats=True) -> Match:
+        """Package consensus on (masked) logits; valid / certainty / ref_valid only feed the statistics (stats=False:
+        none, Match.stats None)."""
+        mt = self._ransac_fit(gm, argmax_cells)
+        if not stats:
+            return mt
+        return SatRoMa.attach_stats(self, mt, gm, valid, certainty=certainty, ref_valid=ref_valid)
+
+    def _ransac_fit(self, gm, argmax_cells) -> Match:
         m = self.m
 
         cv2.setRNGSeed(self.seed)
@@ -283,31 +386,34 @@ class SatRoMa:
             n_patches = n_multi = 0
         Hf = np.asarray(r.H, dtype=np.float64)
         tgt = r.means_B if self.use_means else r.peaks_B
+        modes = (np.asarray(r.pts_A, np.float64), np.asarray(tgt, np.float64), int(gm.shape[-1]),
+                 int(round(gm.shape[0] ** 0.5))) if n_modes else None
         if self.solver == "sim":
             if n_modes < 4:
-                return Match(None, None, n_modes, n_patches, n_multi, 0.0, argmax_cells)
+                return Match(None, None, n_modes, n_patches, n_multi, 0.0, argmax_cells, modes=modes)
             Hs, _, _ = ransac_init(np.asarray(r.pts_A, np.float64), np.asarray(tgt, np.float64),
                                    method=cv2.RANSAC, reproj_threshold=self.reproj, max_iters=5000,
                                    confidence=0.995, quiet=True, estimator="similarity")
             # ransac_init substitutes np.eye(3) when cv2 finds no model: treat that as a miss, like `srt`
             if Hs is None or not np.isfinite(np.asarray(Hs)).all() or np.array_equal(np.asarray(Hs), np.eye(3)):
-                return Match(None, None, n_modes, n_patches, n_multi, 0.0, argmax_cells)
+                return Match(None, None, n_modes, n_patches, n_multi, 0.0, argmax_cells, modes=modes)
             Hf = np.asarray(Hs, np.float64)
         elif self.solver == "se2":
             # Same hypothesis set, but the consensus model has no scale (metric query, shared GSD).
             from bevloc.match.se2 import se2_ransac
             if n_modes < 2:
-                return Match(None, None, n_modes, n_patches, n_multi, 0.0, argmax_cells)
+                return Match(None, None, n_modes, n_patches, n_multi, 0.0, argmax_cells, modes=modes)
             H2, _ = se2_ransac(r.pts_A, tgt, thresh=self.reproj, n_iter=500, seed=self.seed)
             if H2 is None:
-                return Match(None, None, n_modes, n_patches, n_multi, 0.0, argmax_cells)
+                return Match(None, None, n_modes, n_patches, n_multi, 0.0, argmax_cells, modes=modes)
             Hf = H2
         elif n_modes < 4 or np.array_equal(Hf, np.eye(3)) or not np.isfinite(Hf).all():
-            return Match(None, None, n_modes, n_patches, n_multi, 0.0, argmax_cells)
+            return Match(None, None, n_modes, n_patches, n_multi, 0.0, argmax_cells, modes=modes)
 
         p = np.c_[r.pts_A, np.ones(n_modes)] @ Hf.T
         err = np.linalg.norm(p[:, :2] / p[:, 2:3] - tgt, axis=1)
         inl = float((err <= self.reproj).mean())
+        n_inl = int((err <= self.reproj).sum())
 
         ha = wa = int(m.im_a_size)
         hb = wb = int(m.im_b_size)
@@ -316,25 +422,31 @@ class SatRoMa:
             crop_res=(ha, wa), map_res=(hb, wb),
             cell_convention="center"), dtype=np.float64)
         c = np.array([[0, 0, 1], [wa - 1, 0, 1], [wa - 1, ha - 1, 1], [0, ha - 1, 1]], float) @ H.T
-        return Match(H, c[:, :2] / c[:, 2:3], n_modes, n_patches, n_multi, inl, argmax_cells)
+        return Match(H, c[:, :2] / c[:, 2:3], n_modes, n_patches, n_multi, inl, argmax_cells,
+                     n_inliers=n_inl, modes=modes)
 
 
-def consensus_for_query(cons, gm, query, batch, frac, n, min_frac=0.05):
+def consensus_for_query(cons, gm, query, batch, frac, n, min_frac=0.05, certainty=None, ref_valid=None, stats=True):
     """Consensus for one decoded sample, whatever the query mode (evaluators share this).
 
     Queries with `placement` (erp, erp_depth): the tokens' placed points go through `consensus_from_gm`
     (= `match_placed` without a second decode). BEV queries (lift, ipm, hybrid): the per-patch validity
     `frac` (1, h, w) masks the 14 x 14 patch grid, then the package RANSAC (`_ransac`).
-    gm (K*K, h, w) logits of the sample; batch holds that one sample with a leading batch axis."""
+    gm (K*K, h, w) logits of the sample; batch holds that one sample with a leading batch axis.
+    certainty (h, w) decoder certainty logits, ref_valid (K, K) valid reference cells: optional, only for the
+    statistics in Match.stats (the pose does not depend on them); stats=False skips the statistics (the evaluators
+    compute them for the peak row only)."""
     import torch
     import torch.nn.functional as F
     if hasattr(query, "placement"):
         xy, valid = query.placement(batch)
-        return SatRoMa.consensus_from_gm(cons, gm, xy[0], valid[0])
+        return SatRoMa.consensus_from_gm(cons, gm, xy[0], valid[0], certainty=certainty, ref_valid=ref_valid,
+                                         stats=stats)
     mask = F.interpolate(frac[:, None].float(), size=(n, n), mode="nearest")[0, 0] >= min_frac
     gmm = gm.clone()
-    gmm[:, ~cons.query_patches(mask)] = 0.0
-    return cons._ransac(gmm, None)
+    qp = cons.query_patches(mask)
+    gmm[:, ~qp] = 0.0
+    return cons._ransac(gmm, None, valid=qp, certainty=certainty, ref_valid=ref_valid, stats=stats)
 
 
 REFINE_INITS = ("none", "coarse", "ransac")
