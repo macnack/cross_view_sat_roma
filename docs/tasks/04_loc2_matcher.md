@@ -123,6 +123,12 @@ same tokens as the peak row; at S < 16 each sample's own `bev_valid` pixel. For 
 depth (`ErpDepthQuery.placement_at` / `ErpQuery.placement_at`; identical to the token placement at token centres,
 tested). The same solver (`--solver`), inlier threshold and seed then run on these correspondences. Initialisation:
 - `none`: the package path (refiner on the ToWarp warp of `gm_cls`), RANSAC from scratch.
+
+Every init drops non-finite warps, certainties and placements (counted per sample as `nonfinite_*`). It falls back
+to the coarse peak pose (counted as `fallback_*`) when fewer than `--refine-min-corr` correspondences remain, or when
+the solver returns no model or raises (`LinAlgError` / `cv2.error` are caught and counted as `error_*`). A refined
+row therefore never crashes the run, and a diverged refiner shows up as the coarse numbers with every sample counted
+as a fallback.
 - `coarse`: the same refined warp, with correspondences gated to within `--refine-gate` cells (default
   `reproj_cells` = 3) of the coarse peak pose before the RANSAC. cv2's RANSAC takes no initial model, so seeding
   means this guided-matching gate. If fewer than `--refine-min-corr` (default 8) correspondences survive the gate,
@@ -156,7 +162,25 @@ zero gradient to every non-refiner parameter, including the head. That is RoMa's
 in RoMa) the warp half is already cut by `@torch.no_grad()` on `cls_to_flow_refine`; detaching the shared projected
 features as well is our addition (in RoMa the fine features come from a separate encoder). A warm start whose
 checkpoint carries a trained refiner keeps saving it even with `--refine-weight 0` (frozen at those weights). Train and val log `fine_epe_px` (refined) against
-`fine_epe_in_px` (input warp) in reference px. Open for agreement: the gate radius, the certainty-target radius,
+`fine_epe_in_px` (input warp) in reference px.
+
+**Numerics (fixed after the first `--refine-weight 1` run diverged, 26 Sep).** That run trained the refiner under
+the package's float16 autocast with no GradScaler. `fine_epe_px` fell from about 113 to about 21 px (input warp
+about 30 px), then went NaN at step 23,425 and stayed NaN. Checkpoint selection ignored it, so `_best.pt` and
+`_last.pt` carry NaN refiner weights, and the evaluation crashed on an SVD of NaN correspondences. Since the fix:
+- The refiner trains in float32 (`cfg.train.refine_precision`). `RefinerTap` sets the refiner's autocast dtype and
+  casts its inputs to float32; checked on the GPU that its convolutions run in float32. At eval, a checkpoint-trained
+  refiner runs at the precision stored in the checkpoint; the released refiner keeps float16.
+- The fine loss is computed in float32 on the squared error (no sqrt, smooth at 0).
+- A batch whose refined warp, certainty or fine loss is non-finite trains the coarse terms only (`fine_skipped`,
+  in the CSV).
+- A step with a non-finite total loss or refiner gradient does not update. The refiner's gradient norm is clipped
+  to `refine_grad_clip` (1.0).
+- More than `refine_max_nonfinite` (20) such steps in a row stop the run with an error.
+- A validation with any non-finite logged value, or with a skipped fine batch, is never saved as `_best.pt`;
+  `_last_finite.pt` is the last checkpoint whose validation was fully finite.
+
+Open for agreement: the gate radius, the certainty-target radius,
 detaching the features as well as the warp, and whether S < 16 is worth keeping.
 
 ## Coarse-to-fine second pass — as built, 26 Sep 2026 (for review; not yet run on VIGOR)

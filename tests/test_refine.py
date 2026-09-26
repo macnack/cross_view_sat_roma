@@ -410,3 +410,130 @@ def test_gated_set_below_min_corr_falls_back_to_the_coarse_pose():
     m, info = refined_for_query(_picture_cons(), o16, None, StubPictureQuery(), batch, 16, init="coarse",
                                 coarse=coarse, gate_cells=3.0, frac=frac, min_corr=5)
     assert not info["fallback"] and m.H is not None
+
+
+# ---- numerical robustness (the 2026-09-26 run went NaN at step 23,425 under float16 autocast) -------------------------
+
+def _nan_refiner(dec):
+    with torch.no_grad():
+        dec.conv_refiner["16"].out_conv.weight.fill_(float("nan"))
+    return dec
+
+
+def test_nan_refined_warp_skips_the_fine_loss_and_is_counted():
+    from train_lift_splat import refine_step_loss
+    from bevloc.model.refine import NonFiniteGuard
+    dec = _nan_refiner(plant_translation(tiny_decoder(), (300.0, 280.0)))
+    tap = RefinerTap(dec, detach_inputs=True, precision="float32")
+    o = _decode(dec, tap=tap)
+    assert not bool(torch.isfinite(tap.refined_warp()).all())
+    H = torch.eye(3)[None].clone()
+    H[0, 0, 2], H[0, 1, 2] = 300.0, 280.0
+    ok = torch.ones(1, 14, 14, dtype=torch.bool)
+    loss, st = refine_step_loss(o, tap, H, ok, ok, None, 896, 56, 0.01,
+                                dict(alpha=0.5, c=1e-4, cert_cells=0.5, precision="float32"))
+    assert loss is None and st["fine_skipped"] == 1
+    # the trainer's guard: counted, reset by a good step, an error after max_consecutive bad steps in a row
+    g = NonFiniteGuard(2)
+    for k, bad in enumerate((True, True, False, True, True), 1):
+        g.update(bad, k)
+    assert g.total == 4 and g.run == 2
+    with pytest.raises(RuntimeError, match="consecutive"):
+        g.update(True, 6)
+
+
+def test_refiner_runs_in_float32_inside_the_tap_and_the_package_dtype_is_restored():
+    dec = tiny_decoder()
+    before = dec.conv_refiner["16"].amp_dtype
+    tap = RefinerTap(dec, detach_inputs=True, precision="float32")
+    _decode(dec, tap=tap)
+    assert tap.x.dtype == torch.float32 and tap.delta_flow.dtype == torch.float32
+    assert dec.conv_refiner["16"].amp_dtype == before
+    with pytest.raises(ValueError):
+        RefinerTap(dec, precision="float64")
+
+
+def test_non_finite_refiner_gradient_is_discarded_and_finite_ones_are_clipped():
+    from bevloc.model.refine import clip_refiner_grads, refiner_parameters
+    dec = tiny_decoder()
+    ps = refiner_parameters(dec)
+    for p in ps:
+        p.grad = torch.full_like(p, 10.0)
+    norm, ok = clip_refiner_grads(ps, 1.0)
+    assert ok and norm > 1.0
+    assert float(torch.linalg.vector_norm(torch.stack([p.grad.norm() for p in ps]))) <= 1.0 + 1e-5
+    ps[0].grad[...] = float("nan")
+    _, ok = clip_refiner_grads(ps, 1.0)
+    assert not ok and all(p.grad is None for p in ps)
+
+
+def test_a_non_finite_validation_never_becomes_best():
+    from bevloc.model.refine import best_candidate
+    keys = ["ce", "top1", "fine_epe_px", "fine_epe_in_px"]
+    good = dict(ce=1.0, top1=0.5, fine_epe_px=20.0, fine_epe_in_px=30.0, fine_skipped=0)
+    assert best_candidate(good, 1.5, float("inf"), keys) == (True, True)
+    assert best_candidate(good, 1.5, 1.0, keys) == (True, False)          # finite, just not better
+    assert best_candidate(dict(good, fine_epe_px=float("nan")), 0.1, float("inf"), keys) == (False, False)
+    assert best_candidate(dict(good, fine_skipped=3), 0.1, float("inf"), keys) == (False, False)
+    assert best_candidate(dict(good, ce=float("inf")), 0.1, float("inf"), keys) == (False, False)
+    assert best_candidate(good, float("nan"), float("inf"), keys) == (False, False)
+    assert best_candidate(None, 0.1, float("inf"), keys) == (False, False)
+
+
+def test_non_finite_correspondences_are_dropped_with_a_fallback_and_no_exception():
+    t = np.array([304.0, 288.0])
+    flow = _translation_flow(tuple(t)).float()[None].clone()
+    cert = torch.zeros(1, 1, 14, 14)
+    flow[0, :, :, :10] = float("nan")                           # 140 tokens with a NaN warp
+    cert[0, 0, :, 10:12] = float("nan")                         # 28 more with a NaN certainty -> 28 finite remain
+    o16 = dict(flow=flow, flow_pre_delta=flow, certainty=cert, gm_certainty=cert, gm_cls=torch.zeros(1, 3136, 14, 14))
+    batch, frac = dict(bev_valid=torch.ones(1, 224, 224)), torch.ones(1, 14, 14)
+    coarse = NS(H=np.array([[1.0, 0, t[0] + 3], [0, 1.0, t[1]], [0, 0, 1]]))
+    m, info = refined_for_query(_picture_cons(), o16, None, StubPictureQuery(), batch, 16, init="none",
+                                coarse=coarse, frac=frac, min_corr=8)
+    assert info["nonfinite"] == 168 and info["n_corr"] == 28 and not info["fallback"]
+    assert np.abs(m.H[:2, 2] - t).max() < 1e-3                  # the 28 finite ones still localise exactly
+    m, info = refined_for_query(_picture_cons(), o16, None, StubPictureQuery(), batch, 16, init="coarse",
+                                coarse=coarse, gate_cells=3.0, frac=frac, min_corr=30)
+    assert info["fallback"] and m is coarse                     # 28 < 30 left: the coarse pose, counted
+    o16_all = dict(o16, flow=torch.full_like(flow, float("nan")))
+    for init in ("none", "coarse"):
+        m, info = refined_for_query(_picture_cons(), o16_all, None, StubPictureQuery(), batch, 16, init=init,
+                                    coarse=coarse, gate_cells=3.0, frac=frac)
+        assert m is coarse and info["fallback"] and info["n_corr"] == 0 and info["nonfinite"] == 196
+    # refined_consensus itself drops NaN rows
+    q = token_centres_px(14, 14).reshape(-1, 2).double().numpy()
+    r = q + t
+    r[:50] = np.nan
+    mm, n = SatRoMa.refined_consensus(_cons("se2"), q, r)
+    assert n == 146 and np.abs(mm.H[:2, 2] - t).max() < 1e-3
+
+
+def test_solver_linalg_error_falls_back_instead_of_raising(monkeypatch):
+    def boom(*a, **k):
+        raise np.linalg.LinAlgError("SVD did not converge")
+    monkeypatch.setattr(SatRoMa, "_fit_grid", staticmethod(boom))
+    q = token_centres_px(14, 14).reshape(-1, 2).double().numpy()
+    mm, n = SatRoMa.refined_consensus(_cons("se2"), q, q + 300.0)
+    assert mm.H is None and n == 196
+    flow = _translation_flow((300.0, 300.0)).float()[None]
+    o16 = dict(flow=flow, flow_pre_delta=flow, certainty=torch.zeros(1, 1, 14, 14),
+               gm_certainty=torch.zeros(1, 1, 14, 14), gm_cls=torch.zeros(1, 3136, 14, 14))
+    coarse = NS(H=np.eye(3))
+    m, info = refined_for_query(_picture_cons(), o16, None, StubPictureQuery(), dict(bev_valid=torch.ones(1, 224, 224)),
+                                16, init="none", coarse=coarse, frac=torch.ones(1, 14, 14))
+    assert m is coarse and info["fallback"]
+
+
+def test_a_nan_refiner_through_the_evaluator_gives_the_coarse_rows_and_counts_it():
+    from eval_vigor import score
+    t = (300.0, 280.0)
+    cfg = cfg_stub("se2")
+    matcher = tiny_matcher(_nan_refiner(plant_translation(tiny_decoder(), t)))
+    cons = {"peak": SatRoMa.from_wrapper(matcher.wrapper, cfg, use_means=False, min_valid_frac=0.05)}
+    rows = score(_DS(t), StubPictureQuery(), matcher, cons, cfg, "cpu", refine=16,
+                 refine_inits=("none", "coarse", "ransac"), refine_gate=3.0)
+    for r in rows:
+        for init in ("none", "coarse", "ransac"):
+            assert r[f"fallback_refined_{init}"] and r[f"nonfinite_refined_{init}"] > 0
+            assert r[f"pose_refined_{init}_m"] == r["pose_peak_m"]

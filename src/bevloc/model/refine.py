@@ -72,20 +72,31 @@ class RefinerTap:
     trains only the refiner (RoMa §3.3: the refiners take the detached coarse warp; the coarse and fine features
     are decoupled). The decoder's own ``flow`` output then still carries the non-detached W_in (it is
     ``W_in + displacement``): use `refined_warp` for anything trained.
+
+    precision: None = the package's autocast dtype (float16 on CUDA, the released configuration); "float32" /
+    "bfloat16" / "float16" = the refiner's autocast dtype while the tap is active (restored on exit), with its inputs
+    cast to float32 (autocast casts them down). The refiner is trained in float32 (cfg.train.refine_precision):
+    the 2026-09-26 run trained under float16 autocast without a GradScaler and its weights went NaN at step 23,425.
     """
 
-    def __init__(self, decoder, scale="16", detach_inputs=False):
+    def __init__(self, decoder, scale="16", detach_inputs=False, precision=None):
         self.decoder, self.scale, self.detach = decoder, str(scale), bool(detach_inputs)
         self.refiner = decoder.conv_refiner[self.scale]
         self.x = self.y = self.warp_in = self.delta_flow = self.delta_certainty = None
         self.scale_factor = 1.0
         self._handles = []
+        if precision not in (None, "float32", "bfloat16", "float16"):
+            raise ValueError(f"refiner precision must be float32, bfloat16 or float16, got {precision!r}")
+        self.precision = precision
+        self._saved_dtype = None
 
     def _pre(self, module, args, kwargs):
         x, y, warp = args[:3]
         if self.detach:
             x, y, warp = x.detach(), y.detach(), warp.detach()
-            args = (x, y, warp) + tuple(args[3:])
+        if self.precision is not None:                      # float32 inputs; autocast casts down (bf16 needs it)
+            x, y, warp = x.float(), y.float(), warp.float()
+        args = (x, y, warp) + tuple(args[3:])
         self.x, self.y, self.warp_in = x, y, warp
         self.scale_factor = kwargs.get("scale_factor", 1.0)
         return args, kwargs
@@ -94,6 +105,9 @@ class RefinerTap:
         self.delta_flow, self.delta_certainty = output
 
     def __enter__(self):
+        if self.precision is not None:
+            self._saved_dtype = self.refiner.amp_dtype
+            self.refiner.amp_dtype = getattr(torch, self.precision)
         self._handles = [self.refiner.register_forward_pre_hook(self._pre, with_kwargs=True),
                          self.refiner.register_forward_hook(self._post)]
         return self
@@ -102,6 +116,9 @@ class RefinerTap:
         for h in self._handles:
             h.remove()
         self._handles = []
+        if self._saved_dtype is not None:
+            self.refiner.amp_dtype = self._saved_dtype
+            self._saved_dtype = None
         return False
 
     def refined_warp(self):
@@ -114,7 +131,13 @@ class RefinerTap:
         """Run the refiner again on the recorded features with another input warp (B, 2, h, w), e.g. the
         RANSAC-consistent coarse warp. Returns (refined warp, delta certainty)."""
         warp = warp.to(self.warp_in.dtype)
-        delta, dc = self.refiner(self.x, self.y, warp, scale_factor=self.scale_factor)
+        saved = self.refiner.amp_dtype
+        if self.precision is not None:                    # rerun may be called after the with-block closed
+            self.refiner.amp_dtype = getattr(torch, self.precision)
+        try:
+            delta, dc = self.refiner(self.x, self.y, warp, scale_factor=self.scale_factor)
+        finally:
+            self.refiner.amp_dtype = saved
         h, w = self.x.shape[-2:]
         return warp.float() + refiner_displacement(delta, h, w, int(self.scale), self.decoder.refine_init), dc
 
@@ -161,11 +184,13 @@ def fine_loss(warp, cert_logit, warp_in, gt, ok, tok_valid, cell_norm, stride=16
     ok (B, h, w): tokens whose ground truth is usable (valid, lands inside the reference on real content);
     tok_valid (B, h, w): valid query tokens (the certainty BCE is taken over these only).
     Regression: generalised Charbonnier (alpha, s = c * stride, RoMa's code units: normalised coordinates, c = 1e-4)
-    of the end-point error over `ok`. Certainty: BCE toward `fine_certainty_target`. Returns (loss, stats)."""
-    epe = (warp.float() - gt.float()).norm(dim=1)                      # (B, h, w)
+    of the end-point error over `ok`. Certainty: BCE toward `fine_certainty_target`. Returns (loss, stats).
+    Everything in float32; the Charbonnier is evaluated on the squared error (no sqrt: smooth at 0)."""
+    sq = ((warp.float() - gt.float()) ** 2).sum(1)                     # (B, h, w)
+    epe = sq.detach().sqrt()
     s = float(c) * float(stride)
     if bool(ok.any()):
-        reg = charbonnier(epe[ok], s, alpha).mean()
+        reg = (s ** alpha * ((sq[ok] / s ** 2 + 1.0) ** (alpha / 2.0) - 1.0)).mean()
         with torch.no_grad():
             epe_in = (warp_in.float() - gt.float()).norm(dim=1)[ok]
             st_epe, st_epe_in = float(epe[ok].mean()), float(epe_in.mean())
@@ -233,3 +258,65 @@ def warp_samples(flow, cert, img_hw, stride, patch=16):
         wv = _sample(flow.float(), xn, yn)
         cv = _sample(cert.float()[None], xn, yn)[:, 0]
     return uv, idx, wv, cv
+
+
+# ---- numerical guards for training the refiner -----------------------------------------------------------------
+
+def refiner_parameters(decoder):
+    return [p for n, p in decoder.named_parameters() if REFINER_KEY in n]
+
+
+def clip_refiner_grads(params, max_norm):
+    """Clip the refiner's gradient norm (max_norm <= 0: no clipping). A non-finite gradient is discarded (grads set
+    to None, so the optimizer leaves the refiner unchanged this step). Returns (total norm, finite)."""
+    params = [p for p in params if p.grad is not None]
+    if not params:
+        return 0.0, True
+    if max_norm and max_norm > 0:
+        norm = torch.nn.utils.clip_grad_norm_(params, float(max_norm), error_if_nonfinite=False)
+    else:
+        norm = torch.linalg.vector_norm(torch.stack([p.grad.detach().float().norm() for p in params]))
+    finite = bool(torch.isfinite(norm))
+    if not finite:
+        for p in params:
+            p.grad = None
+    return float(norm), finite
+
+
+class NonFiniteGuard:
+    """Counts non-finite fine-stage steps; more than `max_consecutive` in a row raises, so a diverged run fails
+    loudly instead of writing NaN checkpoints. max_consecutive <= 0 disables the error (still counts)."""
+
+    def __init__(self, max_consecutive=20):
+        self.max = int(max_consecutive)
+        self.run = 0
+        self.total = 0
+
+    def update(self, bad, step=None):
+        if bad:
+            self.run += 1
+            self.total += 1
+            if self.max > 0 and self.run > self.max:
+                raise RuntimeError(f"fine stage non-finite for {self.run} consecutive steps (step {step}, "
+                                   f"{self.total} in total): refiner diverged, stopping")
+        else:
+            self.run = 0
+        return self.run
+
+
+def validation_finite(v, keys):
+    """True when every logged validation value in `keys` is finite and no fine-stage batch was skipped."""
+    import math
+    if v is None:
+        return False
+    if int(v.get("fine_skipped", 0) or 0) > 0:
+        return False
+    return all(isinstance(v.get(k), (int, float)) and math.isfinite(float(v[k])) for k in keys)
+
+
+def best_candidate(v, score, best, keys):
+    """Checkpoint selection: (finite, is_best). A validation with any non-finite logged value in `keys`, a skipped
+    fine-stage batch, or a non-finite score is never a candidate for `_best.pt` (nor for `_last_finite.pt`)."""
+    import math
+    finite = validation_finite(v, keys) and isinstance(score, (int, float)) and math.isfinite(float(score))
+    return finite, bool(finite and score < best)

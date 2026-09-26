@@ -78,6 +78,9 @@ train:                             # scripts/train_fusion.py
   refine_alpha: 0.5                # generalised Charbonnier alpha (RoMa §3.4 Eq. 16)
   refine_c: 1.0e-4                 # Charbonnier scale s = c * stride, normalised reference coords (RoMa code: c = 1e-4)
   refine_cert_cells: 0.5           # refiner certainty target: GT within this many reference cells (Chebyshev) of its input warp
+  refine_precision: float32         # refiner autocast dtype in training (and at eval for a trained refiner); float16 went NaN (26 Sep)
+  refine_grad_clip: 1.0            # max gradient norm of the refiner parameters (<= 0: off)
+  refine_max_nonfinite: 20         # this many non-finite fine-stage steps in a row stop the run with an error (<= 0: never)
 
 lift:                              # camera-only spherical Lift-Splat (scripts/train_lift_splat.py)
   erp_size: [896, 448]             # width, height; 2:1 keeps the panorama geometry for sat493m
