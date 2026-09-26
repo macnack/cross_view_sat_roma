@@ -1,6 +1,6 @@
 # Task 06 — A certainty that means something
 
-**Status (26 Sep 2026):** analysis and design; nothing implemented. Written from the measured VIGOR rows
+**Status (26 Sep 2026):** steps 1–3 implemented, reviewed and run (results below); step 4 (pose-correctness head) pending the four-city Task 04 checkpoint. Written from the measured VIGOR rows
 (experiments/09_vigor, 10_loc2_matcher) and the papers in docs/related.
 
 ## The question
@@ -65,3 +65,33 @@ Do 2 + 1 now (one script: `scripts/certainty_vigor.py`, reads an eval json + re-
 evaluates the calibrator, writes reliability and coverage plots), then 3 as an option in `eval_vigor.py`, then 4 as a
 training run once the four-city Task 04 checkpoint exists. Gate for "means something": AUROC ≥ 0.85 for error < 5 m
 and a coverage curve whose 90 % point has ≤ 5 % gross misses.
+
+## Results (26 Sep 2026, Task 04 matcher at 2 m cells, `checkpoints/vigor_chicago_same_30k_erp_depth_cell0125_last.pt`)
+
+Calibration frames: 1000 held-out Chicago training frames after the 200 used for checkpoint selection (`eval_vigor.py
+--calib`); test frames: the 3000-sample Chicago draw every table uses. Files: `experiments/10_loc2_matcher/certainty_
+chicago_same_30k_erp_depth_cell0125_last_se2.{json,png}`; jobs 8794472 (test), 8794473 (calibration), 8794474 (fit).
+
+| Score | AUROC < 2 m | AUROC < 5 m | AUROC < 10 m | AP < 5 m | ECE | median @100 % | median @90 % | > 10 m @90 % | median @80 % | > 10 m @80 % | conformal cov. (0.90) |
+|---|---|---|---|---|---|---|---|---|---|---|---|
+| inlier ratio, isotonic | 0.697 | 0.804 | 0.806 | 0.934 | 0.015 | 1.76 m | 1.61 m | 7.7 % | 1.54 m | 5.7 % | 0.884 |
+| logistic on the statistics | 0.797 | 0.892 | 0.887 | 0.973 | 0.031 | 1.76 m | 1.60 m | 7.5 % | 1.51 m | 4.4 % | 0.909 |
+| oracle (sorted by true error) | | | | | | 1.76 m | 1.58 m | 1.7 % | 1.43 m | 0.0 % | |
+
+Univariate AUROC for error < 5 m (values below 0.5 mean "lower is better"): ego_mass_2cells 0.888, ego_entropy 0.123,
+ego_support_cells 0.123, ego_top1 0.876, vote_mass_2cells 0.873, vote_top1 0.863, vote_entropy 0.140,
+vote_support_cells 0.140, inliers_peak 0.804, n_modes 0.206, peak_means_m 0.212, n_inlier_modes 0.314,
+ego_peak_pose_m 0.360, n_valid_tokens 0.380, spread_hyp_m 0.431, pose_centre_m 0.459, cert_mean 0.464,
+cert_median 0.520, placed_depth_m 0.499.
+
+Reading. The ego-map statistics (each token's categorical shifted by its own offset from the vehicle, so agreeing tokens
+pile up on the vehicle cell) are the strongest signals and carry what the inlier ratio misses: the diffuse-blob failure.
+The calibrated logistic keeps 0 % gross misses up to 40 % coverage and under 2 % up to 60 %; at 90 % coverage it removes
+a third of them (11.6 % → 7.5 %). The remaining gross misses are confidently wrong — a sharp, consistent vote at a
+repeated street pattern — and no post-hoc score on the vote map separates them from correct frames (the oracle shows
+what a perfect ranker would give). Gate: AUROC ≥ 0.85 passed; ≤ 5 % gross at 90 % missed (met at 80 %). The
+conformal wrapper is honest (0.909 at a 0.90 target) but marginal and same-city only.
+
+Consequences. (1) The calibrated score is ready for the particle filter's likelihood (idea 7). (2) Step 4, a head trained on
+pose correctness, is the only route to the confidently-wrong half. (3) The ego-map construction should replace the
+unshifted token map in the training pose loss (`pose_heatmap_nll`), see docs/decisions.md 2026-09-26.

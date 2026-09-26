@@ -6,11 +6,25 @@ Every row is scored on the same sample draw per split (seed 0: 3000 Chicago same
 | Method | Median (95 % CI) | Mean | ≤ 5 m | ≤ 10 m | n |
 |---|---|---|---|---|---|
 | vigor_chicago_same_30k_erp_depth_cell0125_last_se2_ref16 | 1.76 m (1.68–1.84) | 4.16 m | 82 % | 88 % | 3000 |
+| vigor_chicago_same_30k_erp_depth_cell0125_last_se2_ref16, refined_coarse | 3.27 m (3.18–3.38) | 5.13 m | 75 % | 88 % | 3000 |
+| vigor_chicago_same_30k_erp_depth_cell0125_last_se2_ref16, refined_none | 10.92 m (10.58–11.25) | 12.25 m | 19 % | 45 % | 3000 |
+| vigor_chicago_same_30k_erp_depth_cell0125_last_se2_ref16, refined_ransac | 3.45 m (3.35–3.55) | 5.28 m | 73 % | 88 % | 3000 |
 | vigor_chicago_same_30k_erp_depth_cell0125_last_se2_ref4 | 1.76 m (1.68–1.84) | 4.16 m | 82 % | 88 % | 3000 |
+| vigor_chicago_same_30k_erp_depth_cell0125_last_se2_ref4, refined_coarse | 3.44 m (3.35–3.54) | 5.39 m | 73 % | 87 % | 3000 |
+| vigor_chicago_same_30k_erp_depth_cell0125_last_se2_ref4, refined_none | 11.62 m (11.27–12.04) | 12.84 m | 16 % | 42 % | 3000 |
+| vigor_chicago_same_30k_erp_depth_cell0125_last_se2_ref4, refined_ransac | 3.34 m (3.26–3.44) | 5.27 m | 75 % | 88 % | 3000 |
 | vigor_chicago_same_30k_erp_depth_cell0125_last_se2_ref8 | 1.76 m (1.68–1.84) | 4.16 m | 82 % | 88 % | 3000 |
+| vigor_chicago_same_30k_erp_depth_cell0125_last_se2_ref8, refined_coarse | 3.37 m (3.29–3.46) | 5.23 m | 74 % | 88 % | 3000 |
+| vigor_chicago_same_30k_erp_depth_cell0125_last_se2_ref8, refined_none | 10.98 m (10.64–11.42) | 12.33 m | 18 % | 45 % | 3000 |
+| vigor_chicago_same_30k_erp_depth_cell0125_last_se2_ref8, refined_ransac | 3.32 m (3.22–3.42) | 5.17 m | 75 % | 88 % | 3000 |
 | Task 04 erp_depth + head + heat-map loss, 2 m cells, 30k, last, se2 | 1.76 m (1.68–1.84) | 4.16 m | 82 % | 88 % | 3000 |
+| vigor_chicago_same_30k_erp_depth_cell0125_last_se2_stats | 1.76 m (1.68–1.84) | 4.16 m | 82 % | 88 % | 3000 |
+| vigor_chicago_same_30k_erp_depth_cell0125_last_se2_stats, medoid of the bootstrap RANSAC hypotheses | 1.76 m (1.70–1.84) | 4.16 m | 82 % | 88 % | 3000 |
 | Task 04 erp_depth + head + heat-map loss, 2 m cells, 30k, best, homography | 1.83 m (1.77–1.89) | 4.17 m | 81 % | 88 % | 3000 |
 | Task 04 erp_depth + head + heat-map loss, 2 m cells, 30k, best, se2 | 1.84 m (1.77–1.90) | 4.11 m | 82 % | 88 % | 3000 |
+| vigor_chicago_same_30k_cell0125_loftr_fine00625_se2 | 1.86 m (1.79–1.94) | 5.20 m | 74 % | 82 % | 3000 |
+| vigor_chicago_same_30k_cell0125_loftr_fine00625_se2, fine | 7.63 m (6.91–8.27) | 11.18 m | 43 % | 57 % | 3000 |
+| vigor_chicago_same_30k_cell0125_loftr_fine00625_se2, fine_gated | 2.16 m (2.05–2.28) | 5.40 m | 72 % | 82 % | 3000 |
 | Task 04 erp_depth + head + heat-map loss, 30k, best, se2 | 2.79 m (2.68–2.89) | 4.68 m | 75 % | 89 % | 3000 |
 | Task 04 erp_depth + head + heat-map loss, 30k, last, se2 | 2.83 m (2.76–2.94) | 4.69 m | 75 % | 89 % | 3000 |
 | Task 04 erp_depth + head + heat-map loss, 30k, best, homography | 2.84 m (2.73–2.95) | 5.12 m | 75 % | 89 % | 3000 |
