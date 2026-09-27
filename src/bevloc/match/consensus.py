@@ -13,11 +13,16 @@ What the package (sat-roma-infer, sat_roma/ransac) fixes and this module exposes
   reproj      `ransac_reproj_threshold` [3.0, in reference cells] -- this repo's `matcher.reproj_cells`.
   ransac      `ransac_max_iters` [5000] / `ransac_confidence` [0.995]; "4x" = max_iters x 4 and confidence
               1 - (1 - 0.995)^4, i.e. the adaptive stopping rule also runs four times as long. se2 (ours): 500 trials
-              [x 4]. Weighted sampling (cert="weight") uses fixed trial counts: se2 500, srt/sim 2000 [x 4].
+              [x 4]. Weighted sampling (cert="weight"/"uniform") uses fixed trial counts: se2 500, srt/sim 2000
+              [x 4].
   cert        no package parameter [off]: "weight" = sigmoid(token certainty logit) as RANSAC sampling weight
               (srt: the package's weighted 4-point DLT RANSAC `_ransac_init_weighted`; sim: its weighted 2-point
               similarity `_ransac_init_weighted_srt`; se2: `se2_ransac(weights=)`), "filter" = drop the tokens whose
-              certainty is below the 25th percentile of the frame's valid tokens.
+              certainty is below the 25th percentile of the frame's valid tokens, "uniform" = the weighted-sampling
+              code path of "weight" with all weights equal (the control: for srt / sim the weighted path is also a
+              different estimator -- the package's DLT / Kabsch loop with fixed trials instead of cv2's adaptive
+              RANSAC -- so "weight" vs "off" mixes the estimator swap with the weighting; "weight" vs "uniform"
+              isolates the weighting).
   solver      srt (package default: cv2.findHomography, 8 DoF) | sim (4 DoF) | se2 (3 DoF, bevloc.match.se2).
 
 `extract_modes` runs the package's own extraction (softmax_heatmaps + process_patches + assemble_correspondences, i.e.
@@ -41,7 +46,8 @@ WEIGHTED_TRIALS = 2000
 CERT_FILTER_Q = 0.25
 RANSAC_MULT = {"default": 1, "4x": 4}
 TARGETS = ("peak", "means")
-CERTS = ("off", "weight", "filter")
+CERTS = ("off", "weight", "uniform", "filter")
+WEIGHTED = ("weight", "uniform")
 SOLVERS = ("srt", "sim", "se2")
 
 
@@ -180,8 +186,10 @@ def select_modes(modes, c: ConsensusCfg, certainty=None, valid=None):
     return idx
 
 
-def mode_weights(modes, idx, certainty):
-    """sigmoid(token certainty logit) of the selected modes."""
+def mode_weights(modes, idx, certainty, uniform=False):
+    """sigmoid(token certainty logit) of the selected modes (uniform=True: all ones, the control)."""
+    if uniform:
+        return np.ones(len(idx), np.float64)
     tok = modes["tok"][idx].astype(np.int64)
     cert = np.asarray(certainty, np.float64)[tok[:, 1], tok[:, 0]]
     return 1.0 / (1.0 + np.exp(-cert))

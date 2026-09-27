@@ -22,23 +22,35 @@ stores per frame what the consensus needs:
     the placed BEV points (erp / erp_depth), the reference-cell validity, the GT homography and the online pose error
     of the caching consensus (the sweep checks that it reproduces it exactly).
   Not sweepable from the cache: thresholds below --cache-thr, the peak window size (fixed_window_size), the adaptive
-  extraction (adaptive_gauss_fit), the patch-validity rule (min_valid_frac), anything upstream of the logits, and --
-  for the fine pass -- the coarse consensus (the fine window is centred on the caching run's coarse pose).
+  extraction (adaptive_gauss_fit), the patch-validity rule (min_valid_frac), anything upstream of the logits; the fine
+  pass depends on the coarse consensus that centred its window (re-cached, see below).
 Stage 2, sweep (`--stage sweep`, CPU): from the cache, the consensus for every configuration of a one-factor-at-a-time
 pass around the caching configuration (the current default), then a joint grid over the --joint-top most sensitive
-factors (range of the calibration objective), with median (bootstrap CI), mean (capped at 1 km), R@5, R@10, gross-miss
+factors (range of the objective over each factor's values and the default's), with median (bootstrap CI), mean (capped at 1 km), R@5, R@10, gross-miss
 fraction (> --gross-m m or no pose), modes used per frame and inlier ratio per configuration.
+Reproduction check: before any sweep, the cached default consensus is run on every frame of every cache (calibration
+and test, coarse and fine) and compared with the online Match stored at caching (H within 1e-6, inlier count and ratio,
+mode count); any mismatch stops the run with the frame ids unless --allow-mismatch (then counted in the json's
+`mismatch`).
 Protocol: selection happens on the CALIBRATION draw only (held-out training frames, `eval_vigor.calib_split`; with a
-fine pass the frames held out for BOTH checkpoints); the test draw (e.g. the 3000 Chicago samples) is scored for the
-default and the chosen configuration only, reported separately. Selecting on a test cache is refused. The best
-calibration configuration replaces the default only if its paired bootstrap interval (objective change against the
-default on the same frames) lies below zero (--no-guard: always). Output:
+fine pass the frames held out for BOTH checkpoints), split deterministically by frame id (sha1 order, alternate ranks)
+into a SELECTION half (the one-factor pass, the joint grid and the argmin are computed there) and a CONFIRMATION half
+(the guard: the best replaces the default only if its paired bootstrap interval against the default on these unseen
+frames lies below zero; --no-guard: always). The test draw (e.g. the 3000 Chicago samples) is scored for the default
+and the chosen configuration only; their paired change is the headline. Selecting on a test cache is refused.
+Certainty: cert=weight and cert=uniform (equal weights, the control) share the weighted-sampling estimators, which for
+srt / sim differ from the default cv2 RANSAC; compare weight with uniform for the effect of the weighting.
+Fine pass: swept after the coarse pass. When the chosen coarse consensus differs from the caching one, --stage all
+re-caches the fine pass around the chosen coarse pose (tag <tag>_finec); with --stage sweep, or --passes fine, the fine
+windows stay centred on the caching coarse pose, printed and recorded under meta.fine_centring.
+Output:
 <out>/sweep_consensus_<tag>.json (+ .md): `chosen` (coarse) and `chosen_fine` blocks with the config and its calib / test
 numbers, which `eval_vigor.py --consensus-json` applies.
 Determinism: every RANSAC is seeded with cfg.matcher.seed exactly as eval_vigor (cv2.setRNGSeed / numpy seed per call).
 """
 from __future__ import annotations
 
+import hashlib
 import importlib.util
 import itertools
 import json
@@ -55,8 +67,8 @@ from bevloc.data.vigor import VigorPairs, pose_en, read_labels, split_cities
 from bevloc.eval.metrics import pose_errors
 from bevloc.eval.report import summarise_pose
 from bevloc.match.consensus import (
-    CERTS, PACKAGE_WINDOW, RANSAC_MULT, SOLVERS, TARGETS, ConsensusCfg, apply_settings, extract_modes, mode_weights,
-    select_modes, settings_of,
+    CERTS, PACKAGE_WINDOW, RANSAC_MULT, SOLVERS, TARGETS, WEIGHTED, ConsensusCfg, apply_settings, extract_modes,
+    mode_weights, select_modes, settings_of,
 )
 from bevloc.match.satroma import SatRoMa, consensus_for_query, query_tokens
 from bevloc.match.vote_stats import ref_cell_valid
@@ -120,7 +132,7 @@ def solve(rec, c: ConsensusCfg, stub):
     """The consensus c on a cached frame record: Match (as `consensus_for_query` would give with c)."""
     md = rec["modes"]
     idx = select_modes(md, c, rec["cert"], rec["valid"])
-    w = mode_weights(md, idx, rec["cert"]) if c.cert == "weight" else None
+    w = mode_weights(md, idx, rec["cert"], uniform=c.cert == "uniform") if c.cert in WEIGHTED else None
     apply_settings(stub, c)
     tok, peaks, means = md["tok"][idx], md["peaks"][idx], md["means"][idx]
     if rec["placed"]:
@@ -248,6 +260,7 @@ def cache_draw(a, draw, M):
                    ref_valid=ref_cell_valid(batch["ref"], rec["out_dim"], min_frac=float(cc.ref_cell_min_frac)))
         m0 = consensus_for_query(cons, gm, M["query"], batch, frac, n, min_frac=0.05, certainty=cert, stats=False)
         rec["pose_online_m"] = coarse_error(m0.H, rec, dict(n=n, cell_m=cell))
+        rec["online"] = match_summary(m0)
         frames.append(rec)
         if fine is not None:
             S = int(s["ref"].shape[-1])
@@ -264,6 +277,7 @@ def cache_draw(a, draw, M):
                           coarse_m=rec["pose_online_m"])
                 mf = consensus_for_query(fine.cons, gm_f, fine.query, batch_f, frac_f, nf, min_frac=0.05,
                                          certainty=cert_f, stats=False)
+                rf["online"] = match_summary(mf)
                 rf["pose_online_m"], rf["pose_online_gated_m"] = fine_errors(
                     mf.H, rf, dict(n=nf, cell_m=float(fine.cfg.grid.cell_m)), a.fine_gate)
             except Exception as e:                                   # keep the coarse record (eval_vigor's rule)
@@ -286,7 +300,7 @@ def cache_draw(a, draw, M):
                                      im_a_size=int(fine.cons.m.im_a_size), im_b_size=int(fine.cons.m.im_b_size),
                                      seed=int(fine.cfg.matcher.seed), consensus=settings_of(fine.cons).to_dict(),
                                      gate_m=float(a.fine_gate), config=a.fine_config, ckpt=a.fine_ckpt,
-                                     train=M["fine_train"]),
+                                     train=M["fine_train"], centred_on=base),
                            frames=fine_frames)
     path = cache_path(a, draw)
     path.parent.mkdir(parents=True, exist_ok=True)
@@ -336,10 +350,15 @@ def load_models(a):
 _W = {}
 
 
+def _put(name, recs, meta, gate, kind):
+    """Frames of one pass for the (forked) workers: kind "coarse" | "fine" picks the error rule."""
+    _W[name] = (recs, meta, gate, kind)
+
+
 def _eval_one(args):
-    """Worker: one configuration over every frame of one pass. -> dict(errors, gated, modes, inliers)."""
-    c, which = args
-    recs, meta, gate = _W[which]
+    """Worker: one configuration over every frame of `name`. -> dict(errors, gated, modes, inliers)."""
+    c, name = args
+    recs, meta, gate, kind = _W[name]
     stub = consensus_stub(meta)
     errs, gated, modes, inl = [], [], [], []
     for r in recs:
@@ -350,7 +369,7 @@ def _eval_one(args):
             inl.append(0.0)
             continue
         m = solve(r, c, stub)
-        if which == "fine":
+        if kind == "fine":
             e, g = fine_errors(m.H, r, meta, gate)
         else:
             e = g = coarse_error(m.H, r, meta)
@@ -361,16 +380,68 @@ def _eval_one(args):
     return dict(errors=errs, gated=gated, modes=modes, inliers=inl)
 
 
-def run_configs(configs, which, workers):
+def _pool_map(fn, jobs, workers):
     import cv2
     cv2.setNumThreads(1)
-    jobs = [(c, which) for c in configs]
     if workers > 1 and len(jobs) > 1:
         import multiprocessing as mp
         with mp.get_context("fork").Pool(min(workers, len(jobs))) as pool:
-            return pool.map(_eval_one, jobs, chunksize=1)
-    return [_eval_one(j) for j in jobs]
+            return pool.map(fn, jobs, chunksize=1)
+    return [fn(j) for j in jobs]
 
+
+def run_configs(configs, name, workers):
+    return _pool_map(_eval_one, [(c, name) for c in configs], workers)
+
+
+# ---- reproduction check -----------------------------------------------------------------------------------------------
+
+def match_summary(m):
+    """What the reproduction check compares: H, inlier count and ratio, mode count."""
+    return dict(H=None if m.H is None else np.asarray(m.H, np.float64), n_inliers=int(m.n_inliers),
+                inlier_ratio=float(m.inlier_ratio), n_modes=int(m.n_modes))
+
+
+def same_match(m, o, tol=1e-6):
+    if (m.H is None) != (o["H"] is None):
+        return False
+    if m.H is not None and not np.allclose(np.asarray(m.H, np.float64), o["H"], rtol=0.0, atol=tol):
+        return False
+    return (int(m.n_inliers) == int(o["n_inliers"]) and float(m.inlier_ratio) == float(o["inlier_ratio"])
+            and int(m.n_modes) == int(o["n_modes"]))
+
+
+def _check_chunk(args):
+    name, lo, hi = args
+    recs, meta, _, _ = _W[name]
+    base = ConsensusCfg.from_dict(meta["consensus"])
+    stub = consensus_stub(meta)
+    bad = []
+    for r in recs[lo:hi]:
+        if r.get("error"):
+            continue
+        if "online" not in r or not same_match(solve(r, base, stub), r["online"]):
+            bad.append(str(r["id"]))
+    return bad
+
+
+def check_reproduction(recs, meta, kind, what, a):
+    """The cached default consensus must give the online Match (H within 1e-6, inlier count and ratio, mode count) on
+    EVERY frame; SystemExit with the mismatching ids unless --allow-mismatch (then only recorded)."""
+    _put("check", recs, meta, None, kind)
+    n = len(recs)
+    step = max(1, -(-n // max(1, a.workers)))
+    bad = [i for part in _pool_map(_check_chunk, [("check", lo, min(n, lo + step)) for lo in range(0, n, step)],
+                                   a.workers) for i in part]
+    print(f"[{what}] cached default vs online consensus: {len(bad)} mismatches of {n}", flush=True)
+    if bad and not a.allow_mismatch:
+        raise SystemExit(f"{what}: the cached default consensus does not reproduce the online one on {len(bad)} of "
+                         f"{n} frames: {bad[:20]}{' ...' if len(bad) > 20 else ''} (--allow-mismatch records the "
+                         f"count and continues)")
+    return dict(mismatches=len(bad), n=n, ids=bad[:200])
+
+
+# ---- metrics ----------------------------------------------------------------------------------------------------------
 
 def _arr(errors):
     return np.array([np.inf if e is None else float(e) for e in errors], float)
@@ -381,10 +452,18 @@ def metrics(res, gross_m, n_boot, key="errors"):
     s = summarise_pose(e, n_boot=n_boot)
     v = _arr(e)
     return dict(n=s["n"], median_m=s["median_m"], median_ci=s["median_ci"],
-                mean_m=float(np.mean(np.minimum(v, 1e3))), r5=s["recall@5m"], r10=s["recall@10m"],
+                mean_m=float(np.mean(np.minimum(v, 1e3))) if len(v) else float("nan"),
+                r5=s["recall@5m"], r10=s["recall@10m"],
                 gross=float((v > float(gross_m)).mean()) if len(v) else float("nan"),
                 no_pose=int(np.isinf(v).sum()), modes_mean=float(np.mean(res["modes"])) if res["modes"] else 0.0,
                 inlier_mean=float(np.mean(res["inliers"])) if res["inliers"] else 0.0)
+
+
+def _metrics(r, kind, a):
+    mt = metrics(r, a.gross_m, a.n_boot)
+    if kind == "fine":
+        mt["gated"] = metrics(r, a.gross_m, a.n_boot, key="gated")
+    return mt
 
 
 def objective(mt, select):
@@ -417,31 +496,37 @@ def paired_delta(e_new, e_base, n_boot, select="median", seed=0):
                 ci=[float(np.percentile(bs, 2.5)), float(np.percentile(bs, 97.5))] if bs else None)
 
 
-def sweep_pass(which, recs, meta, gate, grid, a):
-    """OFAT then joint grid on one pass of the calibration cache. Returns (report dict, chosen ConsensusCfg)."""
-    _W[which] = (recs, meta, gate)
+def split_calib(recs):
+    """(selection, confirmation) halves of the calibration frames, deterministic by frame id: frames ordered by
+    sha1(id), even ranks select, odd ranks confirm; each half keeps the draw order."""
+    order = sorted(range(len(recs)), key=lambda i: hashlib.sha1(str(recs[i]["id"]).encode()).hexdigest())
+    return [recs[i] for i in sorted(order[0::2])], [recs[i] for i in sorted(order[1::2])]
+
+
+# ---- one pass ---------------------------------------------------------------------------------------------------------
+
+def sweep_pass(kind, recs, meta, gate, grid, a):
+    """Selection half: OFAT, then the joint grid over the most sensitive factors; confirmation half: the paired
+    bootstrap guard (best vs baseline). Returns (report dict, chosen ConsensusCfg)."""
+    sel, conf = split_calib(recs)
+    if not sel or not conf:
+        raise SystemExit(f"[{kind}] {len(recs)} calibration frames cannot be split into selection and confirmation")
+    _put("sel", sel, meta, gate, kind)
+    _put("conf", conf, meta, gate, kind)
     base = ConsensusCfg.from_dict(meta["consensus"])
     if any(r.get("cert") is None for r in recs if not r.get("error")) and set(grid["cert"]) - {"off"}:
-        print(f"[{which}] the decoder gave no certainty for some frames: cert factor restricted to 'off'", flush=True)
+        print(f"[{kind}] the decoder gave no certainty for some frames: cert factor restricted to 'off'", flush=True)
         grid = dict(grid, cert=["off"])
     ofat = ofat_configs(base, grid)
-    res = run_configs([c for _, _, c in ofat], which, a.workers)
     rows, by_cfg = [], {}
-    for (f, v, c), r in zip(ofat, res):
-        mt = metrics(r, a.gross_m, a.n_boot)
-        if which == "fine":
-            mt["gated"] = metrics(r, a.gross_m, a.n_boot, key="gated")
-        rows.append(dict(factor=f, value=v, config=c.to_dict(), key=c.key(), **{"calib": mt}))
+    for (f, v, c), r in zip(ofat, run_configs([c for _, _, c in ofat], "sel", a.workers)):
+        mt = _metrics(r, kind, a)
+        rows.append(dict(factor=f, value=v, config=c.to_dict(), key=c.key(), select=mt))
         by_cfg[c] = (mt, r)
-    # reproduction check: the baseline (= the caching consensus) must equal the online pose of every frame
-    online = [x.get("pose_online_m") for x in recs]
-    base_err = by_cfg[base][1]["errors"]
-    mism = int(sum(not (o is None and e is None or (o is not None and e is not None and abs(o - e) < 1e-9))
-                   for o, e in zip(online, base_err)))
     sens = {}
-    for f in FACTORS:
-        vals = [objective(by_cfg[ConsensusCfg.from_dict(dict(base.to_dict(), **{f: v}))][0], a.select)[0]
-                for v in grid[f]]
+    for f in FACTORS:                                                # each factor's values AND the baseline's value
+        vs = list(dict.fromkeys(list(grid[f]) + [getattr(base, f)]))
+        vals = [objective(by_cfg[ConsensusCfg.from_dict(dict(base.to_dict(), **{f: v}))][0], a.select)[0] for v in vs]
         vals = [x for x in vals if np.isfinite(x)]
         sens[f] = float(max(vals) - min(vals)) if len(vals) > 1 else 0.0
     top = [f for f, _ in sorted(sens.items(), key=lambda kv: -kv[1])[:a.joint_top] if sens[f] > 0]
@@ -450,31 +535,32 @@ def sweep_pass(which, recs, meta, gate, grid, a):
         combos = [ConsensusCfg.from_dict(dict(base.to_dict(), **dict(zip(top, vs))))
                   for vs in itertools.product(*[grid[f] for f in top])]
         combos = [c for c in dict.fromkeys(combos) if c not in by_cfg]
-        for c, r in zip(combos, run_configs(combos, which, a.workers)):
-            mt = metrics(r, a.gross_m, a.n_boot)
-            if which == "fine":
-                mt["gated"] = metrics(r, a.gross_m, a.n_boot, key="gated")
-            joint.append(dict(factors=top, config=c.to_dict(), key=c.key(), calib=mt))
+        for c, r in zip(combos, run_configs(combos, "sel", a.workers)):
+            mt = _metrics(r, kind, a)
+            joint.append(dict(factors=top, config=c.to_dict(), key=c.key(), select=mt))
             by_cfg[c] = (mt, r)
     best = min(by_cfg, key=lambda c: objective(by_cfg[c][0], a.select))
-    delta = paired_delta(by_cfg[best][1]["errors"], base_err, a.n_boot, a.select)
-    # guard against picking noise out of ~100 configurations: the best one replaces the baseline only when its paired
-    # calibration interval lies entirely below zero (--no-guard: always the best)
+    (mt_bc, r_bc), (mt_xc, r_xc) = [(_metrics(r, kind, a), r) for r in run_configs([base, best], "conf", a.workers)]
+    delta = paired_delta(r_xc["errors"], r_bc["errors"], a.n_boot, a.select)
+    # the guard runs on frames the selection never saw: best replaces the baseline only if its paired interval on the
+    # confirmation half lies entirely below zero (--no-guard: always the best)
     adopt = best == base or a.no_guard or (delta["ci"] is not None and delta["ci"][1] < 0)
     chosen = best if adopt else base
-    rep = dict(baseline=base.to_dict(), reproduces_online=dict(mismatches=mism, n=len(recs)), ofat=rows,
-               sensitivity=sens, joint_factors=top, joint=joint, n_configs=len(by_cfg),
-               best=dict(config=best.to_dict(), key=best.key(), calib=by_cfg[best][0], baseline_calib=by_cfg[base][0],
-                         paired_delta_vs_baseline_calib=delta),
-               chosen=dict(config=chosen.to_dict(), key=chosen.key(), calib=by_cfg[chosen][0],
-                           paired_delta_vs_baseline_calib=paired_delta(by_cfg[chosen][1]["errors"], base_err,
-                                                                       a.n_boot, a.select),
-                           rule="best on calib" if adopt else "baseline kept: the best configuration's paired "
-                                                             "calibration interval includes zero"))
-    print(f"[{which}] reproduction of the online pose by the cached baseline: {mism} mismatches of {len(recs)}",
-          flush=True)
-    print(f"[{which}] sensitivity ({a.select}, m): " + ", ".join(f"{f} {s:.3f}" for f, s in sens.items()), flush=True)
-    print(f"[{which}] joint grid over {top}: {len(joint)} configurations", flush=True)
+    rep = dict(baseline=base.to_dict(), grid=grid, ofat=rows, sensitivity=sens, joint_factors=top, joint=joint,
+               n_configs=len(by_cfg),
+               split=dict(n_select=len(sel), n_confirm=len(conf),
+                          rule="frames ordered by sha1(id): even ranks select, odd ranks confirm"),
+               baseline_select=by_cfg[base][0], baseline_confirm=mt_bc,
+               best=dict(config=best.to_dict(), key=best.key(), select=by_cfg[best][0], confirm=mt_xc,
+                         paired_delta_confirm=delta),
+               chosen=dict(config=chosen.to_dict(), key=chosen.key(), select=by_cfg[chosen][0],
+                           confirm=mt_xc if adopt else mt_bc,
+                           rule="best on the selection half, confirmed on the confirmation half" if adopt else
+                           "baseline kept: the best configuration's paired interval on the confirmation half "
+                           "includes zero"))
+    print(f"[{kind}] sensitivity ({a.select}, m): " + ", ".join(f"{f} {s:.3f}" for f, s in sens.items()), flush=True)
+    print(f"[{kind}] joint grid over {top}: {len(joint)} configurations; best {best.key()}, confirmation delta "
+          f"{delta['delta_m']:+.3f} m -> {rep['chosen']['rule']}", flush=True)
     return rep, chosen
 
 
@@ -485,27 +571,62 @@ def assert_calib(cache, what):
                          f"training frames only; the test draw is scored for the chosen configuration afterwards)")
 
 
-def score_test(cache, which, configs, a):
-    recs = cache["frames"] if which == "coarse" else cache["fine"]["frames"]
-    meta = cache["meta"] if which == "coarse" else cache["fine"]["meta"]
-    _W[which] = (recs, meta, meta.get("gate_m", a.fine_gate))
-    out = []
-    for c, r in zip(configs, run_configs(configs, which, a.workers)):
-        mt = metrics(r, a.gross_m, a.n_boot)
-        if which == "fine":
-            mt["gated"] = metrics(r, a.gross_m, a.n_boot, key="gated")
-        out.append((mt, r))
-    return out
+def _part(cache, kind):
+    """(frames, meta, gate) of one pass of a cache."""
+    if kind == "coarse":
+        return cache["frames"], cache["meta"], None
+    return cache["fine"]["frames"], cache["fine"]["meta"], cache["fine"]["meta"].get("gate_m")
 
 
-def sweep(a, calib_path, test_path):
-    with open(calib_path, "rb") as f:
-        cal = pickle.load(f)
+def _load(path):
+    with open(path, "rb") as f:
+        return pickle.load(f)
+
+
+def pass_block(kind, cal, test, grid, a):
+    """Sweep one pass on the calibration cache, score baseline and chosen on the test cache: (report, block, chosen)."""
+    recs, meta, gate = _part(cal, kind)
+    rep, chosen = sweep_pass(kind, recs, meta, gate if gate is not None else a.fine_gate, grid, a)
+    block = dict(config=chosen.to_dict(), key=chosen.key(), rule=rep["chosen"]["rule"],
+                 select=rep["chosen"]["select"], confirm=rep["chosen"]["confirm"],
+                 paired_delta_confirm_best=rep["best"]["paired_delta_confirm"],
+                 best=dict(key=rep["best"]["key"], select=rep["best"]["select"], confirm=rep["best"]["confirm"]),
+                 baseline=dict(config=rep["baseline"], select=rep["baseline_select"], confirm=rep["baseline_confirm"]),
+                 test=None)
+    if test is not None and (kind == "coarse" or "fine" in test):
+        trecs, tmeta, tgate = _part(test, kind)
+        _put("test", trecs, tmeta, tgate if tgate is not None else a.fine_gate, kind)
+        base = ConsensusCfg.from_dict(rep["baseline"])
+        (mt_b, r_b), (mt_c, r_c) = [(_metrics(r, kind, a), r) for r in run_configs([base, chosen], "test", a.workers)]
+        block["test"] = mt_c
+        block["baseline"]["test"] = mt_b
+        block["paired_delta_test"] = paired_delta(r_c["errors"], r_b["errors"], a.n_boot, a.select)
+    return rep, block, chosen
+
+
+def recache_fine(a, M, coarse_c, want_test):
+    """Re-run the caching pass with the chosen coarse consensus (the fine windows centred on ITS pose); the coarse part of
+    these caches is unused. Returns (calib cache, test cache or None)."""
+    import copy
+    a2 = copy.copy(a)
+    a2.tag = f"{a.tag}_finec"
+    cons = copy.copy(M["cons"])
+    apply_settings(cons, coarse_c)
+    M2 = dict(M, cons=cons)
+    print(f"re-caching the fine pass around the chosen coarse consensus {coarse_c.key()}", flush=True)
+    cal = _load(cache_draw(a2, "calib", M2))
+    test = _load(cache_draw(a2, "test", M2)) if want_test else None
+    return cal, test
+
+
+def sweep(a, calib_path, test_path, M=None):
+    """Both passes from the caches (coarse first). M (the loaded models, --stage all): re-cache the fine pass around
+    the chosen coarse pose when that differs from the caching one."""
+    cal = _load(calib_path)
     assert_calib(cal, calib_path)
     test = None
     if test_path is not None and Path(test_path).exists():
-        with open(test_path, "rb") as f:
-            test = pickle.load(f)
+        test = _load(test_path)
         if test["meta"].get("draw") == "calib":
             raise SystemExit(f"{test_path} is a calibration cache, not a test draw")
         overlap = set(cal["meta"]["ids"]) & set(test["meta"]["ids"])
@@ -521,7 +642,15 @@ def sweep(a, calib_path, test_path):
     if low:
         raise SystemExit(f"mode thresholds {low} are below the cache threshold {cal['meta']['cache_thr']}: re-cache "
                          f"with --cache-thr {min(low)}")
-    passes = [p for p in a.passes if p == "coarse" or "fine" in cal]
+    passes = [p for p in ("coarse", "fine") if p in a.passes and (p == "coarse" or "fine" in cal)]
+    mismatch = {}
+    for name, c in (("calib", cal), ("test", test)):
+        if c is None:
+            continue
+        for kind in ("coarse", "fine"):
+            if kind == "coarse" or "fine" in c:
+                recs, meta, _ = _part(c, kind)
+                mismatch[f"{name}_{kind}"] = check_reproduction(recs, meta, kind, f"{name} {kind}", a)
     result = dict(meta=dict(tag=a.tag, calib_cache=str(calib_path), test_cache=None if test is None else str(test_path),
                             select=a.select, gross_m=a.gross_m, n_boot=a.n_boot, joint_top=a.joint_top, grid=grid,
                             calib=cal["meta"]["draw_info"], calib_n=len(cal["frames"]), ckpt=cal["meta"]["ckpt"],
@@ -529,25 +658,49 @@ def sweep(a, calib_path, test_path):
                             fine=cal.get("fine", {}).get("meta"),
                             test=None if test is None else test["meta"]["draw_info"],
                             test_n=None if test is None else len(test["frames"]),
+                            protocol="calibration draw split by frame id into a selection half (OFAT + joint grid, "
+                                     "argmin of the objective) and a confirmation half (paired bootstrap guard: the "
+                                     "best replaces the default only if the interval is below zero); the test draw is "
+                                     "scored for the default and the chosen configuration only (headline: their paired "
+                                     "change)",
+                            cert_confound="cert=weight and cert=uniform go through the weighted-sampling estimators "
+                                          "(srt: the package's 4-point DLT loop, sim: its Kabsch similarity loop, fixed "
+                                          "trials) instead of cv2's adaptive RANSAC; weight vs uniform isolates the "
+                                          "weighting, uniform vs off the estimator swap (se2: same estimator)",
                             not_sweepable=["mode thresholds below the cache threshold", "fixed_window_size (4)",
-                                           "adaptive_gauss_fit", "min_valid_frac", "the decoder / logits",
-                                           "fine pass: the coarse consensus that centred the window"]))
-    for which in passes:
-        recs = cal["frames"] if which == "coarse" else cal["fine"]["frames"]
-        meta = cal["meta"] if which == "coarse" else cal["fine"]["meta"]
-        rep, best = sweep_pass(which, recs, meta, meta.get("gate_m", a.fine_gate), grid, a)
-        block = dict(config=best.to_dict(), key=best.key(), calib=rep["chosen"]["calib"], rule=rep["chosen"]["rule"],
-                     best_calib=dict(key=rep["best"]["key"], calib=rep["best"]["calib"]),
-                     baseline=dict(config=rep["baseline"], calib=rep["best"]["baseline_calib"]),
-                     paired_delta_vs_baseline_calib=rep["chosen"]["paired_delta_vs_baseline_calib"], test=None)
-        if test is not None and (which == "coarse" or "fine" in test):
-            base = ConsensusCfg.from_dict(rep["baseline"])
-            (mt_b, r_b), (mt_c, r_c) = score_test(test, which, [base, best], a)
-            block["test"] = mt_c
-            block["baseline"]["test"] = mt_b
-            block["paired_delta_vs_baseline_test"] = paired_delta(r_c["errors"], r_b["errors"], a.n_boot, a.select)
-        result[which] = rep
-        result["chosen" if which == "coarse" else "chosen_fine"] = block
+                                           "adaptive_gauss_fit", "min_valid_frac", "the decoder / logits"]),
+                  mismatch=mismatch)
+    coarse_c = None
+    if "coarse" in passes:
+        rep, block, coarse_c = pass_block("coarse", cal, test, grid, a)
+        result["coarse"], result["chosen"] = rep, block
+    if "fine" in passes:
+        centred = ConsensusCfg.from_dict(cal["fine"]["meta"].get("centred_on") or cal["meta"]["consensus"])
+        cal_f, test_f = cal, test
+        centring = dict(centred_on=centred.to_dict(), recached=False, note=None)
+        if coarse_c is None:
+            centring["note"] = (f"--passes fine: the fine windows are centred on the caching coarse consensus "
+                                f"({centred.key()}), not on a swept one")
+        elif coarse_c != centred:
+            if M is not None:
+                cal_f, test_f = recache_fine(a, M, coarse_c, test is not None)
+                centring = dict(centred_on=coarse_c.to_dict(), recached=True,
+                                note="fine pass re-cached around the chosen coarse pose")
+                for name, c in (("calib", cal_f), ("test", test_f)):
+                    if c is not None:
+                        recs, meta, _ = _part(c, "fine")
+                        mismatch[f"{name}_fine_recached"] = check_reproduction(recs, meta, "fine",
+                                                                               f"{name} fine (re-cached)", a)
+            else:
+                centring["note"] = (f"the chosen coarse consensus ({coarse_c.key()}) differs from the caching one, but "
+                                    f"no models are loaded (--stage sweep): the fine windows stay centred on the caching "
+                                    f"coarse pose; run --stage all to re-cache")
+        if centring["note"]:
+            print(f"[fine] {centring['note']}", flush=True)
+        rep, block, _ = pass_block("fine", cal_f, test_f, grid, a)
+        block["centring"] = centring
+        result["fine"], result["chosen_fine"] = rep, block
+        result["meta"]["fine_centring"] = centring
     out = Path(a.out)
     out.mkdir(parents=True, exist_ok=True)
     path = out / f"sweep_consensus_{a.tag}.json"
@@ -577,47 +730,66 @@ def _fmt(mt):
 
 
 def _delta(d):
+    if not d:
+        return "–"
     ci = "" if d.get("ci") is None else f" (95 % CI {d['ci'][0]:+.3f} to {d['ci'][1]:+.3f})"
     return f"{d['delta_m']:+.3f} m{ci}"
 
 
+CERT_NOTE = ("cert = weight / uniform: for srt and sim these rows also swap the estimator (the package's weighted "
+             "4-point DLT loop / Kabsch similarity loop with fixed trials instead of cv2's adaptive RANSAC). "
+             "weight vs uniform isolates the certainty weighting; uniform vs off is the estimator swap alone "
+             "(se2: same estimator in all three).")
+
+
 def markdown(res):
-    L = [f"# Consensus sweep `{res['meta']['tag']}`", "",
-         f"Selection on the calibration draw (n = {res['meta']['calib_n']}, objective {res['meta']['select']}); "
-         f"test draw n = {res['meta']['test_n']}. Gross = error > {res['meta']['gross_m']} m or no pose. "
-         f"Modes = mean modes used per frame.", ""]
+    m = res["meta"]
+    L = [f"# Consensus sweep `{m['tag']}`", "",
+         f"Protocol: {m['protocol']}. Calibration n = {m['calib_n']}, test n = {m['test_n']}, objective {m['select']}. "
+         f"Gross = error > {m['gross_m']} m or no pose. Modes = mean modes used per frame.", ""]
+    mm = res.get("mismatch") or {}
+    if mm:
+        L += ["Reproduction of the online consensus by the cached default (full Match): "
+              + ", ".join(f"{k} {v['mismatches']}/{v['n']}" for k, v in mm.items()) + ".", ""]
     for which, key in (("coarse", "chosen"), ("fine", "chosen_fine")):
         if which not in res:
             continue
         rep, ch = res[which], res[key]
         L += [f"## {which} pass", "",
-              f"Cached baseline reproduces the online pose: {rep['reproduces_online']['mismatches']} mismatches of "
-              f"{rep['reproduces_online']['n']}.", "",
-              "| draw | configuration | median (95 % CI) | mean | R@5 | R@10 | gross | modes |",
+              f"**Headline (test draw, chosen − default, paired {m['select']} change): {_delta(ch.get('paired_delta_test'))}**",
+              "", f"Chosen: {ch['key']} — {ch['rule']}. Best on the selection half: {ch['best']['key']}; its paired "
+                  f"change on the confirmation half {_delta(ch['paired_delta_confirm_best'])}.", ""]
+        if ch.get("centring", {}).get("note"):
+            L += [f"Fine windows: {ch['centring']['note']}.", ""]
+        L += ["| draw | configuration | median (95 % CI) | mean | R@5 | R@10 | gross | modes |",
               "|---|---|---|---|---|---|---|---|",
-              f"| calib | baseline: {ConsensusCfg.from_dict(ch['baseline']['config']).key()} {_fmt(ch['baseline']['calib'])}",
-              f"| calib | **chosen**: {ch['key']} {_fmt(ch['calib'])}"]
+              f"| calib select ({rep['split']['n_select']}) | default {_fmt(ch['baseline']['select'])}",
+              f"| calib select | **chosen** {_fmt(ch['select'])}",
+              f"| calib confirm ({rep['split']['n_confirm']}) | default {_fmt(ch['baseline']['confirm'])}",
+              f"| calib confirm | **chosen** {_fmt(ch['confirm'])}"]
         if ch.get("test"):
-            L += [f"| test | baseline {_fmt(ch['baseline']['test'])}", f"| test | **chosen** {_fmt(ch['test'])}"]
-        d, dt = ch["paired_delta_vs_baseline_calib"], ch.get("paired_delta_vs_baseline_test")
-        bd = rep["best"]["paired_delta_vs_baseline_calib"]
-        L += ["", f"Chosen: {ch['rule']}. Best on calib: {rep['best']['key']}, paired {bd['stat']} change "
-                  f"{_delta(bd)}. Chosen − baseline, paired {d['stat']} change: calib {_delta(d)}"
-              + (f"; test {_delta(dt)}" if dt else "") + ".",
-              "", "One factor at a time (calibration draw):", "",
+            L += [f"| test | default {_fmt(ch['baseline']['test'])}", f"| test | **chosen** {_fmt(ch['test'])}"]
+        L += ["", f"Default: {ConsensusCfg.from_dict(ch['baseline']['config']).key()}", "",
+              "One factor at a time (selection half):", "",
               "| factor | value | median (95 % CI) | mean | R@5 | R@10 | gross | modes |", "|---|---|---|---|---|---|---|---|"]
+        cert_rows = False
         for r in rep["ofat"]:
             v = "all" if r["factor"] == "max_modes" and r["value"] == 0 else r["value"]
-            L.append(f"| {r['factor']} | {'' if v is None else v} {_fmt(r['calib'])}")
-        L += ["", "Sensitivity (range of the objective over each factor's values, m): "
+            L.append(f"| {r['factor']} | {'' if v is None else v} {_fmt(r['select'])}")
+            cert_rows |= r["factor"] == "cert" and r["value"] in ("weight", "uniform")
+        if cert_rows:
+            L += ["", f"Note: {CERT_NOTE}"]
+        L += ["", "Sensitivity (range of the objective over each factor's values and the default's, m): "
               + ", ".join(f"{f} {s:.3f}" for f, s in rep["sensitivity"].items()), ""]
         if rep["joint"]:
-            L += [f"Joint grid over {rep['joint_factors']} (best 10 of {len(rep['joint'])}):", "",
+            L += [f"Joint grid over {rep['joint_factors']} (selection half, best 10 of {len(rep['joint'])}):", "",
                   "| configuration | median (95 % CI) | mean | R@5 | R@10 | gross | modes |", "|---|---|---|---|---|---|---|"]
-            key_ = (lambda r: (r["calib"]["mean_m"], r["calib"]["median_m"])) if res["meta"]["select"] == "mean" \
-                else (lambda r: (r["calib"]["median_m"], r["calib"]["mean_m"]))
+            key_ = (lambda r: (r["select"]["mean_m"], r["select"]["median_m"])) if m["select"] == "mean" \
+                else (lambda r: (r["select"]["median_m"], r["select"]["mean_m"]))
             for r in sorted(rep["joint"], key=key_)[:10]:
-                L.append(f"| {r['key']} {_fmt(r['calib'])}")
+                L.append(f"| {r['key']} {_fmt(r['select'])}")
+            if any(f == "cert" for f in rep["joint_factors"]):
+                L += ["", f"Note: {CERT_NOTE}"]
             L.append("")
     return "\n".join(L) + "\n"
 
@@ -662,6 +834,8 @@ def build_parser():
     ap.add_argument("--passes", nargs="+", default=["coarse", "fine"], choices=("coarse", "fine"))
     ap.add_argument("--select", default=None, choices=("median", "mean"),
                     help="calibration objective (ties broken by the other)")
+    ap.add_argument("--allow-mismatch", action="store_true",
+                    help="continue when the cached default does not reproduce the online consensus (count recorded)")
     ap.add_argument("--no-guard", action="store_true",
                     help="choose the best calibration configuration even when its paired interval against the "
                          "baseline includes zero")
@@ -685,6 +859,7 @@ def build_parser():
 
 def main(argv=None):
     a = build_parser().parse_args(argv)
+    M = None
     if bool(a.fine_config) != bool(a.fine_ckpt):
         raise SystemExit("--fine-config and --fine-ckpt go together")
     if a.stage in ("all", "cache"):
@@ -699,7 +874,7 @@ def main(argv=None):
     if a.stage in ("all", "sweep"):
         cal = Path(a.calib_cache) if a.calib_cache else cache_path(a, "calib")
         tst = Path(a.test_cache) if a.test_cache else cache_path(a, "test")
-        sweep(a, cal, tst if tst.exists() else None)
+        sweep(a, cal, tst if tst.exists() else None, M=M)
 
 
 if __name__ == "__main__":

@@ -156,7 +156,7 @@ consensus_sweep:                  # scripts/sweep_consensus_vigor.py (make vigor
     target: [peak, means]
     max_modes: [1, 2, 3, 5, 0]    # 0 = all modes of a token
     mode_thr: [0.004, 0.008, 0.016, 0.03, 0.06]   # package fixed_threshold on the blurred categorical (default 0.008)
-    cert: ["off", weight, filter]
+    cert: ["off", weight, uniform, filter]   # uniform = weighted code path, equal weights (control)
     solver: [se2, sim, srt]
     ransac: [default, 4x]         # 4x = four times max_iters and confidence 1 - (1 - 0.995)^4
 

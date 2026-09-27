@@ -444,13 +444,19 @@ def run(a, make_fine=None):
     query.eval()
     cons = {tag: SatRoMa.from_wrapper(matcher.wrapper, cfg, use_means=means, min_valid_frac=0.05)
             for tag, means in (("peak", False), ("means", True))}
-    coarse_c = chosen_consensus(a)[0]
+    coarse_c, fine_c = chosen_consensus(a)
     primary, consensus_meta = "peak", None
+    if a.consensus_json:                                          # recorded even when only chosen_fine is present
+        consensus_meta = dict(json=list(a.consensus_json), coarse=None if coarse_c is None else coarse_c.to_dict(),
+                              fine=None if fine_c is None else fine_c.to_dict(), primary_row=primary)
     if coarse_c is not None:
         for c in cons.values():
             apply_settings(c, coarse_c, target=False)             # each row keeps its own target
         primary = coarse_c.target
-        consensus_meta = dict(json=list(a.consensus_json), coarse=coarse_c.to_dict(), primary_row=primary)
+        consensus_meta.update(primary_row=primary,
+                              refined_rows="--refine rows run on the peak row's consensus instance, so the chosen "
+                                           "reprojection threshold, solver and RANSAC budget apply to them too (their "
+                                           "correspondences, gate and min_corr are unchanged)")
         print(f"coarse consensus from --consensus-json: {coarse_c.key()} (fine pass centred on the {primary} row)",
               flush=True)
     cities = a.cities or split_cities(a.split, a.train_split or a.calib)

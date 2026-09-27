@@ -239,7 +239,7 @@ def test_weighted_se2_samples_by_weight_and_uniform_is_unchanged():
 
 # ---- protocol and round trip ----------------------------------------------------------------------------------------
 
-def _cache(tmp_path, draw, ids, seed0):
+def _cache(tmp_path, draw, ids, seed0, name=None):
     cons = _cons("se2")
     frames = []
     for j, fid in enumerate(ids):
@@ -250,10 +250,11 @@ def _cache(tmp_path, draw, ids, seed0):
         rec.update(id=fid, city="Chicago", centre_guess_m=0.0, H_gt=H)
         m0 = consensus_for_query(cons, gm, query, batch, frac, 224, certainty=cert, stats=False)
         rec["pose_online_m"] = SW.coarse_error(m0.H, rec, META)
+        rec["online"] = SW.match_summary(m0)
         frames.append(rec)
     meta = dict(META, draw=draw, draw_info=dict(draw=draw), ids=list(ids), cache_thr=0.004, ckpt="x.pt",
                 config="c.yaml", consensus=settings_of(cons).to_dict())
-    p = tmp_path / f"{draw}.pkl"
+    p = tmp_path / f"{name or draw}.pkl"
     with open(p, "wb") as f:
         pickle.dump(dict(meta=meta, frames=frames), f)
     return p
@@ -275,14 +276,61 @@ def test_selection_refuses_the_test_draw(tmp_path):
         SW.sweep(_args(tmp_path), calib, test)
 
 
+def test_calibration_split_is_deterministic_by_id_and_disjoint():
+    recs = [dict(id=f"Chicago/p{i}") for i in range(11)]
+    sel, conf = SW.split_calib(recs)
+    sel2, conf2 = SW.split_calib(list(reversed(recs)))
+
+    def ids(rs):
+        return sorted(r["id"] for r in rs)
+    assert ids(sel) == ids(sel2) and ids(conf) == ids(conf2)
+    assert not set(ids(sel)) & set(ids(conf)) and len(sel) + len(conf) == 11 and abs(len(sel) - len(conf)) <= 1
+
+
+@pytest.mark.parametrize("draw", ["calib", "test"])
+def test_a_cache_that_does_not_reproduce_the_online_match_stops_the_sweep(tmp_path, draw):
+    calib = _cache(tmp_path, "calib", [f"Chicago/c{i}" for i in range(4)], 60)
+    test = _cache(tmp_path, "test", [f"Chicago/t{i}" for i in range(3)], 70)
+    bad = calib if draw == "calib" else test
+    with open(bad, "rb") as f:
+        c = pickle.load(f)
+    c["frames"][1]["online"]["H"] = c["frames"][1]["online"]["H"] + 1e-4    # off by more than 1e-6
+    with open(bad, "wb") as f:
+        pickle.dump(c, f)
+    fid = c["frames"][1]["id"]
+    with pytest.raises(SystemExit, match=fid):
+        SW.sweep(_args(tmp_path), calib, test)
+    res = SW.sweep(_args(tmp_path, "--allow-mismatch"), calib, test)
+    assert res["mismatch"][f"{draw}_coarse"]["mismatches"] == 1 and res["mismatch"][f"{draw}_coarse"]["ids"] == [fid]
+    d = json.loads((tmp_path / "sweep_consensus_t.json").read_text())
+    assert d["mismatch"][f"{draw}_coarse"]["mismatches"] == 1
+
+
+def test_uniform_certainty_is_the_weighted_code_path_with_equal_weights():
+    query, batch, frac, gm, cert = _sample("picture", 4)
+    rec = SW.frame_record(_cons(), gm, query, batch, frac, 224, cert, 0.004)
+    stub = SW.consensus_stub(META)
+    md = rec["modes"]
+    for solver in ("srt", "sim", "se2"):
+        c = ConsensusCfg(solver=solver, cert="uniform")
+        idx = select_modes(md, c)
+        apply_settings(stub, c)
+        ref = SatRoMa.package_fit(stub, md["tok"][idx], md["peaks"][idx], md["means"][idx], 14, K, None,
+                                  weights=np.ones(len(idx)))
+        _same(SW.solve(rec, c, stub), ref)
+        _same(SW.solve(dict(rec, cert=np.zeros_like(rec["cert"])), c, stub), ref)   # the certainty plays no role
+
+
 def test_chosen_config_round_trips_through_consensus_json(tmp_path):
-    calib = _cache(tmp_path, "calib", [f"Chicago/c{i}" for i in range(4)], 20)
+    calib = _cache(tmp_path, "calib", [f"Chicago/c{i}" for i in range(6)], 20)
     test = _cache(tmp_path, "test", [f"Chicago/t{i}" for i in range(3)], 40)
     res = SW.sweep(_args(tmp_path), calib, test)
     path = tmp_path / "sweep_consensus_t.json"
     d = json.loads(path.read_text())
-    assert d["coarse"]["reproduces_online"]["mismatches"] == 0
+    assert d["mismatch"]["calib_coarse"]["mismatches"] == 0 and d["mismatch"]["test_coarse"]["mismatches"] == 0
+    assert d["coarse"]["split"]["n_select"] == 3 and d["coarse"]["split"]["n_confirm"] == 3
     assert d["chosen"]["test"] is not None and d["chosen"]["baseline"]["test"] is not None
+    assert d["chosen"]["paired_delta_test"]["n"] == 3
     chosen = ConsensusCfg.from_dict(d["chosen"]["config"])
     assert chosen == ConsensusCfg.from_dict(res["chosen"]["config"])
     if d["chosen"]["rule"].startswith("baseline kept"):
@@ -307,41 +355,129 @@ def test_chosen_config_round_trips_through_consensus_json(tmp_path):
     p2 = tmp_path / "with_fine.json"
     p2.write_text(json.dumps(d))
     assert load_chosen([p2])[1] == ConsensusCfg(reproj_cells=1.0, solver="se2")
-    assert (tmp_path / "sweep_consensus_t.md").read_text().startswith("# Consensus sweep")
+    md = (tmp_path / "sweep_consensus_t.md").read_text()
+    assert md.startswith("# Consensus sweep") and "Headline (test draw" in md
 
 
 def test_thresholds_below_the_cache_are_refused(tmp_path):
-    calib = _cache(tmp_path, "calib", ["Chicago/c0"], 50)
+    calib = _cache(tmp_path, "calib", ["Chicago/c0", "Chicago/c1"], 50)
     with pytest.raises(SystemExit, match="below the cache threshold"):
         SW.sweep(_args(tmp_path, "--mode-thr", "0.002"), calib, None)
 
 
-def test_cache_stage_on_synthetic_vigor_with_a_fine_pass_reproduces_both_passes(tmp_path, monkeypatch):
-    """The caching pass (calibration draw: held-out training frames of both checkpoints) through the eval_vigor
-    machinery with planted toy decoders, then the sweep: the cached baselines give the online coarse and fine poses."""
+def _vigor_setup(tmp_path, monkeypatch, n_labels=10):
+    """Synthetic VIGOR root with n_labels copies of one panorama (planted toy decoders of test_two_pass), the fine
+    decoder injected in place of eval_vigor.decoder_fine."""
+    import shutil
     from test_two_pass import _setup
-    _, ds, query, matcher, cons, cfg, fine = _setup(tmp_path / "vigor", (352.0, 320.0))
+    root = tmp_path / "vigor"
+    _, ds, query, matcher, cons, cfg, fine = _setup(root, (352.0, 320.0))
+    lab = root / "splits" / "VIGOR" / "Chicago" / "pano_label_balanced.txt"
+    line = lab.read_text()
+    for k in range(2, n_labels + 1):
+        shutil.copy(root / "Chicago" / "panorama" / "p1,1.0,.jpg", root / "Chicago" / "panorama" / f"p{k},1.0,.jpg")
+        lab.write_text(lab.read_text() + line.replace("p1,", f"p{k},"))
     tm = dict(val_frac=0.2, val_samples=0, cities=["Chicago"])
-    ev = SW._ev()
-    monkeypatch.setattr(ev, "decoder_fine", lambda fa, cfg_, ds_, dev: (fine, {}))
-    a = SW.build_parser().parse_args(["--tag", "s", "--out", str(tmp_path), "--root", str(tmp_path / "vigor"),
+
+    def fake_decoder_fine(fa, cfg_, ds_, dev):
+        fine.ds.labels = ds_.labels
+        return fine, {}
+    monkeypatch.setattr(SW._ev(), "decoder_fine", fake_decoder_fine)
+    a = SW.build_parser().parse_args(["--tag", "s", "--out", str(tmp_path), "--root", str(root),
                                       "--cities", "Chicago", "--fine-config", "f.yaml", "--fine-ckpt", "f.pt",
                                       "--workers", "1", "--n-boot", "20", "--reproj", "1", "3", "--targets", "peak",
                                       "--max-modes", "all", "--mode-thr", "0.008", "--cert", "off",
                                       "--solvers", "se2", "--ransac", "default"])
     M = dict(cfg=cfg, dev="cpu", mode="ipm", train_meta=tm, matcher=matcher, query=query, cons=cons["peak"],
              fine_train=tm, fine_args=a)
+    return a, M
+
+
+def test_cache_stage_on_synthetic_vigor_with_a_fine_pass_reproduces_both_passes(tmp_path, monkeypatch):
+    """The caching pass (calibration draw: held-out training frames of both checkpoints) through the eval_vigor
+    machinery with planted toy decoders, then the sweep: the cached defaults give the online coarse and fine Match."""
+    a, M = _vigor_setup(tmp_path, monkeypatch)
     path = SW.cache_draw(a, "calib", M)
     with open(path, "rb") as f:
         c = pickle.load(f)
-    assert c["meta"]["draw"] == "calib" and c["meta"]["ids"] == ["Chicago/p1,1.0,.jpg"]
-    assert c["meta"]["draw_info"]["n_heldout_both"] == 1
+    assert c["meta"]["draw"] == "calib" and len(c["meta"]["ids"]) == 2    # 10 labels, the last 20 % held out
+    assert c["meta"]["draw_info"]["n_heldout_both"] == 2
     r, rf = c["frames"][0], c["fine"]["frames"][0]
-    assert r["pose_online_m"] is not None and rf["pose_online_m"] is not None
+    assert r["pose_online_m"] is not None and rf["pose_online_m"] is not None and rf["online"]["H"] is not None
     assert r["topk_idx"].shape[1] == 8 and r["modes"]["tok"].shape[1] == 2
-    res = SW.sweep(a, path, None)
-    assert res["coarse"]["reproduces_online"]["mismatches"] == 0
-    assert res["fine"]["reproduces_online"]["mismatches"] == 0
+    assert c["fine"]["meta"]["centred_on"] == c["meta"]["consensus"]
+    res = SW.sweep(a, path, None, M=M)
+    assert res["mismatch"]["calib_coarse"]["mismatches"] == 0 and res["mismatch"]["calib_fine"]["mismatches"] == 0
     assert res["chosen_fine"]["config"]["solver"] == "se2"
     base = [x for x in res["fine"]["ofat"] if x["factor"] == "baseline"][0]
-    assert base["calib"]["median_m"] == pytest.approx(rf["pose_online_m"])
+    assert base["select"]["median_m"] == pytest.approx(rf["pose_online_m"])
+    assert not res["meta"]["fine_centring"]["recached"]           # the planted decoder: every coarse config ties
+    a.passes = ["fine"]                                           # --passes fine: printed and recorded
+    res = SW.sweep(a, path, None)
+    assert "coarse" not in res and "centred on the caching coarse consensus" in res["meta"]["fine_centring"]["note"]
+
+
+def test_fine_pass_is_recached_around_the_chosen_coarse_pose(tmp_path, monkeypatch):
+    a, M = _vigor_setup(tmp_path, monkeypatch)
+    chosen = ConsensusCfg(reproj_cells=1.0, solver="se2", mode_thr=0.016)
+    cal, test = SW.recache_fine(a, M, chosen, want_test=False)
+    assert test is None and (tmp_path / "sweep_cache" / "s_finec_calib.pkl").exists()
+    assert ConsensusCfg.from_dict(cal["fine"]["meta"]["centred_on"]) == chosen
+    assert settings_of(M["cons"]) != chosen                        # the models' own consensus is untouched
+    orig = SW.pass_block
+
+    def forced(kind, cal_, test_, grid, a_):                       # pretend the coarse pass chose `chosen`
+        rep, block, c = orig(kind, cal_, test_, grid, a_)
+        return (rep, block, chosen) if kind == "coarse" else (rep, block, c)
+    monkeypatch.setattr(SW, "pass_block", forced)
+    SW.cache_draw(a, "calib", M)
+    res = SW.sweep(a, SW.cache_path(a, "calib"), None, M=M)
+    assert res["meta"]["fine_centring"]["recached"]
+    assert ConsensusCfg.from_dict(res["meta"]["fine_centring"]["centred_on"]) == chosen
+    assert res["mismatch"]["calib_fine_recached"]["mismatches"] == 0
+    res = SW.sweep(a, SW.cache_path(a, "calib"), None)             # no models: recorded, not re-cached
+    assert not res["meta"]["fine_centring"]["recached"] and "no models" in res["meta"]["fine_centring"]["note"]
+
+
+# ---- pinned numbers --------------------------------------------------------------------------------------------------
+
+# consensus_for_query on the fixed synthetic set (_sample), computed with the code of this commit and checked
+# bit-identical against the pre-refactor satroma.py (6858803) when pinned: (kind, seed, solver, means, n_modes,
+# n_inliers, H row-major to 10 significant digits). A refactor that changes any of these changes the default pipeline.
+PINNED = [
+    ('picture', 0, 'srt', False, 235, 141, [1.010378955, 0.03499621401, 344.8522789, -0.006523518968, 1.029698661, 376.2581405, -5.186581563e-06, 4.173101371e-05, 1.0]),
+    ('picture', 0, 'srt', True, 235, 132, [1.034798573, 0.00861785831, 344.9582661, 0.01816341589, 1.021689062, 373.2654168, 2.337275869e-05, 2.584241941e-06, 1.0]),
+    ('picture', 0, 'sim', False, 235, 141, [1.006150425, 0.008754314923, 346.4859043, -0.008754314923, 1.006150425, 377.010979, 0.0, 0.0, 1.0]),
+    ('picture', 0, 'sim', True, 235, 132, [1.014477855, 0.0007380748162, 346.5808491, -0.0007380748162, 1.014477855, 375.2008517, 0.0, 0.0, 1.0]),
+    ('picture', 0, 'se2', False, 235, 141, [0.9999631794, 0.008581368822, 346.3817929, -0.008581368822, 0.9999631794, 377.8412312, 0.0, 0.0, 1.0]),
+    ('picture', 0, 'se2', True, 235, 132, [0.9999997353, 0.0007275413825, 348.2771459, -0.0007275413825, 0.9999997353, 376.9315087, 0.0, 0.0, 1.0]),
+    ('picture', 1, 'srt', False, 234, 139, [0.7628921057, -0.02075931768, 247.5118663, -0.2092306603, 0.9396707176, 359.5411513, -0.0004376701126, 3.340345651e-05, 1.0]),
+    ('picture', 1, 'srt', True, 234, 128, [0.9909336163, -0.09927363334, 245.3527544, 0.008436048942, 0.9106325799, 354.767704, 7.015810564e-05, -0.0001684074718, 1.0]),
+    ('picture', 1, 'sim', False, 234, 139, [0.9970307684, -0.00546973317, 236.7970499, 0.00546973317, 0.9970307684, 350.412704, 0.0, 0.0, 1.0]),
+    ('picture', 1, 'sim', True, 234, 128, [0.9948764054, -0.01310718648, 237.9044697, 0.01310718648, 0.9948764054, 350.1232927, 0.0, 0.0, 1.0]),
+    ('picture', 1, 'se2', False, 234, 139, [0.9998351391, -0.01815749724, 237.7700589, 0.01815749724, 0.9998351391, 347.9332206, 0.0, 0.0, 1.0]),
+    ('picture', 1, 'se2', True, 234, 128, [0.9999858261, -0.005324251839, 236.6843317, 0.005324251839, 0.9999858261, 350.9867183, 0.0, 0.0, 1.0]),
+    ('placed', 0, 'srt', False, 383, 35, [-3.582528721, -4.528798289, 849.4200801, -2.301277302, -2.853293642, 539.9586813, -0.004229156683, -0.005266594972, 1.0]),
+    ('placed', 0, 'srt', True, 383, 28, [-2.942404858, -0.1663105741, 680.5833344, -2.218342385, -0.6263557761, 596.2321, -0.003755688991, -0.000911597183, 1.0]),
+    ('placed', 0, 'sim', False, 383, 28, [-0.761377798, -0.8160119291, 813.7990188, 0.8160119291, -0.761377798, 486.7048408, 0.0, 0.0, 1.0]),
+    ('placed', 0, 'sim', True, 383, 24, [-0.2445895582, -0.1051436386, 694.8244097, 0.1051436386, -0.2445895582, 462.2343043, 0.0, 0.0, 1.0]),
+    ('placed', 0, 'se2', False, 383, 29, [-0.7634263154, -0.6458949303, 813.6129952, 0.6458949303, -0.7634263154, 517.1118531, 0.0, 0.0, 1.0]),
+    ('placed', 0, 'se2', True, 383, 24, [-0.8908529834, -0.4542917146, 792.952121, 0.4542917146, -0.8908529834, 547.9058514, 0.0, 0.0, 1.0]),
+    ('placed', 1, 'srt', False, 382, 36, [-3.448918639, 1.146402608, 709.1674289, -2.651798813, 2.218254235, 447.572817, -0.005772226419, 0.004977791033, 1.0]),
+    ('placed', 1, 'srt', True, 382, 28, [-3.400044957, 1.083320778, 699.979701, -2.60200561, 2.063561297, 445.0978787, -0.00571390006, 0.004692871879, 1.0]),
+    ('placed', 1, 'sim', False, 382, 30, [-0.9069735525, -0.06634984942, 680.1959247, 0.06634984942, -0.9069735525, 487.2652587, 0.0, 0.0, 1.0]),
+    ('placed', 1, 'sim', True, 382, 26, [0.03524211715, -0.8167682074, 610.6700601, 0.8167682074, 0.03524211715, 316.5683532, 0.0, 0.0, 1.0]),
+    ('placed', 1, 'se2', False, 382, 33, [-0.969240973, -0.2461136652, 696.5526366, 0.2461136652, -0.969240973, 476.3406204, 0.0, 0.0, 1.0]),
+    ('placed', 1, 'se2', True, 382, 24, [-0.9833358734, -0.1817981298, 695.1970201, 0.1817981298, -0.9833358734, 481.0161131, 0.0, 0.0, 1.0]),
+]
+
+
+@pytest.mark.parametrize("row", PINNED, ids=lambda r: "-".join(map(str, r[:4])))
+def test_default_consensus_matches_the_pinned_numbers(row):
+    kind, seed, solver, means, n_modes, n_inliers, H = row
+    query, batch, frac, gm, cert = _sample(kind, seed)
+    cons = _cons(solver)
+    cons.use_means = means
+    m = consensus_for_query(cons, gm, query, batch, frac, 224, certainty=cert, stats=False)
+    assert m.n_modes == n_modes and m.n_inliers == n_inliers
+    assert np.allclose(m.H.ravel(), H, rtol=1e-8, atol=1e-6)

@@ -34,7 +34,8 @@ from sat_roma.ransac.ransac_init import ransac_init  # noqa: E402
 from sat_roma.ransac.transforms import convert_to_pixel_homography  # noqa: E402
 
 from bevloc.match.consensus import (  # noqa: E402
-    extract_modes, mode_weights, ransac_budget, select_modes, settings_of,
+    PACKAGE_CONFIDENCE, PACKAGE_MAX_ITERS, WEIGHTED, extract_modes, mode_weights, ransac_budget, select_modes,
+    settings_of,
 )
 
 
@@ -53,13 +54,13 @@ def _pick_modes(self, gm, certainty=None, valid=None):
     """Modes of logits gm under this instance's consensus settings (bevloc.match.consensus): the package's
     extraction at mode_thr, then the certainty filter and the per-token cap. Returns (modes dict, idx, weights)."""
     c = settings_of(self)
-    cert = _cert_np(certainty, c.cert != "off")
+    cert = _cert_np(certainty, c.cert in ("weight", "filter"))
     md = extract_modes(gm, c.mode_thr)
     vt = None if valid is None else np.asarray(valid.cpu().numpy() if hasattr(valid, "cpu") else valid, bool)
     if cert is not None:
         cert = cert.reshape(gm.shape[-2:])
     idx = select_modes(md, c, cert, vt)
-    w = mode_weights(md, idx, cert) if c.cert == "weight" else None
+    w = mode_weights(md, idx, cert, uniform=c.cert == "uniform") if c.cert in WEIGHTED else None
     return md, idx, w
 
 
@@ -320,7 +321,7 @@ class SatRoMa:
         """Consensus of grid-unit correspondences placed (N, 2) query patches -> tgt (N, 2) reference cells
         (cell-centre convention), with this instance's solver / threshold / seed / RANSAC budget; H converted to
         query px -> reference px. The tail of `consensus_from_gm`, shared with `refined_consensus`. weights (N,):
-        weighted sampling (bevloc.match.consensus, cert="weight"); None = the uniform RANSAC."""
+        weighted sampling (bevloc.match.consensus, cert="weight" / "uniform"); None = the uniform RANSAC."""
         n_modes = int(placed.shape[0])
         cv2.setRNGSeed(self.seed)
         iters, conf = ransac_budget(getattr(self, "ransac", "default"), weights is not None, self.solver)
@@ -444,7 +445,9 @@ class SatRoMa:
             # estimate_homography's RANSAC init (cv2.findHomography, the package default). The package pipeline ran
             # it before the sim / se2 solvers as well, so it still runs there: the same cv2 calls as before the split.
             if weights is None:
-                Hf = _ransac_init_one(pts_A, peaks_B, means_B, self.use_means, cv2.RANSAC, self.reproj, iters, conf)
+                # sim / se2 discard this result: their pre-fit keeps the package arguments (5000 / 0.995) exactly
+                pi, pc = (iters, conf) if self.solver == "srt" else (PACKAGE_MAX_ITERS, PACKAGE_CONFIDENCE)
+                Hf = _ransac_init_one(pts_A, peaks_B, means_B, self.use_means, cv2.RANSAC, self.reproj, pi, pc)
             else:
                 Hf = _ransac_init_weighted(pts_A, tgt, weights, 1.0, self.reproj, iters, self.seed)
                 if Hf is None:
