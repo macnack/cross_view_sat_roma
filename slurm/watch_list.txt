@@ -98,3 +98,7 @@
 8807293 fine2p_4city_all ^([A-Za-z]+ +n +[0-9]+|.*fine|wrote |Traceback|.*Error|\[run\] exit)
 8807294 fine00625_erpd_cross ^(train |window|step [0-9]*[05]000 VAL|wrote|Traceback|.*Error|error:|Killed|OOM|\[run\] exit)
 8807295 fine2p_cross ^([A-Za-z]+ +n +[0-9]+|.*fine|wrote |Traceback|.*Error|\[run\] exit)
+# --- consensus sweep (idea 15) ---
+8808369 sweep_erpd4 ^(cache |checkpoint |fine checkpoint |\[coarse\]|\[fine\]|re-caching|wrote |Traceback|.*Error|\[run\] exit)
+8808370 sweep_pic4  ^(cache |checkpoint |fine checkpoint |\[coarse\]|\[fine\]|re-caching|wrote |Traceback|.*Error|\[run\] exit)
+8808371 sweep_fine  ^(cache |checkpoint |fine checkpoint |\[coarse\]|\[fine\]|re-caching|wrote |Traceback|.*Error|\[run\] exit)
