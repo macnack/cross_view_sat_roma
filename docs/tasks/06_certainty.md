@@ -153,7 +153,7 @@ filter).
 
 **Not in scope.** Training the head jointly with the matcher (moving labels); the fine pass; Poznań routes.
 
-### Step 4 results (27 Sep 2026, four-city Task 04 matcher, Chicago 3000 draw; all-cities draw pending 8809952)
+### Step 4 results (27 Sep 2026, four-city Task 04 matcher, Chicago 3000 draw and all-cities 12000 draw)
 
 Caches: 8000 held-out four-city training frames (`cert_cache/erpd4city_calib.pkl`, gate 0 mismatches, median 1.79 m,
 5.2 % > 10 m), Chicago test 3000 (`erpd4city_chi3000_test.pkl`, 0 mismatches, 1.77 m / 9.1 % — the reported row). Heads
@@ -186,4 +186,6 @@ evidence looks like a correct frame's — sharp, consistent, well-supported vote
 the matcher's output can separate them; that would need evidence the matcher does not produce (a second reference year,
 a route prior, or a verification pass at a finer scale). Decision: the certainty of record is the calibrated logistic
 (cheapest, no training, same numbers); the token-stream head is kept as the trained alternative for the filter. The
-certainty line stops here; the all-cities row (8809952) is recorded when it lands for completeness.
+certainty line stops here.
+
+All-cities draw (12000 frames, 8809952, `certainty_erpd4city_head_all12000.{json,png}`): logistic AUROC(< 5 m) 0.874, 3.9 % gross at 90 % coverage (median 2.05 → 1.90 m); full head 0.870 / 3.9 %, tokens 0.871, map 0.868, frame 0.868; inlier ratio 0.747 / 4.4 %. The 0.88 all-cities gate is missed by every row (0.874 at best) and the head is again ≤ the logistic. Per city (logistic / full head): Chicago 0.913 / 0.909, San Francisco 0.909 / 0.901, Seattle 0.917 / 0.912, **New York 0.763 / 0.756** at a base rate of 0.72 correct — New York is where both the matcher and its certainty are weakest (facade-smeared queries, repeated grid), and it alone pulls the all-cities AUROC under the gate.
