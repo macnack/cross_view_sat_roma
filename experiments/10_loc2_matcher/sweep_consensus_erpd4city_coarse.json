@@ -1,0 +1,3591 @@
+{
+  "meta": {
+    "tag": "erpd4city_coarse",
+    "calib_cache": "experiments/10_loc2_matcher/sweep_cache/erpd4city_coarse_calib.pkl",
+    "test_cache": "experiments/10_loc2_matcher/sweep_cache/erpd4city_coarse_test.pkl",
+    "select": "median",
+    "gross_m": 10.0,
+    "n_boot": 1000,
+    "joint_top": 3,
+    "grid": {
+      "reproj_cells": [
+        0.5,
+        0.75,
+        1.0,
+        1.5,
+        2.0,
+        3.0
+      ],
+      "target": [
+        "peak",
+        "means"
+      ],
+      "max_modes": [
+        1,
+        2,
+        3,
+        5,
+        0
+      ],
+      "mode_thr": [
+        0.004,
+        0.008,
+        0.016,
+        0.03,
+        0.06
+      ],
+      "cert": [
+        "off",
+        "weight",
+        "uniform",
+        "filter"
+      ],
+      "solver": [
+        "se2",
+        "sim",
+        "srt"
+      ],
+      "ransac": [
+        "default",
+        "4x"
+      ]
+    },
+    "calib": {
+      "draw": "calib",
+      "coarse": {
+        "val_frac": 0.2,
+        "val_samples_skipped": 400,
+        "cities": [
+          "Chicago",
+          "NewYork",
+          "SanFrancisco",
+          "Seattle"
+        ],
+        "source": "asserted (--assume-train-split)",
+        "n_train_list": 52609,
+        "n_heldout": 10522,
+        "heldout_slice": [
+          400,
+          10522
+        ],
+        "n": 10122,
+        "rule": "permutation(seed 0) of the train labels; idx[n_tr + val_samples : n_tr + val_samples + limit]"
+      },
+      "cities": [
+        "Chicago",
+        "NewYork",
+        "SanFrancisco",
+        "Seattle"
+      ],
+      "limit": 1000,
+      "n": 1000,
+      "rule": "calib_split of each checkpoint (permutation seed 0 of its train list, last val_frac held out, its val_samples skipped), intersected, filtered to the cities, first --calib-limit"
+    },
+    "calib_n": 1000,
+    "ckpt": "checkpoints/vigor_samearea_4city_erp_depth_cell0125_last.pt",
+    "config": "configs/vigor_cell0125.yaml",
+    "cache_thr": 0.004,
+    "fine": null,
+    "test": {
+      "draw": "test",
+      "cities": [
+        "Chicago"
+      ],
+      "limit": 3000
+    },
+    "test_n": 3000,
+    "protocol": "calibration draw split by frame id into a selection half (OFAT + joint grid, argmin of the objective) and a confirmation half (paired bootstrap guard: the best replaces the default only if the interval is below zero); the test draw is scored for the default and the chosen configuration only (headline: their paired change)",
+    "cert_confound": "cert=weight and cert=uniform go through the weighted-sampling estimators (srt: the package's 4-point DLT loop, sim: its Kabsch similarity loop, fixed trials) instead of cv2's adaptive RANSAC; weight vs uniform isolates the weighting, uniform vs off the estimator swap (se2: same estimator)",
+    "not_sweepable": [
+      "mode thresholds below the cache threshold",
+      "fixed_window_size (4)",
+      "adaptive_gauss_fit",
+      "min_valid_frac",
+      "the decoder / logits"
+    ]
+  },
+  "mismatch": {
+    "calib_coarse": {
+      "mismatches": 0,
+      "n": 1000,
+      "ids": []
+    },
+    "test_coarse": {
+      "mismatches": 0,
+      "n": 3000,
+      "ids": []
+    }
+  },
+  "coarse": {
+    "baseline": {
+      "reproj_cells": 3.0,
+      "target": "peak",
+      "max_modes": 0,
+      "mode_thr": 0.008,
+      "cert": "off",
+      "solver": "se2",
+      "ransac": "default"
+    },
+    "grid": {
+      "reproj_cells": [
+        0.5,
+        0.75,
+        1.0,
+        1.5,
+        2.0,
+        3.0
+      ],
+      "target": [
+        "peak",
+        "means"
+      ],
+      "max_modes": [
+        1,
+        2,
+        3,
+        5,
+        0
+      ],
+      "mode_thr": [
+        0.004,
+        0.008,
+        0.016,
+        0.03,
+        0.06
+      ],
+      "cert": [
+        "off",
+        "weight",
+        "uniform",
+        "filter"
+      ],
+      "solver": [
+        "se2",
+        "sim",
+        "srt"
+      ],
+      "ransac": [
+        "default",
+        "4x"
+      ]
+    },
+    "ofat": [
+      {
+        "factor": "baseline",
+        "value": null,
+        "config": {
+          "reproj_cells": 3.0,
+          "target": "peak",
+          "max_modes": 0,
+          "mode_thr": 0.008,
+          "cert": "off",
+          "solver": "se2",
+          "ransac": "default"
+        },
+        "key": "reproj=3 target=peak max_modes=all thr=0.008 cert=off solver=se2 ransac=default",
+        "select": {
+          "n": 500,
+          "median_m": 1.8099238657986665,
+          "median_ci": [
+            1.6942258555902618,
+            1.9539703930959944
+          ],
+          "mean_m": 2.9556538052160675,
+          "r5": 0.878,
+          "r10": 0.952,
+          "gross": 0.048,
+          "no_pose": 0,
+          "modes_mean": 1302.21,
+          "inlier_mean": 0.8734646475028667
+        }
+      },
+      {
+        "factor": "reproj_cells",
+        "value": 0.5,
+        "config": {
+          "reproj_cells": 0.5,
+          "target": "peak",
+          "max_modes": 0,
+          "mode_thr": 0.008,
+          "cert": "off",
+          "solver": "se2",
+          "ransac": "default"
+        },
+        "key": "reproj=0.5 target=peak max_modes=all thr=0.008 cert=off solver=se2 ransac=default",
+        "select": {
+          "n": 500,
+          "median_m": 1.986895285104806,
+          "median_ci": [
+            1.8290696936712345,
+            2.122549829777815
+          ],
+          "mean_m": 3.223625153629431,
+          "r5": 0.852,
+          "r10": 0.94,
+          "gross": 0.06,
+          "no_pose": 0,
+          "modes_mean": 1302.21,
+          "inlier_mean": 0.3524896147418774
+        }
+      },
+      {
+        "factor": "reproj_cells",
+        "value": 0.75,
+        "config": {
+          "reproj_cells": 0.75,
+          "target": "peak",
+          "max_modes": 0,
+          "mode_thr": 0.008,
+          "cert": "off",
+          "solver": "se2",
+          "ransac": "default"
+        },
+        "key": "reproj=0.75 target=peak max_modes=all thr=0.008 cert=off solver=se2 ransac=default",
+        "select": {
+          "n": 500,
+          "median_m": 1.8831210109745191,
+          "median_ci": [
+            1.7782432205902512,
+            2.0237618305117815
+          ],
+          "mean_m": 3.1237575155645945,
+          "r5": 0.854,
+          "r10": 0.946,
+          "gross": 0.054,
+          "no_pose": 0,
+          "modes_mean": 1302.21,
+          "inlier_mean": 0.5047234937450813
+        }
+      },
+      {
+        "factor": "reproj_cells",
+        "value": 1.0,
+        "config": {
+          "reproj_cells": 1.0,
+          "target": "peak",
+          "max_modes": 0,
+          "mode_thr": 0.008,
+          "cert": "off",
+          "solver": "se2",
+          "ransac": "default"
+        },
+        "key": "reproj=1 target=peak max_modes=all thr=0.008 cert=off solver=se2 ransac=default",
+        "select": {
+          "n": 500,
+          "median_m": 1.8515076685523026,
+          "median_ci": [
+            1.7263408600142884,
+            1.99259477414008
+          ],
+          "mean_m": 3.027502200213165,
+          "r5": 0.86,
+          "r10": 0.95,
+          "gross": 0.05,
+          "no_pose": 0,
+          "modes_mean": 1302.21,
+          "inlier_mean": 0.6036206311668636
+        }
+      },
+      {
+        "factor": "reproj_cells",
+        "value": 1.5,
+        "config": {
+          "reproj_cells": 1.5,
+          "target": "peak",
+          "max_modes": 0,
+          "mode_thr": 0.008,
+          "cert": "off",
+          "solver": "se2",
+          "ransac": "default"
+        },
+        "key": "reproj=1.5 target=peak max_modes=all thr=0.008 cert=off solver=se2 ransac=default",
+        "select": {
+          "n": 500,
+          "median_m": 1.7978951427039451,
+          "median_ci": [
+            1.7002716478670976,
+            1.9498971442845618
+          ],
+          "mean_m": 2.957362406621259,
+          "r5": 0.872,
+          "r10": 0.952,
+          "gross": 0.048,
+          "no_pose": 0,
+          "modes_mean": 1302.21,
+          "inlier_mean": 0.7269477624361895
+        }
+      },
+      {
+        "factor": "reproj_cells",
+        "value": 2.0,
+        "config": {
+          "reproj_cells": 2.0,
+          "target": "peak",
+          "max_modes": 0,
+          "mode_thr": 0.008,
+          "cert": "off",
+          "solver": "se2",
+          "ransac": "default"
+        },
+        "key": "reproj=2 target=peak max_modes=all thr=0.008 cert=off solver=se2 ransac=default",
+        "select": {
+          "n": 500,
+          "median_m": 1.780678134151404,
+          "median_ci": [
+            1.681941407795211,
+            1.9687190005616872
+          ],
+          "mean_m": 2.947272611796817,
+          "r5": 0.878,
+          "r10": 0.95,
+          "gross": 0.05,
+          "no_pose": 0,
+          "modes_mean": 1302.21,
+          "inlier_mean": 0.8005142241133816
+        }
+      },
+      {
+        "factor": "target",
+        "value": "means",
+        "config": {
+          "reproj_cells": 3.0,
+          "target": "means",
+          "max_modes": 0,
+          "mode_thr": 0.008,
+          "cert": "off",
+          "solver": "se2",
+          "ransac": "default"
+        },
+        "key": "reproj=3 target=means max_modes=all thr=0.008 cert=off solver=se2 ransac=default",
+        "select": {
+          "n": 500,
+          "median_m": 1.7756247996945222,
+          "median_ci": [
+            1.6850846089365938,
+            1.9235867449056738
+          ],
+          "mean_m": 2.870301157621926,
+          "r5": 0.888,
+          "r10": 0.958,
+          "gross": 0.042,
+          "no_pose": 0,
+          "modes_mean": 1302.21,
+          "inlier_mean": 0.8518863662777713
+        }
+      },
+      {
+        "factor": "max_modes",
+        "value": 1,
+        "config": {
+          "reproj_cells": 3.0,
+          "target": "peak",
+          "max_modes": 1,
+          "mode_thr": 0.008,
+          "cert": "off",
+          "solver": "se2",
+          "ransac": "default"
+        },
+        "key": "reproj=3 target=peak max_modes=1 thr=0.008 cert=off solver=se2 ransac=default",
+        "select": {
+          "n": 500,
+          "median_m": 1.7973476780532993,
+          "median_ci": [
+            1.676069625132303,
+            1.9622302080436893
+          ],
+          "mean_m": 2.9564891438556598,
+          "r5": 0.876,
+          "r10": 0.95,
+          "gross": 0.05,
+          "no_pose": 0,
+          "modes_mean": 1154.106,
+          "inlier_mean": 0.8851909405870069
+        }
+      },
+      {
+        "factor": "max_modes",
+        "value": 2,
+        "config": {
+          "reproj_cells": 3.0,
+          "target": "peak",
+          "max_modes": 2,
+          "mode_thr": 0.008,
+          "cert": "off",
+          "solver": "se2",
+          "ransac": "default"
+        },
+        "key": "reproj=3 target=peak max_modes=2 thr=0.008 cert=off solver=se2 ransac=default",
+        "select": {
+          "n": 500,
+          "median_m": 1.81467587306947,
+          "median_ci": [
+            1.6896758336267785,
+            1.9589587751481932
+          ],
+          "mean_m": 2.9678468363861743,
+          "r5": 0.876,
+          "r10": 0.95,
+          "gross": 0.05,
+          "no_pose": 0,
+          "modes_mean": 1292.136,
+          "inlier_mean": 0.8743577066418058
+        }
+      },
+      {
+        "factor": "max_modes",
+        "value": 3,
+        "config": {
+          "reproj_cells": 3.0,
+          "target": "peak",
+          "max_modes": 3,
+          "mode_thr": 0.008,
+          "cert": "off",
+          "solver": "se2",
+          "ransac": "default"
+        },
+        "key": "reproj=3 target=peak max_modes=3 thr=0.008 cert=off solver=se2 ransac=default",
+        "select": {
+          "n": 500,
+          "median_m": 1.8108638834935102,
+          "median_ci": [
+            1.6942258555902618,
+            1.9539703930959944
+          ],
+          "mean_m": 2.955263618016192,
+          "r5": 0.878,
+          "r10": 0.952,
+          "gross": 0.048,
+          "no_pose": 0,
+          "modes_mean": 1301.696,
+          "inlier_mean": 0.8733916698172141
+        }
+      },
+      {
+        "factor": "max_modes",
+        "value": 5,
+        "config": {
+          "reproj_cells": 3.0,
+          "target": "peak",
+          "max_modes": 5,
+          "mode_thr": 0.008,
+          "cert": "off",
+          "solver": "se2",
+          "ransac": "default"
+        },
+        "key": "reproj=3 target=peak max_modes=5 thr=0.008 cert=off solver=se2 ransac=default",
+        "select": {
+          "n": 500,
+          "median_m": 1.8099238657986665,
+          "median_ci": [
+            1.6942258555902618,
+            1.9539703930959944
+          ],
+          "mean_m": 2.9556538052160675,
+          "r5": 0.878,
+          "r10": 0.952,
+          "gross": 0.048,
+          "no_pose": 0,
+          "modes_mean": 1302.21,
+          "inlier_mean": 0.8734646475028667
+        }
+      },
+      {
+        "factor": "mode_thr",
+        "value": 0.004,
+        "config": {
+          "reproj_cells": 3.0,
+          "target": "peak",
+          "max_modes": 0,
+          "mode_thr": 0.004,
+          "cert": "off",
+          "solver": "se2",
+          "ransac": "default"
+        },
+        "key": "reproj=3 target=peak max_modes=all thr=0.004 cert=off solver=se2 ransac=default",
+        "select": {
+          "n": 500,
+          "median_m": 1.7985704504729711,
+          "median_ci": [
+            1.6827247542875698,
+            1.920022929836964
+          ],
+          "mean_m": 2.9137736460211667,
+          "r5": 0.88,
+          "r10": 0.954,
+          "gross": 0.046,
+          "no_pose": 0,
+          "modes_mean": 1417.9,
+          "inlier_mean": 0.8685883024406007
+        }
+      },
+      {
+        "factor": "mode_thr",
+        "value": 0.016,
+        "config": {
+          "reproj_cells": 3.0,
+          "target": "peak",
+          "max_modes": 0,
+          "mode_thr": 0.016,
+          "cert": "off",
+          "solver": "se2",
+          "ransac": "default"
+        },
+        "key": "reproj=3 target=peak max_modes=all thr=0.016 cert=off solver=se2 ransac=default",
+        "select": {
+          "n": 500,
+          "median_m": 1.810383736690639,
+          "median_ci": [
+            1.6767076433921533,
+            1.9441963683532972
+          ],
+          "mean_m": 2.942154752043652,
+          "r5": 0.876,
+          "r10": 0.952,
+          "gross": 0.048,
+          "no_pose": 0,
+          "modes_mean": 1162.628,
+          "inlier_mean": 0.8934118069632011
+        }
+      },
+      {
+        "factor": "mode_thr",
+        "value": 0.03,
+        "config": {
+          "reproj_cells": 3.0,
+          "target": "peak",
+          "max_modes": 0,
+          "mode_thr": 0.03,
+          "cert": "off",
+          "solver": "se2",
+          "ransac": "default"
+        },
+        "key": "reproj=3 target=peak max_modes=all thr=0.03 cert=off solver=se2 ransac=default",
+        "select": {
+          "n": 500,
+          "median_m": 1.8058882443857933,
+          "median_ci": [
+            1.69969128936247,
+            1.9632987634745624
+          ],
+          "mean_m": 20.741650177315673,
+          "r5": 0.878,
+          "r10": 0.944,
+          "gross": 0.056,
+          "no_pose": 9,
+          "modes_mean": 991.394,
+          "inlier_mean": 0.9172483121260024
+        }
+      },
+      {
+        "factor": "mode_thr",
+        "value": 0.06,
+        "config": {
+          "reproj_cells": 3.0,
+          "target": "peak",
+          "max_modes": 0,
+          "mode_thr": 0.06,
+          "cert": "off",
+          "solver": "se2",
+          "ransac": "default"
+        },
+        "key": "reproj=3 target=peak max_modes=all thr=0.06 cert=off solver=se2 ransac=default",
+        "select": {
+          "n": 500,
+          "median_m": 1.858523214844662,
+          "median_ci": [
+            1.737526788248801,
+            2.0695994480977054
+          ],
+          "mean_m": 114.08104381998372,
+          "r5": 0.818,
+          "r10": 0.872,
+          "gross": 0.128,
+          "no_pose": 56,
+          "modes_mean": 646.322,
+          "inlier_mean": 0.8745233888026113
+        }
+      },
+      {
+        "factor": "cert",
+        "value": "weight",
+        "config": {
+          "reproj_cells": 3.0,
+          "target": "peak",
+          "max_modes": 0,
+          "mode_thr": 0.008,
+          "cert": "weight",
+          "solver": "se2",
+          "ransac": "default"
+        },
+        "key": "reproj=3 target=peak max_modes=all thr=0.008 cert=weight solver=se2 ransac=default",
+        "select": {
+          "n": 500,
+          "median_m": 1.8213056076512792,
+          "median_ci": [
+            1.7042020371589552,
+            1.9414280997032907
+          ],
+          "mean_m": 2.9559718554721397,
+          "r5": 0.872,
+          "r10": 0.952,
+          "gross": 0.048,
+          "no_pose": 0,
+          "modes_mean": 1302.21,
+          "inlier_mean": 0.8736139462602267
+        }
+      },
+      {
+        "factor": "cert",
+        "value": "uniform",
+        "config": {
+          "reproj_cells": 3.0,
+          "target": "peak",
+          "max_modes": 0,
+          "mode_thr": 0.008,
+          "cert": "uniform",
+          "solver": "se2",
+          "ransac": "default"
+        },
+        "key": "reproj=3 target=peak max_modes=all thr=0.008 cert=uniform solver=se2 ransac=default",
+        "select": {
+          "n": 500,
+          "median_m": 1.7934111518587028,
+          "median_ci": [
+            1.6917376164923814,
+            1.9514230713603555
+          ],
+          "mean_m": 2.9558667278311606,
+          "r5": 0.876,
+          "r10": 0.952,
+          "gross": 0.048,
+          "no_pose": 0,
+          "modes_mean": 1302.21,
+          "inlier_mean": 0.8737041540548592
+        }
+      },
+      {
+        "factor": "cert",
+        "value": "filter",
+        "config": {
+          "reproj_cells": 3.0,
+          "target": "peak",
+          "max_modes": 0,
+          "mode_thr": 0.008,
+          "cert": "filter",
+          "solver": "se2",
+          "ransac": "default"
+        },
+        "key": "reproj=3 target=peak max_modes=all thr=0.008 cert=filter solver=se2 ransac=default",
+        "select": {
+          "n": 500,
+          "median_m": 1.8302556035703836,
+          "median_ci": [
+            1.699248577454941,
+            1.9977371800688513
+          ],
+          "mean_m": 2.9909452622754693,
+          "r5": 0.876,
+          "r10": 0.95,
+          "gross": 0.05,
+          "no_pose": 0,
+          "modes_mean": 969.896,
+          "inlier_mean": 0.9268218487404133
+        }
+      },
+      {
+        "factor": "solver",
+        "value": "sim",
+        "config": {
+          "reproj_cells": 3.0,
+          "target": "peak",
+          "max_modes": 0,
+          "mode_thr": 0.008,
+          "cert": "off",
+          "solver": "sim",
+          "ransac": "default"
+        },
+        "key": "reproj=3 target=peak max_modes=all thr=0.008 cert=off solver=sim ransac=default",
+        "select": {
+          "n": 500,
+          "median_m": 1.83162803910501,
+          "median_ci": [
+            1.7100465319640463,
+            1.9746420931047302
+          ],
+          "mean_m": 2.962724254279511,
+          "r5": 0.872,
+          "r10": 0.948,
+          "gross": 0.052,
+          "no_pose": 0,
+          "modes_mean": 1302.21,
+          "inlier_mean": 0.8968906597451662
+        }
+      },
+      {
+        "factor": "solver",
+        "value": "srt",
+        "config": {
+          "reproj_cells": 3.0,
+          "target": "peak",
+          "max_modes": 0,
+          "mode_thr": 0.008,
+          "cert": "off",
+          "solver": "srt",
+          "ransac": "default"
+        },
+        "key": "reproj=3 target=peak max_modes=all thr=0.008 cert=off solver=srt ransac=default",
+        "select": {
+          "n": 500,
+          "median_m": 1.86902947150837,
+          "median_ci": [
+            1.7621602823508367,
+            1.997425304217337
+          ],
+          "mean_m": 3.0025141651509384,
+          "r5": 0.874,
+          "r10": 0.948,
+          "gross": 0.052,
+          "no_pose": 0,
+          "modes_mean": 1302.21,
+          "inlier_mean": 0.8688454997489553
+        }
+      },
+      {
+        "factor": "ransac",
+        "value": "4x",
+        "config": {
+          "reproj_cells": 3.0,
+          "target": "peak",
+          "max_modes": 0,
+          "mode_thr": 0.008,
+          "cert": "off",
+          "solver": "se2",
+          "ransac": "4x"
+        },
+        "key": "reproj=3 target=peak max_modes=all thr=0.008 cert=off solver=se2 ransac=4x",
+        "select": {
+          "n": 500,
+          "median_m": 1.81467587306947,
+          "median_ci": [
+            1.699413522165975,
+            1.9534838352812878
+          ],
+          "mean_m": 2.954083846840548,
+          "r5": 0.876,
+          "r10": 0.952,
+          "gross": 0.048,
+          "no_pose": 0,
+          "modes_mean": 1302.21,
+          "inlier_mean": 0.8736147428239215
+        }
+      }
+    ],
+    "sensitivity": {
+      "reproj_cells": 0.2062171509534021,
+      "target": 0.03429906610414424,
+      "max_modes": 0.017328195016170778,
+      "mode_thr": 0.059952764371690836,
+      "cert": 0.036844451711680826,
+      "solver": 0.05910560570970347,
+      "ransac": 0.004752007270803604
+    },
+    "joint_factors": [
+      "reproj_cells",
+      "mode_thr",
+      "solver"
+    ],
+    "joint": [
+      {
+        "factors": [
+          "reproj_cells",
+          "mode_thr",
+          "solver"
+        ],
+        "config": {
+          "reproj_cells": 0.5,
+          "target": "peak",
+          "max_modes": 0,
+          "mode_thr": 0.004,
+          "cert": "off",
+          "solver": "se2",
+          "ransac": "default"
+        },
+        "key": "reproj=0.5 target=peak max_modes=all thr=0.004 cert=off solver=se2 ransac=default",
+        "select": {
+          "n": 500,
+          "median_m": 1.9559212463370552,
+          "median_ci": [
+            1.821014703348069,
+            2.1275159632403096
+          ],
+          "mean_m": 3.2103155289419942,
+          "r5": 0.856,
+          "r10": 0.94,
+          "gross": 0.06,
+          "no_pose": 0,
+          "modes_mean": 1417.9,
+          "inlier_mean": 0.3476685493746268
+        }
+      },
+      {
+        "factors": [
+          "reproj_cells",
+          "mode_thr",
+          "solver"
+        ],
+        "config": {
+          "reproj_cells": 0.5,
+          "target": "peak",
+          "max_modes": 0,
+          "mode_thr": 0.004,
+          "cert": "off",
+          "solver": "sim",
+          "ransac": "default"
+        },
+        "key": "reproj=0.5 target=peak max_modes=all thr=0.004 cert=off solver=sim ransac=default",
+        "select": {
+          "n": 500,
+          "median_m": 2.060136582838045,
+          "median_ci": [
+            1.8885340566723654,
+            2.243028509025555
+          ],
+          "mean_m": 3.275000419691921,
+          "r5": 0.852,
+          "r10": 0.94,
+          "gross": 0.06,
+          "no_pose": 0,
+          "modes_mean": 1417.9,
+          "inlier_mean": 0.36345368713048165
+        }
+      },
+      {
+        "factors": [
+          "reproj_cells",
+          "mode_thr",
+          "solver"
+        ],
+        "config": {
+          "reproj_cells": 0.5,
+          "target": "peak",
+          "max_modes": 0,
+          "mode_thr": 0.004,
+          "cert": "off",
+          "solver": "srt",
+          "ransac": "default"
+        },
+        "key": "reproj=0.5 target=peak max_modes=all thr=0.004 cert=off solver=srt ransac=default",
+        "select": {
+          "n": 500,
+          "median_m": 2.071788845585771,
+          "median_ci": [
+            1.8808838665903136,
+            2.2066320232142393
+          ],
+          "mean_m": 3.257608952216782,
+          "r5": 0.854,
+          "r10": 0.942,
+          "gross": 0.058,
+          "no_pose": 0,
+          "modes_mean": 1417.9,
+          "inlier_mean": 0.3788472986231729
+        }
+      },
+      {
+        "factors": [
+          "reproj_cells",
+          "mode_thr",
+          "solver"
+        ],
+        "config": {
+          "reproj_cells": 0.5,
+          "target": "peak",
+          "max_modes": 0,
+          "mode_thr": 0.008,
+          "cert": "off",
+          "solver": "sim",
+          "ransac": "default"
+        },
+        "key": "reproj=0.5 target=peak max_modes=all thr=0.008 cert=off solver=sim ransac=default",
+        "select": {
+          "n": 500,
+          "median_m": 2.0200405617795854,
+          "median_ci": [
+            1.8590621877798656,
+            2.184190872431203
+          ],
+          "mean_m": 3.262175726183171,
+          "r5": 0.852,
+          "r10": 0.94,
+          "gross": 0.06,
+          "no_pose": 0,
+          "modes_mean": 1302.21,
+          "inlier_mean": 0.3674476595128574
+        }
+      },
+      {
+        "factors": [
+          "reproj_cells",
+          "mode_thr",
+          "solver"
+        ],
+        "config": {
+          "reproj_cells": 0.5,
+          "target": "peak",
+          "max_modes": 0,
+          "mode_thr": 0.008,
+          "cert": "off",
+          "solver": "srt",
+          "ransac": "default"
+        },
+        "key": "reproj=0.5 target=peak max_modes=all thr=0.008 cert=off solver=srt ransac=default",
+        "select": {
+          "n": 500,
+          "median_m": 2.0295493110114418,
+          "median_ci": [
+            1.8832116967034513,
+            2.207661502348795
+          ],
+          "mean_m": 3.2497460532599773,
+          "r5": 0.854,
+          "r10": 0.94,
+          "gross": 0.06,
+          "no_pose": 0,
+          "modes_mean": 1302.21,
+          "inlier_mean": 0.3848756443937445
+        }
+      },
+      {
+        "factors": [
+          "reproj_cells",
+          "mode_thr",
+          "solver"
+        ],
+        "config": {
+          "reproj_cells": 0.5,
+          "target": "peak",
+          "max_modes": 0,
+          "mode_thr": 0.016,
+          "cert": "off",
+          "solver": "se2",
+          "ransac": "default"
+        },
+        "key": "reproj=0.5 target=peak max_modes=all thr=0.016 cert=off solver=se2 ransac=default",
+        "select": {
+          "n": 500,
+          "median_m": 1.9745299293775913,
+          "median_ci": [
+            1.8195266307108056,
+            2.136558978972532
+          ],
+          "mean_m": 3.2056353687494736,
+          "r5": 0.852,
+          "r10": 0.94,
+          "gross": 0.06,
+          "no_pose": 0,
+          "modes_mean": 1162.628,
+          "inlier_mean": 0.3673968952697741
+        }
+      },
+      {
+        "factors": [
+          "reproj_cells",
+          "mode_thr",
+          "solver"
+        ],
+        "config": {
+          "reproj_cells": 0.5,
+          "target": "peak",
+          "max_modes": 0,
+          "mode_thr": 0.016,
+          "cert": "off",
+          "solver": "sim",
+          "ransac": "default"
+        },
+        "key": "reproj=0.5 target=peak max_modes=all thr=0.016 cert=off solver=sim ransac=default",
+        "select": {
+          "n": 500,
+          "median_m": 2.008144091605529,
+          "median_ci": [
+            1.8588593572841847,
+            2.2108333516218823
+          ],
+          "mean_m": 3.2685388837624894,
+          "r5": 0.854,
+          "r10": 0.938,
+          "gross": 0.062,
+          "no_pose": 0,
+          "modes_mean": 1162.628,
+          "inlier_mean": 0.38381649165493015
+        }
+      },
+      {
+        "factors": [
+          "reproj_cells",
+          "mode_thr",
+          "solver"
+        ],
+        "config": {
+          "reproj_cells": 0.5,
+          "target": "peak",
+          "max_modes": 0,
+          "mode_thr": 0.016,
+          "cert": "off",
+          "solver": "srt",
+          "ransac": "default"
+        },
+        "key": "reproj=0.5 target=peak max_modes=all thr=0.016 cert=off solver=srt ransac=default",
+        "select": {
+          "n": 500,
+          "median_m": 2.013571818513272,
+          "median_ci": [
+            1.8906019349043797,
+            2.2106694289945366
+          ],
+          "mean_m": 3.2566695794389324,
+          "r5": 0.854,
+          "r10": 0.938,
+          "gross": 0.062,
+          "no_pose": 0,
+          "modes_mean": 1162.628,
+          "inlier_mean": 0.4006850581514985
+        }
+      },
+      {
+        "factors": [
+          "reproj_cells",
+          "mode_thr",
+          "solver"
+        ],
+        "config": {
+          "reproj_cells": 0.5,
+          "target": "peak",
+          "max_modes": 0,
+          "mode_thr": 0.03,
+          "cert": "off",
+          "solver": "se2",
+          "ransac": "default"
+        },
+        "key": "reproj=0.5 target=peak max_modes=all thr=0.03 cert=off solver=se2 ransac=default",
+        "select": {
+          "n": 500,
+          "median_m": 1.976973994190223,
+          "median_ci": [
+            1.8122371061173839,
+            2.1260574522191393
+          ],
+          "mean_m": 20.90897792109348,
+          "r5": 0.858,
+          "r10": 0.94,
+          "gross": 0.06,
+          "no_pose": 9,
+          "modes_mean": 991.394,
+          "inlier_mean": 0.39563035915846784
+        }
+      },
+      {
+        "factors": [
+          "reproj_cells",
+          "mode_thr",
+          "solver"
+        ],
+        "config": {
+          "reproj_cells": 0.5,
+          "target": "peak",
+          "max_modes": 0,
+          "mode_thr": 0.03,
+          "cert": "off",
+          "solver": "sim",
+          "ransac": "default"
+        },
+        "key": "reproj=0.5 target=peak max_modes=all thr=0.03 cert=off solver=sim ransac=default",
+        "select": {
+          "n": 500,
+          "median_m": 2.0075847141024945,
+          "median_ci": [
+            1.8611139972674509,
+            2.2382121129388515
+          ],
+          "mean_m": 20.96055083071858,
+          "r5": 0.854,
+          "r10": 0.936,
+          "gross": 0.064,
+          "no_pose": 9,
+          "modes_mean": 991.394,
+          "inlier_mean": 0.4093484522325005
+        }
+      },
+      {
+        "factors": [
+          "reproj_cells",
+          "mode_thr",
+          "solver"
+        ],
+        "config": {
+          "reproj_cells": 0.5,
+          "target": "peak",
+          "max_modes": 0,
+          "mode_thr": 0.03,
+          "cert": "off",
+          "solver": "srt",
+          "ransac": "default"
+        },
+        "key": "reproj=0.5 target=peak max_modes=all thr=0.03 cert=off solver=srt ransac=default",
+        "select": {
+          "n": 500,
+          "median_m": 2.040514831333856,
+          "median_ci": [
+            1.8933207209648466,
+            2.212271895354204
+          ],
+          "mean_m": 30.248135097168372,
+          "r5": 0.852,
+          "r10": 0.93,
+          "gross": 0.07,
+          "no_pose": 13,
+          "modes_mean": 991.394,
+          "inlier_mean": 0.4182620083605842
+        }
+      },
+      {
+        "factors": [
+          "reproj_cells",
+          "mode_thr",
+          "solver"
+        ],
+        "config": {
+          "reproj_cells": 0.5,
+          "target": "peak",
+          "max_modes": 0,
+          "mode_thr": 0.06,
+          "cert": "off",
+          "solver": "se2",
+          "ransac": "default"
+        },
+        "key": "reproj=0.5 target=peak max_modes=all thr=0.06 cert=off solver=se2 ransac=default",
+        "select": {
+          "n": 500,
+          "median_m": 2.05288304428135,
+          "median_ci": [
+            1.9238259624183685,
+            2.2334954640206446
+          ],
+          "mean_m": 118.13710038597077,
+          "r5": 0.816,
+          "r10": 0.866,
+          "gross": 0.134,
+          "no_pose": 58,
+          "modes_mean": 646.322,
+          "inlier_mean": 0.4563042813976543
+        }
+      },
+      {
+        "factors": [
+          "reproj_cells",
+          "mode_thr",
+          "solver"
+        ],
+        "config": {
+          "reproj_cells": 0.5,
+          "target": "peak",
+          "max_modes": 0,
+          "mode_thr": 0.06,
+          "cert": "off",
+          "solver": "sim",
+          "ransac": "default"
+        },
+        "key": "reproj=0.5 target=peak max_modes=all thr=0.06 cert=off solver=sim ransac=default",
+        "select": {
+          "n": 500,
+          "median_m": 2.1028185970584934,
+          "median_ci": [
+            1.930642105923737,
+            2.259437955262359
+          ],
+          "mean_m": 114.21817842016638,
+          "r5": 0.808,
+          "r10": 0.872,
+          "gross": 0.128,
+          "no_pose": 56,
+          "modes_mean": 646.322,
+          "inlier_mean": 0.4655283923094752
+        }
+      },
+      {
+        "factors": [
+          "reproj_cells",
+          "mode_thr",
+          "solver"
+        ],
+        "config": {
+          "reproj_cells": 0.5,
+          "target": "peak",
+          "max_modes": 0,
+          "mode_thr": 0.06,
+          "cert": "off",
+          "solver": "srt",
+          "ransac": "default"
+        },
+        "key": "reproj=0.5 target=peak max_modes=all thr=0.06 cert=off solver=srt ransac=default",
+        "select": {
+          "n": 500,
+          "median_m": 2.093655639262836,
+          "median_ci": [
+            1.9600143027527945,
+            2.3093427164059657
+          ],
+          "mean_m": 160.05856325191047,
+          "r5": 0.774,
+          "r10": 0.828,
+          "gross": 0.172,
+          "no_pose": 79,
+          "modes_mean": 646.322,
+          "inlier_mean": 0.4361058393541159
+        }
+      },
+      {
+        "factors": [
+          "reproj_cells",
+          "mode_thr",
+          "solver"
+        ],
+        "config": {
+          "reproj_cells": 0.75,
+          "target": "peak",
+          "max_modes": 0,
+          "mode_thr": 0.004,
+          "cert": "off",
+          "solver": "se2",
+          "ransac": "default"
+        },
+        "key": "reproj=0.75 target=peak max_modes=all thr=0.004 cert=off solver=se2 ransac=default",
+        "select": {
+          "n": 500,
+          "median_m": 1.85498330493276,
+          "median_ci": [
+            1.789842581296492,
+            2.0048392679254947
+          ],
+          "mean_m": 3.1165753534508385,
+          "r5": 0.856,
+          "r10": 0.946,
+          "gross": 0.054,
+          "no_pose": 0,
+          "modes_mean": 1417.9,
+          "inlier_mean": 0.4986282606899713
+        }
+      },
+      {
+        "factors": [
+          "reproj_cells",
+          "mode_thr",
+          "solver"
+        ],
+        "config": {
+          "reproj_cells": 0.75,
+          "target": "peak",
+          "max_modes": 0,
+          "mode_thr": 0.004,
+          "cert": "off",
+          "solver": "sim",
+          "ransac": "default"
+        },
+        "key": "reproj=0.75 target=peak max_modes=all thr=0.004 cert=off solver=sim ransac=default",
+        "select": {
+          "n": 500,
+          "median_m": 2.007728117880727,
+          "median_ci": [
+            1.8170264947298984,
+            2.121339770031822
+          ],
+          "mean_m": 3.110443929597295,
+          "r5": 0.866,
+          "r10": 0.946,
+          "gross": 0.054,
+          "no_pose": 0,
+          "modes_mean": 1417.9,
+          "inlier_mean": 0.4869035047327627
+        }
+      },
+      {
+        "factors": [
+          "reproj_cells",
+          "mode_thr",
+          "solver"
+        ],
+        "config": {
+          "reproj_cells": 0.75,
+          "target": "peak",
+          "max_modes": 0,
+          "mode_thr": 0.004,
+          "cert": "off",
+          "solver": "srt",
+          "ransac": "default"
+        },
+        "key": "reproj=0.75 target=peak max_modes=all thr=0.004 cert=off solver=srt ransac=default",
+        "select": {
+          "n": 500,
+          "median_m": 1.8905490846874407,
+          "median_ci": [
+            1.7808290101896465,
+            2.0808666635037505
+          ],
+          "mean_m": 3.0948290834693646,
+          "r5": 0.864,
+          "r10": 0.948,
+          "gross": 0.052,
+          "no_pose": 0,
+          "modes_mean": 1417.9,
+          "inlier_mean": 0.49898395916040217
+        }
+      },
+      {
+        "factors": [
+          "reproj_cells",
+          "mode_thr",
+          "solver"
+        ],
+        "config": {
+          "reproj_cells": 0.75,
+          "target": "peak",
+          "max_modes": 0,
+          "mode_thr": 0.008,
+          "cert": "off",
+          "solver": "sim",
+          "ransac": "default"
+        },
+        "key": "reproj=0.75 target=peak max_modes=all thr=0.008 cert=off solver=sim ransac=default",
+        "select": {
+          "n": 500,
+          "median_m": 1.9314469137564507,
+          "median_ci": [
+            1.8001675233694752,
+            2.1166486247795913
+          ],
+          "mean_m": 3.202725127888968,
+          "r5": 0.86,
+          "r10": 0.94,
+          "gross": 0.06,
+          "no_pose": 0,
+          "modes_mean": 1302.21,
+          "inlier_mean": 0.4908600756047072
+        }
+      },
+      {
+        "factors": [
+          "reproj_cells",
+          "mode_thr",
+          "solver"
+        ],
+        "config": {
+          "reproj_cells": 0.75,
+          "target": "peak",
+          "max_modes": 0,
+          "mode_thr": 0.008,
+          "cert": "off",
+          "solver": "srt",
+          "ransac": "default"
+        },
+        "key": "reproj=0.75 target=peak max_modes=all thr=0.008 cert=off solver=srt ransac=default",
+        "select": {
+          "n": 500,
+          "median_m": 1.9184084206294205,
+          "median_ci": [
+            1.7792755817096741,
+            2.0819249898562813
+          ],
+          "mean_m": 3.099301981801548,
+          "r5": 0.858,
+          "r10": 0.948,
+          "gross": 0.052,
+          "no_pose": 0,
+          "modes_mean": 1302.21,
+          "inlier_mean": 0.5060100805253325
+        }
+      },
+      {
+        "factors": [
+          "reproj_cells",
+          "mode_thr",
+          "solver"
+        ],
+        "config": {
+          "reproj_cells": 0.75,
+          "target": "peak",
+          "max_modes": 0,
+          "mode_thr": 0.016,
+          "cert": "off",
+          "solver": "se2",
+          "ransac": "default"
+        },
+        "key": "reproj=0.75 target=peak max_modes=all thr=0.016 cert=off solver=se2 ransac=default",
+        "select": {
+          "n": 500,
+          "median_m": 1.87386697156884,
+          "median_ci": [
+            1.7717036556286736,
+            2.0207128738237867
+          ],
+          "mean_m": 3.1238977910337473,
+          "r5": 0.854,
+          "r10": 0.944,
+          "gross": 0.056,
+          "no_pose": 0,
+          "modes_mean": 1162.628,
+          "inlier_mean": 0.5241944357149241
+        }
+      },
+      {
+        "factors": [
+          "reproj_cells",
+          "mode_thr",
+          "solver"
+        ],
+        "config": {
+          "reproj_cells": 0.75,
+          "target": "peak",
+          "max_modes": 0,
+          "mode_thr": 0.016,
+          "cert": "off",
+          "solver": "sim",
+          "ransac": "default"
+        },
+        "key": "reproj=0.75 target=peak max_modes=all thr=0.016 cert=off solver=sim ransac=default",
+        "select": {
+          "n": 500,
+          "median_m": 1.9386947632134572,
+          "median_ci": [
+            1.795317916356161,
+            2.094786524252275
+          ],
+          "mean_m": 3.1826134873754914,
+          "r5": 0.856,
+          "r10": 0.94,
+          "gross": 0.06,
+          "no_pose": 0,
+          "modes_mean": 1162.628,
+          "inlier_mean": 0.50791718934196
+        }
+      },
+      {
+        "factors": [
+          "reproj_cells",
+          "mode_thr",
+          "solver"
+        ],
+        "config": {
+          "reproj_cells": 0.75,
+          "target": "peak",
+          "max_modes": 0,
+          "mode_thr": 0.016,
+          "cert": "off",
+          "solver": "srt",
+          "ransac": "default"
+        },
+        "key": "reproj=0.75 target=peak max_modes=all thr=0.016 cert=off solver=srt ransac=default",
+        "select": {
+          "n": 500,
+          "median_m": 1.9671697103766939,
+          "median_ci": [
+            1.8267059616489345,
+            2.088759469866372
+          ],
+          "mean_m": 3.1537120406736268,
+          "r5": 0.862,
+          "r10": 0.944,
+          "gross": 0.056,
+          "no_pose": 0,
+          "modes_mean": 1162.628,
+          "inlier_mean": 0.5191886370147706
+        }
+      },
+      {
+        "factors": [
+          "reproj_cells",
+          "mode_thr",
+          "solver"
+        ],
+        "config": {
+          "reproj_cells": 0.75,
+          "target": "peak",
+          "max_modes": 0,
+          "mode_thr": 0.03,
+          "cert": "off",
+          "solver": "se2",
+          "ransac": "default"
+        },
+        "key": "reproj=0.75 target=peak max_modes=all thr=0.03 cert=off solver=se2 ransac=default",
+        "select": {
+          "n": 500,
+          "median_m": 1.8862283101125477,
+          "median_ci": [
+            1.7614181942045044,
+            2.0286811717426074
+          ],
+          "mean_m": 20.85742454487266,
+          "r5": 0.856,
+          "r10": 0.94,
+          "gross": 0.06,
+          "no_pose": 9,
+          "modes_mean": 991.394,
+          "inlier_mean": 0.5607950638655205
+        }
+      },
+      {
+        "factors": [
+          "reproj_cells",
+          "mode_thr",
+          "solver"
+        ],
+        "config": {
+          "reproj_cells": 0.75,
+          "target": "peak",
+          "max_modes": 0,
+          "mode_thr": 0.03,
+          "cert": "off",
+          "solver": "sim",
+          "ransac": "default"
+        },
+        "key": "reproj=0.75 target=peak max_modes=all thr=0.03 cert=off solver=sim ransac=default",
+        "select": {
+          "n": 500,
+          "median_m": 1.913300054605362,
+          "median_ci": [
+            1.7976575427538135,
+            2.075969934919938
+          ],
+          "mean_m": 20.852006132424933,
+          "r5": 0.862,
+          "r10": 0.938,
+          "gross": 0.062,
+          "no_pose": 9,
+          "modes_mean": 991.394,
+          "inlier_mean": 0.5387017506293558
+        }
+      },
+      {
+        "factors": [
+          "reproj_cells",
+          "mode_thr",
+          "solver"
+        ],
+        "config": {
+          "reproj_cells": 0.75,
+          "target": "peak",
+          "max_modes": 0,
+          "mode_thr": 0.03,
+          "cert": "off",
+          "solver": "srt",
+          "ransac": "default"
+        },
+        "key": "reproj=0.75 target=peak max_modes=all thr=0.03 cert=off solver=srt ransac=default",
+        "select": {
+          "n": 500,
+          "median_m": 1.944932835446398,
+          "median_ci": [
+            1.8364929922454545,
+            2.0951176031111256
+          ],
+          "mean_m": 28.832409481852835,
+          "r5": 0.85,
+          "r10": 0.93,
+          "gross": 0.07,
+          "no_pose": 13,
+          "modes_mean": 991.394,
+          "inlier_mean": 0.5456375938673411
+        }
+      },
+      {
+        "factors": [
+          "reproj_cells",
+          "mode_thr",
+          "solver"
+        ],
+        "config": {
+          "reproj_cells": 0.75,
+          "target": "peak",
+          "max_modes": 0,
+          "mode_thr": 0.06,
+          "cert": "off",
+          "solver": "se2",
+          "ransac": "default"
+        },
+        "key": "reproj=0.75 target=peak max_modes=all thr=0.06 cert=off solver=se2 ransac=default",
+        "select": {
+          "n": 500,
+          "median_m": 1.9156366879984106,
+          "median_ci": [
+            1.7943810832975544,
+            2.0987864378004084
+          ],
+          "mean_m": 116.1343795347737,
+          "r5": 0.808,
+          "r10": 0.868,
+          "gross": 0.132,
+          "no_pose": 57,
+          "modes_mean": 646.322,
+          "inlier_mean": 0.629104006643918
+        }
+      },
+      {
+        "factors": [
+          "reproj_cells",
+          "mode_thr",
+          "solver"
+        ],
+        "config": {
+          "reproj_cells": 0.75,
+          "target": "peak",
+          "max_modes": 0,
+          "mode_thr": 0.06,
+          "cert": "off",
+          "solver": "sim",
+          "ransac": "default"
+        },
+        "key": "reproj=0.75 target=peak max_modes=all thr=0.06 cert=off solver=sim ransac=default",
+        "select": {
+          "n": 500,
+          "median_m": 1.9655315851056154,
+          "median_ci": [
+            1.8455789689699742,
+            2.124006194760673
+          ],
+          "mean_m": 114.14298126260266,
+          "r5": 0.814,
+          "r10": 0.872,
+          "gross": 0.128,
+          "no_pose": 56,
+          "modes_mean": 646.322,
+          "inlier_mean": 0.5923524376918815
+        }
+      },
+      {
+        "factors": [
+          "reproj_cells",
+          "mode_thr",
+          "solver"
+        ],
+        "config": {
+          "reproj_cells": 0.75,
+          "target": "peak",
+          "max_modes": 0,
+          "mode_thr": 0.06,
+          "cert": "off",
+          "solver": "srt",
+          "ransac": "default"
+        },
+        "key": "reproj=0.75 target=peak max_modes=all thr=0.06 cert=off solver=srt ransac=default",
+        "select": {
+          "n": 500,
+          "median_m": 2.0202902308025843,
+          "median_ci": [
+            1.8816951543803229,
+            2.251476036294492
+          ],
+          "mean_m": 159.9906900887343,
+          "r5": 0.776,
+          "r10": 0.828,
+          "gross": 0.172,
+          "no_pose": 79,
+          "modes_mean": 646.322,
+          "inlier_mean": 0.5435452129734613
+        }
+      },
+      {
+        "factors": [
+          "reproj_cells",
+          "mode_thr",
+          "solver"
+        ],
+        "config": {
+          "reproj_cells": 1.0,
+          "target": "peak",
+          "max_modes": 0,
+          "mode_thr": 0.004,
+          "cert": "off",
+          "solver": "se2",
+          "ransac": "default"
+        },
+        "key": "reproj=1 target=peak max_modes=all thr=0.004 cert=off solver=se2 ransac=default",
+        "select": {
+          "n": 500,
+          "median_m": 1.8528508745055419,
+          "median_ci": [
+            1.7021843037229574,
+            1.976925884264682
+          ],
+          "mean_m": 3.01418419894103,
+          "r5": 0.862,
+          "r10": 0.95,
+          "gross": 0.05,
+          "no_pose": 0,
+          "modes_mean": 1417.9,
+          "inlier_mean": 0.5968590642512602
+        }
+      },
+      {
+        "factors": [
+          "reproj_cells",
+          "mode_thr",
+          "solver"
+        ],
+        "config": {
+          "reproj_cells": 1.0,
+          "target": "peak",
+          "max_modes": 0,
+          "mode_thr": 0.004,
+          "cert": "off",
+          "solver": "sim",
+          "ransac": "default"
+        },
+        "key": "reproj=1 target=peak max_modes=all thr=0.004 cert=off solver=sim ransac=default",
+        "select": {
+          "n": 500,
+          "median_m": 1.8801621798127335,
+          "median_ci": [
+            1.7445768254349139,
+            2.020265969677091
+          ],
+          "mean_m": 3.0644199501971108,
+          "r5": 0.86,
+          "r10": 0.948,
+          "gross": 0.052,
+          "no_pose": 0,
+          "modes_mean": 1417.9,
+          "inlier_mean": 0.6139854736030238
+        }
+      },
+      {
+        "factors": [
+          "reproj_cells",
+          "mode_thr",
+          "solver"
+        ],
+        "config": {
+          "reproj_cells": 1.0,
+          "target": "peak",
+          "max_modes": 0,
+          "mode_thr": 0.004,
+          "cert": "off",
+          "solver": "srt",
+          "ransac": "default"
+        },
+        "key": "reproj=1 target=peak max_modes=all thr=0.004 cert=off solver=srt ransac=default",
+        "select": {
+          "n": 500,
+          "median_m": 1.8777531483167524,
+          "median_ci": [
+            1.7508995049336495,
+            2.0624499780895014
+          ],
+          "mean_m": 3.048194466499494,
+          "r5": 0.864,
+          "r10": 0.95,
+          "gross": 0.05,
+          "no_pose": 0,
+          "modes_mean": 1417.9,
+          "inlier_mean": 0.6043550780869851
+        }
+      },
+      {
+        "factors": [
+          "reproj_cells",
+          "mode_thr",
+          "solver"
+        ],
+        "config": {
+          "reproj_cells": 1.0,
+          "target": "peak",
+          "max_modes": 0,
+          "mode_thr": 0.008,
+          "cert": "off",
+          "solver": "sim",
+          "ransac": "default"
+        },
+        "key": "reproj=1 target=peak max_modes=all thr=0.008 cert=off solver=sim ransac=default",
+        "select": {
+          "n": 500,
+          "median_m": 1.8365026737106604,
+          "median_ci": [
+            1.734201227263491,
+            2.0003354850535082
+          ],
+          "mean_m": 3.0538268909916573,
+          "r5": 0.858,
+          "r10": 0.95,
+          "gross": 0.05,
+          "no_pose": 0,
+          "modes_mean": 1302.21,
+          "inlier_mean": 0.6196917294052996
+        }
+      },
+      {
+        "factors": [
+          "reproj_cells",
+          "mode_thr",
+          "solver"
+        ],
+        "config": {
+          "reproj_cells": 1.0,
+          "target": "peak",
+          "max_modes": 0,
+          "mode_thr": 0.008,
+          "cert": "off",
+          "solver": "srt",
+          "ransac": "default"
+        },
+        "key": "reproj=1 target=peak max_modes=all thr=0.008 cert=off solver=srt ransac=default",
+        "select": {
+          "n": 500,
+          "median_m": 1.8740440659689819,
+          "median_ci": [
+            1.7530563348914747,
+            2.0475002196399874
+          ],
+          "mean_m": 3.0504973335169807,
+          "r5": 0.866,
+          "r10": 0.95,
+          "gross": 0.05,
+          "no_pose": 0,
+          "modes_mean": 1302.21,
+          "inlier_mean": 0.6092716505614592
+        }
+      },
+      {
+        "factors": [
+          "reproj_cells",
+          "mode_thr",
+          "solver"
+        ],
+        "config": {
+          "reproj_cells": 1.0,
+          "target": "peak",
+          "max_modes": 0,
+          "mode_thr": 0.016,
+          "cert": "off",
+          "solver": "se2",
+          "ransac": "default"
+        },
+        "key": "reproj=1 target=peak max_modes=all thr=0.016 cert=off solver=se2 ransac=default",
+        "select": {
+          "n": 500,
+          "median_m": 1.8800910917703717,
+          "median_ci": [
+            1.7258349673337712,
+            1.9808186025403653
+          ],
+          "mean_m": 3.0740730901318343,
+          "r5": 0.858,
+          "r10": 0.946,
+          "gross": 0.054,
+          "no_pose": 0,
+          "modes_mean": 1162.628,
+          "inlier_mean": 0.6253615771813201
+        }
+      },
+      {
+        "factors": [
+          "reproj_cells",
+          "mode_thr",
+          "solver"
+        ],
+        "config": {
+          "reproj_cells": 1.0,
+          "target": "peak",
+          "max_modes": 0,
+          "mode_thr": 0.016,
+          "cert": "off",
+          "solver": "sim",
+          "ransac": "default"
+        },
+        "key": "reproj=1 target=peak max_modes=all thr=0.016 cert=off solver=sim ransac=default",
+        "select": {
+          "n": 500,
+          "median_m": 1.8650777308534723,
+          "median_ci": [
+            1.7346404065861445,
+            2.0330877603172306
+          ],
+          "mean_m": 3.076093066656166,
+          "r5": 0.864,
+          "r10": 0.948,
+          "gross": 0.052,
+          "no_pose": 0,
+          "modes_mean": 1162.628,
+          "inlier_mean": 0.6418025827967581
+        }
+      },
+      {
+        "factors": [
+          "reproj_cells",
+          "mode_thr",
+          "solver"
+        ],
+        "config": {
+          "reproj_cells": 1.0,
+          "target": "peak",
+          "max_modes": 0,
+          "mode_thr": 0.016,
+          "cert": "off",
+          "solver": "srt",
+          "ransac": "default"
+        },
+        "key": "reproj=1 target=peak max_modes=all thr=0.016 cert=off solver=srt ransac=default",
+        "select": {
+          "n": 500,
+          "median_m": 1.9129915613123298,
+          "median_ci": [
+            1.7936066506674537,
+            2.0821607708481653
+          ],
+          "mean_m": 3.126247466928193,
+          "r5": 0.86,
+          "r10": 0.946,
+          "gross": 0.054,
+          "no_pose": 0,
+          "modes_mean": 1162.628,
+          "inlier_mean": 0.6316712394191234
+        }
+      },
+      {
+        "factors": [
+          "reproj_cells",
+          "mode_thr",
+          "solver"
+        ],
+        "config": {
+          "reproj_cells": 1.0,
+          "target": "peak",
+          "max_modes": 0,
+          "mode_thr": 0.03,
+          "cert": "off",
+          "solver": "se2",
+          "ransac": "default"
+        },
+        "key": "reproj=1 target=peak max_modes=all thr=0.03 cert=off solver=se2 ransac=default",
+        "select": {
+          "n": 500,
+          "median_m": 1.849727208176239,
+          "median_ci": [
+            1.730836253534497,
+            2.0106310159241683
+          ],
+          "mean_m": 20.796362301500885,
+          "r5": 0.862,
+          "r10": 0.942,
+          "gross": 0.058,
+          "no_pose": 9,
+          "modes_mean": 991.394,
+          "inlier_mean": 0.6656790665374784
+        }
+      },
+      {
+        "factors": [
+          "reproj_cells",
+          "mode_thr",
+          "solver"
+        ],
+        "config": {
+          "reproj_cells": 1.0,
+          "target": "peak",
+          "max_modes": 0,
+          "mode_thr": 0.03,
+          "cert": "off",
+          "solver": "sim",
+          "ransac": "default"
+        },
+        "key": "reproj=1 target=peak max_modes=all thr=0.03 cert=off solver=sim ransac=default",
+        "select": {
+          "n": 500,
+          "median_m": 1.8592963837542786,
+          "median_ci": [
+            1.7320679457735562,
+            1.9785496914826661
+          ],
+          "mean_m": 20.800223839181612,
+          "r5": 0.862,
+          "r10": 0.938,
+          "gross": 0.062,
+          "no_pose": 9,
+          "modes_mean": 991.394,
+          "inlier_mean": 0.6774851424423134
+        }
+      },
+      {
+        "factors": [
+          "reproj_cells",
+          "mode_thr",
+          "solver"
+        ],
+        "config": {
+          "reproj_cells": 1.0,
+          "target": "peak",
+          "max_modes": 0,
+          "mode_thr": 0.03,
+          "cert": "off",
+          "solver": "srt",
+          "ransac": "default"
+        },
+        "key": "reproj=1 target=peak max_modes=all thr=0.03 cert=off solver=srt ransac=default",
+        "select": {
+          "n": 500,
+          "median_m": 1.8832386350144645,
+          "median_ci": [
+            1.7730816146942252,
+            2.0373391495532163
+          ],
+          "mean_m": 28.932450701059402,
+          "r5": 0.858,
+          "r10": 0.932,
+          "gross": 0.068,
+          "no_pose": 13,
+          "modes_mean": 991.394,
+          "inlier_mean": 0.6542647294369082
+        }
+      },
+      {
+        "factors": [
+          "reproj_cells",
+          "mode_thr",
+          "solver"
+        ],
+        "config": {
+          "reproj_cells": 1.0,
+          "target": "peak",
+          "max_modes": 0,
+          "mode_thr": 0.06,
+          "cert": "off",
+          "solver": "se2",
+          "ransac": "default"
+        },
+        "key": "reproj=1 target=peak max_modes=all thr=0.06 cert=off solver=se2 ransac=default",
+        "select": {
+          "n": 500,
+          "median_m": 1.9111794344481638,
+          "median_ci": [
+            1.7842796919640742,
+            2.0550446916914478
+          ],
+          "mean_m": 114.11820135406052,
+          "r5": 0.814,
+          "r10": 0.87,
+          "gross": 0.13,
+          "no_pose": 56,
+          "modes_mean": 646.322,
+          "inlier_mean": 0.7252956705327576
+        }
+      },
+      {
+        "factors": [
+          "reproj_cells",
+          "mode_thr",
+          "solver"
+        ],
+        "config": {
+          "reproj_cells": 1.0,
+          "target": "peak",
+          "max_modes": 0,
+          "mode_thr": 0.06,
+          "cert": "off",
+          "solver": "sim",
+          "ransac": "default"
+        },
+        "key": "reproj=1 target=peak max_modes=all thr=0.06 cert=off solver=sim ransac=default",
+        "select": {
+          "n": 500,
+          "median_m": 1.9448882442295166,
+          "median_ci": [
+            1.813419225553787,
+            2.122676677514561
+          ],
+          "mean_m": 114.15811593164241,
+          "r5": 0.81,
+          "r10": 0.87,
+          "gross": 0.13,
+          "no_pose": 56,
+          "modes_mean": 646.322,
+          "inlier_mean": 0.732054043195176
+        }
+      },
+      {
+        "factors": [
+          "reproj_cells",
+          "mode_thr",
+          "solver"
+        ],
+        "config": {
+          "reproj_cells": 1.0,
+          "target": "peak",
+          "max_modes": 0,
+          "mode_thr": 0.06,
+          "cert": "off",
+          "solver": "srt",
+          "ransac": "default"
+        },
+        "key": "reproj=1 target=peak max_modes=all thr=0.06 cert=off solver=srt ransac=default",
+        "select": {
+          "n": 500,
+          "median_m": 2.030285673938398,
+          "median_ci": [
+            1.8524693187697685,
+            2.2593880793544274
+          ],
+          "mean_m": 160.01434746720113,
+          "r5": 0.776,
+          "r10": 0.826,
+          "gross": 0.174,
+          "no_pose": 79,
+          "modes_mean": 646.322,
+          "inlier_mean": 0.6388237543290216
+        }
+      },
+      {
+        "factors": [
+          "reproj_cells",
+          "mode_thr",
+          "solver"
+        ],
+        "config": {
+          "reproj_cells": 1.5,
+          "target": "peak",
+          "max_modes": 0,
+          "mode_thr": 0.004,
+          "cert": "off",
+          "solver": "se2",
+          "ransac": "default"
+        },
+        "key": "reproj=1.5 target=peak max_modes=all thr=0.004 cert=off solver=se2 ransac=default",
+        "select": {
+          "n": 500,
+          "median_m": 1.8225925394117684,
+          "median_ci": [
+            1.705605884282078,
+            1.9896425120833312
+          ],
+          "mean_m": 2.9712800077491464,
+          "r5": 0.878,
+          "r10": 0.95,
+          "gross": 0.05,
+          "no_pose": 0,
+          "modes_mean": 1417.9,
+          "inlier_mean": 0.7202594619529049
+        }
+      },
+      {
+        "factors": [
+          "reproj_cells",
+          "mode_thr",
+          "solver"
+        ],
+        "config": {
+          "reproj_cells": 1.5,
+          "target": "peak",
+          "max_modes": 0,
+          "mode_thr": 0.004,
+          "cert": "off",
+          "solver": "sim",
+          "ransac": "default"
+        },
+        "key": "reproj=1.5 target=peak max_modes=all thr=0.004 cert=off solver=sim ransac=default",
+        "select": {
+          "n": 500,
+          "median_m": 1.8046873896435283,
+          "median_ci": [
+            1.6745798799573166,
+            1.9538730271849238
+          ],
+          "mean_m": 2.9719834923617126,
+          "r5": 0.87,
+          "r10": 0.952,
+          "gross": 0.048,
+          "no_pose": 0,
+          "modes_mean": 1417.9,
+          "inlier_mean": 0.746387685669885
+        }
+      },
+      {
+        "factors": [
+          "reproj_cells",
+          "mode_thr",
+          "solver"
+        ],
+        "config": {
+          "reproj_cells": 1.5,
+          "target": "peak",
+          "max_modes": 0,
+          "mode_thr": 0.004,
+          "cert": "off",
+          "solver": "srt",
+          "ransac": "default"
+        },
+        "key": "reproj=1.5 target=peak max_modes=all thr=0.004 cert=off solver=srt ransac=default",
+        "select": {
+          "n": 500,
+          "median_m": 1.8760123284433146,
+          "median_ci": [
+            1.7265098905193688,
+            2.0161975581927853
+          ],
+          "mean_m": 3.058702208563719,
+          "r5": 0.868,
+          "r10": 0.95,
+          "gross": 0.05,
+          "no_pose": 0,
+          "modes_mean": 1417.9,
+          "inlier_mean": 0.7213750051993454
+        }
+      },
+      {
+        "factors": [
+          "reproj_cells",
+          "mode_thr",
+          "solver"
+        ],
+        "config": {
+          "reproj_cells": 1.5,
+          "target": "peak",
+          "max_modes": 0,
+          "mode_thr": 0.008,
+          "cert": "off",
+          "solver": "sim",
+          "ransac": "default"
+        },
+        "key": "reproj=1.5 target=peak max_modes=all thr=0.008 cert=off solver=sim ransac=default",
+        "select": {
+          "n": 500,
+          "median_m": 1.8496658676432234,
+          "median_ci": [
+            1.7180733244343178,
+            1.978534425571298
+          ],
+          "mean_m": 3.0152873083017186,
+          "r5": 0.864,
+          "r10": 0.95,
+          "gross": 0.05,
+          "no_pose": 0,
+          "modes_mean": 1302.21,
+          "inlier_mean": 0.7515860932113154
+        }
+      },
+      {
+        "factors": [
+          "reproj_cells",
+          "mode_thr",
+          "solver"
+        ],
+        "config": {
+          "reproj_cells": 1.5,
+          "target": "peak",
+          "max_modes": 0,
+          "mode_thr": 0.008,
+          "cert": "off",
+          "solver": "srt",
+          "ransac": "default"
+        },
+        "key": "reproj=1.5 target=peak max_modes=all thr=0.008 cert=off solver=srt ransac=default",
+        "select": {
+          "n": 500,
+          "median_m": 1.8181038266140188,
+          "median_ci": [
+            1.7103762726713203,
+            2.0338036270181816
+          ],
+          "mean_m": 3.0369519727417535,
+          "r5": 0.866,
+          "r10": 0.95,
+          "gross": 0.05,
+          "no_pose": 0,
+          "modes_mean": 1302.21,
+          "inlier_mean": 0.7269302829051878
+        }
+      },
+      {
+        "factors": [
+          "reproj_cells",
+          "mode_thr",
+          "solver"
+        ],
+        "config": {
+          "reproj_cells": 1.5,
+          "target": "peak",
+          "max_modes": 0,
+          "mode_thr": 0.016,
+          "cert": "off",
+          "solver": "se2",
+          "ransac": "default"
+        },
+        "key": "reproj=1.5 target=peak max_modes=all thr=0.016 cert=off solver=se2 ransac=default",
+        "select": {
+          "n": 500,
+          "median_m": 1.7968125246100637,
+          "median_ci": [
+            1.707320285651184,
+            1.9652747854005472
+          ],
+          "mean_m": 3.003741686496565,
+          "r5": 0.87,
+          "r10": 0.948,
+          "gross": 0.052,
+          "no_pose": 0,
+          "modes_mean": 1162.628,
+          "inlier_mean": 0.7500299699307775
+        }
+      },
+      {
+        "factors": [
+          "reproj_cells",
+          "mode_thr",
+          "solver"
+        ],
+        "config": {
+          "reproj_cells": 1.5,
+          "target": "peak",
+          "max_modes": 0,
+          "mode_thr": 0.016,
+          "cert": "off",
+          "solver": "sim",
+          "ransac": "default"
+        },
+        "key": "reproj=1.5 target=peak max_modes=all thr=0.016 cert=off solver=sim ransac=default",
+        "select": {
+          "n": 500,
+          "median_m": 1.8487308090041292,
+          "median_ci": [
+            1.723236093768081,
+            1.9491643858797159
+          ],
+          "mean_m": 3.009005403281383,
+          "r5": 0.864,
+          "r10": 0.95,
+          "gross": 0.05,
+          "no_pose": 0,
+          "modes_mean": 1162.628,
+          "inlier_mean": 0.7722897370045398
+        }
+      },
+      {
+        "factors": [
+          "reproj_cells",
+          "mode_thr",
+          "solver"
+        ],
+        "config": {
+          "reproj_cells": 1.5,
+          "target": "peak",
+          "max_modes": 0,
+          "mode_thr": 0.016,
+          "cert": "off",
+          "solver": "srt",
+          "ransac": "default"
+        },
+        "key": "reproj=1.5 target=peak max_modes=all thr=0.016 cert=off solver=srt ransac=default",
+        "select": {
+          "n": 500,
+          "median_m": 1.8972455527533305,
+          "median_ci": [
+            1.749818321129155,
+            2.051868775369214
+          ],
+          "mean_m": 3.116419264777278,
+          "r5": 0.866,
+          "r10": 0.948,
+          "gross": 0.052,
+          "no_pose": 0,
+          "modes_mean": 1162.628,
+          "inlier_mean": 0.7473217860827861
+        }
+      },
+      {
+        "factors": [
+          "reproj_cells",
+          "mode_thr",
+          "solver"
+        ],
+        "config": {
+          "reproj_cells": 1.5,
+          "target": "peak",
+          "max_modes": 0,
+          "mode_thr": 0.03,
+          "cert": "off",
+          "solver": "se2",
+          "ransac": "default"
+        },
+        "key": "reproj=1.5 target=peak max_modes=all thr=0.03 cert=off solver=se2 ransac=default",
+        "select": {
+          "n": 500,
+          "median_m": 1.8378350086351638,
+          "median_ci": [
+            1.7102051622710328,
+            1.9889240550005742
+          ],
+          "mean_m": 20.762673350211,
+          "r5": 0.878,
+          "r10": 0.942,
+          "gross": 0.058,
+          "no_pose": 9,
+          "modes_mean": 991.394,
+          "inlier_mean": 0.7893035701250042
+        }
+      },
+      {
+        "factors": [
+          "reproj_cells",
+          "mode_thr",
+          "solver"
+        ],
+        "config": {
+          "reproj_cells": 1.5,
+          "target": "peak",
+          "max_modes": 0,
+          "mode_thr": 0.03,
+          "cert": "off",
+          "solver": "sim",
+          "ransac": "default"
+        },
+        "key": "reproj=1.5 target=peak max_modes=all thr=0.03 cert=off solver=sim ransac=default",
+        "select": {
+          "n": 500,
+          "median_m": 1.8500075306572803,
+          "median_ci": [
+            1.7160198420697579,
+            1.9756362477181448
+          ],
+          "mean_m": 20.783324698613697,
+          "r5": 0.868,
+          "r10": 0.942,
+          "gross": 0.058,
+          "no_pose": 9,
+          "modes_mean": 991.394,
+          "inlier_mean": 0.807019762298368
+        }
+      },
+      {
+        "factors": [
+          "reproj_cells",
+          "mode_thr",
+          "solver"
+        ],
+        "config": {
+          "reproj_cells": 1.5,
+          "target": "peak",
+          "max_modes": 0,
+          "mode_thr": 0.03,
+          "cert": "off",
+          "solver": "srt",
+          "ransac": "default"
+        },
+        "key": "reproj=1.5 target=peak max_modes=all thr=0.03 cert=off solver=srt ransac=default",
+        "select": {
+          "n": 500,
+          "median_m": 1.874951702638524,
+          "median_ci": [
+            1.7489017071229855,
+            2.038467236926133
+          ],
+          "mean_m": 28.751284256262508,
+          "r5": 0.86,
+          "r10": 0.93,
+          "gross": 0.07,
+          "no_pose": 13,
+          "modes_mean": 991.394,
+          "inlier_mean": 0.7694144496150598
+        }
+      },
+      {
+        "factors": [
+          "reproj_cells",
+          "mode_thr",
+          "solver"
+        ],
+        "config": {
+          "reproj_cells": 1.5,
+          "target": "peak",
+          "max_modes": 0,
+          "mode_thr": 0.06,
+          "cert": "off",
+          "solver": "se2",
+          "ransac": "default"
+        },
+        "key": "reproj=1.5 target=peak max_modes=all thr=0.06 cert=off solver=se2 ransac=default",
+        "select": {
+          "n": 500,
+          "median_m": 1.8475369650928606,
+          "median_ci": [
+            1.7461439675783144,
+            2.072776713470377
+          ],
+          "mean_m": 114.09533483731892,
+          "r5": 0.822,
+          "r10": 0.87,
+          "gross": 0.13,
+          "no_pose": 56,
+          "modes_mean": 646.322,
+          "inlier_mean": 0.8153017202352012
+        }
+      },
+      {
+        "factors": [
+          "reproj_cells",
+          "mode_thr",
+          "solver"
+        ],
+        "config": {
+          "reproj_cells": 1.5,
+          "target": "peak",
+          "max_modes": 0,
+          "mode_thr": 0.06,
+          "cert": "off",
+          "solver": "sim",
+          "ransac": "default"
+        },
+        "key": "reproj=1.5 target=peak max_modes=all thr=0.06 cert=off solver=sim ransac=default",
+        "select": {
+          "n": 500,
+          "median_m": 1.8845895118996694,
+          "median_ci": [
+            1.7774245836601446,
+            2.0888176102587432
+          ],
+          "mean_m": 114.12550931641672,
+          "r5": 0.814,
+          "r10": 0.868,
+          "gross": 0.132,
+          "no_pose": 56,
+          "modes_mean": 646.322,
+          "inlier_mean": 0.8299195041006515
+        }
+      },
+      {
+        "factors": [
+          "reproj_cells",
+          "mode_thr",
+          "solver"
+        ],
+        "config": {
+          "reproj_cells": 1.5,
+          "target": "peak",
+          "max_modes": 0,
+          "mode_thr": 0.06,
+          "cert": "off",
+          "solver": "srt",
+          "ransac": "default"
+        },
+        "key": "reproj=1.5 target=peak max_modes=all thr=0.06 cert=off solver=srt ransac=default",
+        "select": {
+          "n": 500,
+          "median_m": 2.0415841618955994,
+          "median_ci": [
+            1.8806754131819772,
+            2.2169262049689795
+          ],
+          "mean_m": 159.95100023159443,
+          "r5": 0.778,
+          "r10": 0.83,
+          "gross": 0.17,
+          "no_pose": 79,
+          "modes_mean": 646.322,
+          "inlier_mean": 0.7463580417559901
+        }
+      },
+      {
+        "factors": [
+          "reproj_cells",
+          "mode_thr",
+          "solver"
+        ],
+        "config": {
+          "reproj_cells": 2.0,
+          "target": "peak",
+          "max_modes": 0,
+          "mode_thr": 0.004,
+          "cert": "off",
+          "solver": "se2",
+          "ransac": "default"
+        },
+        "key": "reproj=2 target=peak max_modes=all thr=0.004 cert=off solver=se2 ransac=default",
+        "select": {
+          "n": 500,
+          "median_m": 1.8065089558364786,
+          "median_ci": [
+            1.6936161360276591,
+            1.9676020314172218
+          ],
+          "mean_m": 2.9674343258755016,
+          "r5": 0.884,
+          "r10": 0.948,
+          "gross": 0.052,
+          "no_pose": 0,
+          "modes_mean": 1417.9,
+          "inlier_mean": 0.7946178732985755
+        }
+      },
+      {
+        "factors": [
+          "reproj_cells",
+          "mode_thr",
+          "solver"
+        ],
+        "config": {
+          "reproj_cells": 2.0,
+          "target": "peak",
+          "max_modes": 0,
+          "mode_thr": 0.004,
+          "cert": "off",
+          "solver": "sim",
+          "ransac": "default"
+        },
+        "key": "reproj=2 target=peak max_modes=all thr=0.004 cert=off solver=sim ransac=default",
+        "select": {
+          "n": 500,
+          "median_m": 1.7966113453419337,
+          "median_ci": [
+            1.6991108686186565,
+            1.9276577178384204
+          ],
+          "mean_m": 2.958010332072412,
+          "r5": 0.874,
+          "r10": 0.952,
+          "gross": 0.048,
+          "no_pose": 0,
+          "modes_mean": 1417.9,
+          "inlier_mean": 0.8198003276043422
+        }
+      },
+      {
+        "factors": [
+          "reproj_cells",
+          "mode_thr",
+          "solver"
+        ],
+        "config": {
+          "reproj_cells": 2.0,
+          "target": "peak",
+          "max_modes": 0,
+          "mode_thr": 0.004,
+          "cert": "off",
+          "solver": "srt",
+          "ransac": "default"
+        },
+        "key": "reproj=2 target=peak max_modes=all thr=0.004 cert=off solver=srt ransac=default",
+        "select": {
+          "n": 500,
+          "median_m": 1.8573785921572021,
+          "median_ci": [
+            1.7250827389357717,
+            1.944901095489874
+          ],
+          "mean_m": 3.000362467518618,
+          "r5": 0.868,
+          "r10": 0.952,
+          "gross": 0.048,
+          "no_pose": 0,
+          "modes_mean": 1417.9,
+          "inlier_mean": 0.7943565801897197
+        }
+      },
+      {
+        "factors": [
+          "reproj_cells",
+          "mode_thr",
+          "solver"
+        ],
+        "config": {
+          "reproj_cells": 2.0,
+          "target": "peak",
+          "max_modes": 0,
+          "mode_thr": 0.008,
+          "cert": "off",
+          "solver": "sim",
+          "ransac": "default"
+        },
+        "key": "reproj=2 target=peak max_modes=all thr=0.008 cert=off solver=sim ransac=default",
+        "select": {
+          "n": 500,
+          "median_m": 1.7967814374801074,
+          "median_ci": [
+            1.7169353795853186,
+            1.932650196094287
+          ],
+          "mean_m": 2.9562638795718437,
+          "r5": 0.87,
+          "r10": 0.952,
+          "gross": 0.048,
+          "no_pose": 0,
+          "modes_mean": 1302.21,
+          "inlier_mean": 0.825618889597109
+        }
+      },
+      {
+        "factors": [
+          "reproj_cells",
+          "mode_thr",
+          "solver"
+        ],
+        "config": {
+          "reproj_cells": 2.0,
+          "target": "peak",
+          "max_modes": 0,
+          "mode_thr": 0.008,
+          "cert": "off",
+          "solver": "srt",
+          "ransac": "default"
+        },
+        "key": "reproj=2 target=peak max_modes=all thr=0.008 cert=off solver=srt ransac=default",
+        "select": {
+          "n": 500,
+          "median_m": 1.848203291200534,
+          "median_ci": [
+            1.7308218634293804,
+            1.9806455494246582
+          ],
+          "mean_m": 2.9848778038577586,
+          "r5": 0.868,
+          "r10": 0.952,
+          "gross": 0.048,
+          "no_pose": 0,
+          "modes_mean": 1302.21,
+          "inlier_mean": 0.7997055596837113
+        }
+      },
+      {
+        "factors": [
+          "reproj_cells",
+          "mode_thr",
+          "solver"
+        ],
+        "config": {
+          "reproj_cells": 2.0,
+          "target": "peak",
+          "max_modes": 0,
+          "mode_thr": 0.016,
+          "cert": "off",
+          "solver": "se2",
+          "ransac": "default"
+        },
+        "key": "reproj=2 target=peak max_modes=all thr=0.016 cert=off solver=se2 ransac=default",
+        "select": {
+          "n": 500,
+          "median_m": 1.7899109458985212,
+          "median_ci": [
+            1.6770261121382122,
+            1.9778139493543925
+          ],
+          "mean_m": 2.9591454590853012,
+          "r5": 0.876,
+          "r10": 0.948,
+          "gross": 0.052,
+          "no_pose": 0,
+          "modes_mean": 1162.628,
+          "inlier_mean": 0.8234980904855868
+        }
+      },
+      {
+        "factors": [
+          "reproj_cells",
+          "mode_thr",
+          "solver"
+        ],
+        "config": {
+          "reproj_cells": 2.0,
+          "target": "peak",
+          "max_modes": 0,
+          "mode_thr": 0.016,
+          "cert": "off",
+          "solver": "sim",
+          "ransac": "default"
+        },
+        "key": "reproj=2 target=peak max_modes=all thr=0.016 cert=off solver=sim ransac=default",
+        "select": {
+          "n": 500,
+          "median_m": 1.8215010487460102,
+          "median_ci": [
+            1.6893163836016754,
+            1.9494553922292912
+          ],
+          "mean_m": 2.956836703673174,
+          "r5": 0.874,
+          "r10": 0.952,
+          "gross": 0.048,
+          "no_pose": 0,
+          "modes_mean": 1162.628,
+          "inlier_mean": 0.848036576670054
+        }
+      },
+      {
+        "factors": [
+          "reproj_cells",
+          "mode_thr",
+          "solver"
+        ],
+        "config": {
+          "reproj_cells": 2.0,
+          "target": "peak",
+          "max_modes": 0,
+          "mode_thr": 0.016,
+          "cert": "off",
+          "solver": "srt",
+          "ransac": "default"
+        },
+        "key": "reproj=2 target=peak max_modes=all thr=0.016 cert=off solver=srt ransac=default",
+        "select": {
+          "n": 500,
+          "median_m": 1.8702825597698993,
+          "median_ci": [
+            1.7377555483533422,
+            2.0380569597889524
+          ],
+          "mean_m": 3.026555962304462,
+          "r5": 0.874,
+          "r10": 0.95,
+          "gross": 0.05,
+          "no_pose": 0,
+          "modes_mean": 1162.628,
+          "inlier_mean": 0.8161563322855421
+        }
+      },
+      {
+        "factors": [
+          "reproj_cells",
+          "mode_thr",
+          "solver"
+        ],
+        "config": {
+          "reproj_cells": 2.0,
+          "target": "peak",
+          "max_modes": 0,
+          "mode_thr": 0.03,
+          "cert": "off",
+          "solver": "se2",
+          "ransac": "default"
+        },
+        "key": "reproj=2 target=peak max_modes=all thr=0.03 cert=off solver=se2 ransac=default",
+        "select": {
+          "n": 500,
+          "median_m": 1.7808727624996852,
+          "median_ci": [
+            1.6705561609398718,
+            1.970193214610953
+          ],
+          "mean_m": 20.73494507811197,
+          "r5": 0.878,
+          "r10": 0.942,
+          "gross": 0.058,
+          "no_pose": 9,
+          "modes_mean": 991.394,
+          "inlier_mean": 0.8579324746885756
+        }
+      },
+      {
+        "factors": [
+          "reproj_cells",
+          "mode_thr",
+          "solver"
+        ],
+        "config": {
+          "reproj_cells": 2.0,
+          "target": "peak",
+          "max_modes": 0,
+          "mode_thr": 0.03,
+          "cert": "off",
+          "solver": "sim",
+          "ransac": "default"
+        },
+        "key": "reproj=2 target=peak max_modes=all thr=0.03 cert=off solver=sim ransac=default",
+        "select": {
+          "n": 500,
+          "median_m": 1.825447249970348,
+          "median_ci": [
+            1.6998693110831222,
+            2.0029629473875152
+          ],
+          "mean_m": 20.766450584958537,
+          "r5": 0.868,
+          "r10": 0.94,
+          "gross": 0.06,
+          "no_pose": 9,
+          "modes_mean": 991.394,
+          "inlier_mean": 0.876331098125419
+        }
+      },
+      {
+        "factors": [
+          "reproj_cells",
+          "mode_thr",
+          "solver"
+        ],
+        "config": {
+          "reproj_cells": 2.0,
+          "target": "peak",
+          "max_modes": 0,
+          "mode_thr": 0.03,
+          "cert": "off",
+          "solver": "srt",
+          "ransac": "default"
+        },
+        "key": "reproj=2 target=peak max_modes=all thr=0.03 cert=off solver=srt ransac=default",
+        "select": {
+          "n": 500,
+          "median_m": 1.9074584748135808,
+          "median_ci": [
+            1.761022097675727,
+            1.9972039484626691
+          ],
+          "mean_m": 28.725944659427114,
+          "r5": 0.866,
+          "r10": 0.934,
+          "gross": 0.066,
+          "no_pose": 13,
+          "modes_mean": 991.394,
+          "inlier_mean": 0.8368350151761681
+        }
+      },
+      {
+        "factors": [
+          "reproj_cells",
+          "mode_thr",
+          "solver"
+        ],
+        "config": {
+          "reproj_cells": 2.0,
+          "target": "peak",
+          "max_modes": 0,
+          "mode_thr": 0.06,
+          "cert": "off",
+          "solver": "se2",
+          "ransac": "default"
+        },
+        "key": "reproj=2 target=peak max_modes=all thr=0.06 cert=off solver=se2 ransac=default",
+        "select": {
+          "n": 500,
+          "median_m": 1.848377335671151,
+          "median_ci": [
+            1.7488868067090264,
+            2.073244367984441
+          ],
+          "mean_m": 114.08815243101309,
+          "r5": 0.818,
+          "r10": 0.87,
+          "gross": 0.13,
+          "no_pose": 56,
+          "modes_mean": 646.322,
+          "inlier_mean": 0.8526985208478775
+        }
+      },
+      {
+        "factors": [
+          "reproj_cells",
+          "mode_thr",
+          "solver"
+        ],
+        "config": {
+          "reproj_cells": 2.0,
+          "target": "peak",
+          "max_modes": 0,
+          "mode_thr": 0.06,
+          "cert": "off",
+          "solver": "sim",
+          "ransac": "default"
+        },
+        "key": "reproj=2 target=peak max_modes=all thr=0.06 cert=off solver=sim ransac=default",
+        "select": {
+          "n": 500,
+          "median_m": 1.8794730354883955,
+          "median_ci": [
+            1.7536250719832334,
+            2.080085676664754
+          ],
+          "mean_m": 114.10348977653193,
+          "r5": 0.818,
+          "r10": 0.868,
+          "gross": 0.132,
+          "no_pose": 56,
+          "modes_mean": 646.322,
+          "inlier_mean": 0.8646355005467484
+        }
+      },
+      {
+        "factors": [
+          "reproj_cells",
+          "mode_thr",
+          "solver"
+        ],
+        "config": {
+          "reproj_cells": 2.0,
+          "target": "peak",
+          "max_modes": 0,
+          "mode_thr": 0.06,
+          "cert": "off",
+          "solver": "srt",
+          "ransac": "default"
+        },
+        "key": "reproj=2 target=peak max_modes=all thr=0.06 cert=off solver=srt ransac=default",
+        "select": {
+          "n": 500,
+          "median_m": 2.0057276799428934,
+          "median_ci": [
+            1.8344251666488023,
+            2.225809887391164
+          ],
+          "mean_m": 159.92761968110665,
+          "r5": 0.782,
+          "r10": 0.83,
+          "gross": 0.17,
+          "no_pose": 79,
+          "modes_mean": 646.322,
+          "inlier_mean": 0.7957146851188839
+        }
+      },
+      {
+        "factors": [
+          "reproj_cells",
+          "mode_thr",
+          "solver"
+        ],
+        "config": {
+          "reproj_cells": 3.0,
+          "target": "peak",
+          "max_modes": 0,
+          "mode_thr": 0.004,
+          "cert": "off",
+          "solver": "sim",
+          "ransac": "default"
+        },
+        "key": "reproj=3 target=peak max_modes=all thr=0.004 cert=off solver=sim ransac=default",
+        "select": {
+          "n": 500,
+          "median_m": 1.7864398351053827,
+          "median_ci": [
+            1.6663358725136033,
+            1.9561574747754107
+          ],
+          "mean_m": 2.924310868552497,
+          "r5": 0.88,
+          "r10": 0.952,
+          "gross": 0.048,
+          "no_pose": 0,
+          "modes_mean": 1417.9,
+          "inlier_mean": 0.892000330708717
+        }
+      },
+      {
+        "factors": [
+          "reproj_cells",
+          "mode_thr",
+          "solver"
+        ],
+        "config": {
+          "reproj_cells": 3.0,
+          "target": "peak",
+          "max_modes": 0,
+          "mode_thr": 0.004,
+          "cert": "off",
+          "solver": "srt",
+          "ransac": "default"
+        },
+        "key": "reproj=3 target=peak max_modes=all thr=0.004 cert=off solver=srt ransac=default",
+        "select": {
+          "n": 500,
+          "median_m": 1.846947825095402,
+          "median_ci": [
+            1.7180730759154803,
+            1.9895053604339004
+          ],
+          "mean_m": 2.995940730008172,
+          "r5": 0.878,
+          "r10": 0.948,
+          "gross": 0.052,
+          "no_pose": 0,
+          "modes_mean": 1417.9,
+          "inlier_mean": 0.8646761276054665
+        }
+      },
+      {
+        "factors": [
+          "reproj_cells",
+          "mode_thr",
+          "solver"
+        ],
+        "config": {
+          "reproj_cells": 3.0,
+          "target": "peak",
+          "max_modes": 0,
+          "mode_thr": 0.016,
+          "cert": "off",
+          "solver": "sim",
+          "ransac": "default"
+        },
+        "key": "reproj=3 target=peak max_modes=all thr=0.016 cert=off solver=sim ransac=default",
+        "select": {
+          "n": 500,
+          "median_m": 1.82294480303648,
+          "median_ci": [
+            1.71326981918428,
+            1.9258442846043136
+          ],
+          "mean_m": 2.9409546371234,
+          "r5": 0.884,
+          "r10": 0.95,
+          "gross": 0.05,
+          "no_pose": 0,
+          "modes_mean": 1162.628,
+          "inlier_mean": 0.9149221739867397
+        }
+      },
+      {
+        "factors": [
+          "reproj_cells",
+          "mode_thr",
+          "solver"
+        ],
+        "config": {
+          "reproj_cells": 3.0,
+          "target": "peak",
+          "max_modes": 0,
+          "mode_thr": 0.016,
+          "cert": "off",
+          "solver": "srt",
+          "ransac": "default"
+        },
+        "key": "reproj=3 target=peak max_modes=all thr=0.016 cert=off solver=srt ransac=default",
+        "select": {
+          "n": 500,
+          "median_m": 1.8157720741476937,
+          "median_ci": [
+            1.7476720753701034,
+            2.007519097026818
+          ],
+          "mean_m": 3.1252669626106004,
+          "r5": 0.872,
+          "r10": 0.948,
+          "gross": 0.052,
+          "no_pose": 0,
+          "modes_mean": 1162.628,
+          "inlier_mean": 0.8862517783625602
+        }
+      },
+      {
+        "factors": [
+          "reproj_cells",
+          "mode_thr",
+          "solver"
+        ],
+        "config": {
+          "reproj_cells": 3.0,
+          "target": "peak",
+          "max_modes": 0,
+          "mode_thr": 0.03,
+          "cert": "off",
+          "solver": "sim",
+          "ransac": "default"
+        },
+        "key": "reproj=3 target=peak max_modes=all thr=0.03 cert=off solver=sim ransac=default",
+        "select": {
+          "n": 500,
+          "median_m": 1.7868054094335586,
+          "median_ci": [
+            1.6545654410039183,
+            1.9796871652253862
+          ],
+          "mean_m": 20.745923711739128,
+          "r5": 0.874,
+          "r10": 0.942,
+          "gross": 0.058,
+          "no_pose": 9,
+          "modes_mean": 991.394,
+          "inlier_mean": 0.9351145412484263
+        }
+      },
+      {
+        "factors": [
+          "reproj_cells",
+          "mode_thr",
+          "solver"
+        ],
+        "config": {
+          "reproj_cells": 3.0,
+          "target": "peak",
+          "max_modes": 0,
+          "mode_thr": 0.03,
+          "cert": "off",
+          "solver": "srt",
+          "ransac": "default"
+        },
+        "key": "reproj=3 target=peak max_modes=all thr=0.03 cert=off solver=srt ransac=default",
+        "select": {
+          "n": 500,
+          "median_m": 1.8548937876137805,
+          "median_ci": [
+            1.7259192847058398,
+            1.9963253171037725
+          ],
+          "mean_m": 28.706162594757508,
+          "r5": 0.868,
+          "r10": 0.932,
+          "gross": 0.068,
+          "no_pose": 13,
+          "modes_mean": 991.394,
+          "inlier_mean": 0.9002419459987149
+        }
+      },
+      {
+        "factors": [
+          "reproj_cells",
+          "mode_thr",
+          "solver"
+        ],
+        "config": {
+          "reproj_cells": 3.0,
+          "target": "peak",
+          "max_modes": 0,
+          "mode_thr": 0.06,
+          "cert": "off",
+          "solver": "sim",
+          "ransac": "default"
+        },
+        "key": "reproj=3 target=peak max_modes=all thr=0.06 cert=off solver=sim ransac=default",
+        "select": {
+          "n": 500,
+          "median_m": 1.8426057912242997,
+          "median_ci": [
+            1.7546907459576837,
+            2.0608534293142906
+          ],
+          "mean_m": 114.08018510160538,
+          "r5": 0.818,
+          "r10": 0.87,
+          "gross": 0.13,
+          "no_pose": 56,
+          "modes_mean": 646.322,
+          "inlier_mean": 0.8822897874831624
+        }
+      },
+      {
+        "factors": [
+          "reproj_cells",
+          "mode_thr",
+          "solver"
+        ],
+        "config": {
+          "reproj_cells": 3.0,
+          "target": "peak",
+          "max_modes": 0,
+          "mode_thr": 0.06,
+          "cert": "off",
+          "solver": "srt",
+          "ransac": "default"
+        },
+        "key": "reproj=3 target=peak max_modes=all thr=0.06 cert=off solver=srt ransac=default",
+        "select": {
+          "n": 500,
+          "median_m": 1.9901577807322415,
+          "median_ci": [
+            1.8433871100633779,
+            2.1908016569176154
+          ],
+          "mean_m": 159.94053409470501,
+          "r5": 0.782,
+          "r10": 0.828,
+          "gross": 0.172,
+          "no_pose": 79,
+          "modes_mean": 646.322,
+          "inlier_mean": 0.8271273206225621
+        }
+      }
+    ],
+    "n_configs": 99,
+    "split": {
+      "n_select": 500,
+      "n_confirm": 500,
+      "rule": "frames ordered by sha1(id): even ranks select, odd ranks confirm"
+    },
+    "baseline_select": {
+      "n": 500,
+      "median_m": 1.8099238657986665,
+      "median_ci": [
+        1.6942258555902618,
+        1.9539703930959944
+      ],
+      "mean_m": 2.9556538052160675,
+      "r5": 0.878,
+      "r10": 0.952,
+      "gross": 0.048,
+      "no_pose": 0,
+      "modes_mean": 1302.21,
+      "inlier_mean": 0.8734646475028667
+    },
+    "baseline_confirm": {
+      "n": 500,
+      "median_m": 1.8806857052996668,
+      "median_ci": [
+        1.7144407502552474,
+        2.034509987335732
+      ],
+      "mean_m": 3.2511705832732676,
+      "r5": 0.856,
+      "r10": 0.934,
+      "gross": 0.066,
+      "no_pose": 0,
+      "modes_mean": 1305.488,
+      "inlier_mean": 0.8747122973158592
+    },
+    "best": {
+      "config": {
+        "reproj_cells": 3.0,
+        "target": "means",
+        "max_modes": 0,
+        "mode_thr": 0.008,
+        "cert": "off",
+        "solver": "se2",
+        "ransac": "default"
+      },
+      "key": "reproj=3 target=means max_modes=all thr=0.008 cert=off solver=se2 ransac=default",
+      "select": {
+        "n": 500,
+        "median_m": 1.7756247996945222,
+        "median_ci": [
+          1.6850846089365938,
+          1.9235867449056738
+        ],
+        "mean_m": 2.870301157621926,
+        "r5": 0.888,
+        "r10": 0.958,
+        "gross": 0.042,
+        "no_pose": 0,
+        "modes_mean": 1302.21,
+        "inlier_mean": 0.8518863662777713
+      },
+      "confirm": {
+        "n": 500,
+        "median_m": 1.8818518880870356,
+        "median_ci": [
+          1.7266134234369979,
+          2.0438485387840215
+        ],
+        "mean_m": 3.200665844784426,
+        "r5": 0.86,
+        "r10": 0.938,
+        "gross": 0.062,
+        "no_pose": 0,
+        "modes_mean": 1305.488,
+        "inlier_mean": 0.8510608315211523
+      },
+      "paired_delta_confirm": {
+        "stat": "median",
+        "delta_m": 0.0011661827873687969,
+        "n": 500,
+        "ci": [
+          -0.06664138361914054,
+          0.08817043766454509
+        ]
+      }
+    },
+    "chosen": {
+      "config": {
+        "reproj_cells": 3.0,
+        "target": "peak",
+        "max_modes": 0,
+        "mode_thr": 0.008,
+        "cert": "off",
+        "solver": "se2",
+        "ransac": "default"
+      },
+      "key": "reproj=3 target=peak max_modes=all thr=0.008 cert=off solver=se2 ransac=default",
+      "select": {
+        "n": 500,
+        "median_m": 1.8099238657986665,
+        "median_ci": [
+          1.6942258555902618,
+          1.9539703930959944
+        ],
+        "mean_m": 2.9556538052160675,
+        "r5": 0.878,
+        "r10": 0.952,
+        "gross": 0.048,
+        "no_pose": 0,
+        "modes_mean": 1302.21,
+        "inlier_mean": 0.8734646475028667
+      },
+      "confirm": {
+        "n": 500,
+        "median_m": 1.8806857052996668,
+        "median_ci": [
+          1.7144407502552474,
+          2.034509987335732
+        ],
+        "mean_m": 3.2511705832732676,
+        "r5": 0.856,
+        "r10": 0.934,
+        "gross": 0.066,
+        "no_pose": 0,
+        "modes_mean": 1305.488,
+        "inlier_mean": 0.8747122973158592
+      },
+      "rule": "baseline kept: the best configuration's paired interval on the confirmation half includes zero"
+    }
+  },
+  "chosen": {
+    "config": {
+      "reproj_cells": 3.0,
+      "target": "peak",
+      "max_modes": 0,
+      "mode_thr": 0.008,
+      "cert": "off",
+      "solver": "se2",
+      "ransac": "default"
+    },
+    "key": "reproj=3 target=peak max_modes=all thr=0.008 cert=off solver=se2 ransac=default",
+    "rule": "baseline kept: the best configuration's paired interval on the confirmation half includes zero",
+    "select": {
+      "n": 500,
+      "median_m": 1.8099238657986665,
+      "median_ci": [
+        1.6942258555902618,
+        1.9539703930959944
+      ],
+      "mean_m": 2.9556538052160675,
+      "r5": 0.878,
+      "r10": 0.952,
+      "gross": 0.048,
+      "no_pose": 0,
+      "modes_mean": 1302.21,
+      "inlier_mean": 0.8734646475028667
+    },
+    "confirm": {
+      "n": 500,
+      "median_m": 1.8806857052996668,
+      "median_ci": [
+        1.7144407502552474,
+        2.034509987335732
+      ],
+      "mean_m": 3.2511705832732676,
+      "r5": 0.856,
+      "r10": 0.934,
+      "gross": 0.066,
+      "no_pose": 0,
+      "modes_mean": 1305.488,
+      "inlier_mean": 0.8747122973158592
+    },
+    "paired_delta_confirm_best": {
+      "stat": "median",
+      "delta_m": 0.0011661827873687969,
+      "n": 500,
+      "ci": [
+        -0.06664138361914054,
+        0.08817043766454509
+      ]
+    },
+    "best": {
+      "key": "reproj=3 target=means max_modes=all thr=0.008 cert=off solver=se2 ransac=default",
+      "select": {
+        "n": 500,
+        "median_m": 1.7756247996945222,
+        "median_ci": [
+          1.6850846089365938,
+          1.9235867449056738
+        ],
+        "mean_m": 2.870301157621926,
+        "r5": 0.888,
+        "r10": 0.958,
+        "gross": 0.042,
+        "no_pose": 0,
+        "modes_mean": 1302.21,
+        "inlier_mean": 0.8518863662777713
+      },
+      "confirm": {
+        "n": 500,
+        "median_m": 1.8818518880870356,
+        "median_ci": [
+          1.7266134234369979,
+          2.0438485387840215
+        ],
+        "mean_m": 3.200665844784426,
+        "r5": 0.86,
+        "r10": 0.938,
+        "gross": 0.062,
+        "no_pose": 0,
+        "modes_mean": 1305.488,
+        "inlier_mean": 0.8510608315211523
+      }
+    },
+    "baseline": {
+      "config": {
+        "reproj_cells": 3.0,
+        "target": "peak",
+        "max_modes": 0,
+        "mode_thr": 0.008,
+        "cert": "off",
+        "solver": "se2",
+        "ransac": "default"
+      },
+      "select": {
+        "n": 500,
+        "median_m": 1.8099238657986665,
+        "median_ci": [
+          1.6942258555902618,
+          1.9539703930959944
+        ],
+        "mean_m": 2.9556538052160675,
+        "r5": 0.878,
+        "r10": 0.952,
+        "gross": 0.048,
+        "no_pose": 0,
+        "modes_mean": 1302.21,
+        "inlier_mean": 0.8734646475028667
+      },
+      "confirm": {
+        "n": 500,
+        "median_m": 1.8806857052996668,
+        "median_ci": [
+          1.7144407502552474,
+          2.034509987335732
+        ],
+        "mean_m": 3.2511705832732676,
+        "r5": 0.856,
+        "r10": 0.934,
+        "gross": 0.066,
+        "no_pose": 0,
+        "modes_mean": 1305.488,
+        "inlier_mean": 0.8747122973158592
+      },
+      "test": {
+        "n": 3000,
+        "median_m": 1.7705240164510878,
+        "median_ci": [
+          1.6999343436183194,
+          1.8241486757865537
+        ],
+        "mean_m": 3.6785292550778506,
+        "r5": 0.8426666666666667,
+        "r10": 0.909,
+        "gross": 0.091,
+        "no_pose": 0,
+        "modes_mean": 1309.8636666666666,
+        "inlier_mean": 0.8707561507622028
+      }
+    },
+    "test": {
+      "n": 3000,
+      "median_m": 1.7705240164510878,
+      "median_ci": [
+        1.6999343436183194,
+        1.8241486757865537
+      ],
+      "mean_m": 3.6785292550778506,
+      "r5": 0.8426666666666667,
+      "r10": 0.909,
+      "gross": 0.091,
+      "no_pose": 0,
+      "modes_mean": 1309.8636666666666,
+      "inlier_mean": 0.8707561507622028
+    },
+    "paired_delta_test": {
+      "stat": "median",
+      "delta_m": 0.0,
+      "n": 3000,
+      "ci": [
+        0.0,
+        0.0
+      ]
+    }
+  }
+}

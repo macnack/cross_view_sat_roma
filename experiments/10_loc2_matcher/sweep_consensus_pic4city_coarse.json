@@ -1,0 +1,4519 @@
+{
+  "meta": {
+    "tag": "pic4city_coarse",
+    "calib_cache": "experiments/10_loc2_matcher/sweep_cache/pic4city_coarse_calib.pkl",
+    "test_cache": "experiments/10_loc2_matcher/sweep_cache/pic4city_coarse_test.pkl",
+    "select": "median",
+    "gross_m": 10.0,
+    "n_boot": 1000,
+    "joint_top": 3,
+    "grid": {
+      "reproj_cells": [
+        0.5,
+        0.75,
+        1.0,
+        1.5,
+        2.0,
+        3.0
+      ],
+      "target": [
+        "peak",
+        "means"
+      ],
+      "max_modes": [
+        1,
+        2,
+        3,
+        5,
+        0
+      ],
+      "mode_thr": [
+        0.004,
+        0.008,
+        0.016,
+        0.03,
+        0.06
+      ],
+      "cert": [
+        "off",
+        "weight",
+        "uniform",
+        "filter"
+      ],
+      "solver": [
+        "se2",
+        "sim",
+        "srt"
+      ],
+      "ransac": [
+        "default",
+        "4x"
+      ]
+    },
+    "calib": {
+      "draw": "calib",
+      "coarse": {
+        "val_frac": 0.2,
+        "val_samples_skipped": 400,
+        "cities": [
+          "Chicago",
+          "NewYork",
+          "SanFrancisco",
+          "Seattle"
+        ],
+        "source": "asserted (--assume-train-split)",
+        "n_train_list": 52609,
+        "n_heldout": 10522,
+        "heldout_slice": [
+          400,
+          10522
+        ],
+        "n": 10122,
+        "rule": "permutation(seed 0) of the train labels; idx[n_tr + val_samples : n_tr + val_samples + limit]"
+      },
+      "cities": [
+        "Chicago",
+        "NewYork",
+        "SanFrancisco",
+        "Seattle"
+      ],
+      "limit": 1000,
+      "n": 1000,
+      "rule": "calib_split of each checkpoint (permutation seed 0 of its train list, last val_frac held out, its val_samples skipped), intersected, filtered to the cities, first --calib-limit"
+    },
+    "calib_n": 1000,
+    "ckpt": "checkpoints/vigor_samearea_4city_cell0125_best.pt",
+    "config": "configs/vigor_cell0125.yaml",
+    "cache_thr": 0.004,
+    "fine": null,
+    "test": {
+      "draw": "test",
+      "cities": [
+        "Chicago"
+      ],
+      "limit": 3000
+    },
+    "test_n": 3000,
+    "protocol": "calibration draw split by frame id into a selection half (OFAT + joint grid, argmin of the objective) and a confirmation half (paired bootstrap guard: the best replaces the default only if the interval is below zero); the test draw is scored for the default and the chosen configuration only (headline: their paired change)",
+    "cert_confound": "cert=weight and cert=uniform go through the weighted-sampling estimators (srt: the package's 4-point DLT loop, sim: its Kabsch similarity loop, fixed trials) instead of cv2's adaptive RANSAC; weight vs uniform isolates the weighting, uniform vs off the estimator swap (se2: same estimator)",
+    "not_sweepable": [
+      "mode thresholds below the cache threshold",
+      "fixed_window_size (4)",
+      "adaptive_gauss_fit",
+      "min_valid_frac",
+      "the decoder / logits"
+    ]
+  },
+  "mismatch": {
+    "calib_coarse": {
+      "mismatches": 0,
+      "n": 1000,
+      "ids": []
+    },
+    "test_coarse": {
+      "mismatches": 0,
+      "n": 3000,
+      "ids": []
+    }
+  },
+  "coarse": {
+    "baseline": {
+      "reproj_cells": 3.0,
+      "target": "peak",
+      "max_modes": 0,
+      "mode_thr": 0.008,
+      "cert": "off",
+      "solver": "srt",
+      "ransac": "default"
+    },
+    "grid": {
+      "reproj_cells": [
+        0.5,
+        0.75,
+        1.0,
+        1.5,
+        2.0,
+        3.0
+      ],
+      "target": [
+        "peak",
+        "means"
+      ],
+      "max_modes": [
+        1,
+        2,
+        3,
+        5,
+        0
+      ],
+      "mode_thr": [
+        0.004,
+        0.008,
+        0.016,
+        0.03,
+        0.06
+      ],
+      "cert": [
+        "off",
+        "weight",
+        "uniform",
+        "filter"
+      ],
+      "solver": [
+        "se2",
+        "sim",
+        "srt"
+      ],
+      "ransac": [
+        "default",
+        "4x"
+      ]
+    },
+    "ofat": [
+      {
+        "factor": "baseline",
+        "value": null,
+        "config": {
+          "reproj_cells": 3.0,
+          "target": "peak",
+          "max_modes": 0,
+          "mode_thr": 0.008,
+          "cert": "off",
+          "solver": "srt",
+          "ransac": "default"
+        },
+        "key": "reproj=3 target=peak max_modes=all thr=0.008 cert=off solver=srt ransac=default",
+        "select": {
+          "n": 500,
+          "median_m": 1.4044428379580935,
+          "median_ci": [
+            1.3069926093206097,
+            1.5535029315231548
+          ],
+          "mean_m": 3.129688967488158,
+          "r5": 0.85,
+          "r10": 0.918,
+          "gross": 0.082,
+          "no_pose": 0,
+          "modes_mean": 230.88,
+          "inlier_mean": 0.9349239825252061
+        }
+      },
+      {
+        "factor": "reproj_cells",
+        "value": 0.5,
+        "config": {
+          "reproj_cells": 0.5,
+          "target": "peak",
+          "max_modes": 0,
+          "mode_thr": 0.008,
+          "cert": "off",
+          "solver": "srt",
+          "ransac": "default"
+        },
+        "key": "reproj=0.5 target=peak max_modes=all thr=0.008 cert=off solver=srt ransac=default",
+        "select": {
+          "n": 500,
+          "median_m": 1.6128667015442446,
+          "median_ci": [
+            1.4183462167148417,
+            1.7170964311793493
+          ],
+          "mean_m": 3.3284354238686533,
+          "r5": 0.852,
+          "r10": 0.912,
+          "gross": 0.088,
+          "no_pose": 0,
+          "modes_mean": 230.88,
+          "inlier_mean": 0.4653975916060065
+        }
+      },
+      {
+        "factor": "reproj_cells",
+        "value": 0.75,
+        "config": {
+          "reproj_cells": 0.75,
+          "target": "peak",
+          "max_modes": 0,
+          "mode_thr": 0.008,
+          "cert": "off",
+          "solver": "srt",
+          "ransac": "default"
+        },
+        "key": "reproj=0.75 target=peak max_modes=all thr=0.008 cert=off solver=srt ransac=default",
+        "select": {
+          "n": 500,
+          "median_m": 1.5597703729797376,
+          "median_ci": [
+            1.4575882548397938,
+            1.6745094626717578
+          ],
+          "mean_m": 3.2130460459061814,
+          "r5": 0.846,
+          "r10": 0.918,
+          "gross": 0.082,
+          "no_pose": 0,
+          "modes_mean": 230.88,
+          "inlier_mean": 0.5663912483536572
+        }
+      },
+      {
+        "factor": "reproj_cells",
+        "value": 1.0,
+        "config": {
+          "reproj_cells": 1.0,
+          "target": "peak",
+          "max_modes": 0,
+          "mode_thr": 0.008,
+          "cert": "off",
+          "solver": "srt",
+          "ransac": "default"
+        },
+        "key": "reproj=1 target=peak max_modes=all thr=0.008 cert=off solver=srt ransac=default",
+        "select": {
+          "n": 500,
+          "median_m": 1.4331690141798896,
+          "median_ci": [
+            1.3078287168852074,
+            1.6570849271778112
+          ],
+          "mean_m": 3.2112011133014318,
+          "r5": 0.846,
+          "r10": 0.918,
+          "gross": 0.082,
+          "no_pose": 0,
+          "modes_mean": 230.88,
+          "inlier_mean": 0.7563339915708313
+        }
+      },
+      {
+        "factor": "reproj_cells",
+        "value": 1.5,
+        "config": {
+          "reproj_cells": 1.5,
+          "target": "peak",
+          "max_modes": 0,
+          "mode_thr": 0.008,
+          "cert": "off",
+          "solver": "srt",
+          "ransac": "default"
+        },
+        "key": "reproj=1.5 target=peak max_modes=all thr=0.008 cert=off solver=srt ransac=default",
+        "select": {
+          "n": 500,
+          "median_m": 1.4097852752437765,
+          "median_ci": [
+            1.305418138329053,
+            1.5764448127346928
+          ],
+          "mean_m": 3.2720193256421664,
+          "r5": 0.846,
+          "r10": 0.914,
+          "gross": 0.086,
+          "no_pose": 0,
+          "modes_mean": 230.88,
+          "inlier_mean": 0.8831633806056975
+        }
+      },
+      {
+        "factor": "reproj_cells",
+        "value": 2.0,
+        "config": {
+          "reproj_cells": 2.0,
+          "target": "peak",
+          "max_modes": 0,
+          "mode_thr": 0.008,
+          "cert": "off",
+          "solver": "srt",
+          "ransac": "default"
+        },
+        "key": "reproj=2 target=peak max_modes=all thr=0.008 cert=off solver=srt ransac=default",
+        "select": {
+          "n": 500,
+          "median_m": 1.3877868345240176,
+          "median_ci": [
+            1.2811993985945862,
+            1.5247497672620476
+          ],
+          "mean_m": 3.220037856978077,
+          "r5": 0.846,
+          "r10": 0.918,
+          "gross": 0.082,
+          "no_pose": 0,
+          "modes_mean": 230.88,
+          "inlier_mean": 0.9122981758555718
+        }
+      },
+      {
+        "factor": "target",
+        "value": "means",
+        "config": {
+          "reproj_cells": 3.0,
+          "target": "means",
+          "max_modes": 0,
+          "mode_thr": 0.008,
+          "cert": "off",
+          "solver": "srt",
+          "ransac": "default"
+        },
+        "key": "reproj=3 target=means max_modes=all thr=0.008 cert=off solver=srt ransac=default",
+        "select": {
+          "n": 500,
+          "median_m": 1.3826521452091847,
+          "median_ci": [
+            1.2940557707758336,
+            1.5566981291999857
+          ],
+          "mean_m": 3.031425585133139,
+          "r5": 0.854,
+          "r10": 0.928,
+          "gross": 0.072,
+          "no_pose": 0,
+          "modes_mean": 230.88,
+          "inlier_mean": 0.8834746208641858
+        }
+      },
+      {
+        "factor": "max_modes",
+        "value": 1,
+        "config": {
+          "reproj_cells": 3.0,
+          "target": "peak",
+          "max_modes": 1,
+          "mode_thr": 0.008,
+          "cert": "off",
+          "solver": "srt",
+          "ransac": "default"
+        },
+        "key": "reproj=3 target=peak max_modes=1 thr=0.008 cert=off solver=srt ransac=default",
+        "select": {
+          "n": 500,
+          "median_m": 1.4178667867184152,
+          "median_ci": [
+            1.3032948018949053,
+            1.5386708655549497
+          ],
+          "mean_m": 3.114862425221946,
+          "r5": 0.854,
+          "r10": 0.926,
+          "gross": 0.074,
+          "no_pose": 0,
+          "modes_mean": 195.958,
+          "inlier_mean": 0.9440933894508189
+        }
+      },
+      {
+        "factor": "max_modes",
+        "value": 2,
+        "config": {
+          "reproj_cells": 3.0,
+          "target": "peak",
+          "max_modes": 2,
+          "mode_thr": 0.008,
+          "cert": "off",
+          "solver": "srt",
+          "ransac": "default"
+        },
+        "key": "reproj=3 target=peak max_modes=2 thr=0.008 cert=off solver=srt ransac=default",
+        "select": {
+          "n": 500,
+          "median_m": 1.4135037943607454,
+          "median_ci": [
+            1.2912173307017485,
+            1.5535029315231548
+          ],
+          "mean_m": 3.1263307237872624,
+          "r5": 0.854,
+          "r10": 0.926,
+          "gross": 0.074,
+          "no_pose": 0,
+          "modes_mean": 227.032,
+          "inlier_mean": 0.9366647835103888
+        }
+      },
+      {
+        "factor": "max_modes",
+        "value": 3,
+        "config": {
+          "reproj_cells": 3.0,
+          "target": "peak",
+          "max_modes": 3,
+          "mode_thr": 0.008,
+          "cert": "off",
+          "solver": "srt",
+          "ransac": "default"
+        },
+        "key": "reproj=3 target=peak max_modes=3 thr=0.008 cert=off solver=srt ransac=default",
+        "select": {
+          "n": 500,
+          "median_m": 1.4044428379580935,
+          "median_ci": [
+            1.3069926093206097,
+            1.5535029315231548
+          ],
+          "mean_m": 3.126456937149193,
+          "r5": 0.85,
+          "r10": 0.918,
+          "gross": 0.082,
+          "no_pose": 0,
+          "modes_mean": 230.668,
+          "inlier_mean": 0.935263074069748
+        }
+      },
+      {
+        "factor": "max_modes",
+        "value": 5,
+        "config": {
+          "reproj_cells": 3.0,
+          "target": "peak",
+          "max_modes": 5,
+          "mode_thr": 0.008,
+          "cert": "off",
+          "solver": "srt",
+          "ransac": "default"
+        },
+        "key": "reproj=3 target=peak max_modes=5 thr=0.008 cert=off solver=srt ransac=default",
+        "select": {
+          "n": 500,
+          "median_m": 1.4044428379580935,
+          "median_ci": [
+            1.3069926093206097,
+            1.5535029315231548
+          ],
+          "mean_m": 3.129688967488158,
+          "r5": 0.85,
+          "r10": 0.918,
+          "gross": 0.082,
+          "no_pose": 0,
+          "modes_mean": 230.88,
+          "inlier_mean": 0.9349239825252061
+        }
+      },
+      {
+        "factor": "mode_thr",
+        "value": 0.004,
+        "config": {
+          "reproj_cells": 3.0,
+          "target": "peak",
+          "max_modes": 0,
+          "mode_thr": 0.004,
+          "cert": "off",
+          "solver": "srt",
+          "ransac": "default"
+        },
+        "key": "reproj=3 target=peak max_modes=all thr=0.004 cert=off solver=srt ransac=default",
+        "select": {
+          "n": 500,
+          "median_m": 1.4466499865869404,
+          "median_ci": [
+            1.315372273088062,
+            1.570628156524572
+          ],
+          "mean_m": 3.143692042102391,
+          "r5": 0.852,
+          "r10": 0.922,
+          "gross": 0.078,
+          "no_pose": 0,
+          "modes_mean": 251.866,
+          "inlier_mean": 0.9382844469796566
+        }
+      },
+      {
+        "factor": "mode_thr",
+        "value": 0.016,
+        "config": {
+          "reproj_cells": 3.0,
+          "target": "peak",
+          "max_modes": 0,
+          "mode_thr": 0.016,
+          "cert": "off",
+          "solver": "srt",
+          "ransac": "default"
+        },
+        "key": "reproj=3 target=peak max_modes=all thr=0.016 cert=off solver=srt ransac=default",
+        "select": {
+          "n": 500,
+          "median_m": 1.4044428379580935,
+          "median_ci": [
+            1.2803955819136095,
+            1.5242290891721182
+          ],
+          "mean_m": 3.121970690399666,
+          "r5": 0.856,
+          "r10": 0.922,
+          "gross": 0.078,
+          "no_pose": 0,
+          "modes_mean": 207.366,
+          "inlier_mean": 0.9396379671087969
+        }
+      },
+      {
+        "factor": "mode_thr",
+        "value": 0.03,
+        "config": {
+          "reproj_cells": 3.0,
+          "target": "peak",
+          "max_modes": 0,
+          "mode_thr": 0.03,
+          "cert": "off",
+          "solver": "srt",
+          "ransac": "default"
+        },
+        "key": "reproj=3 target=peak max_modes=all thr=0.03 cert=off solver=srt ransac=default",
+        "select": {
+          "n": 500,
+          "median_m": 1.411875418485573,
+          "median_ci": [
+            1.285806456307679,
+            1.516964873917722
+          ],
+          "mean_m": 14.877737786153878,
+          "r5": 0.86,
+          "r10": 0.922,
+          "gross": 0.078,
+          "no_pose": 6,
+          "modes_mean": 182.922,
+          "inlier_mean": 0.9492032120438805
+        }
+      },
+      {
+        "factor": "mode_thr",
+        "value": 0.06,
+        "config": {
+          "reproj_cells": 3.0,
+          "target": "peak",
+          "max_modes": 0,
+          "mode_thr": 0.06,
+          "cert": "off",
+          "solver": "srt",
+          "ransac": "default"
+        },
+        "key": "reproj=3 target=peak max_modes=all thr=0.06 cert=off solver=srt ransac=default",
+        "select": {
+          "n": 500,
+          "median_m": 1.4483279214067335,
+          "median_ci": [
+            1.3486195383756758,
+            1.6269600375874438
+          ],
+          "mean_m": 112.01484601491275,
+          "r5": 0.81,
+          "r10": 0.856,
+          "gross": 0.144,
+          "no_pose": 55,
+          "modes_mean": 141.472,
+          "inlier_mean": 0.8824539306868969
+        }
+      },
+      {
+        "factor": "cert",
+        "value": "weight",
+        "config": {
+          "reproj_cells": 3.0,
+          "target": "peak",
+          "max_modes": 0,
+          "mode_thr": 0.008,
+          "cert": "weight",
+          "solver": "srt",
+          "ransac": "default"
+        },
+        "key": "reproj=3 target=peak max_modes=all thr=0.008 cert=weight solver=srt ransac=default",
+        "select": {
+          "n": 500,
+          "median_m": 1.4066682864282525,
+          "median_ci": [
+            1.2765959897639383,
+            1.512901276471125
+          ],
+          "mean_m": 2.9983978803936737,
+          "r5": 0.864,
+          "r10": 0.928,
+          "gross": 0.072,
+          "no_pose": 0,
+          "modes_mean": 230.88,
+          "inlier_mean": 0.9277404238814577
+        }
+      },
+      {
+        "factor": "cert",
+        "value": "uniform",
+        "config": {
+          "reproj_cells": 3.0,
+          "target": "peak",
+          "max_modes": 0,
+          "mode_thr": 0.008,
+          "cert": "uniform",
+          "solver": "srt",
+          "ransac": "default"
+        },
+        "key": "reproj=3 target=peak max_modes=all thr=0.008 cert=uniform solver=srt ransac=default",
+        "select": {
+          "n": 500,
+          "median_m": 1.4183025740522754,
+          "median_ci": [
+            1.3408662080476303,
+            1.5486829418389296
+          ],
+          "mean_m": 3.1427751015340792,
+          "r5": 0.854,
+          "r10": 0.918,
+          "gross": 0.082,
+          "no_pose": 0,
+          "modes_mean": 230.88,
+          "inlier_mean": 0.9388414349313018
+        }
+      },
+      {
+        "factor": "cert",
+        "value": "filter",
+        "config": {
+          "reproj_cells": 3.0,
+          "target": "peak",
+          "max_modes": 0,
+          "mode_thr": 0.008,
+          "cert": "filter",
+          "solver": "srt",
+          "ransac": "default"
+        },
+        "key": "reproj=3 target=peak max_modes=all thr=0.008 cert=filter solver=srt ransac=default",
+        "select": {
+          "n": 500,
+          "median_m": 1.4279758454570604,
+          "median_ci": [
+            1.3095937975314171,
+            1.5811067048796366
+          ],
+          "mean_m": 3.061590081586226,
+          "r5": 0.854,
+          "r10": 0.924,
+          "gross": 0.076,
+          "no_pose": 0,
+          "modes_mean": 173.18,
+          "inlier_mean": 0.938214165409333
+        }
+      },
+      {
+        "factor": "solver",
+        "value": "se2",
+        "config": {
+          "reproj_cells": 3.0,
+          "target": "peak",
+          "max_modes": 0,
+          "mode_thr": 0.008,
+          "cert": "off",
+          "solver": "se2",
+          "ransac": "default"
+        },
+        "key": "reproj=3 target=peak max_modes=all thr=0.008 cert=off solver=se2 ransac=default",
+        "select": {
+          "n": 500,
+          "median_m": 1.4178416467621946,
+          "median_ci": [
+            1.3039478170903096,
+            1.5612585358707898
+          ],
+          "mean_m": 3.132424360661438,
+          "r5": 0.858,
+          "r10": 0.922,
+          "gross": 0.078,
+          "no_pose": 0,
+          "modes_mean": 230.88,
+          "inlier_mean": 0.9346249769097548
+        }
+      },
+      {
+        "factor": "solver",
+        "value": "sim",
+        "config": {
+          "reproj_cells": 3.0,
+          "target": "peak",
+          "max_modes": 0,
+          "mode_thr": 0.008,
+          "cert": "off",
+          "solver": "sim",
+          "ransac": "default"
+        },
+        "key": "reproj=3 target=peak max_modes=all thr=0.008 cert=off solver=sim ransac=default",
+        "select": {
+          "n": 500,
+          "median_m": 1.419791774691058,
+          "median_ci": [
+            1.3076422079139154,
+            1.5343225483685246
+          ],
+          "mean_m": 3.1395423397686835,
+          "r5": 0.854,
+          "r10": 0.918,
+          "gross": 0.082,
+          "no_pose": 0,
+          "modes_mean": 230.88,
+          "inlier_mean": 0.9327069524667276
+        }
+      },
+      {
+        "factor": "ransac",
+        "value": "4x",
+        "config": {
+          "reproj_cells": 3.0,
+          "target": "peak",
+          "max_modes": 0,
+          "mode_thr": 0.008,
+          "cert": "off",
+          "solver": "srt",
+          "ransac": "4x"
+        },
+        "key": "reproj=3 target=peak max_modes=all thr=0.008 cert=off solver=srt ransac=4x",
+        "select": {
+          "n": 500,
+          "median_m": 1.4157760331094829,
+          "median_ci": [
+            1.32392940868412,
+            1.5458898197204427
+          ],
+          "mean_m": 3.1251035470401285,
+          "r5": 0.85,
+          "r10": 0.922,
+          "gross": 0.078,
+          "no_pose": 0,
+          "modes_mean": 230.88,
+          "inlier_mean": 0.9368367097577416
+        }
+      }
+    ],
+    "sensitivity": {
+      "reproj_cells": 0.22507986702022698,
+      "target": 0.02179069274890888,
+      "max_modes": 0.013423948760321602,
+      "mode_thr": 0.04388508344863995,
+      "cert": 0.023533007498966807,
+      "solver": 0.015348936732964447,
+      "ransac": 0.011333195151389308
+    },
+    "joint_factors": [
+      "reproj_cells",
+      "mode_thr",
+      "cert"
+    ],
+    "joint": [
+      {
+        "factors": [
+          "reproj_cells",
+          "mode_thr",
+          "cert"
+        ],
+        "config": {
+          "reproj_cells": 0.5,
+          "target": "peak",
+          "max_modes": 0,
+          "mode_thr": 0.004,
+          "cert": "off",
+          "solver": "srt",
+          "ransac": "default"
+        },
+        "key": "reproj=0.5 target=peak max_modes=all thr=0.004 cert=off solver=srt ransac=default",
+        "select": {
+          "n": 500,
+          "median_m": 1.6205726136226453,
+          "median_ci": [
+            1.4436267446601332,
+            1.7112974854562597
+          ],
+          "mean_m": 3.256033432340236,
+          "r5": 0.852,
+          "r10": 0.922,
+          "gross": 0.078,
+          "no_pose": 0,
+          "modes_mean": 251.866,
+          "inlier_mean": 0.46507195421827435
+        }
+      },
+      {
+        "factors": [
+          "reproj_cells",
+          "mode_thr",
+          "cert"
+        ],
+        "config": {
+          "reproj_cells": 0.5,
+          "target": "peak",
+          "max_modes": 0,
+          "mode_thr": 0.004,
+          "cert": "weight",
+          "solver": "srt",
+          "ransac": "default"
+        },
+        "key": "reproj=0.5 target=peak max_modes=all thr=0.004 cert=weight solver=srt ransac=default",
+        "select": {
+          "n": 500,
+          "median_m": 1.641589174350312,
+          "median_ci": [
+            1.5148624195555769,
+            1.7860579143023052
+          ],
+          "mean_m": 3.4667298100436357,
+          "r5": 0.87,
+          "r10": 0.926,
+          "gross": 0.074,
+          "no_pose": 0,
+          "modes_mean": 251.866,
+          "inlier_mean": 0.4206537078315118
+        }
+      },
+      {
+        "factors": [
+          "reproj_cells",
+          "mode_thr",
+          "cert"
+        ],
+        "config": {
+          "reproj_cells": 0.5,
+          "target": "peak",
+          "max_modes": 0,
+          "mode_thr": 0.004,
+          "cert": "uniform",
+          "solver": "srt",
+          "ransac": "default"
+        },
+        "key": "reproj=0.5 target=peak max_modes=all thr=0.004 cert=uniform solver=srt ransac=default",
+        "select": {
+          "n": 500,
+          "median_m": 1.6411561128217593,
+          "median_ci": [
+            1.4520049969128657,
+            1.7213030019769966
+          ],
+          "mean_m": 3.2850713412270554,
+          "r5": 0.848,
+          "r10": 0.92,
+          "gross": 0.08,
+          "no_pose": 0,
+          "modes_mean": 251.866,
+          "inlier_mean": 0.47573228497748643
+        }
+      },
+      {
+        "factors": [
+          "reproj_cells",
+          "mode_thr",
+          "cert"
+        ],
+        "config": {
+          "reproj_cells": 0.5,
+          "target": "peak",
+          "max_modes": 0,
+          "mode_thr": 0.004,
+          "cert": "filter",
+          "solver": "srt",
+          "ransac": "default"
+        },
+        "key": "reproj=0.5 target=peak max_modes=all thr=0.004 cert=filter solver=srt ransac=default",
+        "select": {
+          "n": 500,
+          "median_m": 1.673496658625211,
+          "median_ci": [
+            1.5685818656074788,
+            1.8110351128373257
+          ],
+          "mean_m": 3.2541449225207733,
+          "r5": 0.854,
+          "r10": 0.924,
+          "gross": 0.076,
+          "no_pose": 0,
+          "modes_mean": 188.628,
+          "inlier_mean": 0.4723860675883873
+        }
+      },
+      {
+        "factors": [
+          "reproj_cells",
+          "mode_thr",
+          "cert"
+        ],
+        "config": {
+          "reproj_cells": 0.5,
+          "target": "peak",
+          "max_modes": 0,
+          "mode_thr": 0.008,
+          "cert": "weight",
+          "solver": "srt",
+          "ransac": "default"
+        },
+        "key": "reproj=0.5 target=peak max_modes=all thr=0.008 cert=weight solver=srt ransac=default",
+        "select": {
+          "n": 500,
+          "median_m": 1.6212391797773882,
+          "median_ci": [
+            1.4636129988428543,
+            1.742112816342768
+          ],
+          "mean_m": 3.2857554913890614,
+          "r5": 0.856,
+          "r10": 0.92,
+          "gross": 0.08,
+          "no_pose": 0,
+          "modes_mean": 230.88,
+          "inlier_mean": 0.4188434475289135
+        }
+      },
+      {
+        "factors": [
+          "reproj_cells",
+          "mode_thr",
+          "cert"
+        ],
+        "config": {
+          "reproj_cells": 0.5,
+          "target": "peak",
+          "max_modes": 0,
+          "mode_thr": 0.008,
+          "cert": "uniform",
+          "solver": "srt",
+          "ransac": "default"
+        },
+        "key": "reproj=0.5 target=peak max_modes=all thr=0.008 cert=uniform solver=srt ransac=default",
+        "select": {
+          "n": 500,
+          "median_m": 1.6065264225607638,
+          "median_ci": [
+            1.4200968601081891,
+            1.7028616158109633
+          ],
+          "mean_m": 3.2747067256328655,
+          "r5": 0.854,
+          "r10": 0.92,
+          "gross": 0.08,
+          "no_pose": 0,
+          "modes_mean": 230.88,
+          "inlier_mean": 0.4753813068570573
+        }
+      },
+      {
+        "factors": [
+          "reproj_cells",
+          "mode_thr",
+          "cert"
+        ],
+        "config": {
+          "reproj_cells": 0.5,
+          "target": "peak",
+          "max_modes": 0,
+          "mode_thr": 0.008,
+          "cert": "filter",
+          "solver": "srt",
+          "ransac": "default"
+        },
+        "key": "reproj=0.5 target=peak max_modes=all thr=0.008 cert=filter solver=srt ransac=default",
+        "select": {
+          "n": 500,
+          "median_m": 1.6226467429021048,
+          "median_ci": [
+            1.5159159006874634,
+            1.7436977847350805
+          ],
+          "mean_m": 3.2570371981022816,
+          "r5": 0.856,
+          "r10": 0.918,
+          "gross": 0.082,
+          "no_pose": 0,
+          "modes_mean": 173.18,
+          "inlier_mean": 0.4720483013281425
+        }
+      },
+      {
+        "factors": [
+          "reproj_cells",
+          "mode_thr",
+          "cert"
+        ],
+        "config": {
+          "reproj_cells": 0.5,
+          "target": "peak",
+          "max_modes": 0,
+          "mode_thr": 0.016,
+          "cert": "off",
+          "solver": "srt",
+          "ransac": "default"
+        },
+        "key": "reproj=0.5 target=peak max_modes=all thr=0.016 cert=off solver=srt ransac=default",
+        "select": {
+          "n": 500,
+          "median_m": 1.6028174441068108,
+          "median_ci": [
+            1.4062745289302216,
+            1.712889860381702
+          ],
+          "mean_m": 3.3273908909127,
+          "r5": 0.852,
+          "r10": 0.908,
+          "gross": 0.092,
+          "no_pose": 0,
+          "modes_mean": 207.366,
+          "inlier_mean": 0.4676015555296755
+        }
+      },
+      {
+        "factors": [
+          "reproj_cells",
+          "mode_thr",
+          "cert"
+        ],
+        "config": {
+          "reproj_cells": 0.5,
+          "target": "peak",
+          "max_modes": 0,
+          "mode_thr": 0.016,
+          "cert": "weight",
+          "solver": "srt",
+          "ransac": "default"
+        },
+        "key": "reproj=0.5 target=peak max_modes=all thr=0.016 cert=weight solver=srt ransac=default",
+        "select": {
+          "n": 500,
+          "median_m": 1.6097664450027827,
+          "median_ci": [
+            1.470890578131319,
+            1.7353407603708133
+          ],
+          "mean_m": 3.3941596926010034,
+          "r5": 0.858,
+          "r10": 0.918,
+          "gross": 0.082,
+          "no_pose": 0,
+          "modes_mean": 207.366,
+          "inlier_mean": 0.4226493389321939
+        }
+      },
+      {
+        "factors": [
+          "reproj_cells",
+          "mode_thr",
+          "cert"
+        ],
+        "config": {
+          "reproj_cells": 0.5,
+          "target": "peak",
+          "max_modes": 0,
+          "mode_thr": 0.016,
+          "cert": "uniform",
+          "solver": "srt",
+          "ransac": "default"
+        },
+        "key": "reproj=0.5 target=peak max_modes=all thr=0.016 cert=uniform solver=srt ransac=default",
+        "select": {
+          "n": 500,
+          "median_m": 1.5693239817399913,
+          "median_ci": [
+            1.4055218589112397,
+            1.6783761515752667
+          ],
+          "mean_m": 3.358856488518702,
+          "r5": 0.846,
+          "r10": 0.914,
+          "gross": 0.086,
+          "no_pose": 0,
+          "modes_mean": 207.366,
+          "inlier_mean": 0.47755421655559566
+        }
+      },
+      {
+        "factors": [
+          "reproj_cells",
+          "mode_thr",
+          "cert"
+        ],
+        "config": {
+          "reproj_cells": 0.5,
+          "target": "peak",
+          "max_modes": 0,
+          "mode_thr": 0.016,
+          "cert": "filter",
+          "solver": "srt",
+          "ransac": "default"
+        },
+        "key": "reproj=0.5 target=peak max_modes=all thr=0.016 cert=filter solver=srt ransac=default",
+        "select": {
+          "n": 500,
+          "median_m": 1.642946401213503,
+          "median_ci": [
+            1.5353258560049647,
+            1.7622097454226657
+          ],
+          "mean_m": 3.312552343214493,
+          "r5": 0.854,
+          "r10": 0.922,
+          "gross": 0.078,
+          "no_pose": 0,
+          "modes_mean": 155.558,
+          "inlier_mean": 0.47511604631767645
+        }
+      },
+      {
+        "factors": [
+          "reproj_cells",
+          "mode_thr",
+          "cert"
+        ],
+        "config": {
+          "reproj_cells": 0.5,
+          "target": "peak",
+          "max_modes": 0,
+          "mode_thr": 0.03,
+          "cert": "off",
+          "solver": "srt",
+          "ransac": "default"
+        },
+        "key": "reproj=0.5 target=peak max_modes=all thr=0.03 cert=off solver=srt ransac=default",
+        "select": {
+          "n": 500,
+          "median_m": 1.6075385540308715,
+          "median_ci": [
+            1.4325234882243296,
+            1.7243384528775545
+          ],
+          "mean_m": 15.081065385156505,
+          "r5": 0.848,
+          "r10": 0.914,
+          "gross": 0.086,
+          "no_pose": 6,
+          "modes_mean": 182.922,
+          "inlier_mean": 0.4804198506021474
+        }
+      },
+      {
+        "factors": [
+          "reproj_cells",
+          "mode_thr",
+          "cert"
+        ],
+        "config": {
+          "reproj_cells": 0.5,
+          "target": "peak",
+          "max_modes": 0,
+          "mode_thr": 0.03,
+          "cert": "weight",
+          "solver": "srt",
+          "ransac": "default"
+        },
+        "key": "reproj=0.5 target=peak max_modes=all thr=0.03 cert=weight solver=srt ransac=default",
+        "select": {
+          "n": 500,
+          "median_m": 1.6212391797773882,
+          "median_ci": [
+            1.470890578131319,
+            1.741184808038319
+          ],
+          "mean_m": 13.335126916216435,
+          "r5": 0.862,
+          "r10": 0.91,
+          "gross": 0.09,
+          "no_pose": 5,
+          "modes_mean": 182.922,
+          "inlier_mean": 0.4363191842139594
+        }
+      },
+      {
+        "factors": [
+          "reproj_cells",
+          "mode_thr",
+          "cert"
+        ],
+        "config": {
+          "reproj_cells": 0.5,
+          "target": "peak",
+          "max_modes": 0,
+          "mode_thr": 0.03,
+          "cert": "uniform",
+          "solver": "srt",
+          "ransac": "default"
+        },
+        "key": "reproj=0.5 target=peak max_modes=all thr=0.03 cert=uniform solver=srt ransac=default",
+        "select": {
+          "n": 500,
+          "median_m": 1.5730291063911221,
+          "median_ci": [
+            1.4204489975355272,
+            1.6853667596530393
+          ],
+          "mean_m": 13.237744450014057,
+          "r5": 0.858,
+          "r10": 0.916,
+          "gross": 0.084,
+          "no_pose": 5,
+          "modes_mean": 182.922,
+          "inlier_mean": 0.49383444469121573
+        }
+      },
+      {
+        "factors": [
+          "reproj_cells",
+          "mode_thr",
+          "cert"
+        ],
+        "config": {
+          "reproj_cells": 0.5,
+          "target": "peak",
+          "max_modes": 0,
+          "mode_thr": 0.03,
+          "cert": "filter",
+          "solver": "srt",
+          "ransac": "default"
+        },
+        "key": "reproj=0.5 target=peak max_modes=all thr=0.03 cert=filter solver=srt ransac=default",
+        "select": {
+          "n": 500,
+          "median_m": 1.6415891743503008,
+          "median_ci": [
+            1.5077961869788679,
+            1.7426914467871035
+          ],
+          "mean_m": 15.117161695566525,
+          "r5": 0.854,
+          "r10": 0.916,
+          "gross": 0.084,
+          "no_pose": 6,
+          "modes_mean": 137.758,
+          "inlier_mean": 0.48773023925585335
+        }
+      },
+      {
+        "factors": [
+          "reproj_cells",
+          "mode_thr",
+          "cert"
+        ],
+        "config": {
+          "reproj_cells": 0.5,
+          "target": "peak",
+          "max_modes": 0,
+          "mode_thr": 0.06,
+          "cert": "off",
+          "solver": "srt",
+          "ransac": "default"
+        },
+        "key": "reproj=0.5 target=peak max_modes=all thr=0.06 cert=off solver=srt ransac=default",
+        "select": {
+          "n": 500,
+          "median_m": 1.6082977727563805,
+          "median_ci": [
+            1.3909163395062834,
+            1.712889860381702
+          ],
+          "mean_m": 112.15940848101545,
+          "r5": 0.808,
+          "r10": 0.856,
+          "gross": 0.144,
+          "no_pose": 55,
+          "modes_mean": 141.472,
+          "inlier_mean": 0.4887781220579403
+        }
+      },
+      {
+        "factors": [
+          "reproj_cells",
+          "mode_thr",
+          "cert"
+        ],
+        "config": {
+          "reproj_cells": 0.5,
+          "target": "peak",
+          "max_modes": 0,
+          "mode_thr": 0.06,
+          "cert": "weight",
+          "solver": "srt",
+          "ransac": "default"
+        },
+        "key": "reproj=0.5 target=peak max_modes=all thr=0.06 cert=weight solver=srt ransac=default",
+        "select": {
+          "n": 500,
+          "median_m": 1.6041164268091874,
+          "median_ci": [
+            1.457749785243693,
+            1.7168365402601644
+          ],
+          "mean_m": 102.22626650877727,
+          "r5": 0.814,
+          "r10": 0.864,
+          "gross": 0.136,
+          "no_pose": 50,
+          "modes_mean": 141.472,
+          "inlier_mean": 0.4531509349493423
+        }
+      },
+      {
+        "factors": [
+          "reproj_cells",
+          "mode_thr",
+          "cert"
+        ],
+        "config": {
+          "reproj_cells": 0.5,
+          "target": "peak",
+          "max_modes": 0,
+          "mode_thr": 0.06,
+          "cert": "uniform",
+          "solver": "srt",
+          "ransac": "default"
+        },
+        "key": "reproj=0.5 target=peak max_modes=all thr=0.06 cert=uniform solver=srt ransac=default",
+        "select": {
+          "n": 500,
+          "median_m": 1.5725364749249118,
+          "median_ci": [
+            1.3989392489807855,
+            1.6811819118859612
+          ],
+          "mean_m": 102.19109238279606,
+          "r5": 0.816,
+          "r10": 0.868,
+          "gross": 0.132,
+          "no_pose": 50,
+          "modes_mean": 141.472,
+          "inlier_mean": 0.5092249248325192
+        }
+      },
+      {
+        "factors": [
+          "reproj_cells",
+          "mode_thr",
+          "cert"
+        ],
+        "config": {
+          "reproj_cells": 0.5,
+          "target": "peak",
+          "max_modes": 0,
+          "mode_thr": 0.06,
+          "cert": "filter",
+          "solver": "srt",
+          "ransac": "default"
+        },
+        "key": "reproj=0.5 target=peak max_modes=all thr=0.06 cert=filter solver=srt ransac=default",
+        "select": {
+          "n": 500,
+          "median_m": 1.642946401213503,
+          "median_ci": [
+            1.5161769015506263,
+            1.7422737539850104
+          ],
+          "mean_m": 114.14378072082282,
+          "r5": 0.81,
+          "r10": 0.854,
+          "gross": 0.146,
+          "no_pose": 56,
+          "modes_mean": 107.088,
+          "inlier_mean": 0.49363114226278815
+        }
+      },
+      {
+        "factors": [
+          "reproj_cells",
+          "mode_thr",
+          "cert"
+        ],
+        "config": {
+          "reproj_cells": 0.75,
+          "target": "peak",
+          "max_modes": 0,
+          "mode_thr": 0.004,
+          "cert": "off",
+          "solver": "srt",
+          "ransac": "default"
+        },
+        "key": "reproj=0.75 target=peak max_modes=all thr=0.004 cert=off solver=srt ransac=default",
+        "select": {
+          "n": 500,
+          "median_m": 1.5572307662801168,
+          "median_ci": [
+            1.3878956919363983,
+            1.6840240292882345
+          ],
+          "mean_m": 3.222989220763884,
+          "r5": 0.85,
+          "r10": 0.92,
+          "gross": 0.08,
+          "no_pose": 0,
+          "modes_mean": 251.866,
+          "inlier_mean": 0.5671797038360195
+        }
+      },
+      {
+        "factors": [
+          "reproj_cells",
+          "mode_thr",
+          "cert"
+        ],
+        "config": {
+          "reproj_cells": 0.75,
+          "target": "peak",
+          "max_modes": 0,
+          "mode_thr": 0.004,
+          "cert": "weight",
+          "solver": "srt",
+          "ransac": "default"
+        },
+        "key": "reproj=0.75 target=peak max_modes=all thr=0.004 cert=weight solver=srt ransac=default",
+        "select": {
+          "n": 500,
+          "median_m": 1.5947505082070734,
+          "median_ci": [
+            1.4170303435969318,
+            1.7309748820267146
+          ],
+          "mean_m": 5.1118541098329064,
+          "r5": 0.862,
+          "r10": 0.922,
+          "gross": 0.078,
+          "no_pose": 0,
+          "modes_mean": 251.866,
+          "inlier_mean": 0.5062421441186817
+        }
+      },
+      {
+        "factors": [
+          "reproj_cells",
+          "mode_thr",
+          "cert"
+        ],
+        "config": {
+          "reproj_cells": 0.75,
+          "target": "peak",
+          "max_modes": 0,
+          "mode_thr": 0.004,
+          "cert": "uniform",
+          "solver": "srt",
+          "ransac": "default"
+        },
+        "key": "reproj=0.75 target=peak max_modes=all thr=0.004 cert=uniform solver=srt ransac=default",
+        "select": {
+          "n": 500,
+          "median_m": 1.4493992489902707,
+          "median_ci": [
+            1.3529640693605285,
+            1.6306104104041996
+          ],
+          "mean_m": 3.1366932934656577,
+          "r5": 0.864,
+          "r10": 0.922,
+          "gross": 0.078,
+          "no_pose": 0,
+          "modes_mean": 251.866,
+          "inlier_mean": 0.5974126174945678
+        }
+      },
+      {
+        "factors": [
+          "reproj_cells",
+          "mode_thr",
+          "cert"
+        ],
+        "config": {
+          "reproj_cells": 0.75,
+          "target": "peak",
+          "max_modes": 0,
+          "mode_thr": 0.004,
+          "cert": "filter",
+          "solver": "srt",
+          "ransac": "default"
+        },
+        "key": "reproj=0.75 target=peak max_modes=all thr=0.004 cert=filter solver=srt ransac=default",
+        "select": {
+          "n": 500,
+          "median_m": 1.5252776560663746,
+          "median_ci": [
+            1.4088413663853179,
+            1.682737037951405
+          ],
+          "mean_m": 3.1129814778556897,
+          "r5": 0.856,
+          "r10": 0.924,
+          "gross": 0.076,
+          "no_pose": 0,
+          "modes_mean": 188.628,
+          "inlier_mean": 0.5737231426206983
+        }
+      },
+      {
+        "factors": [
+          "reproj_cells",
+          "mode_thr",
+          "cert"
+        ],
+        "config": {
+          "reproj_cells": 0.75,
+          "target": "peak",
+          "max_modes": 0,
+          "mode_thr": 0.008,
+          "cert": "weight",
+          "solver": "srt",
+          "ransac": "default"
+        },
+        "key": "reproj=0.75 target=peak max_modes=all thr=0.008 cert=weight solver=srt ransac=default",
+        "select": {
+          "n": 500,
+          "median_m": 1.594374405824929,
+          "median_ci": [
+            1.4241807420259505,
+            1.7195943215376073
+          ],
+          "mean_m": 4.077314455463475,
+          "r5": 0.852,
+          "r10": 0.92,
+          "gross": 0.08,
+          "no_pose": 0,
+          "modes_mean": 230.88,
+          "inlier_mean": 0.5044338641154553
+        }
+      },
+      {
+        "factors": [
+          "reproj_cells",
+          "mode_thr",
+          "cert"
+        ],
+        "config": {
+          "reproj_cells": 0.75,
+          "target": "peak",
+          "max_modes": 0,
+          "mode_thr": 0.008,
+          "cert": "uniform",
+          "solver": "srt",
+          "ransac": "default"
+        },
+        "key": "reproj=0.75 target=peak max_modes=all thr=0.008 cert=uniform solver=srt ransac=default",
+        "select": {
+          "n": 500,
+          "median_m": 1.494346810548166,
+          "median_ci": [
+            1.4015226339616378,
+            1.6560774838171546
+          ],
+          "mean_m": 3.1582060136381473,
+          "r5": 0.856,
+          "r10": 0.924,
+          "gross": 0.076,
+          "no_pose": 0,
+          "modes_mean": 230.88,
+          "inlier_mean": 0.5975416333424541
+        }
+      },
+      {
+        "factors": [
+          "reproj_cells",
+          "mode_thr",
+          "cert"
+        ],
+        "config": {
+          "reproj_cells": 0.75,
+          "target": "peak",
+          "max_modes": 0,
+          "mode_thr": 0.008,
+          "cert": "filter",
+          "solver": "srt",
+          "ransac": "default"
+        },
+        "key": "reproj=0.75 target=peak max_modes=all thr=0.008 cert=filter solver=srt ransac=default",
+        "select": {
+          "n": 500,
+          "median_m": 1.5618134610708032,
+          "median_ci": [
+            1.4003552773642347,
+            1.6818769473970319
+          ],
+          "mean_m": 3.191428924047989,
+          "r5": 0.85,
+          "r10": 0.918,
+          "gross": 0.082,
+          "no_pose": 0,
+          "modes_mean": 173.18,
+          "inlier_mean": 0.5722183950342974
+        }
+      },
+      {
+        "factors": [
+          "reproj_cells",
+          "mode_thr",
+          "cert"
+        ],
+        "config": {
+          "reproj_cells": 0.75,
+          "target": "peak",
+          "max_modes": 0,
+          "mode_thr": 0.016,
+          "cert": "off",
+          "solver": "srt",
+          "ransac": "default"
+        },
+        "key": "reproj=0.75 target=peak max_modes=all thr=0.016 cert=off solver=srt ransac=default",
+        "select": {
+          "n": 500,
+          "median_m": 1.5383933961434186,
+          "median_ci": [
+            1.4101156872853902,
+            1.652588635857394
+          ],
+          "mean_m": 3.248110268484243,
+          "r5": 0.862,
+          "r10": 0.918,
+          "gross": 0.082,
+          "no_pose": 0,
+          "modes_mean": 207.366,
+          "inlier_mean": 0.5693427174834275
+        }
+      },
+      {
+        "factors": [
+          "reproj_cells",
+          "mode_thr",
+          "cert"
+        ],
+        "config": {
+          "reproj_cells": 0.75,
+          "target": "peak",
+          "max_modes": 0,
+          "mode_thr": 0.016,
+          "cert": "weight",
+          "solver": "srt",
+          "ransac": "default"
+        },
+        "key": "reproj=0.75 target=peak max_modes=all thr=0.016 cert=weight solver=srt ransac=default",
+        "select": {
+          "n": 500,
+          "median_m": 1.5947505082070734,
+          "median_ci": [
+            1.40985556720499,
+            1.7225731145955658
+          ],
+          "mean_m": 3.196515123728117,
+          "r5": 0.86,
+          "r10": 0.918,
+          "gross": 0.082,
+          "no_pose": 0,
+          "modes_mean": 207.366,
+          "inlier_mean": 0.5065258980557193
+        }
+      },
+      {
+        "factors": [
+          "reproj_cells",
+          "mode_thr",
+          "cert"
+        ],
+        "config": {
+          "reproj_cells": 0.75,
+          "target": "peak",
+          "max_modes": 0,
+          "mode_thr": 0.016,
+          "cert": "uniform",
+          "solver": "srt",
+          "ransac": "default"
+        },
+        "key": "reproj=0.75 target=peak max_modes=all thr=0.016 cert=uniform solver=srt ransac=default",
+        "select": {
+          "n": 500,
+          "median_m": 1.4493992489902707,
+          "median_ci": [
+            1.349786286042856,
+            1.622595975078566
+          ],
+          "mean_m": 3.3216350306621267,
+          "r5": 0.85,
+          "r10": 0.914,
+          "gross": 0.086,
+          "no_pose": 0,
+          "modes_mean": 207.366,
+          "inlier_mean": 0.6000080593299749
+        }
+      },
+      {
+        "factors": [
+          "reproj_cells",
+          "mode_thr",
+          "cert"
+        ],
+        "config": {
+          "reproj_cells": 0.75,
+          "target": "peak",
+          "max_modes": 0,
+          "mode_thr": 0.016,
+          "cert": "filter",
+          "solver": "srt",
+          "ransac": "default"
+        },
+        "key": "reproj=0.75 target=peak max_modes=all thr=0.016 cert=filter solver=srt ransac=default",
+        "select": {
+          "n": 500,
+          "median_m": 1.5081048152414143,
+          "median_ci": [
+            1.3773928866235639,
+            1.6860596112200776
+          ],
+          "mean_m": 3.1504792190905535,
+          "r5": 0.864,
+          "r10": 0.928,
+          "gross": 0.072,
+          "no_pose": 0,
+          "modes_mean": 155.558,
+          "inlier_mean": 0.5756943230413205
+        }
+      },
+      {
+        "factors": [
+          "reproj_cells",
+          "mode_thr",
+          "cert"
+        ],
+        "config": {
+          "reproj_cells": 0.75,
+          "target": "peak",
+          "max_modes": 0,
+          "mode_thr": 0.03,
+          "cert": "off",
+          "solver": "srt",
+          "ransac": "default"
+        },
+        "key": "reproj=0.75 target=peak max_modes=all thr=0.03 cert=off solver=srt ransac=default",
+        "select": {
+          "n": 500,
+          "median_m": 1.505753347726745,
+          "median_ci": [
+            1.3813376522615028,
+            1.6623765888078423
+          ],
+          "mean_m": 15.158358973549024,
+          "r5": 0.846,
+          "r10": 0.914,
+          "gross": 0.086,
+          "no_pose": 6,
+          "modes_mean": 182.922,
+          "inlier_mean": 0.5840652744625515
+        }
+      },
+      {
+        "factors": [
+          "reproj_cells",
+          "mode_thr",
+          "cert"
+        ],
+        "config": {
+          "reproj_cells": 0.75,
+          "target": "peak",
+          "max_modes": 0,
+          "mode_thr": 0.03,
+          "cert": "weight",
+          "solver": "srt",
+          "ransac": "default"
+        },
+        "key": "reproj=0.75 target=peak max_modes=all thr=0.03 cert=weight solver=srt ransac=default",
+        "select": {
+          "n": 500,
+          "median_m": 1.5947505082070734,
+          "median_ci": [
+            1.415819940149238,
+            1.7333285987368674
+          ],
+          "mean_m": 13.28670395701551,
+          "r5": 0.862,
+          "r10": 0.914,
+          "gross": 0.086,
+          "no_pose": 5,
+          "modes_mean": 182.922,
+          "inlier_mean": 0.5229250183891015
+        }
+      },
+      {
+        "factors": [
+          "reproj_cells",
+          "mode_thr",
+          "cert"
+        ],
+        "config": {
+          "reproj_cells": 0.75,
+          "target": "peak",
+          "max_modes": 0,
+          "mode_thr": 0.03,
+          "cert": "uniform",
+          "solver": "srt",
+          "ransac": "default"
+        },
+        "key": "reproj=0.75 target=peak max_modes=all thr=0.03 cert=uniform solver=srt ransac=default",
+        "select": {
+          "n": 500,
+          "median_m": 1.4535683795395116,
+          "median_ci": [
+            1.3811676790892538,
+            1.6781784928638908
+          ],
+          "mean_m": 13.2121420848832,
+          "r5": 0.854,
+          "r10": 0.912,
+          "gross": 0.088,
+          "no_pose": 5,
+          "modes_mean": 182.922,
+          "inlier_mean": 0.6167841122315713
+        }
+      },
+      {
+        "factors": [
+          "reproj_cells",
+          "mode_thr",
+          "cert"
+        ],
+        "config": {
+          "reproj_cells": 0.75,
+          "target": "peak",
+          "max_modes": 0,
+          "mode_thr": 0.03,
+          "cert": "filter",
+          "solver": "srt",
+          "ransac": "default"
+        },
+        "key": "reproj=0.75 target=peak max_modes=all thr=0.03 cert=filter solver=srt ransac=default",
+        "select": {
+          "n": 500,
+          "median_m": 1.5143028041192985,
+          "median_ci": [
+            1.3570893383889227,
+            1.6844401177496662
+          ],
+          "mean_m": 15.043906256586729,
+          "r5": 0.846,
+          "r10": 0.918,
+          "gross": 0.082,
+          "no_pose": 6,
+          "modes_mean": 137.758,
+          "inlier_mean": 0.5891070904529039
+        }
+      },
+      {
+        "factors": [
+          "reproj_cells",
+          "mode_thr",
+          "cert"
+        ],
+        "config": {
+          "reproj_cells": 0.75,
+          "target": "peak",
+          "max_modes": 0,
+          "mode_thr": 0.06,
+          "cert": "off",
+          "solver": "srt",
+          "ransac": "default"
+        },
+        "key": "reproj=0.75 target=peak max_modes=all thr=0.06 cert=off solver=srt ransac=default",
+        "select": {
+          "n": 500,
+          "median_m": 1.5248608778419372,
+          "median_ci": [
+            1.384396669436631,
+            1.676038041402391
+          ],
+          "mean_m": 114.06052972528668,
+          "r5": 0.812,
+          "r10": 0.854,
+          "gross": 0.146,
+          "no_pose": 55,
+          "modes_mean": 141.472,
+          "inlier_mean": 0.5842228321687407
+        }
+      },
+      {
+        "factors": [
+          "reproj_cells",
+          "mode_thr",
+          "cert"
+        ],
+        "config": {
+          "reproj_cells": 0.75,
+          "target": "peak",
+          "max_modes": 0,
+          "mode_thr": 0.06,
+          "cert": "weight",
+          "solver": "srt",
+          "ransac": "default"
+        },
+        "key": "reproj=0.75 target=peak max_modes=all thr=0.06 cert=weight solver=srt ransac=default",
+        "select": {
+          "n": 500,
+          "median_m": 1.5135725046031574,
+          "median_ci": [
+            1.3792483904416057,
+            1.6926557953098875
+          ],
+          "mean_m": 102.4324926293321,
+          "r5": 0.812,
+          "r10": 0.864,
+          "gross": 0.136,
+          "no_pose": 50,
+          "modes_mean": 141.472,
+          "inlier_mean": 0.5347052953827249
+        }
+      },
+      {
+        "factors": [
+          "reproj_cells",
+          "mode_thr",
+          "cert"
+        ],
+        "config": {
+          "reproj_cells": 0.75,
+          "target": "peak",
+          "max_modes": 0,
+          "mode_thr": 0.06,
+          "cert": "uniform",
+          "solver": "srt",
+          "ransac": "default"
+        },
+        "key": "reproj=0.75 target=peak max_modes=all thr=0.06 cert=uniform solver=srt ransac=default",
+        "select": {
+          "n": 500,
+          "median_m": 1.486446811180162,
+          "median_ci": [
+            1.3936917588809958,
+            1.677824548077395
+          ],
+          "mean_m": 102.21517946087538,
+          "r5": 0.814,
+          "r10": 0.868,
+          "gross": 0.132,
+          "no_pose": 50,
+          "modes_mean": 141.472,
+          "inlier_mean": 0.6271518095552492
+        }
+      },
+      {
+        "factors": [
+          "reproj_cells",
+          "mode_thr",
+          "cert"
+        ],
+        "config": {
+          "reproj_cells": 0.75,
+          "target": "peak",
+          "max_modes": 0,
+          "mode_thr": 0.06,
+          "cert": "filter",
+          "solver": "srt",
+          "ransac": "default"
+        },
+        "key": "reproj=0.75 target=peak max_modes=all thr=0.06 cert=filter solver=srt ransac=default",
+        "select": {
+          "n": 500,
+          "median_m": 1.5191173108869156,
+          "median_ci": [
+            1.3527817498992982,
+            1.698563490411968
+          ],
+          "mean_m": 114.10540619458183,
+          "r5": 0.804,
+          "r10": 0.852,
+          "gross": 0.148,
+          "no_pose": 56,
+          "modes_mean": 107.088,
+          "inlier_mean": 0.5836586750492552
+        }
+      },
+      {
+        "factors": [
+          "reproj_cells",
+          "mode_thr",
+          "cert"
+        ],
+        "config": {
+          "reproj_cells": 1.0,
+          "target": "peak",
+          "max_modes": 0,
+          "mode_thr": 0.004,
+          "cert": "off",
+          "solver": "srt",
+          "ransac": "default"
+        },
+        "key": "reproj=1 target=peak max_modes=all thr=0.004 cert=off solver=srt ransac=default",
+        "select": {
+          "n": 500,
+          "median_m": 1.4273987079255344,
+          "median_ci": [
+            1.2946503716353441,
+            1.6129668533727237
+          ],
+          "mean_m": 3.1847179925799085,
+          "r5": 0.848,
+          "r10": 0.922,
+          "gross": 0.078,
+          "no_pose": 0,
+          "modes_mean": 251.866,
+          "inlier_mean": 0.7585548459951632
+        }
+      },
+      {
+        "factors": [
+          "reproj_cells",
+          "mode_thr",
+          "cert"
+        ],
+        "config": {
+          "reproj_cells": 1.0,
+          "target": "peak",
+          "max_modes": 0,
+          "mode_thr": 0.004,
+          "cert": "weight",
+          "solver": "srt",
+          "ransac": "default"
+        },
+        "key": "reproj=1 target=peak max_modes=all thr=0.004 cert=weight solver=srt ransac=default",
+        "select": {
+          "n": 500,
+          "median_m": 1.4447670168699056,
+          "median_ci": [
+            1.2963607796553274,
+            1.594013867074968
+          ],
+          "mean_m": 3.209015235352269,
+          "r5": 0.862,
+          "r10": 0.922,
+          "gross": 0.078,
+          "no_pose": 0,
+          "modes_mean": 251.866,
+          "inlier_mean": 0.7261829256573926
+        }
+      },
+      {
+        "factors": [
+          "reproj_cells",
+          "mode_thr",
+          "cert"
+        ],
+        "config": {
+          "reproj_cells": 1.0,
+          "target": "peak",
+          "max_modes": 0,
+          "mode_thr": 0.004,
+          "cert": "uniform",
+          "solver": "srt",
+          "ransac": "default"
+        },
+        "key": "reproj=1 target=peak max_modes=all thr=0.004 cert=uniform solver=srt ransac=default",
+        "select": {
+          "n": 500,
+          "median_m": 1.4353067812520446,
+          "median_ci": [
+            1.2661778795937468,
+            1.5636289641476546
+          ],
+          "mean_m": 3.0976803463360323,
+          "r5": 0.86,
+          "r10": 0.924,
+          "gross": 0.076,
+          "no_pose": 0,
+          "modes_mean": 251.866,
+          "inlier_mean": 0.7752668871006295
+        }
+      },
+      {
+        "factors": [
+          "reproj_cells",
+          "mode_thr",
+          "cert"
+        ],
+        "config": {
+          "reproj_cells": 1.0,
+          "target": "peak",
+          "max_modes": 0,
+          "mode_thr": 0.004,
+          "cert": "filter",
+          "solver": "srt",
+          "ransac": "default"
+        },
+        "key": "reproj=1 target=peak max_modes=all thr=0.004 cert=filter solver=srt ransac=default",
+        "select": {
+          "n": 500,
+          "median_m": 1.490710221064823,
+          "median_ci": [
+            1.3412729479801881,
+            1.658579409211854
+          ],
+          "mean_m": 3.088675871760704,
+          "r5": 0.862,
+          "r10": 0.922,
+          "gross": 0.078,
+          "no_pose": 0,
+          "modes_mean": 188.628,
+          "inlier_mean": 0.7656268933040447
+        }
+      },
+      {
+        "factors": [
+          "reproj_cells",
+          "mode_thr",
+          "cert"
+        ],
+        "config": {
+          "reproj_cells": 1.0,
+          "target": "peak",
+          "max_modes": 0,
+          "mode_thr": 0.008,
+          "cert": "weight",
+          "solver": "srt",
+          "ransac": "default"
+        },
+        "key": "reproj=1 target=peak max_modes=all thr=0.008 cert=weight solver=srt ransac=default",
+        "select": {
+          "n": 500,
+          "median_m": 1.4385256888970859,
+          "median_ci": [
+            1.3008752125724805,
+            1.605079828372563
+          ],
+          "mean_m": 3.196387904072372,
+          "r5": 0.856,
+          "r10": 0.918,
+          "gross": 0.082,
+          "no_pose": 0,
+          "modes_mean": 230.88,
+          "inlier_mean": 0.7260538264891172
+        }
+      },
+      {
+        "factors": [
+          "reproj_cells",
+          "mode_thr",
+          "cert"
+        ],
+        "config": {
+          "reproj_cells": 1.0,
+          "target": "peak",
+          "max_modes": 0,
+          "mode_thr": 0.008,
+          "cert": "uniform",
+          "solver": "srt",
+          "ransac": "default"
+        },
+        "key": "reproj=1 target=peak max_modes=all thr=0.008 cert=uniform solver=srt ransac=default",
+        "select": {
+          "n": 500,
+          "median_m": 1.4405461320249682,
+          "median_ci": [
+            1.2810080742431467,
+            1.5657464285988505
+          ],
+          "mean_m": 3.154184794583365,
+          "r5": 0.854,
+          "r10": 0.922,
+          "gross": 0.078,
+          "no_pose": 0,
+          "modes_mean": 230.88,
+          "inlier_mean": 0.7721525959678798
+        }
+      },
+      {
+        "factors": [
+          "reproj_cells",
+          "mode_thr",
+          "cert"
+        ],
+        "config": {
+          "reproj_cells": 1.0,
+          "target": "peak",
+          "max_modes": 0,
+          "mode_thr": 0.008,
+          "cert": "filter",
+          "solver": "srt",
+          "ransac": "default"
+        },
+        "key": "reproj=1 target=peak max_modes=all thr=0.008 cert=filter solver=srt ransac=default",
+        "select": {
+          "n": 500,
+          "median_m": 1.4641174274328006,
+          "median_ci": [
+            1.3098066499372956,
+            1.6560298259530684
+          ],
+          "mean_m": 3.134617388170241,
+          "r5": 0.854,
+          "r10": 0.922,
+          "gross": 0.078,
+          "no_pose": 0,
+          "modes_mean": 173.18,
+          "inlier_mean": 0.7637065173185472
+        }
+      },
+      {
+        "factors": [
+          "reproj_cells",
+          "mode_thr",
+          "cert"
+        ],
+        "config": {
+          "reproj_cells": 1.0,
+          "target": "peak",
+          "max_modes": 0,
+          "mode_thr": 0.016,
+          "cert": "off",
+          "solver": "srt",
+          "ransac": "default"
+        },
+        "key": "reproj=1 target=peak max_modes=all thr=0.016 cert=off solver=srt ransac=default",
+        "select": {
+          "n": 500,
+          "median_m": 1.4331690141798896,
+          "median_ci": [
+            1.2880567434075951,
+            1.5946824732208744
+          ],
+          "mean_m": 3.26942737628777,
+          "r5": 0.85,
+          "r10": 0.92,
+          "gross": 0.08,
+          "no_pose": 0,
+          "modes_mean": 207.366,
+          "inlier_mean": 0.7591805033698344
+        }
+      },
+      {
+        "factors": [
+          "reproj_cells",
+          "mode_thr",
+          "cert"
+        ],
+        "config": {
+          "reproj_cells": 1.0,
+          "target": "peak",
+          "max_modes": 0,
+          "mode_thr": 0.016,
+          "cert": "weight",
+          "solver": "srt",
+          "ransac": "default"
+        },
+        "key": "reproj=1 target=peak max_modes=all thr=0.016 cert=weight solver=srt ransac=default",
+        "select": {
+          "n": 500,
+          "median_m": 1.4636685207859426,
+          "median_ci": [
+            1.3193264074933744,
+            1.5968384070881825
+          ],
+          "mean_m": 3.274856213278538,
+          "r5": 0.854,
+          "r10": 0.912,
+          "gross": 0.088,
+          "no_pose": 0,
+          "modes_mean": 207.366,
+          "inlier_mean": 0.7300275643983984
+        }
+      },
+      {
+        "factors": [
+          "reproj_cells",
+          "mode_thr",
+          "cert"
+        ],
+        "config": {
+          "reproj_cells": 1.0,
+          "target": "peak",
+          "max_modes": 0,
+          "mode_thr": 0.016,
+          "cert": "uniform",
+          "solver": "srt",
+          "ransac": "default"
+        },
+        "key": "reproj=1 target=peak max_modes=all thr=0.016 cert=uniform solver=srt ransac=default",
+        "select": {
+          "n": 500,
+          "median_m": 1.4309325616867434,
+          "median_ci": [
+            1.299056559398049,
+            1.5471755048456006
+          ],
+          "mean_m": 3.2049230149803027,
+          "r5": 0.852,
+          "r10": 0.916,
+          "gross": 0.084,
+          "no_pose": 0,
+          "modes_mean": 207.366,
+          "inlier_mean": 0.7759925420065291
+        }
+      },
+      {
+        "factors": [
+          "reproj_cells",
+          "mode_thr",
+          "cert"
+        ],
+        "config": {
+          "reproj_cells": 1.0,
+          "target": "peak",
+          "max_modes": 0,
+          "mode_thr": 0.016,
+          "cert": "filter",
+          "solver": "srt",
+          "ransac": "default"
+        },
+        "key": "reproj=1 target=peak max_modes=all thr=0.016 cert=filter solver=srt ransac=default",
+        "select": {
+          "n": 500,
+          "median_m": 1.4641174274328006,
+          "median_ci": [
+            1.3018780817951154,
+            1.6422317683382162
+          ],
+          "mean_m": 3.237342979006037,
+          "r5": 0.852,
+          "r10": 0.922,
+          "gross": 0.078,
+          "no_pose": 0,
+          "modes_mean": 155.558,
+          "inlier_mean": 0.7677089534851395
+        }
+      },
+      {
+        "factors": [
+          "reproj_cells",
+          "mode_thr",
+          "cert"
+        ],
+        "config": {
+          "reproj_cells": 1.0,
+          "target": "peak",
+          "max_modes": 0,
+          "mode_thr": 0.03,
+          "cert": "off",
+          "solver": "srt",
+          "ransac": "default"
+        },
+        "key": "reproj=1 target=peak max_modes=all thr=0.03 cert=off solver=srt ransac=default",
+        "select": {
+          "n": 500,
+          "median_m": 1.4273987079255344,
+          "median_ci": [
+            1.302304539961685,
+            1.581797086814987
+          ],
+          "mean_m": 15.01129052812295,
+          "r5": 0.852,
+          "r10": 0.916,
+          "gross": 0.084,
+          "no_pose": 6,
+          "modes_mean": 182.922,
+          "inlier_mean": 0.7757807611035903
+        }
+      },
+      {
+        "factors": [
+          "reproj_cells",
+          "mode_thr",
+          "cert"
+        ],
+        "config": {
+          "reproj_cells": 1.0,
+          "target": "peak",
+          "max_modes": 0,
+          "mode_thr": 0.03,
+          "cert": "weight",
+          "solver": "srt",
+          "ransac": "default"
+        },
+        "key": "reproj=1 target=peak max_modes=all thr=0.03 cert=weight solver=srt ransac=default",
+        "select": {
+          "n": 500,
+          "median_m": 1.43276810459713,
+          "median_ci": [
+            1.3040376279601769,
+            1.5924386885421602
+          ],
+          "mean_m": 13.024642143368107,
+          "r5": 0.864,
+          "r10": 0.914,
+          "gross": 0.086,
+          "no_pose": 5,
+          "modes_mean": 182.922,
+          "inlier_mean": 0.748727739929556
+        }
+      },
+      {
+        "factors": [
+          "reproj_cells",
+          "mode_thr",
+          "cert"
+        ],
+        "config": {
+          "reproj_cells": 1.0,
+          "target": "peak",
+          "max_modes": 0,
+          "mode_thr": 0.03,
+          "cert": "uniform",
+          "solver": "srt",
+          "ransac": "default"
+        },
+        "key": "reproj=1 target=peak max_modes=all thr=0.03 cert=uniform solver=srt ransac=default",
+        "select": {
+          "n": 500,
+          "median_m": 1.4550130446002028,
+          "median_ci": [
+            1.320096224664403,
+            1.5714432711416348
+          ],
+          "mean_m": 13.05450402361336,
+          "r5": 0.854,
+          "r10": 0.918,
+          "gross": 0.082,
+          "no_pose": 5,
+          "modes_mean": 182.922,
+          "inlier_mean": 0.7952585251502282
+        }
+      },
+      {
+        "factors": [
+          "reproj_cells",
+          "mode_thr",
+          "cert"
+        ],
+        "config": {
+          "reproj_cells": 1.0,
+          "target": "peak",
+          "max_modes": 0,
+          "mode_thr": 0.03,
+          "cert": "filter",
+          "solver": "srt",
+          "ransac": "default"
+        },
+        "key": "reproj=1 target=peak max_modes=all thr=0.03 cert=filter solver=srt ransac=default",
+        "select": {
+          "n": 500,
+          "median_m": 1.4674296702034353,
+          "median_ci": [
+            1.320683122925959,
+            1.66250970483248
+          ],
+          "mean_m": 15.073537368053637,
+          "r5": 0.85,
+          "r10": 0.916,
+          "gross": 0.084,
+          "no_pose": 6,
+          "modes_mean": 137.758,
+          "inlier_mean": 0.7843878670657802
+        }
+      },
+      {
+        "factors": [
+          "reproj_cells",
+          "mode_thr",
+          "cert"
+        ],
+        "config": {
+          "reproj_cells": 1.0,
+          "target": "peak",
+          "max_modes": 0,
+          "mode_thr": 0.06,
+          "cert": "off",
+          "solver": "srt",
+          "ransac": "default"
+        },
+        "key": "reproj=1 target=peak max_modes=all thr=0.06 cert=off solver=srt ransac=default",
+        "select": {
+          "n": 500,
+          "median_m": 1.468067171428433,
+          "median_ci": [
+            1.3446955602753765,
+            1.6761504325598748
+          ],
+          "mean_m": 112.24111832017164,
+          "r5": 0.808,
+          "r10": 0.854,
+          "gross": 0.146,
+          "no_pose": 55,
+          "modes_mean": 141.472,
+          "inlier_mean": 0.7616984962741075
+        }
+      },
+      {
+        "factors": [
+          "reproj_cells",
+          "mode_thr",
+          "cert"
+        ],
+        "config": {
+          "reproj_cells": 1.0,
+          "target": "peak",
+          "max_modes": 0,
+          "mode_thr": 0.06,
+          "cert": "weight",
+          "solver": "srt",
+          "ransac": "default"
+        },
+        "key": "reproj=1 target=peak max_modes=all thr=0.06 cert=weight solver=srt ransac=default",
+        "select": {
+          "n": 500,
+          "median_m": 1.427323859839572,
+          "median_ci": [
+            1.2890044156186575,
+            1.5908635100093527
+          ],
+          "mean_m": 102.21935162852678,
+          "r5": 0.81,
+          "r10": 0.864,
+          "gross": 0.136,
+          "no_pose": 50,
+          "modes_mean": 141.472,
+          "inlier_mean": 0.7453648475820828
+        }
+      },
+      {
+        "factors": [
+          "reproj_cells",
+          "mode_thr",
+          "cert"
+        ],
+        "config": {
+          "reproj_cells": 1.0,
+          "target": "peak",
+          "max_modes": 0,
+          "mode_thr": 0.06,
+          "cert": "uniform",
+          "solver": "srt",
+          "ransac": "default"
+        },
+        "key": "reproj=1 target=peak max_modes=all thr=0.06 cert=uniform solver=srt ransac=default",
+        "select": {
+          "n": 500,
+          "median_m": 1.4622444825939929,
+          "median_ci": [
+            1.3062365085709484,
+            1.6010237738570299
+          ],
+          "mean_m": 102.1819949818474,
+          "r5": 0.81,
+          "r10": 0.866,
+          "gross": 0.134,
+          "no_pose": 50,
+          "modes_mean": 141.472,
+          "inlier_mean": 0.7894046018188392
+        }
+      },
+      {
+        "factors": [
+          "reproj_cells",
+          "mode_thr",
+          "cert"
+        ],
+        "config": {
+          "reproj_cells": 1.0,
+          "target": "peak",
+          "max_modes": 0,
+          "mode_thr": 0.06,
+          "cert": "filter",
+          "solver": "srt",
+          "ransac": "default"
+        },
+        "key": "reproj=1 target=peak max_modes=all thr=0.06 cert=filter solver=srt ransac=default",
+        "select": {
+          "n": 500,
+          "median_m": 1.4794389952176397,
+          "median_ci": [
+            1.3743618079992919,
+            1.6429623053831148
+          ],
+          "mean_m": 114.20443874994417,
+          "r5": 0.81,
+          "r10": 0.85,
+          "gross": 0.15,
+          "no_pose": 56,
+          "modes_mean": 107.088,
+          "inlier_mean": 0.7675830435288046
+        }
+      },
+      {
+        "factors": [
+          "reproj_cells",
+          "mode_thr",
+          "cert"
+        ],
+        "config": {
+          "reproj_cells": 1.5,
+          "target": "peak",
+          "max_modes": 0,
+          "mode_thr": 0.004,
+          "cert": "off",
+          "solver": "srt",
+          "ransac": "default"
+        },
+        "key": "reproj=1.5 target=peak max_modes=all thr=0.004 cert=off solver=srt ransac=default",
+        "select": {
+          "n": 500,
+          "median_m": 1.410484708003973,
+          "median_ci": [
+            1.3034532520910398,
+            1.563277627119168
+          ],
+          "mean_m": 3.241975136544652,
+          "r5": 0.852,
+          "r10": 0.914,
+          "gross": 0.086,
+          "no_pose": 0,
+          "modes_mean": 251.866,
+          "inlier_mean": 0.885135077935011
+        }
+      },
+      {
+        "factors": [
+          "reproj_cells",
+          "mode_thr",
+          "cert"
+        ],
+        "config": {
+          "reproj_cells": 1.5,
+          "target": "peak",
+          "max_modes": 0,
+          "mode_thr": 0.004,
+          "cert": "weight",
+          "solver": "srt",
+          "ransac": "default"
+        },
+        "key": "reproj=1.5 target=peak max_modes=all thr=0.004 cert=weight solver=srt ransac=default",
+        "select": {
+          "n": 500,
+          "median_m": 1.4085667586325568,
+          "median_ci": [
+            1.2851897347425476,
+            1.498935327947567
+          ],
+          "mean_m": 4.793346506123702,
+          "r5": 0.862,
+          "r10": 0.928,
+          "gross": 0.072,
+          "no_pose": 0,
+          "modes_mean": 251.866,
+          "inlier_mean": 0.8705631081650878
+        }
+      },
+      {
+        "factors": [
+          "reproj_cells",
+          "mode_thr",
+          "cert"
+        ],
+        "config": {
+          "reproj_cells": 1.5,
+          "target": "peak",
+          "max_modes": 0,
+          "mode_thr": 0.004,
+          "cert": "uniform",
+          "solver": "srt",
+          "ransac": "default"
+        },
+        "key": "reproj=1.5 target=peak max_modes=all thr=0.004 cert=uniform solver=srt ransac=default",
+        "select": {
+          "n": 500,
+          "median_m": 1.4275418930876418,
+          "median_ci": [
+            1.2958693409981712,
+            1.564477041198456
+          ],
+          "mean_m": 3.187625080692131,
+          "r5": 0.85,
+          "r10": 0.92,
+          "gross": 0.08,
+          "no_pose": 0,
+          "modes_mean": 251.866,
+          "inlier_mean": 0.8930220304741381
+        }
+      },
+      {
+        "factors": [
+          "reproj_cells",
+          "mode_thr",
+          "cert"
+        ],
+        "config": {
+          "reproj_cells": 1.5,
+          "target": "peak",
+          "max_modes": 0,
+          "mode_thr": 0.004,
+          "cert": "filter",
+          "solver": "srt",
+          "ransac": "default"
+        },
+        "key": "reproj=1.5 target=peak max_modes=all thr=0.004 cert=filter solver=srt ransac=default",
+        "select": {
+          "n": 500,
+          "median_m": 1.4185501030284282,
+          "median_ci": [
+            1.2913905533576169,
+            1.596510778824587
+          ],
+          "mean_m": 3.1268636919896804,
+          "r5": 0.858,
+          "r10": 0.924,
+          "gross": 0.076,
+          "no_pose": 0,
+          "modes_mean": 188.628,
+          "inlier_mean": 0.8889551964265765
+        }
+      },
+      {
+        "factors": [
+          "reproj_cells",
+          "mode_thr",
+          "cert"
+        ],
+        "config": {
+          "reproj_cells": 1.5,
+          "target": "peak",
+          "max_modes": 0,
+          "mode_thr": 0.008,
+          "cert": "weight",
+          "solver": "srt",
+          "ransac": "default"
+        },
+        "key": "reproj=1.5 target=peak max_modes=all thr=0.008 cert=weight solver=srt ransac=default",
+        "select": {
+          "n": 500,
+          "median_m": 1.4125691091984516,
+          "median_ci": [
+            1.289814061516214,
+            1.5098683380908844
+          ],
+          "mean_m": 3.0370395605747396,
+          "r5": 0.862,
+          "r10": 0.924,
+          "gross": 0.076,
+          "no_pose": 0,
+          "modes_mean": 230.88,
+          "inlier_mean": 0.8684424963790476
+        }
+      },
+      {
+        "factors": [
+          "reproj_cells",
+          "mode_thr",
+          "cert"
+        ],
+        "config": {
+          "reproj_cells": 1.5,
+          "target": "peak",
+          "max_modes": 0,
+          "mode_thr": 0.008,
+          "cert": "uniform",
+          "solver": "srt",
+          "ransac": "default"
+        },
+        "key": "reproj=1.5 target=peak max_modes=all thr=0.008 cert=uniform solver=srt ransac=default",
+        "select": {
+          "n": 500,
+          "median_m": 1.4275418930876418,
+          "median_ci": [
+            1.3237075776507128,
+            1.5725889495212138
+          ],
+          "mean_m": 3.2250356577745785,
+          "r5": 0.844,
+          "r10": 0.922,
+          "gross": 0.078,
+          "no_pose": 0,
+          "modes_mean": 230.88,
+          "inlier_mean": 0.8905701138041171
+        }
+      },
+      {
+        "factors": [
+          "reproj_cells",
+          "mode_thr",
+          "cert"
+        ],
+        "config": {
+          "reproj_cells": 1.5,
+          "target": "peak",
+          "max_modes": 0,
+          "mode_thr": 0.008,
+          "cert": "filter",
+          "solver": "srt",
+          "ransac": "default"
+        },
+        "key": "reproj=1.5 target=peak max_modes=all thr=0.008 cert=filter solver=srt ransac=default",
+        "select": {
+          "n": 500,
+          "median_m": 1.4047999144519223,
+          "median_ci": [
+            1.2901319774311395,
+            1.6131357398240573
+          ],
+          "mean_m": 3.0839678702111377,
+          "r5": 0.858,
+          "r10": 0.926,
+          "gross": 0.074,
+          "no_pose": 0,
+          "modes_mean": 173.18,
+          "inlier_mean": 0.8868014587943499
+        }
+      },
+      {
+        "factors": [
+          "reproj_cells",
+          "mode_thr",
+          "cert"
+        ],
+        "config": {
+          "reproj_cells": 1.5,
+          "target": "peak",
+          "max_modes": 0,
+          "mode_thr": 0.016,
+          "cert": "off",
+          "solver": "srt",
+          "ransac": "default"
+        },
+        "key": "reproj=1.5 target=peak max_modes=all thr=0.016 cert=off solver=srt ransac=default",
+        "select": {
+          "n": 500,
+          "median_m": 1.4183213439187625,
+          "median_ci": [
+            1.2779299393422558,
+            1.5926553740848086
+          ],
+          "mean_m": 3.2168707605660103,
+          "r5": 0.848,
+          "r10": 0.916,
+          "gross": 0.084,
+          "no_pose": 0,
+          "modes_mean": 207.366,
+          "inlier_mean": 0.8873943762402775
+        }
+      },
+      {
+        "factors": [
+          "reproj_cells",
+          "mode_thr",
+          "cert"
+        ],
+        "config": {
+          "reproj_cells": 1.5,
+          "target": "peak",
+          "max_modes": 0,
+          "mode_thr": 0.016,
+          "cert": "weight",
+          "solver": "srt",
+          "ransac": "default"
+        },
+        "key": "reproj=1.5 target=peak max_modes=all thr=0.016 cert=weight solver=srt ransac=default",
+        "select": {
+          "n": 500,
+          "median_m": 1.4116481907317269,
+          "median_ci": [
+            1.306548947253795,
+            1.5328063094017053
+          ],
+          "mean_m": 3.1233175912452045,
+          "r5": 0.848,
+          "r10": 0.926,
+          "gross": 0.074,
+          "no_pose": 0,
+          "modes_mean": 207.366,
+          "inlier_mean": 0.8740787265167148
+        }
+      },
+      {
+        "factors": [
+          "reproj_cells",
+          "mode_thr",
+          "cert"
+        ],
+        "config": {
+          "reproj_cells": 1.5,
+          "target": "peak",
+          "max_modes": 0,
+          "mode_thr": 0.016,
+          "cert": "uniform",
+          "solver": "srt",
+          "ransac": "default"
+        },
+        "key": "reproj=1.5 target=peak max_modes=all thr=0.016 cert=uniform solver=srt ransac=default",
+        "select": {
+          "n": 500,
+          "median_m": 1.4116481907317269,
+          "median_ci": [
+            1.281422423833789,
+            1.5557405660459707
+          ],
+          "mean_m": 3.206713549209538,
+          "r5": 0.846,
+          "r10": 0.92,
+          "gross": 0.08,
+          "no_pose": 0,
+          "modes_mean": 207.366,
+          "inlier_mean": 0.8944338695346151
+        }
+      },
+      {
+        "factors": [
+          "reproj_cells",
+          "mode_thr",
+          "cert"
+        ],
+        "config": {
+          "reproj_cells": 1.5,
+          "target": "peak",
+          "max_modes": 0,
+          "mode_thr": 0.016,
+          "cert": "filter",
+          "solver": "srt",
+          "ransac": "default"
+        },
+        "key": "reproj=1.5 target=peak max_modes=all thr=0.016 cert=filter solver=srt ransac=default",
+        "select": {
+          "n": 500,
+          "median_m": 1.4080628923350478,
+          "median_ci": [
+            1.2888852919195297,
+            1.596510778824587
+          ],
+          "mean_m": 3.1915893145020933,
+          "r5": 0.852,
+          "r10": 0.92,
+          "gross": 0.08,
+          "no_pose": 0,
+          "modes_mean": 155.558,
+          "inlier_mean": 0.8919846407609202
+        }
+      },
+      {
+        "factors": [
+          "reproj_cells",
+          "mode_thr",
+          "cert"
+        ],
+        "config": {
+          "reproj_cells": 1.5,
+          "target": "peak",
+          "max_modes": 0,
+          "mode_thr": 0.03,
+          "cert": "off",
+          "solver": "srt",
+          "ransac": "default"
+        },
+        "key": "reproj=1.5 target=peak max_modes=all thr=0.03 cert=off solver=srt ransac=default",
+        "select": {
+          "n": 500,
+          "median_m": 1.4097852752437765,
+          "median_ci": [
+            1.277262964553097,
+            1.536440898618972
+          ],
+          "mean_m": 14.983247718337223,
+          "r5": 0.856,
+          "r10": 0.916,
+          "gross": 0.084,
+          "no_pose": 6,
+          "modes_mean": 182.922,
+          "inlier_mean": 0.9041505389766492
+        }
+      },
+      {
+        "factors": [
+          "reproj_cells",
+          "mode_thr",
+          "cert"
+        ],
+        "config": {
+          "reproj_cells": 1.5,
+          "target": "peak",
+          "max_modes": 0,
+          "mode_thr": 0.03,
+          "cert": "weight",
+          "solver": "srt",
+          "ransac": "default"
+        },
+        "key": "reproj=1.5 target=peak max_modes=all thr=0.03 cert=weight solver=srt ransac=default",
+        "select": {
+          "n": 500,
+          "median_m": 1.4143056026976542,
+          "median_ci": [
+            1.29941009363803,
+            1.5498363050624044
+          ],
+          "mean_m": 13.234385076911806,
+          "r5": 0.864,
+          "r10": 0.916,
+          "gross": 0.084,
+          "no_pose": 5,
+          "modes_mean": 182.922,
+          "inlier_mean": 0.8928611322310157
+        }
+      },
+      {
+        "factors": [
+          "reproj_cells",
+          "mode_thr",
+          "cert"
+        ],
+        "config": {
+          "reproj_cells": 1.5,
+          "target": "peak",
+          "max_modes": 0,
+          "mode_thr": 0.03,
+          "cert": "uniform",
+          "solver": "srt",
+          "ransac": "default"
+        },
+        "key": "reproj=1.5 target=peak max_modes=all thr=0.03 cert=uniform solver=srt ransac=default",
+        "select": {
+          "n": 500,
+          "median_m": 1.4072659653136481,
+          "median_ci": [
+            1.2769679483916225,
+            1.5609769746694817
+          ],
+          "mean_m": 13.013149566181456,
+          "r5": 0.854,
+          "r10": 0.918,
+          "gross": 0.082,
+          "no_pose": 5,
+          "modes_mean": 182.922,
+          "inlier_mean": 0.9139708639697072
+        }
+      },
+      {
+        "factors": [
+          "reproj_cells",
+          "mode_thr",
+          "cert"
+        ],
+        "config": {
+          "reproj_cells": 1.5,
+          "target": "peak",
+          "max_modes": 0,
+          "mode_thr": 0.03,
+          "cert": "filter",
+          "solver": "srt",
+          "ransac": "default"
+        },
+        "key": "reproj=1.5 target=peak max_modes=all thr=0.03 cert=filter solver=srt ransac=default",
+        "select": {
+          "n": 500,
+          "median_m": 1.4157409768879847,
+          "median_ci": [
+            1.2890996989662138,
+            1.596510778824587
+          ],
+          "mean_m": 14.986090604441886,
+          "r5": 0.858,
+          "r10": 0.918,
+          "gross": 0.082,
+          "no_pose": 6,
+          "modes_mean": 137.758,
+          "inlier_mean": 0.9069847436786714
+        }
+      },
+      {
+        "factors": [
+          "reproj_cells",
+          "mode_thr",
+          "cert"
+        ],
+        "config": {
+          "reproj_cells": 1.5,
+          "target": "peak",
+          "max_modes": 0,
+          "mode_thr": 0.06,
+          "cert": "off",
+          "solver": "srt",
+          "ransac": "default"
+        },
+        "key": "reproj=1.5 target=peak max_modes=all thr=0.06 cert=off solver=srt ransac=default",
+        "select": {
+          "n": 500,
+          "median_m": 1.4788902398117747,
+          "median_ci": [
+            1.365858734657062,
+            1.6027037522487655
+          ],
+          "mean_m": 112.03978817014699,
+          "r5": 0.806,
+          "r10": 0.854,
+          "gross": 0.146,
+          "no_pose": 55,
+          "modes_mean": 141.472,
+          "inlier_mean": 0.8643587092352294
+        }
+      },
+      {
+        "factors": [
+          "reproj_cells",
+          "mode_thr",
+          "cert"
+        ],
+        "config": {
+          "reproj_cells": 1.5,
+          "target": "peak",
+          "max_modes": 0,
+          "mode_thr": 0.06,
+          "cert": "weight",
+          "solver": "srt",
+          "ransac": "default"
+        },
+        "key": "reproj=1.5 target=peak max_modes=all thr=0.06 cert=weight solver=srt ransac=default",
+        "select": {
+          "n": 500,
+          "median_m": 1.4072659653136481,
+          "median_ci": [
+            1.2790121128914473,
+            1.5736853071702597
+          ],
+          "mean_m": 102.15196817622608,
+          "r5": 0.812,
+          "r10": 0.864,
+          "gross": 0.136,
+          "no_pose": 50,
+          "modes_mean": 141.472,
+          "inlier_mean": 0.8601148556179392
+        }
+      },
+      {
+        "factors": [
+          "reproj_cells",
+          "mode_thr",
+          "cert"
+        ],
+        "config": {
+          "reproj_cells": 1.5,
+          "target": "peak",
+          "max_modes": 0,
+          "mode_thr": 0.06,
+          "cert": "uniform",
+          "solver": "srt",
+          "ransac": "default"
+        },
+        "key": "reproj=1.5 target=peak max_modes=all thr=0.06 cert=uniform solver=srt ransac=default",
+        "select": {
+          "n": 500,
+          "median_m": 1.4483279214067335,
+          "median_ci": [
+            1.3408662080476303,
+            1.5862378101426624
+          ],
+          "mean_m": 102.17249179303268,
+          "r5": 0.812,
+          "r10": 0.864,
+          "gross": 0.136,
+          "no_pose": 50,
+          "modes_mean": 141.472,
+          "inlier_mean": 0.8796150689745
+        }
+      },
+      {
+        "factors": [
+          "reproj_cells",
+          "mode_thr",
+          "cert"
+        ],
+        "config": {
+          "reproj_cells": 1.5,
+          "target": "peak",
+          "max_modes": 0,
+          "mode_thr": 0.06,
+          "cert": "filter",
+          "solver": "srt",
+          "ransac": "default"
+        },
+        "key": "reproj=1.5 target=peak max_modes=all thr=0.06 cert=filter solver=srt ransac=default",
+        "select": {
+          "n": 500,
+          "median_m": 1.4750229429117483,
+          "median_ci": [
+            1.3223931798276494,
+            1.615241987907785
+          ],
+          "mean_m": 114.016625205394,
+          "r5": 0.81,
+          "r10": 0.852,
+          "gross": 0.148,
+          "no_pose": 56,
+          "modes_mean": 107.088,
+          "inlier_mean": 0.862166531343262
+        }
+      },
+      {
+        "factors": [
+          "reproj_cells",
+          "mode_thr",
+          "cert"
+        ],
+        "config": {
+          "reproj_cells": 2.0,
+          "target": "peak",
+          "max_modes": 0,
+          "mode_thr": 0.004,
+          "cert": "off",
+          "solver": "srt",
+          "ransac": "default"
+        },
+        "key": "reproj=2 target=peak max_modes=all thr=0.004 cert=off solver=srt ransac=default",
+        "select": {
+          "n": 500,
+          "median_m": 1.3962009402501878,
+          "median_ci": [
+            1.2747879977611294,
+            1.5244359027320322
+          ],
+          "mean_m": 3.194531699111674,
+          "r5": 0.85,
+          "r10": 0.914,
+          "gross": 0.086,
+          "no_pose": 0,
+          "modes_mean": 251.866,
+          "inlier_mean": 0.915617787112076
+        }
+      },
+      {
+        "factors": [
+          "reproj_cells",
+          "mode_thr",
+          "cert"
+        ],
+        "config": {
+          "reproj_cells": 2.0,
+          "target": "peak",
+          "max_modes": 0,
+          "mode_thr": 0.004,
+          "cert": "weight",
+          "solver": "srt",
+          "ransac": "default"
+        },
+        "key": "reproj=2 target=peak max_modes=all thr=0.004 cert=weight solver=srt ransac=default",
+        "select": {
+          "n": 500,
+          "median_m": 1.403067788969052,
+          "median_ci": [
+            1.292530371306617,
+            1.5061176060717258
+          ],
+          "mean_m": 3.041763371742415,
+          "r5": 0.866,
+          "r10": 0.928,
+          "gross": 0.072,
+          "no_pose": 0,
+          "modes_mean": 251.866,
+          "inlier_mean": 0.9016356822741175
+        }
+      },
+      {
+        "factors": [
+          "reproj_cells",
+          "mode_thr",
+          "cert"
+        ],
+        "config": {
+          "reproj_cells": 2.0,
+          "target": "peak",
+          "max_modes": 0,
+          "mode_thr": 0.004,
+          "cert": "uniform",
+          "solver": "srt",
+          "ransac": "default"
+        },
+        "key": "reproj=2 target=peak max_modes=all thr=0.004 cert=uniform solver=srt ransac=default",
+        "select": {
+          "n": 500,
+          "median_m": 1.4151183495369901,
+          "median_ci": [
+            1.305295914037663,
+            1.5234751648729608
+          ],
+          "mean_m": 3.1542960654233934,
+          "r5": 0.85,
+          "r10": 0.918,
+          "gross": 0.082,
+          "no_pose": 0,
+          "modes_mean": 251.866,
+          "inlier_mean": 0.9194212164664779
+        }
+      },
+      {
+        "factors": [
+          "reproj_cells",
+          "mode_thr",
+          "cert"
+        ],
+        "config": {
+          "reproj_cells": 2.0,
+          "target": "peak",
+          "max_modes": 0,
+          "mode_thr": 0.004,
+          "cert": "filter",
+          "solver": "srt",
+          "ransac": "default"
+        },
+        "key": "reproj=2 target=peak max_modes=all thr=0.004 cert=filter solver=srt ransac=default",
+        "select": {
+          "n": 500,
+          "median_m": 1.4374933514819426,
+          "median_ci": [
+            1.3027107235020379,
+            1.569654993612654
+          ],
+          "mean_m": 3.0940770194293563,
+          "r5": 0.852,
+          "r10": 0.926,
+          "gross": 0.074,
+          "no_pose": 0,
+          "modes_mean": 188.628,
+          "inlier_mean": 0.9182540683785123
+        }
+      },
+      {
+        "factors": [
+          "reproj_cells",
+          "mode_thr",
+          "cert"
+        ],
+        "config": {
+          "reproj_cells": 2.0,
+          "target": "peak",
+          "max_modes": 0,
+          "mode_thr": 0.008,
+          "cert": "weight",
+          "solver": "srt",
+          "ransac": "default"
+        },
+        "key": "reproj=2 target=peak max_modes=all thr=0.008 cert=weight solver=srt ransac=default",
+        "select": {
+          "n": 500,
+          "median_m": 1.3947497871878616,
+          "median_ci": [
+            1.2771123168166119,
+            1.4929470399363547
+          ],
+          "mean_m": 2.9928543158768908,
+          "r5": 0.868,
+          "r10": 0.928,
+          "gross": 0.072,
+          "no_pose": 0,
+          "modes_mean": 230.88,
+          "inlier_mean": 0.9004395138670438
+        }
+      },
+      {
+        "factors": [
+          "reproj_cells",
+          "mode_thr",
+          "cert"
+        ],
+        "config": {
+          "reproj_cells": 2.0,
+          "target": "peak",
+          "max_modes": 0,
+          "mode_thr": 0.008,
+          "cert": "uniform",
+          "solver": "srt",
+          "ransac": "default"
+        },
+        "key": "reproj=2 target=peak max_modes=all thr=0.008 cert=uniform solver=srt ransac=default",
+        "select": {
+          "n": 500,
+          "median_m": 1.4159450024745914,
+          "median_ci": [
+            1.3275051798084512,
+            1.5458898197204427
+          ],
+          "mean_m": 3.200493999951876,
+          "r5": 0.852,
+          "r10": 0.918,
+          "gross": 0.082,
+          "no_pose": 0,
+          "modes_mean": 230.88,
+          "inlier_mean": 0.9175854413292901
+        }
+      },
+      {
+        "factors": [
+          "reproj_cells",
+          "mode_thr",
+          "cert"
+        ],
+        "config": {
+          "reproj_cells": 2.0,
+          "target": "peak",
+          "max_modes": 0,
+          "mode_thr": 0.008,
+          "cert": "filter",
+          "solver": "srt",
+          "ransac": "default"
+        },
+        "key": "reproj=2 target=peak max_modes=all thr=0.008 cert=filter solver=srt ransac=default",
+        "select": {
+          "n": 500,
+          "median_m": 1.444807002947977,
+          "median_ci": [
+            1.2923363742028067,
+            1.570225137991712
+          ],
+          "mean_m": 3.0649929298653333,
+          "r5": 0.856,
+          "r10": 0.924,
+          "gross": 0.076,
+          "no_pose": 0,
+          "modes_mean": 173.18,
+          "inlier_mean": 0.9160153478160568
+        }
+      },
+      {
+        "factors": [
+          "reproj_cells",
+          "mode_thr",
+          "cert"
+        ],
+        "config": {
+          "reproj_cells": 2.0,
+          "target": "peak",
+          "max_modes": 0,
+          "mode_thr": 0.016,
+          "cert": "off",
+          "solver": "srt",
+          "ransac": "default"
+        },
+        "key": "reproj=2 target=peak max_modes=all thr=0.016 cert=off solver=srt ransac=default",
+        "select": {
+          "n": 500,
+          "median_m": 1.4157195436065022,
+          "median_ci": [
+            1.276192227189445,
+            1.5819461843092937
+          ],
+          "mean_m": 3.1545141663299447,
+          "r5": 0.858,
+          "r10": 0.916,
+          "gross": 0.084,
+          "no_pose": 0,
+          "modes_mean": 207.366,
+          "inlier_mean": 0.9173430264849257
+        }
+      },
+      {
+        "factors": [
+          "reproj_cells",
+          "mode_thr",
+          "cert"
+        ],
+        "config": {
+          "reproj_cells": 2.0,
+          "target": "peak",
+          "max_modes": 0,
+          "mode_thr": 0.016,
+          "cert": "weight",
+          "solver": "srt",
+          "ransac": "default"
+        },
+        "key": "reproj=2 target=peak max_modes=all thr=0.016 cert=weight solver=srt ransac=default",
+        "select": {
+          "n": 500,
+          "median_m": 1.4042141366081133,
+          "median_ci": [
+            1.306548947253795,
+            1.5179966621739833
+          ],
+          "mean_m": 3.1179323309261786,
+          "r5": 0.85,
+          "r10": 0.922,
+          "gross": 0.078,
+          "no_pose": 0,
+          "modes_mean": 207.366,
+          "inlier_mean": 0.904960100701864
+        }
+      },
+      {
+        "factors": [
+          "reproj_cells",
+          "mode_thr",
+          "cert"
+        ],
+        "config": {
+          "reproj_cells": 2.0,
+          "target": "peak",
+          "max_modes": 0,
+          "mode_thr": 0.016,
+          "cert": "uniform",
+          "solver": "srt",
+          "ransac": "default"
+        },
+        "key": "reproj=2 target=peak max_modes=all thr=0.016 cert=uniform solver=srt ransac=default",
+        "select": {
+          "n": 500,
+          "median_m": 1.3873689044848398,
+          "median_ci": [
+            1.2776286438692852,
+            1.4816147772294874
+          ],
+          "mean_m": 3.149944171625563,
+          "r5": 0.848,
+          "r10": 0.92,
+          "gross": 0.08,
+          "no_pose": 0,
+          "modes_mean": 207.366,
+          "inlier_mean": 0.9220637510445108
+        }
+      },
+      {
+        "factors": [
+          "reproj_cells",
+          "mode_thr",
+          "cert"
+        ],
+        "config": {
+          "reproj_cells": 2.0,
+          "target": "peak",
+          "max_modes": 0,
+          "mode_thr": 0.016,
+          "cert": "filter",
+          "solver": "srt",
+          "ransac": "default"
+        },
+        "key": "reproj=2 target=peak max_modes=all thr=0.016 cert=filter solver=srt ransac=default",
+        "select": {
+          "n": 500,
+          "median_m": 1.4423490954389702,
+          "median_ci": [
+            1.2709012674739464,
+            1.5786169961105756
+          ],
+          "mean_m": 3.148789677689318,
+          "r5": 0.852,
+          "r10": 0.922,
+          "gross": 0.078,
+          "no_pose": 0,
+          "modes_mean": 155.558,
+          "inlier_mean": 0.9208205739531202
+        }
+      },
+      {
+        "factors": [
+          "reproj_cells",
+          "mode_thr",
+          "cert"
+        ],
+        "config": {
+          "reproj_cells": 2.0,
+          "target": "peak",
+          "max_modes": 0,
+          "mode_thr": 0.03,
+          "cert": "off",
+          "solver": "srt",
+          "ransac": "default"
+        },
+        "key": "reproj=2 target=peak max_modes=all thr=0.03 cert=off solver=srt ransac=default",
+        "select": {
+          "n": 500,
+          "median_m": 1.393483667455341,
+          "median_ci": [
+            1.2713654161312886,
+            1.5204664705705255
+          ],
+          "mean_m": 14.985400327317604,
+          "r5": 0.854,
+          "r10": 0.918,
+          "gross": 0.082,
+          "no_pose": 6,
+          "modes_mean": 182.922,
+          "inlier_mean": 0.9313848777308911
+        }
+      },
+      {
+        "factors": [
+          "reproj_cells",
+          "mode_thr",
+          "cert"
+        ],
+        "config": {
+          "reproj_cells": 2.0,
+          "target": "peak",
+          "max_modes": 0,
+          "mode_thr": 0.03,
+          "cert": "weight",
+          "solver": "srt",
+          "ransac": "default"
+        },
+        "key": "reproj=2 target=peak max_modes=all thr=0.03 cert=weight solver=srt ransac=default",
+        "select": {
+          "n": 500,
+          "median_m": 1.399990833944325,
+          "median_ci": [
+            1.2790121128914473,
+            1.5360117963541469
+          ],
+          "mean_m": 13.641641186997637,
+          "r5": 0.862,
+          "r10": 0.922,
+          "gross": 0.078,
+          "no_pose": 5,
+          "modes_mean": 182.922,
+          "inlier_mean": 0.9223364151065393
+        }
+      },
+      {
+        "factors": [
+          "reproj_cells",
+          "mode_thr",
+          "cert"
+        ],
+        "config": {
+          "reproj_cells": 2.0,
+          "target": "peak",
+          "max_modes": 0,
+          "mode_thr": 0.03,
+          "cert": "uniform",
+          "solver": "srt",
+          "ransac": "default"
+        },
+        "key": "reproj=2 target=peak max_modes=all thr=0.03 cert=uniform solver=srt ransac=default",
+        "select": {
+          "n": 500,
+          "median_m": 1.4040861285312645,
+          "median_ci": [
+            1.2680002506826975,
+            1.5023904734514444
+          ],
+          "mean_m": 13.620957462532198,
+          "r5": 0.854,
+          "r10": 0.918,
+          "gross": 0.082,
+          "no_pose": 5,
+          "modes_mean": 182.922,
+          "inlier_mean": 0.9378060638699397
+        }
+      },
+      {
+        "factors": [
+          "reproj_cells",
+          "mode_thr",
+          "cert"
+        ],
+        "config": {
+          "reproj_cells": 2.0,
+          "target": "peak",
+          "max_modes": 0,
+          "mode_thr": 0.03,
+          "cert": "filter",
+          "solver": "srt",
+          "ransac": "default"
+        },
+        "key": "reproj=2 target=peak max_modes=all thr=0.03 cert=filter solver=srt ransac=default",
+        "select": {
+          "n": 500,
+          "median_m": 1.427632369713786,
+          "median_ci": [
+            1.2893141060128979,
+            1.5862314075691892
+          ],
+          "mean_m": 14.984515115522285,
+          "r5": 0.858,
+          "r10": 0.918,
+          "gross": 0.082,
+          "no_pose": 6,
+          "modes_mean": 137.758,
+          "inlier_mean": 0.9343606071785016
+        }
+      },
+      {
+        "factors": [
+          "reproj_cells",
+          "mode_thr",
+          "cert"
+        ],
+        "config": {
+          "reproj_cells": 2.0,
+          "target": "peak",
+          "max_modes": 0,
+          "mode_thr": 0.06,
+          "cert": "off",
+          "solver": "srt",
+          "ransac": "default"
+        },
+        "key": "reproj=2 target=peak max_modes=all thr=0.06 cert=off solver=srt ransac=default",
+        "select": {
+          "n": 500,
+          "median_m": 1.457286299175447,
+          "median_ci": [
+            1.3444659813105475,
+            1.6154894290384436
+          ],
+          "mean_m": 112.07605842841183,
+          "r5": 0.808,
+          "r10": 0.854,
+          "gross": 0.146,
+          "no_pose": 55,
+          "modes_mean": 141.472,
+          "inlier_mean": 0.8775009778013492
+        }
+      },
+      {
+        "factors": [
+          "reproj_cells",
+          "mode_thr",
+          "cert"
+        ],
+        "config": {
+          "reproj_cells": 2.0,
+          "target": "peak",
+          "max_modes": 0,
+          "mode_thr": 0.06,
+          "cert": "weight",
+          "solver": "srt",
+          "ransac": "default"
+        },
+        "key": "reproj=2 target=peak max_modes=all thr=0.06 cert=weight solver=srt ransac=default",
+        "select": {
+          "n": 500,
+          "median_m": 1.4208857657870255,
+          "median_ci": [
+            1.3115346918039632,
+            1.5835848216582518
+          ],
+          "mean_m": 102.16726607745504,
+          "r5": 0.812,
+          "r10": 0.862,
+          "gross": 0.138,
+          "no_pose": 50,
+          "modes_mean": 141.472,
+          "inlier_mean": 0.8755500856808246
+        }
+      },
+      {
+        "factors": [
+          "reproj_cells",
+          "mode_thr",
+          "cert"
+        ],
+        "config": {
+          "reproj_cells": 2.0,
+          "target": "peak",
+          "max_modes": 0,
+          "mode_thr": 0.06,
+          "cert": "uniform",
+          "solver": "srt",
+          "ransac": "default"
+        },
+        "key": "reproj=2 target=peak max_modes=all thr=0.06 cert=uniform solver=srt ransac=default",
+        "select": {
+          "n": 500,
+          "median_m": 1.4496556260400504,
+          "median_ci": [
+            1.3325861553043719,
+            1.5921435239859023
+          ],
+          "mean_m": 102.15617638712254,
+          "r5": 0.816,
+          "r10": 0.866,
+          "gross": 0.134,
+          "no_pose": 50,
+          "modes_mean": 141.472,
+          "inlier_mean": 0.889189466414118
+        }
+      },
+      {
+        "factors": [
+          "reproj_cells",
+          "mode_thr",
+          "cert"
+        ],
+        "config": {
+          "reproj_cells": 2.0,
+          "target": "peak",
+          "max_modes": 0,
+          "mode_thr": 0.06,
+          "cert": "filter",
+          "solver": "srt",
+          "ransac": "default"
+        },
+        "key": "reproj=2 target=peak max_modes=all thr=0.06 cert=filter solver=srt ransac=default",
+        "select": {
+          "n": 500,
+          "median_m": 1.4625108880080755,
+          "median_ci": [
+            1.3038223200912271,
+            1.5918730019901077
+          ],
+          "mean_m": 114.00248583775387,
+          "r5": 0.808,
+          "r10": 0.854,
+          "gross": 0.146,
+          "no_pose": 56,
+          "modes_mean": 107.088,
+          "inlier_mean": 0.8750327172321959
+        }
+      },
+      {
+        "factors": [
+          "reproj_cells",
+          "mode_thr",
+          "cert"
+        ],
+        "config": {
+          "reproj_cells": 3.0,
+          "target": "peak",
+          "max_modes": 0,
+          "mode_thr": 0.004,
+          "cert": "weight",
+          "solver": "srt",
+          "ransac": "default"
+        },
+        "key": "reproj=3 target=peak max_modes=all thr=0.004 cert=weight solver=srt ransac=default",
+        "select": {
+          "n": 500,
+          "median_m": 1.4140112474311346,
+          "median_ci": [
+            1.2876094813699632,
+            1.5224454200455284
+          ],
+          "mean_m": 2.983364269660802,
+          "r5": 0.862,
+          "r10": 0.93,
+          "gross": 0.07,
+          "no_pose": 0,
+          "modes_mean": 251.866,
+          "inlier_mean": 0.9301146893435543
+        }
+      },
+      {
+        "factors": [
+          "reproj_cells",
+          "mode_thr",
+          "cert"
+        ],
+        "config": {
+          "reproj_cells": 3.0,
+          "target": "peak",
+          "max_modes": 0,
+          "mode_thr": 0.004,
+          "cert": "uniform",
+          "solver": "srt",
+          "ransac": "default"
+        },
+        "key": "reproj=3 target=peak max_modes=all thr=0.004 cert=uniform solver=srt ransac=default",
+        "select": {
+          "n": 500,
+          "median_m": 1.4405111080385455,
+          "median_ci": [
+            1.3231010563035859,
+            1.5733303203089863
+          ],
+          "mean_m": 3.129908331203443,
+          "r5": 0.85,
+          "r10": 0.92,
+          "gross": 0.08,
+          "no_pose": 0,
+          "modes_mean": 251.866,
+          "inlier_mean": 0.9411304556699224
+        }
+      },
+      {
+        "factors": [
+          "reproj_cells",
+          "mode_thr",
+          "cert"
+        ],
+        "config": {
+          "reproj_cells": 3.0,
+          "target": "peak",
+          "max_modes": 0,
+          "mode_thr": 0.004,
+          "cert": "filter",
+          "solver": "srt",
+          "ransac": "default"
+        },
+        "key": "reproj=3 target=peak max_modes=all thr=0.004 cert=filter solver=srt ransac=default",
+        "select": {
+          "n": 500,
+          "median_m": 1.410821001565032,
+          "median_ci": [
+            1.3106703424499435,
+            1.5541309779316828
+          ],
+          "mean_m": 3.069846156374294,
+          "r5": 0.848,
+          "r10": 0.922,
+          "gross": 0.078,
+          "no_pose": 0,
+          "modes_mean": 188.628,
+          "inlier_mean": 0.9401665678921933
+        }
+      },
+      {
+        "factors": [
+          "reproj_cells",
+          "mode_thr",
+          "cert"
+        ],
+        "config": {
+          "reproj_cells": 3.0,
+          "target": "peak",
+          "max_modes": 0,
+          "mode_thr": 0.016,
+          "cert": "weight",
+          "solver": "srt",
+          "ransac": "default"
+        },
+        "key": "reproj=3 target=peak max_modes=all thr=0.016 cert=weight solver=srt ransac=default",
+        "select": {
+          "n": 500,
+          "median_m": 1.4143413557221036,
+          "median_ci": [
+            1.2803955819136095,
+            1.5242290891721182
+          ],
+          "mean_m": 3.079292224314874,
+          "r5": 0.848,
+          "r10": 0.932,
+          "gross": 0.068,
+          "no_pose": 0,
+          "modes_mean": 207.366,
+          "inlier_mean": 0.9311278217077754
+        }
+      },
+      {
+        "factors": [
+          "reproj_cells",
+          "mode_thr",
+          "cert"
+        ],
+        "config": {
+          "reproj_cells": 3.0,
+          "target": "peak",
+          "max_modes": 0,
+          "mode_thr": 0.016,
+          "cert": "uniform",
+          "solver": "srt",
+          "ransac": "default"
+        },
+        "key": "reproj=3 target=peak max_modes=all thr=0.016 cert=uniform solver=srt ransac=default",
+        "select": {
+          "n": 500,
+          "median_m": 1.4116481907317269,
+          "median_ci": [
+            1.2980975713462142,
+            1.5272259236595453
+          ],
+          "mean_m": 3.4546661558905014,
+          "r5": 0.852,
+          "r10": 0.922,
+          "gross": 0.078,
+          "no_pose": 0,
+          "modes_mean": 207.366,
+          "inlier_mean": 0.9427529494885505
+        }
+      },
+      {
+        "factors": [
+          "reproj_cells",
+          "mode_thr",
+          "cert"
+        ],
+        "config": {
+          "reproj_cells": 3.0,
+          "target": "peak",
+          "max_modes": 0,
+          "mode_thr": 0.016,
+          "cert": "filter",
+          "solver": "srt",
+          "ransac": "default"
+        },
+        "key": "reproj=3 target=peak max_modes=all thr=0.016 cert=filter solver=srt ransac=default",
+        "select": {
+          "n": 500,
+          "median_m": 1.416474142639982,
+          "median_ci": [
+            1.2976155572581927,
+            1.5577754291707882
+          ],
+          "mean_m": 3.1454365768228505,
+          "r5": 0.854,
+          "r10": 0.92,
+          "gross": 0.08,
+          "no_pose": 0,
+          "modes_mean": 155.558,
+          "inlier_mean": 0.9417247963731816
+        }
+      },
+      {
+        "factors": [
+          "reproj_cells",
+          "mode_thr",
+          "cert"
+        ],
+        "config": {
+          "reproj_cells": 3.0,
+          "target": "peak",
+          "max_modes": 0,
+          "mode_thr": 0.03,
+          "cert": "weight",
+          "solver": "srt",
+          "ransac": "default"
+        },
+        "key": "reproj=3 target=peak max_modes=all thr=0.03 cert=weight solver=srt ransac=default",
+        "select": {
+          "n": 500,
+          "median_m": 1.4116288047184264,
+          "median_ci": [
+            1.2864069041144974,
+            1.5242290891721182
+          ],
+          "mean_m": 13.464336514264767,
+          "r5": 0.856,
+          "r10": 0.92,
+          "gross": 0.08,
+          "no_pose": 5,
+          "modes_mean": 182.922,
+          "inlier_mean": 0.9437018902823853
+        }
+      },
+      {
+        "factors": [
+          "reproj_cells",
+          "mode_thr",
+          "cert"
+        ],
+        "config": {
+          "reproj_cells": 3.0,
+          "target": "peak",
+          "max_modes": 0,
+          "mode_thr": 0.03,
+          "cert": "uniform",
+          "solver": "srt",
+          "ransac": "default"
+        },
+        "key": "reproj=3 target=peak max_modes=all thr=0.03 cert=uniform solver=srt ransac=default",
+        "select": {
+          "n": 500,
+          "median_m": 1.4162884345657183,
+          "median_ci": [
+            1.3343153656402813,
+            1.5261200430819213
+          ],
+          "mean_m": 13.162574986324827,
+          "r5": 0.858,
+          "r10": 0.92,
+          "gross": 0.08,
+          "no_pose": 5,
+          "modes_mean": 182.922,
+          "inlier_mean": 0.9540900987847319
+        }
+      },
+      {
+        "factors": [
+          "reproj_cells",
+          "mode_thr",
+          "cert"
+        ],
+        "config": {
+          "reproj_cells": 3.0,
+          "target": "peak",
+          "max_modes": 0,
+          "mode_thr": 0.03,
+          "cert": "filter",
+          "solver": "srt",
+          "ransac": "default"
+        },
+        "key": "reproj=3 target=peak max_modes=all thr=0.03 cert=filter solver=srt ransac=default",
+        "select": {
+          "n": 500,
+          "median_m": 1.416097494177503,
+          "median_ci": [
+            1.2893141060128979,
+            1.549094381882606
+          ],
+          "mean_m": 14.959543491914697,
+          "r5": 0.862,
+          "r10": 0.92,
+          "gross": 0.08,
+          "no_pose": 6,
+          "modes_mean": 137.758,
+          "inlier_mean": 0.9523139346853038
+        }
+      },
+      {
+        "factors": [
+          "reproj_cells",
+          "mode_thr",
+          "cert"
+        ],
+        "config": {
+          "reproj_cells": 3.0,
+          "target": "peak",
+          "max_modes": 0,
+          "mode_thr": 0.06,
+          "cert": "weight",
+          "solver": "srt",
+          "ransac": "default"
+        },
+        "key": "reproj=3 target=peak max_modes=all thr=0.06 cert=weight solver=srt ransac=default",
+        "select": {
+          "n": 500,
+          "median_m": 1.4432227106003732,
+          "median_ci": [
+            1.330059901434551,
+            1.5865445862026133
+          ],
+          "mean_m": 102.16729226141837,
+          "r5": 0.81,
+          "r10": 0.866,
+          "gross": 0.134,
+          "no_pose": 50,
+          "modes_mean": 141.472,
+          "inlier_mean": 0.8835365437446498
+        }
+      },
+      {
+        "factors": [
+          "reproj_cells",
+          "mode_thr",
+          "cert"
+        ],
+        "config": {
+          "reproj_cells": 3.0,
+          "target": "peak",
+          "max_modes": 0,
+          "mode_thr": 0.06,
+          "cert": "uniform",
+          "solver": "srt",
+          "ransac": "default"
+        },
+        "key": "reproj=3 target=peak max_modes=all thr=0.06 cert=uniform solver=srt ransac=default",
+        "select": {
+          "n": 500,
+          "median_m": 1.452778152976146,
+          "median_ci": [
+            1.3472826645644456,
+            1.6073953590682657
+          ],
+          "mean_m": 102.14142382698114,
+          "r5": 0.818,
+          "r10": 0.87,
+          "gross": 0.13,
+          "no_pose": 50,
+          "modes_mean": 141.472,
+          "inlier_mean": 0.8932666008918697
+        }
+      },
+      {
+        "factors": [
+          "reproj_cells",
+          "mode_thr",
+          "cert"
+        ],
+        "config": {
+          "reproj_cells": 3.0,
+          "target": "peak",
+          "max_modes": 0,
+          "mode_thr": 0.06,
+          "cert": "filter",
+          "solver": "srt",
+          "ransac": "default"
+        },
+        "key": "reproj=3 target=peak max_modes=all thr=0.06 cert=filter solver=srt ransac=default",
+        "select": {
+          "n": 500,
+          "median_m": 1.436420341178838,
+          "median_ci": [
+            1.325419532316316,
+            1.5931786354274435
+          ],
+          "mean_m": 114.06791047022855,
+          "r5": 0.81,
+          "r10": 0.854,
+          "gross": 0.146,
+          "no_pose": 56,
+          "modes_mean": 107.088,
+          "inlier_mean": 0.8798386230137648
+        }
+      }
+    ],
+    "n_configs": 128,
+    "split": {
+      "n_select": 500,
+      "n_confirm": 500,
+      "rule": "frames ordered by sha1(id): even ranks select, odd ranks confirm"
+    },
+    "baseline_select": {
+      "n": 500,
+      "median_m": 1.4044428379580935,
+      "median_ci": [
+        1.3069926093206097,
+        1.5535029315231548
+      ],
+      "mean_m": 3.129688967488158,
+      "r5": 0.85,
+      "r10": 0.918,
+      "gross": 0.082,
+      "no_pose": 0,
+      "modes_mean": 230.88,
+      "inlier_mean": 0.9349239825252061
+    },
+    "baseline_confirm": {
+      "n": 500,
+      "median_m": 1.5220134258066498,
+      "median_ci": [
+        1.3484366492272686,
+        1.6832919901016608
+      ],
+      "mean_m": 3.677370277228426,
+      "r5": 0.836,
+      "r10": 0.896,
+      "gross": 0.104,
+      "no_pose": 0,
+      "modes_mean": 232.904,
+      "inlier_mean": 0.9321016597924354
+    },
+    "best": {
+      "config": {
+        "reproj_cells": 3.0,
+        "target": "means",
+        "max_modes": 0,
+        "mode_thr": 0.008,
+        "cert": "off",
+        "solver": "srt",
+        "ransac": "default"
+      },
+      "key": "reproj=3 target=means max_modes=all thr=0.008 cert=off solver=srt ransac=default",
+      "select": {
+        "n": 500,
+        "median_m": 1.3826521452091847,
+        "median_ci": [
+          1.2940557707758336,
+          1.5566981291999857
+        ],
+        "mean_m": 3.031425585133139,
+        "r5": 0.854,
+        "r10": 0.928,
+        "gross": 0.072,
+        "no_pose": 0,
+        "modes_mean": 230.88,
+        "inlier_mean": 0.8834746208641858
+      },
+      "confirm": {
+        "n": 500,
+        "median_m": 1.5032285867788415,
+        "median_ci": [
+          1.3852811419505113,
+          1.693289197896738
+        ],
+        "mean_m": 3.6154354969113847,
+        "r5": 0.836,
+        "r10": 0.898,
+        "gross": 0.102,
+        "no_pose": 0,
+        "modes_mean": 232.904,
+        "inlier_mean": 0.8731417599668579
+      },
+      "paired_delta_confirm": {
+        "stat": "median",
+        "delta_m": -0.018784839027808253,
+        "n": 500,
+        "ci": [
+          -0.07245315433720356,
+          0.09698282055216151
+        ]
+      }
+    },
+    "chosen": {
+      "config": {
+        "reproj_cells": 3.0,
+        "target": "peak",
+        "max_modes": 0,
+        "mode_thr": 0.008,
+        "cert": "off",
+        "solver": "srt",
+        "ransac": "default"
+      },
+      "key": "reproj=3 target=peak max_modes=all thr=0.008 cert=off solver=srt ransac=default",
+      "select": {
+        "n": 500,
+        "median_m": 1.4044428379580935,
+        "median_ci": [
+          1.3069926093206097,
+          1.5535029315231548
+        ],
+        "mean_m": 3.129688967488158,
+        "r5": 0.85,
+        "r10": 0.918,
+        "gross": 0.082,
+        "no_pose": 0,
+        "modes_mean": 230.88,
+        "inlier_mean": 0.9349239825252061
+      },
+      "confirm": {
+        "n": 500,
+        "median_m": 1.5220134258066498,
+        "median_ci": [
+          1.3484366492272686,
+          1.6832919901016608
+        ],
+        "mean_m": 3.677370277228426,
+        "r5": 0.836,
+        "r10": 0.896,
+        "gross": 0.104,
+        "no_pose": 0,
+        "modes_mean": 232.904,
+        "inlier_mean": 0.9321016597924354
+      },
+      "rule": "baseline kept: the best configuration's paired interval on the confirmation half includes zero"
+    }
+  },
+  "chosen": {
+    "config": {
+      "reproj_cells": 3.0,
+      "target": "peak",
+      "max_modes": 0,
+      "mode_thr": 0.008,
+      "cert": "off",
+      "solver": "srt",
+      "ransac": "default"
+    },
+    "key": "reproj=3 target=peak max_modes=all thr=0.008 cert=off solver=srt ransac=default",
+    "rule": "baseline kept: the best configuration's paired interval on the confirmation half includes zero",
+    "select": {
+      "n": 500,
+      "median_m": 1.4044428379580935,
+      "median_ci": [
+        1.3069926093206097,
+        1.5535029315231548
+      ],
+      "mean_m": 3.129688967488158,
+      "r5": 0.85,
+      "r10": 0.918,
+      "gross": 0.082,
+      "no_pose": 0,
+      "modes_mean": 230.88,
+      "inlier_mean": 0.9349239825252061
+    },
+    "confirm": {
+      "n": 500,
+      "median_m": 1.5220134258066498,
+      "median_ci": [
+        1.3484366492272686,
+        1.6832919901016608
+      ],
+      "mean_m": 3.677370277228426,
+      "r5": 0.836,
+      "r10": 0.896,
+      "gross": 0.104,
+      "no_pose": 0,
+      "modes_mean": 232.904,
+      "inlier_mean": 0.9321016597924354
+    },
+    "paired_delta_confirm_best": {
+      "stat": "median",
+      "delta_m": -0.018784839027808253,
+      "n": 500,
+      "ci": [
+        -0.07245315433720356,
+        0.09698282055216151
+      ]
+    },
+    "best": {
+      "key": "reproj=3 target=means max_modes=all thr=0.008 cert=off solver=srt ransac=default",
+      "select": {
+        "n": 500,
+        "median_m": 1.3826521452091847,
+        "median_ci": [
+          1.2940557707758336,
+          1.5566981291999857
+        ],
+        "mean_m": 3.031425585133139,
+        "r5": 0.854,
+        "r10": 0.928,
+        "gross": 0.072,
+        "no_pose": 0,
+        "modes_mean": 230.88,
+        "inlier_mean": 0.8834746208641858
+      },
+      "confirm": {
+        "n": 500,
+        "median_m": 1.5032285867788415,
+        "median_ci": [
+          1.3852811419505113,
+          1.693289197896738
+        ],
+        "mean_m": 3.6154354969113847,
+        "r5": 0.836,
+        "r10": 0.898,
+        "gross": 0.102,
+        "no_pose": 0,
+        "modes_mean": 232.904,
+        "inlier_mean": 0.8731417599668579
+      }
+    },
+    "baseline": {
+      "config": {
+        "reproj_cells": 3.0,
+        "target": "peak",
+        "max_modes": 0,
+        "mode_thr": 0.008,
+        "cert": "off",
+        "solver": "srt",
+        "ransac": "default"
+      },
+      "select": {
+        "n": 500,
+        "median_m": 1.4044428379580935,
+        "median_ci": [
+          1.3069926093206097,
+          1.5535029315231548
+        ],
+        "mean_m": 3.129688967488158,
+        "r5": 0.85,
+        "r10": 0.918,
+        "gross": 0.082,
+        "no_pose": 0,
+        "modes_mean": 230.88,
+        "inlier_mean": 0.9349239825252061
+      },
+      "confirm": {
+        "n": 500,
+        "median_m": 1.5220134258066498,
+        "median_ci": [
+          1.3484366492272686,
+          1.6832919901016608
+        ],
+        "mean_m": 3.677370277228426,
+        "r5": 0.836,
+        "r10": 0.896,
+        "gross": 0.104,
+        "no_pose": 0,
+        "modes_mean": 232.904,
+        "inlier_mean": 0.9321016597924354
+      },
+      "test": {
+        "n": 3000,
+        "median_m": 1.7051409477620552,
+        "median_ci": [
+          1.6413296509549258,
+          1.787078413247233
+        ],
+        "mean_m": 4.546666457478914,
+        "r5": 0.776,
+        "r10": 0.8553333333333333,
+        "gross": 0.14466666666666667,
+        "no_pose": 0,
+        "modes_mean": 241.09866666666667,
+        "inlier_mean": 0.9178323605602198
+      }
+    },
+    "test": {
+      "n": 3000,
+      "median_m": 1.7051409477620552,
+      "median_ci": [
+        1.6413296509549258,
+        1.787078413247233
+      ],
+      "mean_m": 4.546666457478914,
+      "r5": 0.776,
+      "r10": 0.8553333333333333,
+      "gross": 0.14466666666666667,
+      "no_pose": 0,
+      "modes_mean": 241.09866666666667,
+      "inlier_mean": 0.9178323605602198
+    },
+    "paired_delta_test": {
+      "stat": "median",
+      "delta_m": 0.0,
+      "n": 3000,
+      "ci": [
+        0.0,
+        0.0
+      ]
+    }
+  }
+}

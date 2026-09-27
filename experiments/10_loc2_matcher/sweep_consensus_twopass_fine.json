@@ -1,0 +1,4024 @@
+{
+  "meta": {
+    "tag": "twopass_fine",
+    "calib_cache": "experiments/10_loc2_matcher/sweep_cache/twopass_fine_calib.pkl",
+    "test_cache": "experiments/10_loc2_matcher/sweep_cache/twopass_fine_test.pkl",
+    "select": "median",
+    "gross_m": 10.0,
+    "n_boot": 1000,
+    "joint_top": 3,
+    "grid": {
+      "reproj_cells": [
+        0.5,
+        0.75,
+        1.0,
+        1.5,
+        2.0,
+        3.0
+      ],
+      "target": [
+        "peak",
+        "means"
+      ],
+      "max_modes": [
+        1,
+        2,
+        3,
+        5,
+        0
+      ],
+      "mode_thr": [
+        0.004,
+        0.008,
+        0.016,
+        0.03,
+        0.06
+      ],
+      "cert": [
+        "off",
+        "weight",
+        "uniform",
+        "filter"
+      ],
+      "solver": [
+        "se2",
+        "sim",
+        "srt"
+      ],
+      "ransac": [
+        "default",
+        "4x"
+      ]
+    },
+    "calib": {
+      "draw": "calib",
+      "coarse": {
+        "val_frac": 0.2,
+        "val_samples_skipped": 400,
+        "cities": [
+          "Chicago",
+          "NewYork",
+          "SanFrancisco",
+          "Seattle"
+        ],
+        "source": "asserted (--assume-train-split)",
+        "n_train_list": 52609,
+        "n_heldout": 10522,
+        "heldout_slice": [
+          400,
+          10522
+        ],
+        "n": 10122,
+        "rule": "permutation(seed 0) of the train labels; idx[n_tr + val_samples : n_tr + val_samples + limit]"
+      },
+      "fine": {
+        "val_frac": 0.2,
+        "val_samples_skipped": 200,
+        "cities": [
+          "Chicago"
+        ],
+        "source": "asserted (--assume-train-split)",
+        "n_train_list": 12740,
+        "n_heldout": 2548,
+        "heldout_slice": [
+          200,
+          2548
+        ],
+        "n": 2348,
+        "rule": "permutation(seed 0) of the train labels; idx[n_tr + val_samples : n_tr + val_samples + limit]"
+      },
+      "n_heldout_both": 835,
+      "n_heldout_coarse": 10122,
+      "cities": [
+        "Chicago"
+      ],
+      "limit": 1000,
+      "n": 835,
+      "rule": "calib_split of each checkpoint (permutation seed 0 of its train list, last val_frac held out, its val_samples skipped), intersected, filtered to the cities, first --calib-limit"
+    },
+    "calib_n": 835,
+    "ckpt": "checkpoints/vigor_samearea_4city_erp_depth_cell0125_last.pt",
+    "config": "configs/vigor_cell0125.yaml",
+    "cache_thr": 0.004,
+    "fine": {
+      "n": 224,
+      "cell_m": 0.0625,
+      "im_a_size": 224,
+      "im_b_size": 896,
+      "seed": 0,
+      "consensus": {
+        "reproj_cells": 3.0,
+        "target": "peak",
+        "max_modes": 0,
+        "mode_thr": 0.008,
+        "cert": "off",
+        "solver": "se2",
+        "ransac": "default"
+      },
+      "gate_m": 6.0,
+      "config": "configs/vigor_cell00625_fine.yaml",
+      "ckpt": "checkpoints/vigor_chicago_same_30k_fine00625_erp_depth_last.pt",
+      "train": {
+        "pose_nll_weight": 0.5,
+        "vce_weight": 1.0,
+        "vce_opts": {
+          "mode": "sample",
+          "n_samples": 1024,
+          "grid_m": 5.0,
+          "points": 10,
+          "use_certainty": true
+        },
+        "neighbour_radius": 4,
+        "neighbour_weight": 0.5,
+        "steps": 30000,
+        "batch": 4,
+        "local_radius": 0,
+        "refine_weight": 0.0,
+        "refine_opts": null,
+        "grid": {
+          "cell_m": 0.0625,
+          "ref_window_m": 56,
+          "ref_jitter_m": 6.0
+        }
+      },
+      "centred_on": {
+        "reproj_cells": 3.0,
+        "target": "peak",
+        "max_modes": 0,
+        "mode_thr": 0.008,
+        "cert": "off",
+        "solver": "se2",
+        "ransac": "default"
+      }
+    },
+    "test": {
+      "draw": "test",
+      "cities": [
+        "Chicago"
+      ],
+      "limit": 3000
+    },
+    "test_n": 3000,
+    "protocol": "calibration draw split by frame id into a selection half (OFAT + joint grid, argmin of the objective) and a confirmation half (paired bootstrap guard: the best replaces the default only if the interval is below zero); the test draw is scored for the default and the chosen configuration only (headline: their paired change)",
+    "cert_confound": "cert=weight and cert=uniform go through the weighted-sampling estimators (srt: the package's 4-point DLT loop, sim: its Kabsch similarity loop, fixed trials) instead of cv2's adaptive RANSAC; weight vs uniform isolates the weighting, uniform vs off the estimator swap (se2: same estimator)",
+    "not_sweepable": [
+      "mode thresholds below the cache threshold",
+      "fixed_window_size (4)",
+      "adaptive_gauss_fit",
+      "min_valid_frac",
+      "the decoder / logits"
+    ],
+    "fine_centring": {
+      "centred_on": {
+        "reproj_cells": 3.0,
+        "target": "peak",
+        "max_modes": 0,
+        "mode_thr": 0.008,
+        "cert": "off",
+        "solver": "se2",
+        "ransac": "default"
+      },
+      "recached": false,
+      "note": "--passes fine: the fine windows are centred on the caching coarse consensus (reproj=3 target=peak max_modes=all thr=0.008 cert=off solver=se2 ransac=default), not on a swept one"
+    }
+  },
+  "mismatch": {
+    "calib_coarse": {
+      "mismatches": 0,
+      "n": 835,
+      "ids": []
+    },
+    "calib_fine": {
+      "mismatches": 0,
+      "n": 835,
+      "ids": []
+    },
+    "test_coarse": {
+      "mismatches": 0,
+      "n": 3000,
+      "ids": []
+    },
+    "test_fine": {
+      "mismatches": 0,
+      "n": 3000,
+      "ids": []
+    }
+  },
+  "fine": {
+    "baseline": {
+      "reproj_cells": 3.0,
+      "target": "peak",
+      "max_modes": 0,
+      "mode_thr": 0.008,
+      "cert": "off",
+      "solver": "se2",
+      "ransac": "default"
+    },
+    "grid": {
+      "reproj_cells": [
+        0.5,
+        0.75,
+        1.0,
+        1.5,
+        2.0,
+        3.0
+      ],
+      "target": [
+        "peak",
+        "means"
+      ],
+      "max_modes": [
+        1,
+        2,
+        3,
+        5,
+        0
+      ],
+      "mode_thr": [
+        0.004,
+        0.008,
+        0.016,
+        0.03,
+        0.06
+      ],
+      "cert": [
+        "off",
+        "weight",
+        "uniform",
+        "filter"
+      ],
+      "solver": [
+        "se2",
+        "sim",
+        "srt"
+      ],
+      "ransac": [
+        "default",
+        "4x"
+      ]
+    },
+    "ofat": [
+      {
+        "factor": "baseline",
+        "value": null,
+        "config": {
+          "reproj_cells": 3.0,
+          "target": "peak",
+          "max_modes": 0,
+          "mode_thr": 0.008,
+          "cert": "off",
+          "solver": "se2",
+          "ransac": "default"
+        },
+        "key": "reproj=3 target=peak max_modes=all thr=0.008 cert=off solver=se2 ransac=default",
+        "select": {
+          "n": 418,
+          "median_m": 1.1093445731009628,
+          "median_ci": [
+            1.0152500088813086,
+            1.245342139787088
+          ],
+          "mean_m": 2.532678703562974,
+          "r5": 0.8851674641148325,
+          "r10": 0.9521531100478469,
+          "gross": 0.04784688995215311,
+          "no_pose": 0,
+          "modes_mean": 1250.0,
+          "inlier_mean": 0.78259801236508,
+          "gated": {
+            "n": 418,
+            "median_m": 1.1093445731009628,
+            "median_ci": [
+              1.0152500088813086,
+              1.245342139787088
+            ],
+            "mean_m": 2.532678703562974,
+            "r5": 0.8851674641148325,
+            "r10": 0.9521531100478469,
+            "gross": 0.04784688995215311,
+            "no_pose": 0,
+            "modes_mean": 1250.0,
+            "inlier_mean": 0.78259801236508
+          }
+        }
+      },
+      {
+        "factor": "reproj_cells",
+        "value": 0.5,
+        "config": {
+          "reproj_cells": 0.5,
+          "target": "peak",
+          "max_modes": 0,
+          "mode_thr": 0.008,
+          "cert": "off",
+          "solver": "se2",
+          "ransac": "default"
+        },
+        "key": "reproj=0.5 target=peak max_modes=all thr=0.008 cert=off solver=se2 ransac=default",
+        "select": {
+          "n": 418,
+          "median_m": 1.117715431628155,
+          "median_ci": [
+            0.9802257187004082,
+            1.2088601291857437
+          ],
+          "mean_m": 2.5708793043808047,
+          "r5": 0.8803827751196173,
+          "r10": 0.9521531100478469,
+          "gross": 0.04784688995215311,
+          "no_pose": 0,
+          "modes_mean": 1250.0,
+          "inlier_mean": 0.2876275943170458,
+          "gated": {
+            "n": 418,
+            "median_m": 1.117715431628155,
+            "median_ci": [
+              0.9802257187004082,
+              1.2088601291857437
+            ],
+            "mean_m": 2.5708793043808047,
+            "r5": 0.8803827751196173,
+            "r10": 0.9521531100478469,
+            "gross": 0.04784688995215311,
+            "no_pose": 0,
+            "modes_mean": 1250.0,
+            "inlier_mean": 0.2876275943170458
+          }
+        }
+      },
+      {
+        "factor": "reproj_cells",
+        "value": 0.75,
+        "config": {
+          "reproj_cells": 0.75,
+          "target": "peak",
+          "max_modes": 0,
+          "mode_thr": 0.008,
+          "cert": "off",
+          "solver": "se2",
+          "ransac": "default"
+        },
+        "key": "reproj=0.75 target=peak max_modes=all thr=0.008 cert=off solver=se2 ransac=default",
+        "select": {
+          "n": 418,
+          "median_m": 1.0835063216245762,
+          "median_ci": [
+            0.9900200031470299,
+            1.2342374256854234
+          ],
+          "mean_m": 2.563828731509742,
+          "r5": 0.8779904306220095,
+          "r10": 0.9521531100478469,
+          "gross": 0.04784688995215311,
+          "no_pose": 0,
+          "modes_mean": 1250.0,
+          "inlier_mean": 0.4423324333856833,
+          "gated": {
+            "n": 418,
+            "median_m": 1.0835063216245762,
+            "median_ci": [
+              0.9900200031470299,
+              1.2342374256854234
+            ],
+            "mean_m": 2.563828731509742,
+            "r5": 0.8779904306220095,
+            "r10": 0.9521531100478469,
+            "gross": 0.04784688995215311,
+            "no_pose": 0,
+            "modes_mean": 1250.0,
+            "inlier_mean": 0.4423324333856833
+          }
+        }
+      },
+      {
+        "factor": "reproj_cells",
+        "value": 1.0,
+        "config": {
+          "reproj_cells": 1.0,
+          "target": "peak",
+          "max_modes": 0,
+          "mode_thr": 0.008,
+          "cert": "off",
+          "solver": "se2",
+          "ransac": "default"
+        },
+        "key": "reproj=1 target=peak max_modes=all thr=0.008 cert=off solver=se2 ransac=default",
+        "select": {
+          "n": 418,
+          "median_m": 1.1176307286220406,
+          "median_ci": [
+            1.0049354866787443,
+            1.2229420578061838
+          ],
+          "mean_m": 2.5730497757643485,
+          "r5": 0.8803827751196173,
+          "r10": 0.9521531100478469,
+          "gross": 0.04784688995215311,
+          "no_pose": 0,
+          "modes_mean": 1250.0,
+          "inlier_mean": 0.5255426627533952,
+          "gated": {
+            "n": 418,
+            "median_m": 1.1176307286220406,
+            "median_ci": [
+              1.0049354866787443,
+              1.2229420578061838
+            ],
+            "mean_m": 2.5730497757643485,
+            "r5": 0.8803827751196173,
+            "r10": 0.9521531100478469,
+            "gross": 0.04784688995215311,
+            "no_pose": 0,
+            "modes_mean": 1250.0,
+            "inlier_mean": 0.5255426627533952
+          }
+        }
+      },
+      {
+        "factor": "reproj_cells",
+        "value": 1.5,
+        "config": {
+          "reproj_cells": 1.5,
+          "target": "peak",
+          "max_modes": 0,
+          "mode_thr": 0.008,
+          "cert": "off",
+          "solver": "se2",
+          "ransac": "default"
+        },
+        "key": "reproj=1.5 target=peak max_modes=all thr=0.008 cert=off solver=se2 ransac=default",
+        "select": {
+          "n": 418,
+          "median_m": 1.1066895141252566,
+          "median_ci": [
+            1.0181148865627918,
+            1.2235372273701186
+          ],
+          "mean_m": 2.5564697003138117,
+          "r5": 0.8827751196172249,
+          "r10": 0.9521531100478469,
+          "gross": 0.04784688995215311,
+          "no_pose": 0,
+          "modes_mean": 1250.0,
+          "inlier_mean": 0.6235608789858724,
+          "gated": {
+            "n": 418,
+            "median_m": 1.1066895141252566,
+            "median_ci": [
+              1.0181148865627918,
+              1.2235372273701186
+            ],
+            "mean_m": 2.5564697003138117,
+            "r5": 0.8827751196172249,
+            "r10": 0.9521531100478469,
+            "gross": 0.04784688995215311,
+            "no_pose": 0,
+            "modes_mean": 1250.0,
+            "inlier_mean": 0.6235608789858724
+          }
+        }
+      },
+      {
+        "factor": "reproj_cells",
+        "value": 2.0,
+        "config": {
+          "reproj_cells": 2.0,
+          "target": "peak",
+          "max_modes": 0,
+          "mode_thr": 0.008,
+          "cert": "off",
+          "solver": "se2",
+          "ransac": "default"
+        },
+        "key": "reproj=2 target=peak max_modes=all thr=0.008 cert=off solver=se2 ransac=default",
+        "select": {
+          "n": 418,
+          "median_m": 1.0951351425907863,
+          "median_ci": [
+            1.0039564188526402,
+            1.1839462593781267
+          ],
+          "mean_m": 2.5462216653311196,
+          "r5": 0.8803827751196173,
+          "r10": 0.9521531100478469,
+          "gross": 0.04784688995215311,
+          "no_pose": 0,
+          "modes_mean": 1250.0,
+          "inlier_mean": 0.6881069819328696,
+          "gated": {
+            "n": 418,
+            "median_m": 1.0951351425907863,
+            "median_ci": [
+              1.0039564188526402,
+              1.1839462593781267
+            ],
+            "mean_m": 2.5462216653311196,
+            "r5": 0.8803827751196173,
+            "r10": 0.9521531100478469,
+            "gross": 0.04784688995215311,
+            "no_pose": 0,
+            "modes_mean": 1250.0,
+            "inlier_mean": 0.6881069819328696
+          }
+        }
+      },
+      {
+        "factor": "target",
+        "value": "means",
+        "config": {
+          "reproj_cells": 3.0,
+          "target": "means",
+          "max_modes": 0,
+          "mode_thr": 0.008,
+          "cert": "off",
+          "solver": "se2",
+          "ransac": "default"
+        },
+        "key": "reproj=3 target=means max_modes=all thr=0.008 cert=off solver=se2 ransac=default",
+        "select": {
+          "n": 418,
+          "median_m": 1.1753511044453733,
+          "median_ci": [
+            1.0497076054758236,
+            1.2977887902933927
+          ],
+          "mean_m": 2.5524892930393928,
+          "r5": 0.8851674641148325,
+          "r10": 0.9521531100478469,
+          "gross": 0.04784688995215311,
+          "no_pose": 0,
+          "modes_mean": 1250.0,
+          "inlier_mean": 0.7796731477968644,
+          "gated": {
+            "n": 418,
+            "median_m": 1.1753511044453733,
+            "median_ci": [
+              1.0497076054758236,
+              1.2977887902933927
+            ],
+            "mean_m": 2.5524892930393928,
+            "r5": 0.8851674641148325,
+            "r10": 0.9521531100478469,
+            "gross": 0.04784688995215311,
+            "no_pose": 0,
+            "modes_mean": 1250.0,
+            "inlier_mean": 0.7796731477968644
+          }
+        }
+      },
+      {
+        "factor": "max_modes",
+        "value": 1,
+        "config": {
+          "reproj_cells": 3.0,
+          "target": "peak",
+          "max_modes": 1,
+          "mode_thr": 0.008,
+          "cert": "off",
+          "solver": "se2",
+          "ransac": "default"
+        },
+        "key": "reproj=3 target=peak max_modes=1 thr=0.008 cert=off solver=se2 ransac=default",
+        "select": {
+          "n": 418,
+          "median_m": 1.0931017411883017,
+          "median_ci": [
+            1.010990821062931,
+            1.226535403011033
+          ],
+          "mean_m": 2.5358300169568717,
+          "r5": 0.8851674641148325,
+          "r10": 0.9521531100478469,
+          "gross": 0.04784688995215311,
+          "no_pose": 0,
+          "modes_mean": 1107.7105263157894,
+          "inlier_mean": 0.8033000268610668,
+          "gated": {
+            "n": 418,
+            "median_m": 1.0931017411883017,
+            "median_ci": [
+              1.010990821062931,
+              1.226535403011033
+            ],
+            "mean_m": 2.5358300169568717,
+            "r5": 0.8851674641148325,
+            "r10": 0.9521531100478469,
+            "gross": 0.04784688995215311,
+            "no_pose": 0,
+            "modes_mean": 1107.7105263157894,
+            "inlier_mean": 0.8033000268610668
+          }
+        }
+      },
+      {
+        "factor": "max_modes",
+        "value": 2,
+        "config": {
+          "reproj_cells": 3.0,
+          "target": "peak",
+          "max_modes": 2,
+          "mode_thr": 0.008,
+          "cert": "off",
+          "solver": "se2",
+          "ransac": "default"
+        },
+        "key": "reproj=3 target=peak max_modes=2 thr=0.008 cert=off solver=se2 ransac=default",
+        "select": {
+          "n": 418,
+          "median_m": 1.1160359664250497,
+          "median_ci": [
+            1.025189126630715,
+            1.2370749647146544
+          ],
+          "mean_m": 2.5307570422138155,
+          "r5": 0.8851674641148325,
+          "r10": 0.9497607655502392,
+          "gross": 0.050239234449760764,
+          "no_pose": 0,
+          "modes_mean": 1243.732057416268,
+          "inlier_mean": 0.7839877820035173,
+          "gated": {
+            "n": 418,
+            "median_m": 1.1160359664250497,
+            "median_ci": [
+              1.025189126630715,
+              1.2370749647146544
+            ],
+            "mean_m": 2.5307570422138155,
+            "r5": 0.8851674641148325,
+            "r10": 0.9497607655502392,
+            "gross": 0.050239234449760764,
+            "no_pose": 0,
+            "modes_mean": 1243.732057416268,
+            "inlier_mean": 0.7839877820035173
+          }
+        }
+      },
+      {
+        "factor": "max_modes",
+        "value": 3,
+        "config": {
+          "reproj_cells": 3.0,
+          "target": "peak",
+          "max_modes": 3,
+          "mode_thr": 0.008,
+          "cert": "off",
+          "solver": "se2",
+          "ransac": "default"
+        },
+        "key": "reproj=3 target=peak max_modes=3 thr=0.008 cert=off solver=se2 ransac=default",
+        "select": {
+          "n": 418,
+          "median_m": 1.1093445731009628,
+          "median_ci": [
+            1.0152500088813086,
+            1.245342139787088
+          ],
+          "mean_m": 2.5323293303696532,
+          "r5": 0.8851674641148325,
+          "r10": 0.9521531100478469,
+          "gross": 0.04784688995215311,
+          "no_pose": 0,
+          "modes_mean": 1249.8612440191387,
+          "inlier_mean": 0.7826253947590087,
+          "gated": {
+            "n": 418,
+            "median_m": 1.1093445731009628,
+            "median_ci": [
+              1.0152500088813086,
+              1.245342139787088
+            ],
+            "mean_m": 2.5323293303696532,
+            "r5": 0.8851674641148325,
+            "r10": 0.9521531100478469,
+            "gross": 0.04784688995215311,
+            "no_pose": 0,
+            "modes_mean": 1249.8612440191387,
+            "inlier_mean": 0.7826253947590087
+          }
+        }
+      },
+      {
+        "factor": "max_modes",
+        "value": 5,
+        "config": {
+          "reproj_cells": 3.0,
+          "target": "peak",
+          "max_modes": 5,
+          "mode_thr": 0.008,
+          "cert": "off",
+          "solver": "se2",
+          "ransac": "default"
+        },
+        "key": "reproj=3 target=peak max_modes=5 thr=0.008 cert=off solver=se2 ransac=default",
+        "select": {
+          "n": 418,
+          "median_m": 1.1093445731009628,
+          "median_ci": [
+            1.0152500088813086,
+            1.245342139787088
+          ],
+          "mean_m": 2.532678703562974,
+          "r5": 0.8851674641148325,
+          "r10": 0.9521531100478469,
+          "gross": 0.04784688995215311,
+          "no_pose": 0,
+          "modes_mean": 1250.0,
+          "inlier_mean": 0.78259801236508,
+          "gated": {
+            "n": 418,
+            "median_m": 1.1093445731009628,
+            "median_ci": [
+              1.0152500088813086,
+              1.245342139787088
+            ],
+            "mean_m": 2.532678703562974,
+            "r5": 0.8851674641148325,
+            "r10": 0.9521531100478469,
+            "gross": 0.04784688995215311,
+            "no_pose": 0,
+            "modes_mean": 1250.0,
+            "inlier_mean": 0.78259801236508
+          }
+        }
+      },
+      {
+        "factor": "mode_thr",
+        "value": 0.004,
+        "config": {
+          "reproj_cells": 3.0,
+          "target": "peak",
+          "max_modes": 0,
+          "mode_thr": 0.004,
+          "cert": "off",
+          "solver": "se2",
+          "ransac": "default"
+        },
+        "key": "reproj=3 target=peak max_modes=all thr=0.004 cert=off solver=se2 ransac=default",
+        "select": {
+          "n": 418,
+          "median_m": 1.1072647896128656,
+          "median_ci": [
+            1.007497331411796,
+            1.2314678760766207
+          ],
+          "mean_m": 2.5264060915822366,
+          "r5": 0.8827751196172249,
+          "r10": 0.9521531100478469,
+          "gross": 0.04784688995215311,
+          "no_pose": 0,
+          "modes_mean": 1348.7631578947369,
+          "inlier_mean": 0.7533999324455183,
+          "gated": {
+            "n": 418,
+            "median_m": 1.1072647896128656,
+            "median_ci": [
+              1.007497331411796,
+              1.2314678760766207
+            ],
+            "mean_m": 2.5264060915822366,
+            "r5": 0.8827751196172249,
+            "r10": 0.9521531100478469,
+            "gross": 0.04784688995215311,
+            "no_pose": 0,
+            "modes_mean": 1348.7631578947369,
+            "inlier_mean": 0.7533999324455183
+          }
+        }
+      },
+      {
+        "factor": "mode_thr",
+        "value": 0.016,
+        "config": {
+          "reproj_cells": 3.0,
+          "target": "peak",
+          "max_modes": 0,
+          "mode_thr": 0.016,
+          "cert": "off",
+          "solver": "se2",
+          "ransac": "default"
+        },
+        "key": "reproj=3 target=peak max_modes=all thr=0.016 cert=off solver=se2 ransac=default",
+        "select": {
+          "n": 418,
+          "median_m": 1.1139078398023856,
+          "median_ci": [
+            1.0145614731471104,
+            1.2450252019330554
+          ],
+          "mean_m": 2.528923633232457,
+          "r5": 0.8827751196172249,
+          "r10": 0.9521531100478469,
+          "gross": 0.04784688995215311,
+          "no_pose": 0,
+          "modes_mean": 1100.6602870813397,
+          "inlier_mean": 0.8315033219070874,
+          "gated": {
+            "n": 418,
+            "median_m": 1.1139078398023856,
+            "median_ci": [
+              1.0145614731471104,
+              1.2450252019330554
+            ],
+            "mean_m": 2.528923633232457,
+            "r5": 0.8827751196172249,
+            "r10": 0.9521531100478469,
+            "gross": 0.04784688995215311,
+            "no_pose": 0,
+            "modes_mean": 1100.6602870813397,
+            "inlier_mean": 0.8315033219070874
+          }
+        }
+      },
+      {
+        "factor": "mode_thr",
+        "value": 0.03,
+        "config": {
+          "reproj_cells": 3.0,
+          "target": "peak",
+          "max_modes": 0,
+          "mode_thr": 0.03,
+          "cert": "off",
+          "solver": "se2",
+          "ransac": "default"
+        },
+        "key": "reproj=3 target=peak max_modes=all thr=0.03 cert=off solver=se2 ransac=default",
+        "select": {
+          "n": 418,
+          "median_m": 1.0935978333837921,
+          "median_ci": [
+            1.0072027718995762,
+            1.241032260773086
+          ],
+          "mean_m": 2.566398116862554,
+          "r5": 0.8755980861244019,
+          "r10": 0.9521531100478469,
+          "gross": 0.04784688995215311,
+          "no_pose": 0,
+          "modes_mean": 888.2296650717703,
+          "inlier_mean": 0.8997546622547156,
+          "gated": {
+            "n": 418,
+            "median_m": 1.0935978333837921,
+            "median_ci": [
+              1.0072027718995762,
+              1.241032260773086
+            ],
+            "mean_m": 2.566398116862554,
+            "r5": 0.8755980861244019,
+            "r10": 0.9521531100478469,
+            "gross": 0.04784688995215311,
+            "no_pose": 0,
+            "modes_mean": 888.2296650717703,
+            "inlier_mean": 0.8997546622547156
+          }
+        }
+      },
+      {
+        "factor": "mode_thr",
+        "value": 0.06,
+        "config": {
+          "reproj_cells": 3.0,
+          "target": "peak",
+          "max_modes": 0,
+          "mode_thr": 0.06,
+          "cert": "off",
+          "solver": "se2",
+          "ransac": "default"
+        },
+        "key": "reproj=3 target=peak max_modes=all thr=0.06 cert=off solver=se2 ransac=default",
+        "select": {
+          "n": 418,
+          "median_m": 1.1245542387747682,
+          "median_ci": [
+            1.003546806426559,
+            1.2026453632661822
+          ],
+          "mean_m": 95.03648770986825,
+          "r5": 0.8444976076555024,
+          "r10": 0.8803827751196173,
+          "gross": 0.11961722488038277,
+          "no_pose": 39,
+          "modes_mean": 547.5047846889952,
+          "inlier_mean": 0.8883058574759861,
+          "gated": {
+            "n": 418,
+            "median_m": 1.1060658113642767,
+            "median_ci": [
+              0.9776994686950724,
+              1.1682566244018475
+            ],
+            "mean_m": 2.449835098797952,
+            "r5": 0.8899521531100478,
+            "r10": 0.9521531100478469,
+            "gross": 0.04784688995215311,
+            "no_pose": 0,
+            "modes_mean": 547.5047846889952,
+            "inlier_mean": 0.8883058574759861
+          }
+        }
+      },
+      {
+        "factor": "cert",
+        "value": "weight",
+        "config": {
+          "reproj_cells": 3.0,
+          "target": "peak",
+          "max_modes": 0,
+          "mode_thr": 0.008,
+          "cert": "weight",
+          "solver": "se2",
+          "ransac": "default"
+        },
+        "key": "reproj=3 target=peak max_modes=all thr=0.008 cert=weight solver=se2 ransac=default",
+        "select": {
+          "n": 418,
+          "median_m": 1.1243254537730771,
+          "median_ci": [
+            1.018604203330405,
+            1.2317994485707437
+          ],
+          "mean_m": 2.53131151887479,
+          "r5": 0.8851674641148325,
+          "r10": 0.9521531100478469,
+          "gross": 0.04784688995215311,
+          "no_pose": 0,
+          "modes_mean": 1250.0,
+          "inlier_mean": 0.7824195078569605,
+          "gated": {
+            "n": 418,
+            "median_m": 1.1243254537730771,
+            "median_ci": [
+              1.018604203330405,
+              1.2317994485707437
+            ],
+            "mean_m": 2.53131151887479,
+            "r5": 0.8851674641148325,
+            "r10": 0.9521531100478469,
+            "gross": 0.04784688995215311,
+            "no_pose": 0,
+            "modes_mean": 1250.0,
+            "inlier_mean": 0.7824195078569605
+          }
+        }
+      },
+      {
+        "factor": "cert",
+        "value": "uniform",
+        "config": {
+          "reproj_cells": 3.0,
+          "target": "peak",
+          "max_modes": 0,
+          "mode_thr": 0.008,
+          "cert": "uniform",
+          "solver": "se2",
+          "ransac": "default"
+        },
+        "key": "reproj=3 target=peak max_modes=all thr=0.008 cert=uniform solver=se2 ransac=default",
+        "select": {
+          "n": 418,
+          "median_m": 1.1011576688321831,
+          "median_ci": [
+            1.0357843801417417,
+            1.231831212914162
+          ],
+          "mean_m": 2.5336014355322503,
+          "r5": 0.8851674641148325,
+          "r10": 0.9497607655502392,
+          "gross": 0.050239234449760764,
+          "no_pose": 0,
+          "modes_mean": 1250.0,
+          "inlier_mean": 0.7824114478065631,
+          "gated": {
+            "n": 418,
+            "median_m": 1.1011576688321831,
+            "median_ci": [
+              1.0357843801417417,
+              1.231831212914162
+            ],
+            "mean_m": 2.5336014355322503,
+            "r5": 0.8851674641148325,
+            "r10": 0.9497607655502392,
+            "gross": 0.050239234449760764,
+            "no_pose": 0,
+            "modes_mean": 1250.0,
+            "inlier_mean": 0.7824114478065631
+          }
+        }
+      },
+      {
+        "factor": "cert",
+        "value": "filter",
+        "config": {
+          "reproj_cells": 3.0,
+          "target": "peak",
+          "max_modes": 0,
+          "mode_thr": 0.008,
+          "cert": "filter",
+          "solver": "se2",
+          "ransac": "default"
+        },
+        "key": "reproj=3 target=peak max_modes=all thr=0.008 cert=filter solver=se2 ransac=default",
+        "select": {
+          "n": 418,
+          "median_m": 1.101091789526993,
+          "median_ci": [
+            0.9995678333794691,
+            1.2395077408274995
+          ],
+          "mean_m": 2.5498334753079726,
+          "r5": 0.8803827751196173,
+          "r10": 0.9521531100478469,
+          "gross": 0.04784688995215311,
+          "no_pose": 0,
+          "modes_mean": 934.444976076555,
+          "inlier_mean": 0.8539512735631837,
+          "gated": {
+            "n": 418,
+            "median_m": 1.101091789526993,
+            "median_ci": [
+              0.9995678333794691,
+              1.2395077408274995
+            ],
+            "mean_m": 2.5498334753079726,
+            "r5": 0.8803827751196173,
+            "r10": 0.9521531100478469,
+            "gross": 0.04784688995215311,
+            "no_pose": 0,
+            "modes_mean": 934.444976076555,
+            "inlier_mean": 0.8539512735631837
+          }
+        }
+      },
+      {
+        "factor": "solver",
+        "value": "sim",
+        "config": {
+          "reproj_cells": 3.0,
+          "target": "peak",
+          "max_modes": 0,
+          "mode_thr": 0.008,
+          "cert": "off",
+          "solver": "sim",
+          "ransac": "default"
+        },
+        "key": "reproj=3 target=peak max_modes=all thr=0.008 cert=off solver=sim ransac=default",
+        "select": {
+          "n": 418,
+          "median_m": 1.104318205908668,
+          "median_ci": [
+            0.9978163002836136,
+            1.2104595923593484
+          ],
+          "mean_m": 2.525365067141386,
+          "r5": 0.8803827751196173,
+          "r10": 0.9497607655502392,
+          "gross": 0.050239234449760764,
+          "no_pose": 0,
+          "modes_mean": 1250.0,
+          "inlier_mean": 0.8243158887237846,
+          "gated": {
+            "n": 418,
+            "median_m": 1.104318205908668,
+            "median_ci": [
+              0.9978163002836136,
+              1.2104595923593484
+            ],
+            "mean_m": 2.525365067141386,
+            "r5": 0.8803827751196173,
+            "r10": 0.9497607655502392,
+            "gross": 0.050239234449760764,
+            "no_pose": 0,
+            "modes_mean": 1250.0,
+            "inlier_mean": 0.8243158887237846
+          }
+        }
+      },
+      {
+        "factor": "solver",
+        "value": "srt",
+        "config": {
+          "reproj_cells": 3.0,
+          "target": "peak",
+          "max_modes": 0,
+          "mode_thr": 0.008,
+          "cert": "off",
+          "solver": "srt",
+          "ransac": "default"
+        },
+        "key": "reproj=3 target=peak max_modes=all thr=0.008 cert=off solver=srt ransac=default",
+        "select": {
+          "n": 418,
+          "median_m": 1.0960781319668778,
+          "median_ci": [
+            0.9960061814291534,
+            1.24445155743063
+          ],
+          "mean_m": 2.535203908814167,
+          "r5": 0.8803827751196173,
+          "r10": 0.9497607655502392,
+          "gross": 0.050239234449760764,
+          "no_pose": 0,
+          "modes_mean": 1250.0,
+          "inlier_mean": 0.8034224374016911,
+          "gated": {
+            "n": 418,
+            "median_m": 1.0960781319668778,
+            "median_ci": [
+              0.9960061814291534,
+              1.24445155743063
+            ],
+            "mean_m": 2.535203908814167,
+            "r5": 0.8803827751196173,
+            "r10": 0.9497607655502392,
+            "gross": 0.050239234449760764,
+            "no_pose": 0,
+            "modes_mean": 1250.0,
+            "inlier_mean": 0.8034224374016911
+          }
+        }
+      },
+      {
+        "factor": "ransac",
+        "value": "4x",
+        "config": {
+          "reproj_cells": 3.0,
+          "target": "peak",
+          "max_modes": 0,
+          "mode_thr": 0.008,
+          "cert": "off",
+          "solver": "se2",
+          "ransac": "4x"
+        },
+        "key": "reproj=3 target=peak max_modes=all thr=0.008 cert=off solver=se2 ransac=4x",
+        "select": {
+          "n": 418,
+          "median_m": 1.1032960433315298,
+          "median_ci": [
+            1.0152500088813086,
+            1.2504565256206557
+          ],
+          "mean_m": 2.5330174889445183,
+          "r5": 0.8851674641148325,
+          "r10": 0.9521531100478469,
+          "gross": 0.04784688995215311,
+          "no_pose": 0,
+          "modes_mean": 1250.0,
+          "inlier_mean": 0.7825737234812782,
+          "gated": {
+            "n": 418,
+            "median_m": 1.1032960433315298,
+            "median_ci": [
+              1.0152500088813086,
+              1.2504565256206557
+            ],
+            "mean_m": 2.5330174889445183,
+            "r5": 0.8851674641148325,
+            "r10": 0.9521531100478469,
+            "gross": 0.04784688995215311,
+            "no_pose": 0,
+            "modes_mean": 1250.0,
+            "inlier_mean": 0.7825737234812782
+          }
+        }
+      }
+    ],
+    "sensitivity": {
+      "reproj_cells": 0.034209110003578846,
+      "target": 0.06600653134441048,
+      "max_modes": 0.02293422523674793,
+      "mode_thr": 0.030956405390976105,
+      "cert": 0.023233664246084196,
+      "solver": 0.013266441134085039,
+      "ransac": 0.006048529769433042
+    },
+    "joint_factors": [
+      "target",
+      "reproj_cells",
+      "mode_thr"
+    ],
+    "joint": [
+      {
+        "factors": [
+          "target",
+          "reproj_cells",
+          "mode_thr"
+        ],
+        "config": {
+          "reproj_cells": 0.5,
+          "target": "peak",
+          "max_modes": 0,
+          "mode_thr": 0.004,
+          "cert": "off",
+          "solver": "se2",
+          "ransac": "default"
+        },
+        "key": "reproj=0.5 target=peak max_modes=all thr=0.004 cert=off solver=se2 ransac=default",
+        "select": {
+          "n": 418,
+          "median_m": 1.1095886797258272,
+          "median_ci": [
+            0.9878026126391948,
+            1.2326813830806103
+          ],
+          "mean_m": 2.56991203330023,
+          "r5": 0.8803827751196173,
+          "r10": 0.9521531100478469,
+          "gross": 0.04784688995215311,
+          "no_pose": 0,
+          "modes_mean": 1348.7631578947369,
+          "inlier_mean": 0.27367893410974503,
+          "gated": {
+            "n": 418,
+            "median_m": 1.1095886797258272,
+            "median_ci": [
+              0.9878026126391948,
+              1.2326813830806103
+            ],
+            "mean_m": 2.56991203330023,
+            "r5": 0.8803827751196173,
+            "r10": 0.9521531100478469,
+            "gross": 0.04784688995215311,
+            "no_pose": 0,
+            "modes_mean": 1348.7631578947369,
+            "inlier_mean": 0.27367893410974503
+          }
+        }
+      },
+      {
+        "factors": [
+          "target",
+          "reproj_cells",
+          "mode_thr"
+        ],
+        "config": {
+          "reproj_cells": 0.5,
+          "target": "peak",
+          "max_modes": 0,
+          "mode_thr": 0.016,
+          "cert": "off",
+          "solver": "se2",
+          "ransac": "default"
+        },
+        "key": "reproj=0.5 target=peak max_modes=all thr=0.016 cert=off solver=se2 ransac=default",
+        "select": {
+          "n": 418,
+          "median_m": 1.1089359178111569,
+          "median_ci": [
+            0.9809120622093674,
+            1.2188551886881287
+          ],
+          "mean_m": 2.579000379012271,
+          "r5": 0.8803827751196173,
+          "r10": 0.9521531100478469,
+          "gross": 0.04784688995215311,
+          "no_pose": 0,
+          "modes_mean": 1100.6602870813397,
+          "inlier_mean": 0.31423894026104987,
+          "gated": {
+            "n": 418,
+            "median_m": 1.1089359178111569,
+            "median_ci": [
+              0.9809120622093674,
+              1.2188551886881287
+            ],
+            "mean_m": 2.579000379012271,
+            "r5": 0.8803827751196173,
+            "r10": 0.9521531100478469,
+            "gross": 0.04784688995215311,
+            "no_pose": 0,
+            "modes_mean": 1100.6602870813397,
+            "inlier_mean": 0.31423894026104987
+          }
+        }
+      },
+      {
+        "factors": [
+          "target",
+          "reproj_cells",
+          "mode_thr"
+        ],
+        "config": {
+          "reproj_cells": 0.5,
+          "target": "peak",
+          "max_modes": 0,
+          "mode_thr": 0.03,
+          "cert": "off",
+          "solver": "se2",
+          "ransac": "default"
+        },
+        "key": "reproj=0.5 target=peak max_modes=all thr=0.03 cert=off solver=se2 ransac=default",
+        "select": {
+          "n": 418,
+          "median_m": 1.1170459420172711,
+          "median_ci": [
+            1.0012516182404319,
+            1.2517159559077118
+          ],
+          "mean_m": 4.950093068824707,
+          "r5": 0.8779904306220095,
+          "r10": 0.9497607655502392,
+          "gross": 0.050239234449760764,
+          "no_pose": 1,
+          "modes_mean": 888.2296650717703,
+          "inlier_mean": 0.367685585038387,
+          "gated": {
+            "n": 418,
+            "median_m": 1.1170459420172711,
+            "median_ci": [
+              1.0012516182404319,
+              1.2517159559077118
+            ],
+            "mean_m": 2.5814870411793405,
+            "r5": 0.8779904306220095,
+            "r10": 0.9521531100478469,
+            "gross": 0.04784688995215311,
+            "no_pose": 0,
+            "modes_mean": 888.2296650717703,
+            "inlier_mean": 0.367685585038387
+          }
+        }
+      },
+      {
+        "factors": [
+          "target",
+          "reproj_cells",
+          "mode_thr"
+        ],
+        "config": {
+          "reproj_cells": 0.5,
+          "target": "peak",
+          "max_modes": 0,
+          "mode_thr": 0.06,
+          "cert": "off",
+          "solver": "se2",
+          "ransac": "default"
+        },
+        "key": "reproj=0.5 target=peak max_modes=all thr=0.06 cert=off solver=se2 ransac=default",
+        "select": {
+          "n": 418,
+          "median_m": 1.137091602844058,
+          "median_ci": [
+            1.0226080566843188,
+            1.2546479245429603
+          ],
+          "mean_m": 99.83722614833515,
+          "r5": 0.8373205741626795,
+          "r10": 0.8755980861244019,
+          "gross": 0.12440191387559808,
+          "no_pose": 41,
+          "modes_mean": 547.5047846889952,
+          "inlier_mean": 0.4562487121488912,
+          "gated": {
+            "n": 418,
+            "median_m": 1.1060066114661484,
+            "median_ci": [
+              1.0041741487847606,
+              1.2065647680154017
+            ],
+            "mean_m": 2.468771812892118,
+            "r5": 0.8875598086124402,
+            "r10": 0.9521531100478469,
+            "gross": 0.04784688995215311,
+            "no_pose": 0,
+            "modes_mean": 547.5047846889952,
+            "inlier_mean": 0.4562487121488912
+          }
+        }
+      },
+      {
+        "factors": [
+          "target",
+          "reproj_cells",
+          "mode_thr"
+        ],
+        "config": {
+          "reproj_cells": 0.75,
+          "target": "peak",
+          "max_modes": 0,
+          "mode_thr": 0.004,
+          "cert": "off",
+          "solver": "se2",
+          "ransac": "default"
+        },
+        "key": "reproj=0.75 target=peak max_modes=all thr=0.004 cert=off solver=se2 ransac=default",
+        "select": {
+          "n": 418,
+          "median_m": 1.0796888909811497,
+          "median_ci": [
+            0.9917563124841409,
+            1.2476725339802175
+          ],
+          "mean_m": 2.5650893751046646,
+          "r5": 0.8779904306220095,
+          "r10": 0.9521531100478469,
+          "gross": 0.04784688995215311,
+          "no_pose": 0,
+          "modes_mean": 1348.7631578947369,
+          "inlier_mean": 0.4208065387313897,
+          "gated": {
+            "n": 418,
+            "median_m": 1.0796888909811497,
+            "median_ci": [
+              0.9917563124841409,
+              1.2476725339802175
+            ],
+            "mean_m": 2.5650893751046646,
+            "r5": 0.8779904306220095,
+            "r10": 0.9521531100478469,
+            "gross": 0.04784688995215311,
+            "no_pose": 0,
+            "modes_mean": 1348.7631578947369,
+            "inlier_mean": 0.4208065387313897
+          }
+        }
+      },
+      {
+        "factors": [
+          "target",
+          "reproj_cells",
+          "mode_thr"
+        ],
+        "config": {
+          "reproj_cells": 0.75,
+          "target": "peak",
+          "max_modes": 0,
+          "mode_thr": 0.016,
+          "cert": "off",
+          "solver": "se2",
+          "ransac": "default"
+        },
+        "key": "reproj=0.75 target=peak max_modes=all thr=0.016 cert=off solver=se2 ransac=default",
+        "select": {
+          "n": 418,
+          "median_m": 1.0818038774789942,
+          "median_ci": [
+            0.9771272378697649,
+            1.2417354738390012
+          ],
+          "mean_m": 2.5640750573935427,
+          "r5": 0.8779904306220095,
+          "r10": 0.9521531100478469,
+          "gross": 0.04784688995215311,
+          "no_pose": 0,
+          "modes_mean": 1100.6602870813397,
+          "inlier_mean": 0.48086535115384255,
+          "gated": {
+            "n": 418,
+            "median_m": 1.0818038774789942,
+            "median_ci": [
+              0.9771272378697649,
+              1.2417354738390012
+            ],
+            "mean_m": 2.5640750573935427,
+            "r5": 0.8779904306220095,
+            "r10": 0.9521531100478469,
+            "gross": 0.04784688995215311,
+            "no_pose": 0,
+            "modes_mean": 1100.6602870813397,
+            "inlier_mean": 0.48086535115384255
+          }
+        }
+      },
+      {
+        "factors": [
+          "target",
+          "reproj_cells",
+          "mode_thr"
+        ],
+        "config": {
+          "reproj_cells": 0.75,
+          "target": "peak",
+          "max_modes": 0,
+          "mode_thr": 0.03,
+          "cert": "off",
+          "solver": "se2",
+          "ransac": "default"
+        },
+        "key": "reproj=0.75 target=peak max_modes=all thr=0.03 cert=off solver=se2 ransac=default",
+        "select": {
+          "n": 418,
+          "median_m": 1.0794495675608764,
+          "median_ci": [
+            0.9878517103441833,
+            1.2496084898269713
+          ],
+          "mean_m": 4.94428195161057,
+          "r5": 0.8732057416267942,
+          "r10": 0.9497607655502392,
+          "gross": 0.050239234449760764,
+          "no_pose": 1,
+          "modes_mean": 888.2296650717703,
+          "inlier_mean": 0.5572785872935903,
+          "gated": {
+            "n": 418,
+            "median_m": 1.0794495675608764,
+            "median_ci": [
+              0.9878517103441833,
+              1.2496084898269713
+            ],
+            "mean_m": 2.5756759239652034,
+            "r5": 0.8732057416267942,
+            "r10": 0.9521531100478469,
+            "gross": 0.04784688995215311,
+            "no_pose": 0,
+            "modes_mean": 888.2296650717703,
+            "inlier_mean": 0.5572785872935903
+          }
+        }
+      },
+      {
+        "factors": [
+          "target",
+          "reproj_cells",
+          "mode_thr"
+        ],
+        "config": {
+          "reproj_cells": 0.75,
+          "target": "peak",
+          "max_modes": 0,
+          "mode_thr": 0.06,
+          "cert": "off",
+          "solver": "se2",
+          "ransac": "default"
+        },
+        "key": "reproj=0.75 target=peak max_modes=all thr=0.06 cert=off solver=se2 ransac=default",
+        "select": {
+          "n": 418,
+          "median_m": 1.1261368193288082,
+          "median_ci": [
+            0.9990703315348894,
+            1.2597334272943503
+          ],
+          "mean_m": 99.8285970254667,
+          "r5": 0.8373205741626795,
+          "r10": 0.8755980861244019,
+          "gross": 0.12440191387559808,
+          "no_pose": 41,
+          "modes_mean": 547.5047846889952,
+          "inlier_mean": 0.6665684566270371,
+          "gated": {
+            "n": 418,
+            "median_m": 1.080437350169194,
+            "median_ci": [
+              0.981092744385965,
+              1.1995758812082729
+            ],
+            "mean_m": 2.4601426900236607,
+            "r5": 0.8875598086124402,
+            "r10": 0.9521531100478469,
+            "gross": 0.04784688995215311,
+            "no_pose": 0,
+            "modes_mean": 547.5047846889952,
+            "inlier_mean": 0.6665684566270371
+          }
+        }
+      },
+      {
+        "factors": [
+          "target",
+          "reproj_cells",
+          "mode_thr"
+        ],
+        "config": {
+          "reproj_cells": 1.0,
+          "target": "peak",
+          "max_modes": 0,
+          "mode_thr": 0.004,
+          "cert": "off",
+          "solver": "se2",
+          "ransac": "default"
+        },
+        "key": "reproj=1 target=peak max_modes=all thr=0.004 cert=off solver=se2 ransac=default",
+        "select": {
+          "n": 418,
+          "median_m": 1.1103705586560393,
+          "median_ci": [
+            1.003136273421974,
+            1.2453392926784685
+          ],
+          "mean_m": 2.559829738744649,
+          "r5": 0.8803827751196173,
+          "r10": 0.9521531100478469,
+          "gross": 0.04784688995215311,
+          "no_pose": 0,
+          "modes_mean": 1348.7631578947369,
+          "inlier_mean": 0.5006896285287937,
+          "gated": {
+            "n": 418,
+            "median_m": 1.1103705586560393,
+            "median_ci": [
+              1.003136273421974,
+              1.2453392926784685
+            ],
+            "mean_m": 2.559829738744649,
+            "r5": 0.8803827751196173,
+            "r10": 0.9521531100478469,
+            "gross": 0.04784688995215311,
+            "no_pose": 0,
+            "modes_mean": 1348.7631578947369,
+            "inlier_mean": 0.5006896285287937
+          }
+        }
+      },
+      {
+        "factors": [
+          "target",
+          "reproj_cells",
+          "mode_thr"
+        ],
+        "config": {
+          "reproj_cells": 1.0,
+          "target": "peak",
+          "max_modes": 0,
+          "mode_thr": 0.016,
+          "cert": "off",
+          "solver": "se2",
+          "ransac": "default"
+        },
+        "key": "reproj=1 target=peak max_modes=all thr=0.016 cert=off solver=se2 ransac=default",
+        "select": {
+          "n": 418,
+          "median_m": 1.1165427920909985,
+          "median_ci": [
+            0.995251989709723,
+            1.2319986858351974
+          ],
+          "mean_m": 2.5603117292737454,
+          "r5": 0.8827751196172249,
+          "r10": 0.9521531100478469,
+          "gross": 0.04784688995215311,
+          "no_pose": 0,
+          "modes_mean": 1100.6602870813397,
+          "inlier_mean": 0.5694957412053929,
+          "gated": {
+            "n": 418,
+            "median_m": 1.1165427920909985,
+            "median_ci": [
+              0.995251989709723,
+              1.2319986858351974
+            ],
+            "mean_m": 2.5603117292737454,
+            "r5": 0.8827751196172249,
+            "r10": 0.9521531100478469,
+            "gross": 0.04784688995215311,
+            "no_pose": 0,
+            "modes_mean": 1100.6602870813397,
+            "inlier_mean": 0.5694957412053929
+          }
+        }
+      },
+      {
+        "factors": [
+          "target",
+          "reproj_cells",
+          "mode_thr"
+        ],
+        "config": {
+          "reproj_cells": 1.0,
+          "target": "peak",
+          "max_modes": 0,
+          "mode_thr": 0.03,
+          "cert": "off",
+          "solver": "se2",
+          "ransac": "default"
+        },
+        "key": "reproj=1 target=peak max_modes=all thr=0.03 cert=off solver=se2 ransac=default",
+        "select": {
+          "n": 418,
+          "median_m": 1.1076113560649499,
+          "median_ci": [
+            1.0047627723137142,
+            1.224069694367623
+          ],
+          "mean_m": 4.942503999511612,
+          "r5": 0.8755980861244019,
+          "r10": 0.9497607655502392,
+          "gross": 0.050239234449760764,
+          "no_pose": 1,
+          "modes_mean": 888.2296650717703,
+          "inlier_mean": 0.6530256096056681,
+          "gated": {
+            "n": 418,
+            "median_m": 1.1076113560649499,
+            "median_ci": [
+              1.0047627723137142,
+              1.224069694367623
+            ],
+            "mean_m": 2.573897971866245,
+            "r5": 0.8755980861244019,
+            "r10": 0.9521531100478469,
+            "gross": 0.04784688995215311,
+            "no_pose": 0,
+            "modes_mean": 888.2296650717703,
+            "inlier_mean": 0.6530256096056681
+          }
+        }
+      },
+      {
+        "factors": [
+          "target",
+          "reproj_cells",
+          "mode_thr"
+        ],
+        "config": {
+          "reproj_cells": 1.0,
+          "target": "peak",
+          "max_modes": 0,
+          "mode_thr": 0.06,
+          "cert": "off",
+          "solver": "se2",
+          "ransac": "default"
+        },
+        "key": "reproj=1 target=peak max_modes=all thr=0.06 cert=off solver=se2 ransac=default",
+        "select": {
+          "n": 418,
+          "median_m": 1.131575872582005,
+          "median_ci": [
+            0.9996833076008134,
+            1.2330703828527287
+          ],
+          "mean_m": 99.82204483815565,
+          "r5": 0.8373205741626795,
+          "r10": 0.8755980861244019,
+          "gross": 0.12440191387559808,
+          "no_pose": 41,
+          "modes_mean": 547.5047846889952,
+          "inlier_mean": 0.7575475631457615,
+          "gated": {
+            "n": 418,
+            "median_m": 1.0817175501739158,
+            "median_ci": [
+              0.9761567782251661,
+              1.1962179771547417
+            ],
+            "mean_m": 2.4535905027126224,
+            "r5": 0.8875598086124402,
+            "r10": 0.9521531100478469,
+            "gross": 0.04784688995215311,
+            "no_pose": 0,
+            "modes_mean": 547.5047846889952,
+            "inlier_mean": 0.7575475631457615
+          }
+        }
+      },
+      {
+        "factors": [
+          "target",
+          "reproj_cells",
+          "mode_thr"
+        ],
+        "config": {
+          "reproj_cells": 1.5,
+          "target": "peak",
+          "max_modes": 0,
+          "mode_thr": 0.004,
+          "cert": "off",
+          "solver": "se2",
+          "ransac": "default"
+        },
+        "key": "reproj=1.5 target=peak max_modes=all thr=0.004 cert=off solver=se2 ransac=default",
+        "select": {
+          "n": 418,
+          "median_m": 1.095823720105611,
+          "median_ci": [
+            1.0075943895296537,
+            1.2304323650997018
+          ],
+          "mean_m": 2.5570397476406166,
+          "r5": 0.8827751196172249,
+          "r10": 0.9521531100478469,
+          "gross": 0.04784688995215311,
+          "no_pose": 0,
+          "modes_mean": 1348.7631578947369,
+          "inlier_mean": 0.5956583333432895,
+          "gated": {
+            "n": 418,
+            "median_m": 1.095823720105611,
+            "median_ci": [
+              1.0075943895296537,
+              1.2304323650997018
+            ],
+            "mean_m": 2.5570397476406166,
+            "r5": 0.8827751196172249,
+            "r10": 0.9521531100478469,
+            "gross": 0.04784688995215311,
+            "no_pose": 0,
+            "modes_mean": 1348.7631578947369,
+            "inlier_mean": 0.5956583333432895
+          }
+        }
+      },
+      {
+        "factors": [
+          "target",
+          "reproj_cells",
+          "mode_thr"
+        ],
+        "config": {
+          "reproj_cells": 1.5,
+          "target": "peak",
+          "max_modes": 0,
+          "mode_thr": 0.016,
+          "cert": "off",
+          "solver": "se2",
+          "ransac": "default"
+        },
+        "key": "reproj=1.5 target=peak max_modes=all thr=0.016 cert=off solver=se2 ransac=default",
+        "select": {
+          "n": 418,
+          "median_m": 1.1002622779227798,
+          "median_ci": [
+            1.015122896358926,
+            1.2341990622953665
+          ],
+          "mean_m": 2.555020467201501,
+          "r5": 0.8803827751196173,
+          "r10": 0.9521531100478469,
+          "gross": 0.04784688995215311,
+          "no_pose": 0,
+          "modes_mean": 1100.6602870813397,
+          "inlier_mean": 0.6726489067237438,
+          "gated": {
+            "n": 418,
+            "median_m": 1.1002622779227798,
+            "median_ci": [
+              1.015122896358926,
+              1.2341990622953665
+            ],
+            "mean_m": 2.555020467201501,
+            "r5": 0.8803827751196173,
+            "r10": 0.9521531100478469,
+            "gross": 0.04784688995215311,
+            "no_pose": 0,
+            "modes_mean": 1100.6602870813397,
+            "inlier_mean": 0.6726489067237438
+          }
+        }
+      },
+      {
+        "factors": [
+          "target",
+          "reproj_cells",
+          "mode_thr"
+        ],
+        "config": {
+          "reproj_cells": 1.5,
+          "target": "peak",
+          "max_modes": 0,
+          "mode_thr": 0.03,
+          "cert": "off",
+          "solver": "se2",
+          "ransac": "default"
+        },
+        "key": "reproj=1.5 target=peak max_modes=all thr=0.03 cert=off solver=se2 ransac=default",
+        "select": {
+          "n": 418,
+          "median_m": 1.1029490593349625,
+          "median_ci": [
+            1.018870263382805,
+            1.2398734057444079
+          ],
+          "mean_m": 2.5737070739908754,
+          "r5": 0.8755980861244019,
+          "r10": 0.9521531100478469,
+          "gross": 0.04784688995215311,
+          "no_pose": 0,
+          "modes_mean": 888.2296650717703,
+          "inlier_mean": 0.7588087872825833,
+          "gated": {
+            "n": 418,
+            "median_m": 1.1029490593349625,
+            "median_ci": [
+              1.018870263382805,
+              1.2398734057444079
+            ],
+            "mean_m": 2.5805960746021515,
+            "r5": 0.8755980861244019,
+            "r10": 0.9521531100478469,
+            "gross": 0.04784688995215311,
+            "no_pose": 0,
+            "modes_mean": 888.2296650717703,
+            "inlier_mean": 0.7588087872825833
+          }
+        }
+      },
+      {
+        "factors": [
+          "target",
+          "reproj_cells",
+          "mode_thr"
+        ],
+        "config": {
+          "reproj_cells": 1.5,
+          "target": "peak",
+          "max_modes": 0,
+          "mode_thr": 0.06,
+          "cert": "off",
+          "solver": "se2",
+          "ransac": "default"
+        },
+        "key": "reproj=1.5 target=peak max_modes=all thr=0.06 cert=off solver=se2 ransac=default",
+        "select": {
+          "n": 418,
+          "median_m": 1.1332792177750903,
+          "median_ci": [
+            1.0180330504644635,
+            1.2383936316334245
+          ],
+          "mean_m": 97.43271590504487,
+          "r5": 0.8397129186602871,
+          "r10": 0.8779904306220095,
+          "gross": 0.12200956937799043,
+          "no_pose": 40,
+          "modes_mean": 547.5047846889952,
+          "inlier_mean": 0.8309016517480033,
+          "gated": {
+            "n": 418,
+            "median_m": 1.0911074201333855,
+            "median_ci": [
+              1.0107631736240483,
+              1.190655826539276
+            ],
+            "mean_m": 2.4550381671777743,
+            "r5": 0.8875598086124402,
+            "r10": 0.9521531100478469,
+            "gross": 0.04784688995215311,
+            "no_pose": 0,
+            "modes_mean": 547.5047846889952,
+            "inlier_mean": 0.8309016517480033
+          }
+        }
+      },
+      {
+        "factors": [
+          "target",
+          "reproj_cells",
+          "mode_thr"
+        ],
+        "config": {
+          "reproj_cells": 2.0,
+          "target": "peak",
+          "max_modes": 0,
+          "mode_thr": 0.004,
+          "cert": "off",
+          "solver": "se2",
+          "ransac": "default"
+        },
+        "key": "reproj=2 target=peak max_modes=all thr=0.004 cert=off solver=se2 ransac=default",
+        "select": {
+          "n": 418,
+          "median_m": 1.091930192344295,
+          "median_ci": [
+            0.9886665251000748,
+            1.200266216651148
+          ],
+          "mean_m": 2.550696021657447,
+          "r5": 0.8803827751196173,
+          "r10": 0.9521531100478469,
+          "gross": 0.04784688995215311,
+          "no_pose": 0,
+          "modes_mean": 1348.7631578947369,
+          "inlier_mean": 0.6593519257722188,
+          "gated": {
+            "n": 418,
+            "median_m": 1.091930192344295,
+            "median_ci": [
+              0.9886665251000748,
+              1.200266216651148
+            ],
+            "mean_m": 2.550696021657447,
+            "r5": 0.8803827751196173,
+            "r10": 0.9521531100478469,
+            "gross": 0.04784688995215311,
+            "no_pose": 0,
+            "modes_mean": 1348.7631578947369,
+            "inlier_mean": 0.6593519257722188
+          }
+        }
+      },
+      {
+        "factors": [
+          "target",
+          "reproj_cells",
+          "mode_thr"
+        ],
+        "config": {
+          "reproj_cells": 2.0,
+          "target": "peak",
+          "max_modes": 0,
+          "mode_thr": 0.016,
+          "cert": "off",
+          "solver": "se2",
+          "ransac": "default"
+        },
+        "key": "reproj=2 target=peak max_modes=all thr=0.016 cert=off solver=se2 ransac=default",
+        "select": {
+          "n": 418,
+          "median_m": 1.1026899061853772,
+          "median_ci": [
+            0.9962649068351471,
+            1.2085106817589586
+          ],
+          "mean_m": 2.550410479698414,
+          "r5": 0.8803827751196173,
+          "r10": 0.9521531100478469,
+          "gross": 0.04784688995215311,
+          "no_pose": 0,
+          "modes_mean": 1100.6602870813397,
+          "inlier_mean": 0.7386840933096572,
+          "gated": {
+            "n": 418,
+            "median_m": 1.1026899061853772,
+            "median_ci": [
+              0.9962649068351471,
+              1.2085106817589586
+            ],
+            "mean_m": 2.550410479698414,
+            "r5": 0.8803827751196173,
+            "r10": 0.9521531100478469,
+            "gross": 0.04784688995215311,
+            "no_pose": 0,
+            "modes_mean": 1100.6602870813397,
+            "inlier_mean": 0.7386840933096572
+          }
+        }
+      },
+      {
+        "factors": [
+          "target",
+          "reproj_cells",
+          "mode_thr"
+        ],
+        "config": {
+          "reproj_cells": 2.0,
+          "target": "peak",
+          "max_modes": 0,
+          "mode_thr": 0.03,
+          "cert": "off",
+          "solver": "se2",
+          "ransac": "default"
+        },
+        "key": "reproj=2 target=peak max_modes=all thr=0.03 cert=off solver=se2 ransac=default",
+        "select": {
+          "n": 418,
+          "median_m": 1.0935303620346986,
+          "median_ci": [
+            0.9777221372611047,
+            1.2166394010215944
+          ],
+          "mean_m": 2.569076517226654,
+          "r5": 0.8755980861244019,
+          "r10": 0.9521531100478469,
+          "gross": 0.04784688995215311,
+          "no_pose": 0,
+          "modes_mean": 888.2296650717703,
+          "inlier_mean": 0.8203056843625087,
+          "gated": {
+            "n": 418,
+            "median_m": 1.0935303620346986,
+            "median_ci": [
+              0.9777221372611047,
+              1.2166394010215944
+            ],
+            "mean_m": 2.57596551783793,
+            "r5": 0.8755980861244019,
+            "r10": 0.9521531100478469,
+            "gross": 0.04784688995215311,
+            "no_pose": 0,
+            "modes_mean": 888.2296650717703,
+            "inlier_mean": 0.8203056843625087
+          }
+        }
+      },
+      {
+        "factors": [
+          "target",
+          "reproj_cells",
+          "mode_thr"
+        ],
+        "config": {
+          "reproj_cells": 2.0,
+          "target": "peak",
+          "max_modes": 0,
+          "mode_thr": 0.06,
+          "cert": "off",
+          "solver": "se2",
+          "ransac": "default"
+        },
+        "key": "reproj=2 target=peak max_modes=all thr=0.06 cert=off solver=se2 ransac=default",
+        "select": {
+          "n": 418,
+          "median_m": 1.1225770253491383,
+          "median_ci": [
+            1.0154722318035598,
+            1.2214446102626604
+          ],
+          "mean_m": 95.04069684814182,
+          "r5": 0.8444976076555024,
+          "r10": 0.8803827751196173,
+          "gross": 0.11961722488038277,
+          "no_pose": 39,
+          "modes_mean": 547.5047846889952,
+          "inlier_mean": 0.8598076283490179,
+          "gated": {
+            "n": 418,
+            "median_m": 1.091407558263063,
+            "median_ci": [
+              1.0086280271381283,
+              1.1880639872980454
+            ],
+            "mean_m": 2.4540442370715136,
+            "r5": 0.8899521531100478,
+            "r10": 0.9521531100478469,
+            "gross": 0.04784688995215311,
+            "no_pose": 0,
+            "modes_mean": 547.5047846889952,
+            "inlier_mean": 0.8598076283490179
+          }
+        }
+      },
+      {
+        "factors": [
+          "target",
+          "reproj_cells",
+          "mode_thr"
+        ],
+        "config": {
+          "reproj_cells": 0.5,
+          "target": "means",
+          "max_modes": 0,
+          "mode_thr": 0.004,
+          "cert": "off",
+          "solver": "se2",
+          "ransac": "default"
+        },
+        "key": "reproj=0.5 target=means max_modes=all thr=0.004 cert=off solver=se2 ransac=default",
+        "select": {
+          "n": 418,
+          "median_m": 1.0972258431332191,
+          "median_ci": [
+            1.0020914708095696,
+            1.195438219472783
+          ],
+          "mean_m": 2.6326153335849183,
+          "r5": 0.868421052631579,
+          "r10": 0.9497607655502392,
+          "gross": 0.050239234449760764,
+          "no_pose": 0,
+          "modes_mean": 1348.7631578947369,
+          "inlier_mean": 0.3735315047821253,
+          "gated": {
+            "n": 418,
+            "median_m": 1.0972258431332191,
+            "median_ci": [
+              1.0020914708095696,
+              1.195438219472783
+            ],
+            "mean_m": 2.6326153335849183,
+            "r5": 0.868421052631579,
+            "r10": 0.9497607655502392,
+            "gross": 0.050239234449760764,
+            "no_pose": 0,
+            "modes_mean": 1348.7631578947369,
+            "inlier_mean": 0.3735315047821253
+          }
+        }
+      },
+      {
+        "factors": [
+          "target",
+          "reproj_cells",
+          "mode_thr"
+        ],
+        "config": {
+          "reproj_cells": 0.5,
+          "target": "means",
+          "max_modes": 0,
+          "mode_thr": 0.008,
+          "cert": "off",
+          "solver": "se2",
+          "ransac": "default"
+        },
+        "key": "reproj=0.5 target=means max_modes=all thr=0.008 cert=off solver=se2 ransac=default",
+        "select": {
+          "n": 418,
+          "median_m": 1.100309433434262,
+          "median_ci": [
+            0.9999082769601461,
+            1.2135083366973975
+          ],
+          "mean_m": 2.6133642326283297,
+          "r5": 0.868421052631579,
+          "r10": 0.9521531100478469,
+          "gross": 0.04784688995215311,
+          "no_pose": 0,
+          "modes_mean": 1250.0,
+          "inlier_mean": 0.3977367907247652,
+          "gated": {
+            "n": 418,
+            "median_m": 1.100309433434262,
+            "median_ci": [
+              0.9999082769601461,
+              1.2135083366973975
+            ],
+            "mean_m": 2.6133642326283297,
+            "r5": 0.868421052631579,
+            "r10": 0.9521531100478469,
+            "gross": 0.04784688995215311,
+            "no_pose": 0,
+            "modes_mean": 1250.0,
+            "inlier_mean": 0.3977367907247652
+          }
+        }
+      },
+      {
+        "factors": [
+          "target",
+          "reproj_cells",
+          "mode_thr"
+        ],
+        "config": {
+          "reproj_cells": 0.5,
+          "target": "means",
+          "max_modes": 0,
+          "mode_thr": 0.016,
+          "cert": "off",
+          "solver": "se2",
+          "ransac": "default"
+        },
+        "key": "reproj=0.5 target=means max_modes=all thr=0.016 cert=off solver=se2 ransac=default",
+        "select": {
+          "n": 418,
+          "median_m": 1.0807548723608305,
+          "median_ci": [
+            0.9836656003714187,
+            1.1925196303881145
+          ],
+          "mean_m": 2.587077788968391,
+          "r5": 0.8755980861244019,
+          "r10": 0.9497607655502392,
+          "gross": 0.050239234449760764,
+          "no_pose": 0,
+          "modes_mean": 1100.6602870813397,
+          "inlier_mean": 0.4422218366123535,
+          "gated": {
+            "n": 418,
+            "median_m": 1.0807548723608305,
+            "median_ci": [
+              0.9836656003714187,
+              1.1925196303881145
+            ],
+            "mean_m": 2.587077788968391,
+            "r5": 0.8755980861244019,
+            "r10": 0.9497607655502392,
+            "gross": 0.050239234449760764,
+            "no_pose": 0,
+            "modes_mean": 1100.6602870813397,
+            "inlier_mean": 0.4422218366123535
+          }
+        }
+      },
+      {
+        "factors": [
+          "target",
+          "reproj_cells",
+          "mode_thr"
+        ],
+        "config": {
+          "reproj_cells": 0.5,
+          "target": "means",
+          "max_modes": 0,
+          "mode_thr": 0.03,
+          "cert": "off",
+          "solver": "se2",
+          "ransac": "default"
+        },
+        "key": "reproj=0.5 target=means max_modes=all thr=0.03 cert=off solver=se2 ransac=default",
+        "select": {
+          "n": 418,
+          "median_m": 1.0720720608843677,
+          "median_ci": [
+            0.9748158296271207,
+            1.1804487047950354
+          ],
+          "mean_m": 4.895102713761118,
+          "r5": 0.8851674641148325,
+          "r10": 0.9497607655502392,
+          "gross": 0.050239234449760764,
+          "no_pose": 1,
+          "modes_mean": 888.2296650717703,
+          "inlier_mean": 0.5273682465445926,
+          "gated": {
+            "n": 418,
+            "median_m": 1.0720720608843677,
+            "median_ci": [
+              0.9748158296271207,
+              1.1804487047950354
+            ],
+            "mean_m": 2.526496686115752,
+            "r5": 0.8851674641148325,
+            "r10": 0.9521531100478469,
+            "gross": 0.04784688995215311,
+            "no_pose": 0,
+            "modes_mean": 888.2296650717703,
+            "inlier_mean": 0.5273682465445926
+          }
+        }
+      },
+      {
+        "factors": [
+          "target",
+          "reproj_cells",
+          "mode_thr"
+        ],
+        "config": {
+          "reproj_cells": 0.5,
+          "target": "means",
+          "max_modes": 0,
+          "mode_thr": 0.06,
+          "cert": "off",
+          "solver": "se2",
+          "ransac": "default"
+        },
+        "key": "reproj=0.5 target=means max_modes=all thr=0.06 cert=off solver=se2 ransac=default",
+        "select": {
+          "n": 418,
+          "median_m": 1.0965328913546122,
+          "median_ci": [
+            0.9945887775894134,
+            1.1954398343207862
+          ],
+          "mean_m": 99.80735234650398,
+          "r5": 0.8397129186602871,
+          "r10": 0.8755980861244019,
+          "gross": 0.12440191387559808,
+          "no_pose": 41,
+          "modes_mean": 547.5047846889952,
+          "inlier_mean": 0.6493417252850656,
+          "gated": {
+            "n": 418,
+            "median_m": 1.0643639020598763,
+            "median_ci": [
+              0.9724935822667302,
+              1.160860267689364
+            ],
+            "mean_m": 2.4388980110609286,
+            "r5": 0.8899521531100478,
+            "r10": 0.9521531100478469,
+            "gross": 0.04784688995215311,
+            "no_pose": 0,
+            "modes_mean": 547.5047846889952,
+            "inlier_mean": 0.6493417252850656
+          }
+        }
+      },
+      {
+        "factors": [
+          "target",
+          "reproj_cells",
+          "mode_thr"
+        ],
+        "config": {
+          "reproj_cells": 0.75,
+          "target": "means",
+          "max_modes": 0,
+          "mode_thr": 0.004,
+          "cert": "off",
+          "solver": "se2",
+          "ransac": "default"
+        },
+        "key": "reproj=0.75 target=means max_modes=all thr=0.004 cert=off solver=se2 ransac=default",
+        "select": {
+          "n": 418,
+          "median_m": 1.1145382539684872,
+          "median_ci": [
+            1.0010892804610418,
+            1.2293782621330371
+          ],
+          "mean_m": 2.6136800356177776,
+          "r5": 0.8708133971291866,
+          "r10": 0.9497607655502392,
+          "gross": 0.050239234449760764,
+          "no_pose": 0,
+          "modes_mean": 1348.7631578947369,
+          "inlier_mean": 0.4557529293291524,
+          "gated": {
+            "n": 418,
+            "median_m": 1.1145382539684872,
+            "median_ci": [
+              1.0010892804610418,
+              1.2293782621330371
+            ],
+            "mean_m": 2.6136800356177776,
+            "r5": 0.8708133971291866,
+            "r10": 0.9497607655502392,
+            "gross": 0.050239234449760764,
+            "no_pose": 0,
+            "modes_mean": 1348.7631578947369,
+            "inlier_mean": 0.4557529293291524
+          }
+        }
+      },
+      {
+        "factors": [
+          "target",
+          "reproj_cells",
+          "mode_thr"
+        ],
+        "config": {
+          "reproj_cells": 0.75,
+          "target": "means",
+          "max_modes": 0,
+          "mode_thr": 0.008,
+          "cert": "off",
+          "solver": "se2",
+          "ransac": "default"
+        },
+        "key": "reproj=0.75 target=means max_modes=all thr=0.008 cert=off solver=se2 ransac=default",
+        "select": {
+          "n": 418,
+          "median_m": 1.1050675721736283,
+          "median_ci": [
+            1.005732389102656,
+            1.233974301624521
+          ],
+          "mean_m": 2.5744742324839076,
+          "r5": 0.8732057416267942,
+          "r10": 0.9545454545454546,
+          "gross": 0.045454545454545456,
+          "no_pose": 0,
+          "modes_mean": 1250.0,
+          "inlier_mean": 0.4856183152799653,
+          "gated": {
+            "n": 418,
+            "median_m": 1.1050675721736283,
+            "median_ci": [
+              1.005732389102656,
+              1.233974301624521
+            ],
+            "mean_m": 2.5744742324839076,
+            "r5": 0.8732057416267942,
+            "r10": 0.9545454545454546,
+            "gross": 0.045454545454545456,
+            "no_pose": 0,
+            "modes_mean": 1250.0,
+            "inlier_mean": 0.4856183152799653
+          }
+        }
+      },
+      {
+        "factors": [
+          "target",
+          "reproj_cells",
+          "mode_thr"
+        ],
+        "config": {
+          "reproj_cells": 0.75,
+          "target": "means",
+          "max_modes": 0,
+          "mode_thr": 0.016,
+          "cert": "off",
+          "solver": "se2",
+          "ransac": "default"
+        },
+        "key": "reproj=0.75 target=means max_modes=all thr=0.016 cert=off solver=se2 ransac=default",
+        "select": {
+          "n": 418,
+          "median_m": 1.1018849406592102,
+          "median_ci": [
+            0.9976526115417669,
+            1.2115414712149537
+          ],
+          "mean_m": 2.5601242709207774,
+          "r5": 0.8803827751196173,
+          "r10": 0.9521531100478469,
+          "gross": 0.04784688995215311,
+          "no_pose": 0,
+          "modes_mean": 1100.6602870813397,
+          "inlier_mean": 0.5389433639703225,
+          "gated": {
+            "n": 418,
+            "median_m": 1.1018849406592102,
+            "median_ci": [
+              0.9976526115417669,
+              1.2115414712149537
+            ],
+            "mean_m": 2.5601242709207774,
+            "r5": 0.8803827751196173,
+            "r10": 0.9521531100478469,
+            "gross": 0.04784688995215311,
+            "no_pose": 0,
+            "modes_mean": 1100.6602870813397,
+            "inlier_mean": 0.5389433639703225
+          }
+        }
+      },
+      {
+        "factors": [
+          "target",
+          "reproj_cells",
+          "mode_thr"
+        ],
+        "config": {
+          "reproj_cells": 0.75,
+          "target": "means",
+          "max_modes": 0,
+          "mode_thr": 0.03,
+          "cert": "off",
+          "solver": "se2",
+          "ransac": "default"
+        },
+        "key": "reproj=0.75 target=means max_modes=all thr=0.03 cert=off solver=se2 ransac=default",
+        "select": {
+          "n": 418,
+          "median_m": 1.0911292000472104,
+          "median_ci": [
+            0.9782421394662422,
+            1.1979187313872481
+          ],
+          "mean_m": 4.902048411581595,
+          "r5": 0.8827751196172249,
+          "r10": 0.9497607655502392,
+          "gross": 0.050239234449760764,
+          "no_pose": 1,
+          "modes_mean": 888.2296650717703,
+          "inlier_mean": 0.6365331898965105,
+          "gated": {
+            "n": 418,
+            "median_m": 1.0911292000472104,
+            "median_ci": [
+              0.9782421394662422,
+              1.1979187313872481
+            ],
+            "mean_m": 2.533442383936229,
+            "r5": 0.8827751196172249,
+            "r10": 0.9521531100478469,
+            "gross": 0.04784688995215311,
+            "no_pose": 0,
+            "modes_mean": 888.2296650717703,
+            "inlier_mean": 0.6365331898965105
+          }
+        }
+      },
+      {
+        "factors": [
+          "target",
+          "reproj_cells",
+          "mode_thr"
+        ],
+        "config": {
+          "reproj_cells": 0.75,
+          "target": "means",
+          "max_modes": 0,
+          "mode_thr": 0.06,
+          "cert": "off",
+          "solver": "se2",
+          "ransac": "default"
+        },
+        "key": "reproj=0.75 target=means max_modes=all thr=0.06 cert=off solver=se2 ransac=default",
+        "select": {
+          "n": 418,
+          "median_m": 1.0998748725626388,
+          "median_ci": [
+            1.0030881842699462,
+            1.2165783538998247
+          ],
+          "mean_m": 99.81126973201921,
+          "r5": 0.8397129186602871,
+          "r10": 0.8755980861244019,
+          "gross": 0.12440191387559808,
+          "no_pose": 41,
+          "modes_mean": 547.5047846889952,
+          "inlier_mean": 0.748026454086743,
+          "gated": {
+            "n": 418,
+            "median_m": 1.0674818499107537,
+            "median_ci": [
+              0.986298177232557,
+              1.1583678157284145
+            ],
+            "mean_m": 2.4428153965761816,
+            "r5": 0.8899521531100478,
+            "r10": 0.9521531100478469,
+            "gross": 0.04784688995215311,
+            "no_pose": 0,
+            "modes_mean": 547.5047846889952,
+            "inlier_mean": 0.748026454086743
+          }
+        }
+      },
+      {
+        "factors": [
+          "target",
+          "reproj_cells",
+          "mode_thr"
+        ],
+        "config": {
+          "reproj_cells": 1.0,
+          "target": "means",
+          "max_modes": 0,
+          "mode_thr": 0.004,
+          "cert": "off",
+          "solver": "se2",
+          "ransac": "default"
+        },
+        "key": "reproj=1 target=means max_modes=all thr=0.004 cert=off solver=se2 ransac=default",
+        "select": {
+          "n": 418,
+          "median_m": 1.1130241488072399,
+          "median_ci": [
+            1.0035826636890364,
+            1.2376732023796362
+          ],
+          "mean_m": 2.6159391082618533,
+          "r5": 0.868421052631579,
+          "r10": 0.9521531100478469,
+          "gross": 0.04784688995215311,
+          "no_pose": 0,
+          "modes_mean": 1348.7631578947369,
+          "inlier_mean": 0.5129038698263886,
+          "gated": {
+            "n": 418,
+            "median_m": 1.1130241488072399,
+            "median_ci": [
+              1.0035826636890364,
+              1.2376732023796362
+            ],
+            "mean_m": 2.6159391082618533,
+            "r5": 0.868421052631579,
+            "r10": 0.9521531100478469,
+            "gross": 0.04784688995215311,
+            "no_pose": 0,
+            "modes_mean": 1348.7631578947369,
+            "inlier_mean": 0.5129038698263886
+          }
+        }
+      },
+      {
+        "factors": [
+          "target",
+          "reproj_cells",
+          "mode_thr"
+        ],
+        "config": {
+          "reproj_cells": 1.0,
+          "target": "means",
+          "max_modes": 0,
+          "mode_thr": 0.008,
+          "cert": "off",
+          "solver": "se2",
+          "ransac": "default"
+        },
+        "key": "reproj=1 target=means max_modes=all thr=0.008 cert=off solver=se2 ransac=default",
+        "select": {
+          "n": 418,
+          "median_m": 1.1189600044321795,
+          "median_ci": [
+            1.0104729829684427,
+            1.2372357840618742
+          ],
+          "mean_m": 2.600402558531504,
+          "r5": 0.8708133971291866,
+          "r10": 0.9545454545454546,
+          "gross": 0.045454545454545456,
+          "no_pose": 0,
+          "modes_mean": 1250.0,
+          "inlier_mean": 0.5460485602028597,
+          "gated": {
+            "n": 418,
+            "median_m": 1.1189600044321795,
+            "median_ci": [
+              1.0104729829684427,
+              1.2372357840618742
+            ],
+            "mean_m": 2.600402558531504,
+            "r5": 0.8708133971291866,
+            "r10": 0.9545454545454546,
+            "gross": 0.045454545454545456,
+            "no_pose": 0,
+            "modes_mean": 1250.0,
+            "inlier_mean": 0.5460485602028597
+          }
+        }
+      },
+      {
+        "factors": [
+          "target",
+          "reproj_cells",
+          "mode_thr"
+        ],
+        "config": {
+          "reproj_cells": 1.0,
+          "target": "means",
+          "max_modes": 0,
+          "mode_thr": 0.016,
+          "cert": "off",
+          "solver": "se2",
+          "ransac": "default"
+        },
+        "key": "reproj=1 target=means max_modes=all thr=0.016 cert=off solver=se2 ransac=default",
+        "select": {
+          "n": 418,
+          "median_m": 1.0947987957706535,
+          "median_ci": [
+            0.9833343774289524,
+            1.216120849675053
+          ],
+          "mean_m": 2.5695307256585993,
+          "r5": 0.8779904306220095,
+          "r10": 0.9497607655502392,
+          "gross": 0.050239234449760764,
+          "no_pose": 0,
+          "modes_mean": 1100.6602870813397,
+          "inlier_mean": 0.6043489373926841,
+          "gated": {
+            "n": 418,
+            "median_m": 1.0947987957706535,
+            "median_ci": [
+              0.9833343774289524,
+              1.216120849675053
+            ],
+            "mean_m": 2.5695307256585993,
+            "r5": 0.8779904306220095,
+            "r10": 0.9497607655502392,
+            "gross": 0.050239234449760764,
+            "no_pose": 0,
+            "modes_mean": 1100.6602870813397,
+            "inlier_mean": 0.6043489373926841
+          }
+        }
+      },
+      {
+        "factors": [
+          "target",
+          "reproj_cells",
+          "mode_thr"
+        ],
+        "config": {
+          "reproj_cells": 1.0,
+          "target": "means",
+          "max_modes": 0,
+          "mode_thr": 0.03,
+          "cert": "off",
+          "solver": "se2",
+          "ransac": "default"
+        },
+        "key": "reproj=1 target=means max_modes=all thr=0.03 cert=off solver=se2 ransac=default",
+        "select": {
+          "n": 418,
+          "median_m": 1.0882716268396586,
+          "median_ci": [
+            0.997769068741262,
+            1.2059347402218288
+          ],
+          "mean_m": 4.904464026968095,
+          "r5": 0.8827751196172249,
+          "r10": 0.9497607655502392,
+          "gross": 0.050239234449760764,
+          "no_pose": 1,
+          "modes_mean": 888.2296650717703,
+          "inlier_mean": 0.7052413959605058,
+          "gated": {
+            "n": 418,
+            "median_m": 1.0882716268396586,
+            "median_ci": [
+              0.997769068741262,
+              1.2059347402218288
+            ],
+            "mean_m": 2.535857999322729,
+            "r5": 0.8827751196172249,
+            "r10": 0.9521531100478469,
+            "gross": 0.04784688995215311,
+            "no_pose": 0,
+            "modes_mean": 888.2296650717703,
+            "inlier_mean": 0.7052413959605058
+          }
+        }
+      },
+      {
+        "factors": [
+          "target",
+          "reproj_cells",
+          "mode_thr"
+        ],
+        "config": {
+          "reproj_cells": 1.0,
+          "target": "means",
+          "max_modes": 0,
+          "mode_thr": 0.06,
+          "cert": "off",
+          "solver": "se2",
+          "ransac": "default"
+        },
+        "key": "reproj=1 target=means max_modes=all thr=0.06 cert=off solver=se2 ransac=default",
+        "select": {
+          "n": 418,
+          "median_m": 1.1056919211652736,
+          "median_ci": [
+            0.998238540211756,
+            1.2181959153452648
+          ],
+          "mean_m": 97.42347906841137,
+          "r5": 0.8421052631578947,
+          "r10": 0.8779904306220095,
+          "gross": 0.12200956937799043,
+          "no_pose": 40,
+          "modes_mean": 547.5047846889952,
+          "inlier_mean": 0.8016908943601392,
+          "gated": {
+            "n": 418,
+            "median_m": 1.0775296494212614,
+            "median_ci": [
+              0.9893673042150926,
+              1.1745835023568718
+            ],
+            "mean_m": 2.445801330544264,
+            "r5": 0.8899521531100478,
+            "r10": 0.9521531100478469,
+            "gross": 0.04784688995215311,
+            "no_pose": 0,
+            "modes_mean": 547.5047846889952,
+            "inlier_mean": 0.8016908943601392
+          }
+        }
+      },
+      {
+        "factors": [
+          "target",
+          "reproj_cells",
+          "mode_thr"
+        ],
+        "config": {
+          "reproj_cells": 1.5,
+          "target": "means",
+          "max_modes": 0,
+          "mode_thr": 0.004,
+          "cert": "off",
+          "solver": "se2",
+          "ransac": "default"
+        },
+        "key": "reproj=1.5 target=means max_modes=all thr=0.004 cert=off solver=se2 ransac=default",
+        "select": {
+          "n": 418,
+          "median_m": 1.1169545332328306,
+          "median_ci": [
+            1.0171332302827703,
+            1.2251842510434425
+          ],
+          "mean_m": 2.584995153060809,
+          "r5": 0.8732057416267942,
+          "r10": 0.9521531100478469,
+          "gross": 0.04784688995215311,
+          "no_pose": 0,
+          "modes_mean": 1348.7631578947369,
+          "inlier_mean": 0.5888342749354606,
+          "gated": {
+            "n": 418,
+            "median_m": 1.1169545332328306,
+            "median_ci": [
+              1.0171332302827703,
+              1.2251842510434425
+            ],
+            "mean_m": 2.584995153060809,
+            "r5": 0.8732057416267942,
+            "r10": 0.9521531100478469,
+            "gross": 0.04784688995215311,
+            "no_pose": 0,
+            "modes_mean": 1348.7631578947369,
+            "inlier_mean": 0.5888342749354606
+          }
+        }
+      },
+      {
+        "factors": [
+          "target",
+          "reproj_cells",
+          "mode_thr"
+        ],
+        "config": {
+          "reproj_cells": 1.5,
+          "target": "means",
+          "max_modes": 0,
+          "mode_thr": 0.008,
+          "cert": "off",
+          "solver": "se2",
+          "ransac": "default"
+        },
+        "key": "reproj=1.5 target=means max_modes=all thr=0.008 cert=off solver=se2 ransac=default",
+        "select": {
+          "n": 418,
+          "median_m": 1.1262544179757739,
+          "median_ci": [
+            1.0118244774545433,
+            1.2215164027353331
+          ],
+          "mean_m": 2.5849200765236473,
+          "r5": 0.8732057416267942,
+          "r10": 0.9521531100478469,
+          "gross": 0.04784688995215311,
+          "no_pose": 0,
+          "modes_mean": 1250.0,
+          "inlier_mean": 0.6257156988248441,
+          "gated": {
+            "n": 418,
+            "median_m": 1.1262544179757739,
+            "median_ci": [
+              1.0118244774545433,
+              1.2215164027353331
+            ],
+            "mean_m": 2.5849200765236473,
+            "r5": 0.8732057416267942,
+            "r10": 0.9521531100478469,
+            "gross": 0.04784688995215311,
+            "no_pose": 0,
+            "modes_mean": 1250.0,
+            "inlier_mean": 0.6257156988248441
+          }
+        }
+      },
+      {
+        "factors": [
+          "target",
+          "reproj_cells",
+          "mode_thr"
+        ],
+        "config": {
+          "reproj_cells": 1.5,
+          "target": "means",
+          "max_modes": 0,
+          "mode_thr": 0.016,
+          "cert": "off",
+          "solver": "se2",
+          "ransac": "default"
+        },
+        "key": "reproj=1.5 target=means max_modes=all thr=0.016 cert=off solver=se2 ransac=default",
+        "select": {
+          "n": 418,
+          "median_m": 1.0770820033053843,
+          "median_ci": [
+            1.0074103953707003,
+            1.2213220422409221
+          ],
+          "mean_m": 2.539069775335361,
+          "r5": 0.8803827751196173,
+          "r10": 0.9521531100478469,
+          "gross": 0.04784688995215311,
+          "no_pose": 0,
+          "modes_mean": 1100.6602870813397,
+          "inlier_mean": 0.688247753886767,
+          "gated": {
+            "n": 418,
+            "median_m": 1.0770820033053843,
+            "median_ci": [
+              1.0074103953707003,
+              1.2213220422409221
+            ],
+            "mean_m": 2.539069775335361,
+            "r5": 0.8803827751196173,
+            "r10": 0.9521531100478469,
+            "gross": 0.04784688995215311,
+            "no_pose": 0,
+            "modes_mean": 1100.6602870813397,
+            "inlier_mean": 0.688247753886767
+          }
+        }
+      },
+      {
+        "factors": [
+          "target",
+          "reproj_cells",
+          "mode_thr"
+        ],
+        "config": {
+          "reproj_cells": 1.5,
+          "target": "means",
+          "max_modes": 0,
+          "mode_thr": 0.03,
+          "cert": "off",
+          "solver": "se2",
+          "ransac": "default"
+        },
+        "key": "reproj=1.5 target=means max_modes=all thr=0.03 cert=off solver=se2 ransac=default",
+        "select": {
+          "n": 418,
+          "median_m": 1.1012987642413896,
+          "median_ci": [
+            0.9939769798081091,
+            1.1973820116737806
+          ],
+          "mean_m": 2.54144832365525,
+          "r5": 0.8803827751196173,
+          "r10": 0.9521531100478469,
+          "gross": 0.04784688995215311,
+          "no_pose": 0,
+          "modes_mean": 888.2296650717703,
+          "inlier_mean": 0.7867317792886274,
+          "gated": {
+            "n": 418,
+            "median_m": 1.1012987642413896,
+            "median_ci": [
+              0.9939769798081091,
+              1.1973820116737806
+            ],
+            "mean_m": 2.54144832365525,
+            "r5": 0.8803827751196173,
+            "r10": 0.9521531100478469,
+            "gross": 0.04784688995215311,
+            "no_pose": 0,
+            "modes_mean": 888.2296650717703,
+            "inlier_mean": 0.7867317792886274
+          }
+        }
+      },
+      {
+        "factors": [
+          "target",
+          "reproj_cells",
+          "mode_thr"
+        ],
+        "config": {
+          "reproj_cells": 1.5,
+          "target": "means",
+          "max_modes": 0,
+          "mode_thr": 0.06,
+          "cert": "off",
+          "solver": "se2",
+          "ransac": "default"
+        },
+        "key": "reproj=1.5 target=means max_modes=all thr=0.06 cert=off solver=se2 ransac=default",
+        "select": {
+          "n": 418,
+          "median_m": 1.1066447074522001,
+          "median_ci": [
+            0.993616904873118,
+            1.2068645545097132
+          ],
+          "mean_m": 95.03310684540894,
+          "r5": 0.8444976076555024,
+          "r10": 0.8803827751196173,
+          "gross": 0.11961722488038277,
+          "no_pose": 39,
+          "modes_mean": 547.5047846889952,
+          "inlier_mean": 0.8445581980872262,
+          "gated": {
+            "n": 418,
+            "median_m": 1.081408559105367,
+            "median_ci": [
+              0.9908227218405146,
+              1.1748501675373526
+            ],
+            "mean_m": 2.4464542343386326,
+            "r5": 0.8899521531100478,
+            "r10": 0.9521531100478469,
+            "gross": 0.04784688995215311,
+            "no_pose": 0,
+            "modes_mean": 547.5047846889952,
+            "inlier_mean": 0.8445581980872262
+          }
+        }
+      },
+      {
+        "factors": [
+          "target",
+          "reproj_cells",
+          "mode_thr"
+        ],
+        "config": {
+          "reproj_cells": 2.0,
+          "target": "means",
+          "max_modes": 0,
+          "mode_thr": 0.004,
+          "cert": "off",
+          "solver": "se2",
+          "ransac": "default"
+        },
+        "key": "reproj=2 target=means max_modes=all thr=0.004 cert=off solver=se2 ransac=default",
+        "select": {
+          "n": 418,
+          "median_m": 1.1272992514313995,
+          "median_ci": [
+            1.0224277506685993,
+            1.251455188968606
+          ],
+          "mean_m": 2.5793188620933294,
+          "r5": 0.8779904306220095,
+          "r10": 0.9521531100478469,
+          "gross": 0.04784688995215311,
+          "no_pose": 0,
+          "modes_mean": 1348.7631578947369,
+          "inlier_mean": 0.6466418844020981,
+          "gated": {
+            "n": 418,
+            "median_m": 1.1272992514313995,
+            "median_ci": [
+              1.0224277506685993,
+              1.251455188968606
+            ],
+            "mean_m": 2.5793188620933294,
+            "r5": 0.8779904306220095,
+            "r10": 0.9521531100478469,
+            "gross": 0.04784688995215311,
+            "no_pose": 0,
+            "modes_mean": 1348.7631578947369,
+            "inlier_mean": 0.6466418844020981
+          }
+        }
+      },
+      {
+        "factors": [
+          "target",
+          "reproj_cells",
+          "mode_thr"
+        ],
+        "config": {
+          "reproj_cells": 2.0,
+          "target": "means",
+          "max_modes": 0,
+          "mode_thr": 0.008,
+          "cert": "off",
+          "solver": "se2",
+          "ransac": "default"
+        },
+        "key": "reproj=2 target=means max_modes=all thr=0.008 cert=off solver=se2 ransac=default",
+        "select": {
+          "n": 418,
+          "median_m": 1.1184306777228152,
+          "median_ci": [
+            1.0226664207406047,
+            1.2476631892310999
+          ],
+          "mean_m": 2.5486585157686577,
+          "r5": 0.8803827751196173,
+          "r10": 0.9521531100478469,
+          "gross": 0.04784688995215311,
+          "no_pose": 0,
+          "modes_mean": 1250.0,
+          "inlier_mean": 0.6852373585200995,
+          "gated": {
+            "n": 418,
+            "median_m": 1.1184306777228152,
+            "median_ci": [
+              1.0226664207406047,
+              1.2476631892310999
+            ],
+            "mean_m": 2.5486585157686577,
+            "r5": 0.8803827751196173,
+            "r10": 0.9521531100478469,
+            "gross": 0.04784688995215311,
+            "no_pose": 0,
+            "modes_mean": 1250.0,
+            "inlier_mean": 0.6852373585200995
+          }
+        }
+      },
+      {
+        "factors": [
+          "target",
+          "reproj_cells",
+          "mode_thr"
+        ],
+        "config": {
+          "reproj_cells": 2.0,
+          "target": "means",
+          "max_modes": 0,
+          "mode_thr": 0.016,
+          "cert": "off",
+          "solver": "se2",
+          "ransac": "default"
+        },
+        "key": "reproj=2 target=means max_modes=all thr=0.016 cert=off solver=se2 ransac=default",
+        "select": {
+          "n": 418,
+          "median_m": 1.0981990541683333,
+          "median_ci": [
+            0.9873817080814358,
+            1.2310240345491086
+          ],
+          "mean_m": 2.514967604955986,
+          "r5": 0.8827751196172249,
+          "r10": 0.9521531100478469,
+          "gross": 0.04784688995215311,
+          "no_pose": 0,
+          "modes_mean": 1100.6602870813397,
+          "inlier_mean": 0.7484970974430807,
+          "gated": {
+            "n": 418,
+            "median_m": 1.0981990541683333,
+            "median_ci": [
+              0.9873817080814358,
+              1.2310240345491086
+            ],
+            "mean_m": 2.514967604955986,
+            "r5": 0.8827751196172249,
+            "r10": 0.9521531100478469,
+            "gross": 0.04784688995215311,
+            "no_pose": 0,
+            "modes_mean": 1100.6602870813397,
+            "inlier_mean": 0.7484970974430807
+          }
+        }
+      },
+      {
+        "factors": [
+          "target",
+          "reproj_cells",
+          "mode_thr"
+        ],
+        "config": {
+          "reproj_cells": 2.0,
+          "target": "means",
+          "max_modes": 0,
+          "mode_thr": 0.03,
+          "cert": "off",
+          "solver": "se2",
+          "ransac": "default"
+        },
+        "key": "reproj=2 target=means max_modes=all thr=0.03 cert=off solver=se2 ransac=default",
+        "select": {
+          "n": 418,
+          "median_m": 1.1050599087276718,
+          "median_ci": [
+            0.9999974298787696,
+            1.2125452051070837
+          ],
+          "mean_m": 2.540590937672953,
+          "r5": 0.8803827751196173,
+          "r10": 0.9521531100478469,
+          "gross": 0.04784688995215311,
+          "no_pose": 0,
+          "modes_mean": 888.2296650717703,
+          "inlier_mean": 0.8387758143861183,
+          "gated": {
+            "n": 418,
+            "median_m": 1.1050599087276718,
+            "median_ci": [
+              0.9999974298787696,
+              1.2125452051070837
+            ],
+            "mean_m": 2.540590937672953,
+            "r5": 0.8803827751196173,
+            "r10": 0.9521531100478469,
+            "gross": 0.04784688995215311,
+            "no_pose": 0,
+            "modes_mean": 888.2296650717703,
+            "inlier_mean": 0.8387758143861183
+          }
+        }
+      },
+      {
+        "factors": [
+          "target",
+          "reproj_cells",
+          "mode_thr"
+        ],
+        "config": {
+          "reproj_cells": 2.0,
+          "target": "means",
+          "max_modes": 0,
+          "mode_thr": 0.06,
+          "cert": "off",
+          "solver": "se2",
+          "ransac": "default"
+        },
+        "key": "reproj=2 target=means max_modes=all thr=0.06 cert=off solver=se2 ransac=default",
+        "select": {
+          "n": 418,
+          "median_m": 1.1047626584479857,
+          "median_ci": [
+            1.0006169558643687,
+            1.2040080269385356
+          ],
+          "mean_m": 95.03003908208775,
+          "r5": 0.8444976076555024,
+          "r10": 0.8803827751196173,
+          "gross": 0.11961722488038277,
+          "no_pose": 39,
+          "modes_mean": 547.5047846889952,
+          "inlier_mean": 0.8649675949015505,
+          "gated": {
+            "n": 418,
+            "median_m": 1.0729247696953004,
+            "median_ci": [
+              0.9916356481644133,
+              1.1722767479376386
+            ],
+            "mean_m": 2.443386471017436,
+            "r5": 0.8899521531100478,
+            "r10": 0.9521531100478469,
+            "gross": 0.04784688995215311,
+            "no_pose": 0,
+            "modes_mean": 547.5047846889952,
+            "inlier_mean": 0.8649675949015505
+          }
+        }
+      },
+      {
+        "factors": [
+          "target",
+          "reproj_cells",
+          "mode_thr"
+        ],
+        "config": {
+          "reproj_cells": 3.0,
+          "target": "means",
+          "max_modes": 0,
+          "mode_thr": 0.004,
+          "cert": "off",
+          "solver": "se2",
+          "ransac": "default"
+        },
+        "key": "reproj=3 target=means max_modes=all thr=0.004 cert=off solver=se2 ransac=default",
+        "select": {
+          "n": 418,
+          "median_m": 1.1595771910112855,
+          "median_ci": [
+            1.04088542842763,
+            1.2967977575566552
+          ],
+          "mean_m": 2.5331100275212557,
+          "r5": 0.8875598086124402,
+          "r10": 0.9545454545454546,
+          "gross": 0.045454545454545456,
+          "no_pose": 0,
+          "modes_mean": 1348.7631578947369,
+          "inlier_mean": 0.7393014161066843,
+          "gated": {
+            "n": 418,
+            "median_m": 1.1595771910112855,
+            "median_ci": [
+              1.04088542842763,
+              1.2967977575566552
+            ],
+            "mean_m": 2.5331100275212557,
+            "r5": 0.8875598086124402,
+            "r10": 0.9545454545454546,
+            "gross": 0.045454545454545456,
+            "no_pose": 0,
+            "modes_mean": 1348.7631578947369,
+            "inlier_mean": 0.7393014161066843
+          }
+        }
+      },
+      {
+        "factors": [
+          "target",
+          "reproj_cells",
+          "mode_thr"
+        ],
+        "config": {
+          "reproj_cells": 3.0,
+          "target": "means",
+          "max_modes": 0,
+          "mode_thr": 0.016,
+          "cert": "off",
+          "solver": "se2",
+          "ransac": "default"
+        },
+        "key": "reproj=3 target=means max_modes=all thr=0.016 cert=off solver=se2 ransac=default",
+        "select": {
+          "n": 418,
+          "median_m": 1.1534336148611017,
+          "median_ci": [
+            1.027403327728375,
+            1.2798808373469501
+          ],
+          "mean_m": 2.525670232302699,
+          "r5": 0.8899521531100478,
+          "r10": 0.9521531100478469,
+          "gross": 0.04784688995215311,
+          "no_pose": 0,
+          "modes_mean": 1100.6602870813397,
+          "inlier_mean": 0.8404207530653077,
+          "gated": {
+            "n": 418,
+            "median_m": 1.1534336148611017,
+            "median_ci": [
+              1.027403327728375,
+              1.2798808373469501
+            ],
+            "mean_m": 2.525670232302699,
+            "r5": 0.8899521531100478,
+            "r10": 0.9521531100478469,
+            "gross": 0.04784688995215311,
+            "no_pose": 0,
+            "modes_mean": 1100.6602870813397,
+            "inlier_mean": 0.8404207530653077
+          }
+        }
+      },
+      {
+        "factors": [
+          "target",
+          "reproj_cells",
+          "mode_thr"
+        ],
+        "config": {
+          "reproj_cells": 3.0,
+          "target": "means",
+          "max_modes": 0,
+          "mode_thr": 0.03,
+          "cert": "off",
+          "solver": "se2",
+          "ransac": "default"
+        },
+        "key": "reproj=3 target=means max_modes=all thr=0.03 cert=off solver=se2 ransac=default",
+        "select": {
+          "n": 418,
+          "median_m": 1.1161569570976144,
+          "median_ci": [
+            1.0213992627918451,
+            1.2249898078051515
+          ],
+          "mean_m": 2.526417250532939,
+          "r5": 0.8851674641148325,
+          "r10": 0.9521531100478469,
+          "gross": 0.04784688995215311,
+          "no_pose": 0,
+          "modes_mean": 888.2296650717703,
+          "inlier_mean": 0.9128996189572823,
+          "gated": {
+            "n": 418,
+            "median_m": 1.1161569570976144,
+            "median_ci": [
+              1.0213992627918451,
+              1.2249898078051515
+            ],
+            "mean_m": 2.526417250532939,
+            "r5": 0.8851674641148325,
+            "r10": 0.9521531100478469,
+            "gross": 0.04784688995215311,
+            "no_pose": 0,
+            "modes_mean": 888.2296650717703,
+            "inlier_mean": 0.9128996189572823
+          }
+        }
+      },
+      {
+        "factors": [
+          "target",
+          "reproj_cells",
+          "mode_thr"
+        ],
+        "config": {
+          "reproj_cells": 3.0,
+          "target": "means",
+          "max_modes": 0,
+          "mode_thr": 0.06,
+          "cert": "off",
+          "solver": "se2",
+          "ransac": "default"
+        },
+        "key": "reproj=3 target=means max_modes=all thr=0.06 cert=off solver=se2 ransac=default",
+        "select": {
+          "n": 418,
+          "median_m": 1.1122306108483175,
+          "median_ci": [
+            0.9965992064490905,
+            1.2061823174596533
+          ],
+          "mean_m": 95.02909301174599,
+          "r5": 0.8444976076555024,
+          "r10": 0.8803827751196173,
+          "gross": 0.11961722488038277,
+          "no_pose": 39,
+          "modes_mean": 547.5047846889952,
+          "inlier_mean": 0.8924358517336749,
+          "gated": {
+            "n": 418,
+            "median_m": 1.0838925080872084,
+            "median_ci": [
+              0.9901713020056859,
+              1.1645719652432307
+            ],
+            "mean_m": 2.4424404006756824,
+            "r5": 0.8899521531100478,
+            "r10": 0.9521531100478469,
+            "gross": 0.04784688995215311,
+            "no_pose": 0,
+            "modes_mean": 547.5047846889952,
+            "inlier_mean": 0.8924358517336749
+          }
+        }
+      }
+    ],
+    "n_configs": 70,
+    "split": {
+      "n_select": 418,
+      "n_confirm": 417,
+      "rule": "frames ordered by sha1(id): even ranks select, odd ranks confirm"
+    },
+    "baseline_select": {
+      "n": 418,
+      "median_m": 1.1093445731009628,
+      "median_ci": [
+        1.0152500088813086,
+        1.245342139787088
+      ],
+      "mean_m": 2.532678703562974,
+      "r5": 0.8851674641148325,
+      "r10": 0.9521531100478469,
+      "gross": 0.04784688995215311,
+      "no_pose": 0,
+      "modes_mean": 1250.0,
+      "inlier_mean": 0.78259801236508,
+      "gated": {
+        "n": 418,
+        "median_m": 1.1093445731009628,
+        "median_ci": [
+          1.0152500088813086,
+          1.245342139787088
+        ],
+        "mean_m": 2.532678703562974,
+        "r5": 0.8851674641148325,
+        "r10": 0.9521531100478469,
+        "gross": 0.04784688995215311,
+        "no_pose": 0,
+        "modes_mean": 1250.0,
+        "inlier_mean": 0.78259801236508
+      }
+    },
+    "baseline_confirm": {
+      "n": 417,
+      "median_m": 1.190011759848275,
+      "median_ci": [
+        1.0696502837527848,
+        1.3320240793653417
+      ],
+      "mean_m": 2.8341810896278035,
+      "r5": 0.8585131894484412,
+      "r10": 0.9328537170263789,
+      "gross": 0.0671462829736211,
+      "no_pose": 0,
+      "modes_mean": 1287.6714628297361,
+      "inlier_mean": 0.784506392930829,
+      "gated": {
+        "n": 417,
+        "median_m": 1.190011759848275,
+        "median_ci": [
+          1.0696502837527848,
+          1.3320240793653417
+        ],
+        "mean_m": 2.8341810896278035,
+        "r5": 0.8585131894484412,
+        "r10": 0.9328537170263789,
+        "gross": 0.0671462829736211,
+        "no_pose": 0,
+        "modes_mean": 1287.6714628297361,
+        "inlier_mean": 0.784506392930829
+      }
+    },
+    "best": {
+      "config": {
+        "reproj_cells": 0.5,
+        "target": "means",
+        "max_modes": 0,
+        "mode_thr": 0.03,
+        "cert": "off",
+        "solver": "se2",
+        "ransac": "default"
+      },
+      "key": "reproj=0.5 target=means max_modes=all thr=0.03 cert=off solver=se2 ransac=default",
+      "select": {
+        "n": 418,
+        "median_m": 1.0720720608843677,
+        "median_ci": [
+          0.9748158296271207,
+          1.1804487047950354
+        ],
+        "mean_m": 4.895102713761118,
+        "r5": 0.8851674641148325,
+        "r10": 0.9497607655502392,
+        "gross": 0.050239234449760764,
+        "no_pose": 1,
+        "modes_mean": 888.2296650717703,
+        "inlier_mean": 0.5273682465445926,
+        "gated": {
+          "n": 418,
+          "median_m": 1.0720720608843677,
+          "median_ci": [
+            0.9748158296271207,
+            1.1804487047950354
+          ],
+          "mean_m": 2.526496686115752,
+          "r5": 0.8851674641148325,
+          "r10": 0.9521531100478469,
+          "gross": 0.04784688995215311,
+          "no_pose": 0,
+          "modes_mean": 888.2296650717703,
+          "inlier_mean": 0.5273682465445926
+        }
+      },
+      "confirm": {
+        "n": 417,
+        "median_m": 1.1271599866330402,
+        "median_ci": [
+          1.0350810139229578,
+          1.2832695876764293
+        ],
+        "mean_m": 17.051338408189128,
+        "r5": 0.8585131894484412,
+        "r10": 0.9232613908872902,
+        "gross": 0.07673860911270983,
+        "no_pose": 6,
+        "modes_mean": 880.8561151079136,
+        "inlier_mean": 0.5132807570589896,
+        "gated": {
+          "n": 417,
+          "median_m": 1.1271599866330402,
+          "median_ci": [
+            1.0350810139229578,
+            1.2832695876764293
+          ],
+          "mean_m": 2.8430974139963636,
+          "r5": 0.8633093525179856,
+          "r10": 0.9304556354916067,
+          "gross": 0.06954436450839328,
+          "no_pose": 0,
+          "modes_mean": 880.8561151079136,
+          "inlier_mean": 0.5132807570589896
+        }
+      },
+      "paired_delta_confirm": {
+        "stat": "median",
+        "delta_m": -0.06285177321523472,
+        "n": 417,
+        "ci": [
+          -0.12348249440579852,
+          -0.0017121612709438683
+        ]
+      }
+    },
+    "chosen": {
+      "config": {
+        "reproj_cells": 0.5,
+        "target": "means",
+        "max_modes": 0,
+        "mode_thr": 0.03,
+        "cert": "off",
+        "solver": "se2",
+        "ransac": "default"
+      },
+      "key": "reproj=0.5 target=means max_modes=all thr=0.03 cert=off solver=se2 ransac=default",
+      "select": {
+        "n": 418,
+        "median_m": 1.0720720608843677,
+        "median_ci": [
+          0.9748158296271207,
+          1.1804487047950354
+        ],
+        "mean_m": 4.895102713761118,
+        "r5": 0.8851674641148325,
+        "r10": 0.9497607655502392,
+        "gross": 0.050239234449760764,
+        "no_pose": 1,
+        "modes_mean": 888.2296650717703,
+        "inlier_mean": 0.5273682465445926,
+        "gated": {
+          "n": 418,
+          "median_m": 1.0720720608843677,
+          "median_ci": [
+            0.9748158296271207,
+            1.1804487047950354
+          ],
+          "mean_m": 2.526496686115752,
+          "r5": 0.8851674641148325,
+          "r10": 0.9521531100478469,
+          "gross": 0.04784688995215311,
+          "no_pose": 0,
+          "modes_mean": 888.2296650717703,
+          "inlier_mean": 0.5273682465445926
+        }
+      },
+      "confirm": {
+        "n": 417,
+        "median_m": 1.1271599866330402,
+        "median_ci": [
+          1.0350810139229578,
+          1.2832695876764293
+        ],
+        "mean_m": 17.051338408189128,
+        "r5": 0.8585131894484412,
+        "r10": 0.9232613908872902,
+        "gross": 0.07673860911270983,
+        "no_pose": 6,
+        "modes_mean": 880.8561151079136,
+        "inlier_mean": 0.5132807570589896,
+        "gated": {
+          "n": 417,
+          "median_m": 1.1271599866330402,
+          "median_ci": [
+            1.0350810139229578,
+            1.2832695876764293
+          ],
+          "mean_m": 2.8430974139963636,
+          "r5": 0.8633093525179856,
+          "r10": 0.9304556354916067,
+          "gross": 0.06954436450839328,
+          "no_pose": 0,
+          "modes_mean": 880.8561151079136,
+          "inlier_mean": 0.5132807570589896
+        }
+      },
+      "rule": "best on the selection half, confirmed on the confirmation half"
+    }
+  },
+  "chosen_fine": {
+    "config": {
+      "reproj_cells": 0.5,
+      "target": "means",
+      "max_modes": 0,
+      "mode_thr": 0.03,
+      "cert": "off",
+      "solver": "se2",
+      "ransac": "default"
+    },
+    "key": "reproj=0.5 target=means max_modes=all thr=0.03 cert=off solver=se2 ransac=default",
+    "rule": "best on the selection half, confirmed on the confirmation half",
+    "select": {
+      "n": 418,
+      "median_m": 1.0720720608843677,
+      "median_ci": [
+        0.9748158296271207,
+        1.1804487047950354
+      ],
+      "mean_m": 4.895102713761118,
+      "r5": 0.8851674641148325,
+      "r10": 0.9497607655502392,
+      "gross": 0.050239234449760764,
+      "no_pose": 1,
+      "modes_mean": 888.2296650717703,
+      "inlier_mean": 0.5273682465445926,
+      "gated": {
+        "n": 418,
+        "median_m": 1.0720720608843677,
+        "median_ci": [
+          0.9748158296271207,
+          1.1804487047950354
+        ],
+        "mean_m": 2.526496686115752,
+        "r5": 0.8851674641148325,
+        "r10": 0.9521531100478469,
+        "gross": 0.04784688995215311,
+        "no_pose": 0,
+        "modes_mean": 888.2296650717703,
+        "inlier_mean": 0.5273682465445926
+      }
+    },
+    "confirm": {
+      "n": 417,
+      "median_m": 1.1271599866330402,
+      "median_ci": [
+        1.0350810139229578,
+        1.2832695876764293
+      ],
+      "mean_m": 17.051338408189128,
+      "r5": 0.8585131894484412,
+      "r10": 0.9232613908872902,
+      "gross": 0.07673860911270983,
+      "no_pose": 6,
+      "modes_mean": 880.8561151079136,
+      "inlier_mean": 0.5132807570589896,
+      "gated": {
+        "n": 417,
+        "median_m": 1.1271599866330402,
+        "median_ci": [
+          1.0350810139229578,
+          1.2832695876764293
+        ],
+        "mean_m": 2.8430974139963636,
+        "r5": 0.8633093525179856,
+        "r10": 0.9304556354916067,
+        "gross": 0.06954436450839328,
+        "no_pose": 0,
+        "modes_mean": 880.8561151079136,
+        "inlier_mean": 0.5132807570589896
+      }
+    },
+    "paired_delta_confirm_best": {
+      "stat": "median",
+      "delta_m": -0.06285177321523472,
+      "n": 417,
+      "ci": [
+        -0.12348249440579852,
+        -0.0017121612709438683
+      ]
+    },
+    "best": {
+      "key": "reproj=0.5 target=means max_modes=all thr=0.03 cert=off solver=se2 ransac=default",
+      "select": {
+        "n": 418,
+        "median_m": 1.0720720608843677,
+        "median_ci": [
+          0.9748158296271207,
+          1.1804487047950354
+        ],
+        "mean_m": 4.895102713761118,
+        "r5": 0.8851674641148325,
+        "r10": 0.9497607655502392,
+        "gross": 0.050239234449760764,
+        "no_pose": 1,
+        "modes_mean": 888.2296650717703,
+        "inlier_mean": 0.5273682465445926,
+        "gated": {
+          "n": 418,
+          "median_m": 1.0720720608843677,
+          "median_ci": [
+            0.9748158296271207,
+            1.1804487047950354
+          ],
+          "mean_m": 2.526496686115752,
+          "r5": 0.8851674641148325,
+          "r10": 0.9521531100478469,
+          "gross": 0.04784688995215311,
+          "no_pose": 0,
+          "modes_mean": 888.2296650717703,
+          "inlier_mean": 0.5273682465445926
+        }
+      },
+      "confirm": {
+        "n": 417,
+        "median_m": 1.1271599866330402,
+        "median_ci": [
+          1.0350810139229578,
+          1.2832695876764293
+        ],
+        "mean_m": 17.051338408189128,
+        "r5": 0.8585131894484412,
+        "r10": 0.9232613908872902,
+        "gross": 0.07673860911270983,
+        "no_pose": 6,
+        "modes_mean": 880.8561151079136,
+        "inlier_mean": 0.5132807570589896,
+        "gated": {
+          "n": 417,
+          "median_m": 1.1271599866330402,
+          "median_ci": [
+            1.0350810139229578,
+            1.2832695876764293
+          ],
+          "mean_m": 2.8430974139963636,
+          "r5": 0.8633093525179856,
+          "r10": 0.9304556354916067,
+          "gross": 0.06954436450839328,
+          "no_pose": 0,
+          "modes_mean": 880.8561151079136,
+          "inlier_mean": 0.5132807570589896
+        }
+      }
+    },
+    "baseline": {
+      "config": {
+        "reproj_cells": 3.0,
+        "target": "peak",
+        "max_modes": 0,
+        "mode_thr": 0.008,
+        "cert": "off",
+        "solver": "se2",
+        "ransac": "default"
+      },
+      "select": {
+        "n": 418,
+        "median_m": 1.1093445731009628,
+        "median_ci": [
+          1.0152500088813086,
+          1.245342139787088
+        ],
+        "mean_m": 2.532678703562974,
+        "r5": 0.8851674641148325,
+        "r10": 0.9521531100478469,
+        "gross": 0.04784688995215311,
+        "no_pose": 0,
+        "modes_mean": 1250.0,
+        "inlier_mean": 0.78259801236508,
+        "gated": {
+          "n": 418,
+          "median_m": 1.1093445731009628,
+          "median_ci": [
+            1.0152500088813086,
+            1.245342139787088
+          ],
+          "mean_m": 2.532678703562974,
+          "r5": 0.8851674641148325,
+          "r10": 0.9521531100478469,
+          "gross": 0.04784688995215311,
+          "no_pose": 0,
+          "modes_mean": 1250.0,
+          "inlier_mean": 0.78259801236508
+        }
+      },
+      "confirm": {
+        "n": 417,
+        "median_m": 1.190011759848275,
+        "median_ci": [
+          1.0696502837527848,
+          1.3320240793653417
+        ],
+        "mean_m": 2.8341810896278035,
+        "r5": 0.8585131894484412,
+        "r10": 0.9328537170263789,
+        "gross": 0.0671462829736211,
+        "no_pose": 0,
+        "modes_mean": 1287.6714628297361,
+        "inlier_mean": 0.784506392930829,
+        "gated": {
+          "n": 417,
+          "median_m": 1.190011759848275,
+          "median_ci": [
+            1.0696502837527848,
+            1.3320240793653417
+          ],
+          "mean_m": 2.8341810896278035,
+          "r5": 0.8585131894484412,
+          "r10": 0.9328537170263789,
+          "gross": 0.0671462829736211,
+          "no_pose": 0,
+          "modes_mean": 1287.6714628297361,
+          "inlier_mean": 0.784506392930829
+        }
+      },
+      "test": {
+        "n": 3000,
+        "median_m": 1.1862060105018857,
+        "median_ci": [
+          1.1516723479801663,
+          1.2457063431449014
+        ],
+        "mean_m": 3.240305256714574,
+        "r5": 0.8466666666666667,
+        "r10": 0.9116666666666666,
+        "gross": 0.08833333333333333,
+        "no_pose": 0,
+        "modes_mean": 1263.1186666666667,
+        "inlier_mean": 0.7822002624417909,
+        "gated": {
+          "n": 3000,
+          "median_m": 1.1862060105018857,
+          "median_ci": [
+            1.1516723479801663,
+            1.2457063431449014
+          ],
+          "mean_m": 3.24234715298606,
+          "r5": 0.8466666666666667,
+          "r10": 0.9113333333333333,
+          "gross": 0.08866666666666667,
+          "no_pose": 0,
+          "modes_mean": 1263.1186666666667,
+          "inlier_mean": 0.7822002624417909
+        }
+      }
+    },
+    "test": {
+      "n": 3000,
+      "median_m": 1.1816590566700096,
+      "median_ci": [
+        1.132869378138447,
+        1.2252938266309865
+      ],
+      "mean_m": 11.775931501504274,
+      "r5": 0.8446666666666667,
+      "r10": 0.909,
+      "gross": 0.091,
+      "no_pose": 26,
+      "modes_mean": 896.4876666666667,
+      "inlier_mean": 0.5144601857445864,
+      "gated": {
+        "n": 3000,
+        "median_m": 1.1810802598756833,
+        "median_ci": [
+          1.13192341397434,
+          1.2245670526931507
+        ],
+        "mean_m": 3.236342494729528,
+        "r5": 0.8453333333333334,
+        "r10": 0.9116666666666666,
+        "gross": 0.08833333333333333,
+        "no_pose": 0,
+        "modes_mean": 896.4876666666667,
+        "inlier_mean": 0.5144601857445864
+      }
+    },
+    "paired_delta_test": {
+      "stat": "median",
+      "delta_m": -0.004546953831876088,
+      "n": 3000,
+      "ci": [
+        -0.03179393186792255,
+        0.014203254755182531
+      ]
+    },
+    "centring": {
+      "centred_on": {
+        "reproj_cells": 3.0,
+        "target": "peak",
+        "max_modes": 0,
+        "mode_thr": 0.008,
+        "cert": "off",
+        "solver": "se2",
+        "ransac": "default"
+      },
+      "recached": false,
+      "note": "--passes fine: the fine windows are centred on the caching coarse consensus (reproj=3 target=peak max_modes=all thr=0.008 cert=off solver=se2 ransac=default), not on a swept one"
+    }
+  }
+}

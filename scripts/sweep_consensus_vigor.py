@@ -496,6 +496,14 @@ def paired_delta(e_new, e_base, n_boot, select="median", seed=0):
                 ci=[float(np.percentile(bs, 2.5)), float(np.percentile(bs, 97.5))] if bs else None)
 
 
+def tail_not_worse(mt_new, mt_base):
+    """The tail veto of the confirmation guard: a configuration may not raise the mean error or the gross-miss
+    fraction on the confirmation half (a non-finite mean counts as worse)."""
+    ok_mean = np.isfinite(mt_new["mean_m"]) and mt_new["mean_m"] <= mt_base["mean_m"]
+    ok_gross = np.isfinite(mt_new["gross"]) and mt_new["gross"] <= mt_base["gross"]
+    return bool(ok_mean and ok_gross)
+
+
 def split_calib(recs):
     """(selection, confirmation) halves of the calibration frames, deterministic by frame id: frames ordered by
     sha1(id), even ranks select, odd ranks confirm; each half keeps the draw order."""
@@ -543,9 +551,18 @@ def sweep_pass(kind, recs, meta, gate, grid, a):
     (mt_bc, r_bc), (mt_xc, r_xc) = [(_metrics(r, kind, a), r) for r in run_configs([base, best], "conf", a.workers)]
     delta = paired_delta(r_xc["errors"], r_bc["errors"], a.n_boot, a.select)
     # the guard runs on frames the selection never saw: best replaces the baseline only if its paired interval on the
-    # confirmation half lies entirely below zero (--no-guard: always the best)
-    adopt = best == base or a.no_guard or (delta["ci"] is not None and delta["ci"][1] < 0)
+    # confirmation half lies entirely below zero AND the tail did not get worse there (mean and gross fraction; a
+    # tighter mode threshold can starve a few frames of modes and trade a 0.05 m median for a 10 m mean)
+    # (--no-guard: always the best)
+    tail_ok = tail_not_worse(mt_xc, mt_bc)
+    adopt = best == base or a.no_guard or (delta["ci"] is not None and delta["ci"][1] < 0 and tail_ok)
     chosen = best if adopt else base
+    if adopt or delta["ci"] is None or delta["ci"][1] >= 0:
+        why = "best on the selection half, confirmed on the confirmation half" if adopt else \
+            "baseline kept: the best configuration's paired interval on the confirmation half includes zero"
+    else:
+        why = (f"baseline kept: the best configuration's tail is worse on the confirmation half (mean "
+               f"{mt_xc['mean_m']:.2f} vs {mt_bc['mean_m']:.2f} m, gross {mt_xc['gross']:.3f} vs {mt_bc['gross']:.3f})")
     rep = dict(baseline=base.to_dict(), grid=grid, ofat=rows, sensitivity=sens, joint_factors=top, joint=joint,
                n_configs=len(by_cfg),
                split=dict(n_select=len(sel), n_confirm=len(conf),
@@ -555,9 +572,7 @@ def sweep_pass(kind, recs, meta, gate, grid, a):
                          paired_delta_confirm=delta),
                chosen=dict(config=chosen.to_dict(), key=chosen.key(), select=by_cfg[chosen][0],
                            confirm=mt_xc if adopt else mt_bc,
-                           rule="best on the selection half, confirmed on the confirmation half" if adopt else
-                           "baseline kept: the best configuration's paired interval on the confirmation half "
-                           "includes zero"))
+                           rule=why))
     print(f"[{kind}] sensitivity ({a.select}, m): " + ", ".join(f"{f} {s:.3f}" for f, s in sens.items()), flush=True)
     print(f"[{kind}] joint grid over {top}: {len(joint)} configurations; best {best.key()}, confirmation delta "
           f"{delta['delta_m']:+.3f} m -> {rep['chosen']['rule']}", flush=True)

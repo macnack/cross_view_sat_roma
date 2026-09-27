@@ -481,3 +481,12 @@ def test_default_consensus_matches_the_pinned_numbers(row):
     m = consensus_for_query(cons, gm, query, batch, frac, 224, certainty=cert, stats=False)
     assert m.n_modes == n_modes and m.n_inliers == n_inliers
     assert np.allclose(m.H.ravel(), H, rtol=1e-8, atol=1e-6)
+
+
+def test_tail_veto_rejects_a_median_gain_bought_with_a_worse_mean():
+    base = dict(mean_m=2.8, gross=0.067)
+    assert SW.tail_not_worse(dict(mean_m=2.7, gross=0.060), base)
+    assert SW.tail_not_worse(dict(mean_m=2.8, gross=0.067), base)
+    assert not SW.tail_not_worse(dict(mean_m=17.0, gross=0.077), base)   # the fine-pass case of 2026-09-27
+    assert not SW.tail_not_worse(dict(mean_m=2.7, gross=0.080), base)
+    assert not SW.tail_not_worse(dict(mean_m=float("nan"), gross=0.0), base)
