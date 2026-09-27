@@ -32,6 +32,9 @@ Every row is scored on the same sample draw per split (seed 0: 3000 Chicago same
 | Two-pass, Task 04 erp_depth: 2 m coarse + 1 m fine window, fine | 1.20 m (1.16–1.26) | 3.69 m | 83 % | 89 % | 3000 |
 | Two-pass, Task 04 erp_depth: 2 m coarse + 1 m fine window, fine_gated | 1.20 m (1.16–1.26) | 3.70 m | 83 % | 89 % | 3000 |
 | Task 04 erp_depth, four-city, 2 m cells, last, se2 | 1.77 m (1.70–1.82) | 3.68 m | 84 % | 91 % | 3000 |
+| Two-pass, Task 04 four-city coarse + Chicago fine decoder | 1.77 m (1.70–1.82) | 3.68 m | 84 % | 91 % | 3000 |
+| Two-pass, Task 04 four-city coarse + Chicago fine decoder, fine | 1.19 m (1.15–1.25) | 3.24 m | 85 % | 91 % | 3000 |
+| Two-pass, Task 04 four-city coarse + Chicago fine decoder, fine_gated | 1.19 m (1.15–1.25) | 3.24 m | 85 % | 91 % | 3000 |
 | Task 04 erp_depth, four-city, 2 m cells, best, se2 | 1.80 m (1.74–1.86) | 3.87 m | 83 % | 90 % | 3000 |
 | Task 04 erp_depth + head + heat-map loss, 2 m cells, 30k, best, homography | 1.83 m (1.77–1.89) | 4.17 m | 81 % | 88 % | 3000 |
 | Task 04 erp_depth + head + heat-map loss, 2 m cells, 30k, best, se2 | 1.84 m (1.77–1.90) | 4.11 m | 82 % | 88 % | 3000 |
