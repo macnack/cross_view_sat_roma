@@ -37,6 +37,11 @@ bootstrap resamples of the peak row's modes, the pose of their medoid and the me
 cities shuffled with seed 0, the last val_frac held out), skipping its first val_samples (they selected the checkpoint)
 and taking the next --limit frames: the calibration set of task 06, never the test draw (`calib_split`; the split is
 read from the checkpoint and checked, --assume-train-split for checkpoints that predate that record).
+--consensus-json <sweep json> [...] (scripts/sweep_consensus_vigor.py): apply the sweep's `chosen` consensus settings
+(reprojection threshold in cells, max modes per token, mode threshold, certainty weighting, solver, RANSAC budget) to
+both coarse rows (each row keeps its own peak / means target; the chosen target names the row the fine pass is centred
+on, meta.consensus.primary_row) and its `chosen_fine` block, if any, to the fine pass. Absent: every number is what
+it was.
 Calibration mode scores row_sign in {+1, -1} x height in {1.6, 2.0, 2.5, 3.0} on a small subset and prints
 the table; the best pair is what `vigor:` in configs/default.yaml should carry.
 """
@@ -55,6 +60,7 @@ from bevloc import config as C
 from bevloc.data.vigor import CITY_RES, VigorPairs, pose_en, split_cities
 from bevloc.eval.metrics import pose_errors
 from bevloc.eval.report import summarise_pose
+from bevloc.match.consensus import apply_settings, load_chosen, settings_of
 from bevloc.match.satroma import REFINE_INITS, SatRoMa, consensus_for_query, refined_for_query
 from bevloc.match.vote_stats import pose_px, ref_cell_valid, stats_row
 from bevloc.model.coarse import FeatureQueryMatcher
@@ -81,7 +87,9 @@ class DecoderFine:
     def __init__(self, ds, query, matcher, cons, cfg, dev):
         self.ds, self.query, self.matcher, self.cons, self.cfg, self.dev = ds, query, matcher, cons, cfg, dev
 
-    def __call__(self, i, centre_en):
+    def decode(self, i, centre_en):
+        """The fine decode of sample i around centre_en: (gm (K*K, h, w) logits, certainty (h, w) logits or None,
+        batch, frac, window sample)."""
         s = self.ds.item(i, ref_centre_en=centre_en)
         batch = {k: (v[None].to(self.dev) if torch.is_tensor(v) else v) for k, v in s.items()}
         with torch.no_grad():
@@ -89,9 +97,14 @@ class DecoderFine:
             f_s = self.matcher.reference_features(batch["ref"])
             sf = float(((f_q.shape[-2] * 16) * (f_q.shape[-1] * 16)) ** 0.5 / 560.0)
             with self.matcher.model.exposed_intermediates():
-                gm = self.matcher.model.decoder({16: f_q}, f_s, scale_factor=sf)[16]["gm_cls"][0]
+                o16 = self.matcher.model.decoder({16: f_q}, f_s, scale_factor=sf)[16]
+        cert = o16["gm_certainty"][0, 0] if o16.get("gm_certainty") is not None else None
+        return o16["gm_cls"][0], cert, batch, frac, s
+
+    def __call__(self, i, centre_en):
+        gm, cert, batch, frac, s = self.decode(i, centre_en)
         m = consensus_for_query(self.cons, gm, self.query, batch, frac, int(self.cfg.grid.n), min_frac=0.05,
-                                stats=False)
+                                certainty=cert, stats=False)
         return m, s
 
 
@@ -184,12 +197,13 @@ def calib_split(n_labels, train_meta, val_frac, cities, limit, assume=None):
 
 def score(ds, query, matcher, cons, cfg, dev, n_max=0, verbose=False, refine=0, refine_inits=("coarse",),
           refine_gate=None, refine_min_cert=0.0, refine_min_corr=8, fine=None, fine_gate=6.0, hyp=0,
-          refine_precision=None):
+          refine_precision=None, primary="peak"):
     """refine = 0: the coarse rows only (identical to before the sub-cell stage, plus the STAT_KEYS statistics of the
     peak row). refine = S > 0: also the refined row(s) from the decoder's stride-16 refiner, correspondences on a
     stride-S query grid (see module doc); refine_precision = the refiner's autocast dtype (from a trained refiner's
     checkpoint, else the package default). fine (e.g. `DecoderFine`): also the second-pass rows around the coarse
-    `peak` pose (`fine_pass_row`). hyp = K > 0: also the bootstrap-hypothesis keys (HYP_KEYS) of the peak row."""
+    `peak` pose (`fine_pass_row`; `primary` = "means" centres it on the means row, --consensus-json with a chosen
+    means target). hyp = K > 0: also the bootstrap-hypothesis keys (HYP_KEYS) of the peak row."""
     rows = []
     tags = refine_tags(refine_inits) if refine else {}
     n = int(cfg.grid.n)
@@ -248,7 +262,7 @@ def score(ds, query, matcher, cons, cfg, dev, n_max=0, verbose=False, refine=0, 
             row[f"nonfinite_{tag}"], row[f"error_{tag}"] = info["nonfinite"], info["error"]
         if fine is not None:
             try:
-                row.update(fine_pass_row(s, i, coarse["peak"], cfg, fine, fine_gate))
+                row.update(fine_pass_row(s, i, coarse[primary], cfg, fine, fine_gate))
             except Exception as e:                                  # keep the coarse row; the fine columns are None
                 if _is_oom(e):
                     raise
@@ -317,9 +331,18 @@ def build_parser(doc=__doc__):
                     help="--calib for a checkpoint that does not record its split (trained before task 06): assert "
                          "that it was trained with --val-frac / --val-samples / --cities as given here; recorded "
                          "in meta.calib.source")
+    ap.add_argument("--consensus-json", nargs="+", default=None,
+                    help="sweep json(s) of scripts/sweep_consensus_vigor.py: its `chosen` consensus settings on the "
+                         "coarse rows, `chosen_fine` on the fine pass (later files override); absent = unchanged")
     ap.add_argument("--out", default="experiments/09_vigor")
     ap.add_argument("--tag", required=True)
     return ap
+
+
+def chosen_consensus(a):
+    """(coarse, fine) ConsensusCfg or None from --consensus-json."""
+    paths = getattr(a, "consensus_json", None)
+    return load_chosen(paths) if paths else (None, None)
 
 
 def fine_config(a, cfg):
@@ -373,12 +396,18 @@ def decoder_fine(a, cfg, ds, dev):
         n_drop = ds.keep_with_depth()
         ds_f.labels = ds.labels
     cons = SatRoMa.from_wrapper(matcher.wrapper, cfg_f, use_means=False, min_valid_frac=0.05)
+    fine_c = chosen_consensus(a)[1]
+    if fine_c is not None:
+        apply_settings(cons, fine_c)
+        print(f"fine pass consensus from --consensus-json: {fine_c.key()}", flush=True)
     print(f"fine pass: {a.fine_ckpt} (mode {mode}, step {state.get('step')}), cell {cfg_f.grid.cell_m} m, window "
-          f"{ds_f.ref_window_m} m, gate {a.fine_gate} m, solver {cfg_f.matcher.solver}"
+          f"{ds_f.ref_window_m} m, gate {a.fine_gate} m, solver {cons.solver}"
           + (f"; {n_drop} panoramas without depth dropped from both passes" if n_drop else ""), flush=True)
     meta = dict(config=a.fine_config, ckpt=a.fine_ckpt, mode=mode, ckpt_step=state.get("step"), train=state.get("train"),
                 cell_m=float(cfg_f.grid.cell_m), window_m=ds_f.ref_window_m, gate_m=a.fine_gate,
                 matcher="Sat-RoMa decoder", skipped_no_depth=n_drop)
+    if fine_c is not None:
+        meta["consensus"] = settings_of(cons).to_dict()
     return DecoderFine(ds_f, query, matcher, cons, cfg_f, dev), meta
 
 
@@ -415,6 +444,21 @@ def run(a, make_fine=None):
     query.eval()
     cons = {tag: SatRoMa.from_wrapper(matcher.wrapper, cfg, use_means=means, min_valid_frac=0.05)
             for tag, means in (("peak", False), ("means", True))}
+    coarse_c, fine_c = chosen_consensus(a)
+    primary, consensus_meta = "peak", None
+    if a.consensus_json:                                          # recorded even when only chosen_fine is present
+        consensus_meta = dict(json=list(a.consensus_json), coarse=None if coarse_c is None else coarse_c.to_dict(),
+                              fine=None if fine_c is None else fine_c.to_dict(), primary_row=primary)
+    if coarse_c is not None:
+        for c in cons.values():
+            apply_settings(c, coarse_c, target=False)             # each row keeps its own target
+        primary = coarse_c.target
+        consensus_meta.update(primary_row=primary,
+                              refined_rows="--refine rows run on the peak row's consensus instance, so the chosen "
+                                           "reprojection threshold, solver and RANSAC budget apply to them too (their "
+                                           "correspondences, gate and min_corr are unchanged)")
+        print(f"coarse consensus from --consensus-json: {coarse_c.key()} (fine pass centred on the {primary} row)",
+              flush=True)
     cities = a.cities or split_cities(a.split, a.train_split or a.calib)
     out = Path(a.out)
     out.mkdir(parents=True, exist_ok=True)
@@ -464,7 +508,7 @@ def run(a, make_fine=None):
     print(f"{len(ds)} samples, split {a.split}, cities {cities}, row_sign {ds.row_sign:+.0f}, height {ds.height} m", flush=True)
     rows = score(ds, query, matcher, cons, cfg, dev, verbose=True, refine=a.refine, refine_inits=tuple(a.refine_init),
                  refine_gate=refine_gate, refine_min_cert=a.refine_min_cert, refine_min_corr=a.refine_min_corr,
-                 fine=fine, fine_gate=a.fine_gate, hyp=a.hyp, refine_precision=refine_precision)
+                 fine=fine, fine_gate=a.fine_gate, hyp=a.hyp, refine_precision=refine_precision, primary=primary)
     rtags = list(refine_tags(a.refine_init).values()) if a.refine else []
     ftags = ["fine", "fine_gated"] if fine is not None else []
     summary = {}
@@ -497,7 +541,7 @@ def run(a, make_fine=None):
             summary[name]["spread_hyp_median_m"] = float(np.median(sp)) if sp else None
     path = out / f"eval_vigor_{a.tag}_{a.split}.json"
     path.write_text(json.dumps(dict(meta=dict(ckpt=a.ckpt, mode=mode, split=a.split, cities=cities, n=len(rows),
-                                              row_sign=ds.row_sign, height_m=ds.height, solver=cfg.matcher.solver,
+                                              row_sign=ds.row_sign, height_m=ds.height, solver=cons["peak"].solver,
                                               skipped_no_depth=n_no_depth, ckpt_step=state.get("step"),
                                               train=train_meta,
                                               refine=dict(stride=a.refine, inits=a.refine_init, gate_cells=refine_gate,
@@ -509,6 +553,7 @@ def run(a, make_fine=None):
                                               if a.refine else None,
                                               fine=fine_meta,
                                               city_res=CITY_RES, hyp=a.hyp, calib=calib,
+                                              **({"consensus": consensus_meta} if consensus_meta else {}),
                                               stats=dict(radius_cells=float(certainty_cfg(cfg).stats_radius_cells),
                                                          ref_cell_min_frac=float(certainty_cfg(cfg).ref_cell_min_frac),
                                                          row="peak")),

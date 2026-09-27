@@ -26,9 +26,42 @@ sys.path.insert(0, PACKAGE_DIR)
 
 from sat_roma import SatRoMaMatcher  # noqa: E402
 from sat_roma.ransac import estimate_homography  # noqa: E402
-from sat_roma.ransac.correspondence import find_gaussians  # noqa: E402
+from sat_roma.ransac.correspondence import find_gaussians  # noqa: E402,F401  (callers and tests import it from here)
+from sat_roma.ransac.pipeline import (  # noqa: E402
+    _ransac_init_one, _ransac_init_weighted, _ransac_init_weighted_srt,
+)
 from sat_roma.ransac.ransac_init import ransac_init  # noqa: E402
 from sat_roma.ransac.transforms import convert_to_pixel_homography  # noqa: E402
+
+from bevloc.match.consensus import (  # noqa: E402
+    PACKAGE_CONFIDENCE, PACKAGE_MAX_ITERS, WEIGHTED, extract_modes, mode_weights, ransac_budget, select_modes,
+    settings_of,
+)
+
+
+def _cert_np(certainty, need):
+    """(h, w) float64 certainty logits, or None when the settings do not use them."""
+    if not need:
+        return None
+    if certainty is None:
+        raise ValueError("consensus cert='weight'/'filter' needs the decoder's token certainty")
+    import torch
+    c = certainty.detach().float().cpu().numpy() if isinstance(certainty, torch.Tensor) else np.asarray(certainty)
+    return np.asarray(c, np.float64)
+
+
+def _pick_modes(self, gm, certainty=None, valid=None):
+    """Modes of logits gm under this instance's consensus settings (bevloc.match.consensus): the package's
+    extraction at mode_thr, then the certainty filter and the per-token cap. Returns (modes dict, idx, weights)."""
+    c = settings_of(self)
+    cert = _cert_np(certainty, c.cert in ("weight", "filter"))
+    md = extract_modes(gm, c.mode_thr)
+    vt = None if valid is None else np.asarray(valid.cpu().numpy() if hasattr(valid, "cpu") else valid, bool)
+    if cert is not None:
+        cert = cert.reshape(gm.shape[-2:])
+    idx = select_modes(md, c, cert, vt)
+    w = mode_weights(md, idx, cert, uniform=c.cert == "uniform") if c.cert in WEIGHTED else None
+    return md, idx, w
 
 
 @dataclass
@@ -164,7 +197,7 @@ class SatRoMa:
         """gm (K*K, h, w) logits; xy (h, w, 2) placed query px; valid (h, w).
         certainty (h, w) decoder certainty logits and ref_valid (K, K) valid reference cells, both optional, only
         feed the vote-map statistics (`attach_stats`; stats=False skips them, Match.stats None); the pose does not
-        depend on any of the three.
+        depend on them unless the consensus settings use the certainty (bevloc.match.consensus, cert).
 
         Static with an explicit ``self`` so a test can pass a stub carrying only
         m.im_a_size / m.im_b_size, use_means, reproj, seed and solver."""
@@ -173,20 +206,29 @@ class SatRoMa:
         gm = gm.clone()
         gm[:, ~valid_t] = 0.0                                          # invalid tokens contribute no mode
         xy_np = torch.as_tensor(xy).detach().float().cpu().numpy()
-        m = SatRoMa._consensus_placed(self, gm, xy_np)
+        vt_np = valid_t.cpu().numpy()
+        m = SatRoMa._consensus_placed(self, gm, xy_np, certainty=certainty, valid=vt_np)
         if not stats:
             return m
-        vt_np = valid_t.cpu().numpy()
         c = (float(self.m.im_a_size) - 1.0) / 2.0                      # the ego in virtual BEV px
         extra = dict(placed_range_px=float(np.linalg.norm(xy_np[vt_np] - c, axis=-1).mean()) if vt_np.any() else None)
         return SatRoMa.attach_stats(self, m, gm, vt_np, certainty=certainty, ref_valid=ref_valid, extra=extra,
                                     q_xy=xy_np)
 
     @staticmethod
-    def _consensus_placed(self, gm, xy_np) -> Match:
-        pts_A, means_B, peaks_B, covs_B = find_gaussians(
-            gm.detach().float().cpu(), adaptive_gauss_fit=False, log_missing_gaussians=False,
-            fixed_threshold=0.008, fixed_window_size=4)
+    def _consensus_placed(self, gm, xy_np, certainty=None, valid=None) -> Match:
+        """Placed-token consensus of logits gm under this instance's settings (`settings_of`; the package defaults
+        when none were set: fixed-window modes at 0.008, all modes, no certainty). certainty (h, w) logits and valid
+        (h, w) tokens are read only by the cert settings."""
+        md, idx, w = _pick_modes(self, gm, certainty, valid)
+        out_dim = int(round(gm.shape[0] ** 0.5))
+        return SatRoMa.placed_fit(self, md["tok"][idx], md["peaks"][idx], md["means"][idx], xy_np, out_dim,
+                                  weights=w)
+
+    @staticmethod
+    def placed_fit(self, pts_A, peaks_B, means_B, xy_np, out_dim, weights=None) -> Match:
+        """The solver half of `_consensus_placed` on given modes (pts_A = token (col, row)); the consensus sweep
+        calls it with cached modes."""
         n_modes = int(pts_A.shape[0])
         argmax_cells = None
         if n_modes == 0:
@@ -198,8 +240,7 @@ class SatRoMa:
         _, counts = np.unique(np.round(pts_A, 3), axis=0, return_counts=True)
         n_patches, n_multi = int(len(counts)), int((counts > 1).sum())
         tgt = np.asarray(means_B if self.use_means else peaks_B, np.float64)
-        out_dim = int(round(gm.shape[0] ** 0.5))
-        m = SatRoMa._fit_grid(self, placed, tgt, 14, out_dim, n_patches, n_multi)
+        m = SatRoMa._fit_grid(self, placed, tgt, 14, out_dim, n_patches, n_multi, weights=weights)
         m.modes = (placed, tgt, 14, out_dim)
         return m
 
@@ -276,24 +317,30 @@ class SatRoMa:
         return dict(H=Hs[i], spread_px=spread, n_ok=len(Hs))
 
     @staticmethod
-    def _fit_grid(self, placed, tgt, in_dim, out_dim, n_patches, n_multi, argmax_cells=None) -> Match:
+    def _fit_grid(self, placed, tgt, in_dim, out_dim, n_patches, n_multi, argmax_cells=None, weights=None) -> Match:
         """Consensus of grid-unit correspondences placed (N, 2) query patches -> tgt (N, 2) reference cells
-        (cell-centre convention), with this instance's solver / threshold / seed; H converted to query px ->
-        reference px. The tail of `consensus_from_gm`, shared with `refined_consensus`."""
+        (cell-centre convention), with this instance's solver / threshold / seed / RANSAC budget; H converted to
+        query px -> reference px. The tail of `consensus_from_gm`, shared with `refined_consensus`. weights (N,):
+        weighted sampling (bevloc.match.consensus, cert="weight" / "uniform"); None = the uniform RANSAC."""
         n_modes = int(placed.shape[0])
         cv2.setRNGSeed(self.seed)
+        iters, conf = ransac_budget(getattr(self, "ransac", "default"), weights is not None, self.solver)
         if self.solver == "se2":
             from bevloc.match.se2 import se2_ransac
             if n_modes < 2:
                 return Match(None, None, n_modes, n_patches, n_multi, 0.0, argmax_cells)
-            Hf, _ = se2_ransac(placed, tgt, thresh=self.reproj, n_iter=500, seed=self.seed)
+            Hf, _ = se2_ransac(placed, tgt, thresh=self.reproj, n_iter=iters, seed=self.seed, weights=weights)
         else:
             if n_modes < 4:
                 return Match(None, None, n_modes, n_patches, n_multi, 0.0, argmax_cells)
-            # "srt" mirrors the package default on grid points (cv2.findHomography); "sim" is 4-DoF
-            Hf, _, _ = ransac_init(placed, tgt, method=cv2.RANSAC, reproj_threshold=self.reproj,
-                                   max_iters=5000, confidence=0.995, quiet=True,
-                                   estimator="homography" if self.solver == "srt" else "similarity")
+            if weights is None:
+                # "srt" mirrors the package default on grid points (cv2.findHomography); "sim" is 4-DoF
+                Hf, _, _ = ransac_init(placed, tgt, method=cv2.RANSAC, reproj_threshold=self.reproj,
+                                       max_iters=iters, confidence=conf, quiet=True,
+                                       estimator="homography" if self.solver == "srt" else "similarity")
+            else:
+                fit = _ransac_init_weighted if self.solver == "srt" else _ransac_init_weighted_srt
+                Hf = fit(placed, tgt, weights, 1.0, self.reproj, iters, self.seed)
             Hf = None if Hf is None else np.asarray(Hf, np.float64)
             if Hf is not None and (not np.isfinite(Hf).all() or np.array_equal(Hf, np.eye(3))):
                 Hf = None
@@ -361,56 +408,78 @@ class SatRoMa:
         return None if st["n"] == 0 else st["cell_err"]
 
     def _ransac(self, gm, argmax_cells, valid=None, certainty=None, ref_valid=None, stats=True) -> Match:
-        """Package consensus on (masked) logits; valid / certainty / ref_valid only feed the statistics (stats=False:
-        none, Match.stats None)."""
-        mt = self._ransac_fit(gm, argmax_cells)
+        """Package consensus on (masked) logits; valid / certainty / ref_valid feed the statistics (stats=False:
+        none, Match.stats None), and valid / certainty also the cert settings of the consensus when set."""
+        mt = self._ransac_fit(gm, argmax_cells, certainty=certainty, valid=valid)
         if not stats:
             return mt
         return SatRoMa.attach_stats(self, mt, gm, valid, certainty=certainty, ref_valid=ref_valid)
 
-    def _ransac_fit(self, gm, argmax_cells) -> Match:
+    def _ransac_fit(self, gm, argmax_cells, certainty=None, valid=None) -> Match:
+        """The package pipeline (estimate_homography, numpy backend, refine=False: find_gaussians + the cv2 RANSAC
+        init) under this instance's settings; with the default settings it is that call, split in two so the
+        consensus sweep can run the solver half (`package_fit`) on cached modes."""
+        md, idx, w = _pick_modes(self, gm, certainty, valid)
+        return SatRoMa.package_fit(self, md["tok"][idx], md["peaks"][idx], md["means"][idx], int(gm.shape[-1]),
+                                   int(round(gm.shape[0] ** 0.5)), argmax_cells, weights=w)
+
+    @staticmethod
+    def package_fit(self, pts_A, peaks_B, means_B, in_dim, out_dim, argmax_cells=None, weights=None) -> Match:
+        """Solver half of `_ransac_fit`: pts_A (N, 2) float32 query patches (col, row), peaks_B / means_B (N, 2)
+        float32 reference cells, as find_gaussians returns them."""
         m = self.m
-
-        cv2.setRNGSeed(self.seed)
-        r = estimate_homography(
-            gm.detach().float().cpu(), backend="numpy", model="sRT",
-            use_means_for_ransac=self.use_means, ransac_method=cv2.RANSAC,
-            ransac_reproj_threshold=self.reproj, ransac_max_iters=5000,
-            ransac_confidence=0.995, refine=False, return_details=True)
-
-        n_modes = int(r.pts_A.shape[0])
+        n_modes = int(pts_A.shape[0])
         if n_modes:
-            _, counts = np.unique(np.round(r.pts_A, 3), axis=0, return_counts=True)
+            _, counts = np.unique(np.round(pts_A, 3), axis=0, return_counts=True)
             n_patches, n_multi = int(len(counts)), int((counts > 1).sum())
         else:
             n_patches = n_multi = 0
-        Hf = np.asarray(r.H, dtype=np.float64)
-        tgt = r.means_B if self.use_means else r.peaks_B
-        modes = (np.asarray(r.pts_A, np.float64), np.asarray(tgt, np.float64), int(gm.shape[-1]),
-                 int(round(gm.shape[0] ** 0.5))) if n_modes else None
+        tgt = means_B if self.use_means else peaks_B
+        modes = ((np.asarray(pts_A, np.float64), np.asarray(tgt, np.float64), int(in_dim), int(out_dim))
+                 if n_modes else None)
+        miss = Match(None, None, n_modes, n_patches, n_multi, 0.0, argmax_cells, modes=modes)
+        iters, conf = ransac_budget(getattr(self, "ransac", "default"), weights is not None, self.solver)
+        cv2.setRNGSeed(self.seed)
+        Hf = np.eye(3, dtype=np.float64)
+        if n_modes >= 4 and (weights is None or self.solver == "srt"):
+            # estimate_homography's RANSAC init (cv2.findHomography, the package default). The package pipeline ran
+            # it before the sim / se2 solvers as well, so it still runs there: the same cv2 calls as before the split.
+            if weights is None:
+                # sim / se2 discard this result: their pre-fit keeps the package arguments (5000 / 0.995) exactly
+                pi, pc = (iters, conf) if self.solver == "srt" else (PACKAGE_MAX_ITERS, PACKAGE_CONFIDENCE)
+                Hf = _ransac_init_one(pts_A, peaks_B, means_B, self.use_means, cv2.RANSAC, self.reproj, pi, pc)
+            else:
+                Hf = _ransac_init_weighted(pts_A, tgt, weights, 1.0, self.reproj, iters, self.seed)
+                if Hf is None:
+                    return miss
+            Hf = np.asarray(Hf, dtype=np.float64)
         if self.solver == "sim":
             if n_modes < 4:
-                return Match(None, None, n_modes, n_patches, n_multi, 0.0, argmax_cells, modes=modes)
-            Hs, _, _ = ransac_init(np.asarray(r.pts_A, np.float64), np.asarray(tgt, np.float64),
-                                   method=cv2.RANSAC, reproj_threshold=self.reproj, max_iters=5000,
-                                   confidence=0.995, quiet=True, estimator="similarity")
+                return miss
+            if weights is None:
+                Hs, _, _ = ransac_init(np.asarray(pts_A, np.float64), np.asarray(tgt, np.float64),
+                                       method=cv2.RANSAC, reproj_threshold=self.reproj, max_iters=iters,
+                                       confidence=conf, quiet=True, estimator="similarity")
+            else:
+                Hs = _ransac_init_weighted_srt(np.asarray(pts_A, np.float64), np.asarray(tgt, np.float64), weights,
+                                               1.0, self.reproj, iters, self.seed)
             # ransac_init substitutes np.eye(3) when cv2 finds no model: treat that as a miss, like `srt`
             if Hs is None or not np.isfinite(np.asarray(Hs)).all() or np.array_equal(np.asarray(Hs), np.eye(3)):
-                return Match(None, None, n_modes, n_patches, n_multi, 0.0, argmax_cells, modes=modes)
+                return miss
             Hf = np.asarray(Hs, np.float64)
         elif self.solver == "se2":
             # Same hypothesis set, but the consensus model has no scale (metric query, shared GSD).
             from bevloc.match.se2 import se2_ransac
             if n_modes < 2:
-                return Match(None, None, n_modes, n_patches, n_multi, 0.0, argmax_cells, modes=modes)
-            H2, _ = se2_ransac(r.pts_A, tgt, thresh=self.reproj, n_iter=500, seed=self.seed)
+                return miss
+            H2, _ = se2_ransac(pts_A, tgt, thresh=self.reproj, n_iter=iters, seed=self.seed, weights=weights)
             if H2 is None:
-                return Match(None, None, n_modes, n_patches, n_multi, 0.0, argmax_cells, modes=modes)
+                return miss
             Hf = H2
         elif n_modes < 4 or np.array_equal(Hf, np.eye(3)) or not np.isfinite(Hf).all():
-            return Match(None, None, n_modes, n_patches, n_multi, 0.0, argmax_cells, modes=modes)
+            return miss
 
-        p = np.c_[r.pts_A, np.ones(n_modes)] @ Hf.T
+        p = np.c_[pts_A, np.ones(n_modes)] @ Hf.T
         err = np.linalg.norm(p[:, :2] / p[:, 2:3] - tgt, axis=1)
         inl = float((err <= self.reproj).mean())
         n_inl = int((err <= self.reproj).sum())
@@ -418,7 +487,7 @@ class SatRoMa:
         ha = wa = int(m.im_a_size)
         hb = wb = int(m.im_b_size)
         H = np.asarray(convert_to_pixel_homography(
-            Hf, in_patch_dim=int(gm.shape[-1]), out_patch_dim=int(round(gm.shape[0] ** 0.5)),
+            Hf, in_patch_dim=int(in_dim), out_patch_dim=int(out_dim),
             crop_res=(ha, wa), map_res=(hb, wb),
             cell_convention="center"), dtype=np.float64)
         c = np.array([[0, 0, 1], [wa - 1, 0, 1], [wa - 1, ha - 1, 1], [0, ha - 1, 1]], float) @ H.T
@@ -433,20 +502,28 @@ def consensus_for_query(cons, gm, query, batch, frac, n, min_frac=0.05, certaint
     (= `match_placed` without a second decode). BEV queries (lift, ipm, hybrid): the per-patch validity
     `frac` (1, h, w) masks the 14 x 14 patch grid, then the package RANSAC (`_ransac`).
     gm (K*K, h, w) logits of the sample; batch holds that one sample with a leading batch axis.
-    certainty (h, w) decoder certainty logits, ref_valid (K, K) valid reference cells: optional, only for the
-    statistics in Match.stats (the pose does not depend on them); stats=False skips the statistics (the evaluators
-    compute them for the peak row only)."""
-    import torch
+    certainty (h, w) decoder certainty logits, ref_valid (K, K) valid reference cells: optional, for the
+    statistics in Match.stats (the pose depends on the certainty only under the cert consensus settings,
+    bevloc.match.consensus); stats=False skips the statistics (the evaluators compute them for the peak row only)."""
+    valid, xy = query_tokens(cons, query, batch, frac, n, min_frac)
+    if xy is not None:
+        return SatRoMa.consensus_from_gm(cons, gm, xy, valid, certainty=certainty, ref_valid=ref_valid,
+                                         stats=stats)
+    gmm = gm.clone()
+    gmm[:, ~valid] = 0.0
+    return cons._ransac(gmm, None, valid=valid, certainty=certainty, ref_valid=ref_valid, stats=stats)
+
+
+def query_tokens(cons, query, batch, frac, n, min_frac=0.05):
+    """The tokens that vote in `consensus_for_query`: (valid (h, w) bool, xy (h, w, 2) placed virtual query px or
+    None). Placed queries (erp, erp_depth): the placement's own validity and points; BEV / picture queries: the
+    per-patch validity frac (1, h, w) >= min_frac at n x n px, then `cons.query_patches`."""
     import torch.nn.functional as F
     if hasattr(query, "placement"):
         xy, valid = query.placement(batch)
-        return SatRoMa.consensus_from_gm(cons, gm, xy[0], valid[0], certainty=certainty, ref_valid=ref_valid,
-                                         stats=stats)
+        return valid[0], xy[0]
     mask = F.interpolate(frac[:, None].float(), size=(n, n), mode="nearest")[0, 0] >= min_frac
-    gmm = gm.clone()
-    qp = cons.query_patches(mask)
-    gmm[:, ~qp] = 0.0
-    return cons._ransac(gmm, None, valid=qp, certainty=certainty, ref_valid=ref_valid, stats=stats)
+    return cons.query_patches(mask), None
 
 
 REFINE_INITS = ("none", "coarse", "ransac")
