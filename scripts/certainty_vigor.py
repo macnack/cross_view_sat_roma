@@ -24,10 +24,13 @@ from a certainty cache of scripts/certainty_cache_vigor.py instead of --eval-jso
 against eval_vigor.py at caching), --fit-cache <calib cache pkl> fits the isotonic / logistic rows on the cache the
 head trained on (the same frames: a like-for-like comparison), and --head <ckpt> [<ckpt> ...] adds one row per trained
 head (scripts/train_certainty_head.py), named head:<checkpoint stem>, with its calibrated P(error < tau) on the test
-cache's frames. The head's conformal half is its own validation frames (the last val_frames of --fit-cache, never
-trained on; early stopping and the temperature were fitted there, so that half is not as clean as the logistic's) and
-is skipped when --fit-cache is absent. With several cities in the test cache, per-city AUROC at the rank target is
-reported for every row.
+cache's frames. With --fit-cache the last --val-frames frames of that cache (cfg.certainty_head.val_frames, the
+trainer's rule) are left out of the isotonic / logistic fit, so those rows are fitted on exactly the heads' training
+frames; they are the heads' conformal half (never trained on, but early stopping and the temperature were fitted
+there, so that half is not as clean as the logistic's), and every head must have been validated on them. Without
+--fit-cache the heads get no conformal numbers. On the cache path the features are the cache header's 19 frame keys
+(FEATURES without the --hyp spread, plus vote_offtile_mass), the same the heads' frame stream sees; the --eval-json
+path keeps FEATURES. With several cities in the test cache, per-city AUROC at the rank target is reported for every row.
 """
 from __future__ import annotations
 
@@ -48,8 +51,10 @@ FEATURES = (
     ("pose_centre_m", None), ("cert_mean", None), ("cert_median", None), ("n_valid_tokens", "log"),
     ("placed_depth_m", None), ("ego_entropy", None), ("ego_support_cells", "log"), ("ego_top1", None),
     ("ego_mass_2cells", None), ("ego_peak_pose_m", "log"), ("spread_hyp_m", "log"),
-    ("vote_offtile_mass", None),      # since step 4 (2026-09-27): the logistic and the head's frame stream see the same 19
 )
+# The eval-json path keeps this set (the reported rows, e.g. the 0.892 logistic of 2026-09-26, re-run unchanged); the
+# cache path takes the cache header's 19 frame keys (FEATURES without the --hyp spread, plus vote_offtile_mass) so
+# the logistic and the head's frame stream see the same statistics (`cache_features`).
 CONFORMAL_NOTE = ("split conformal: the coverage guarantee is MARGINAL (on average over test frames, not per frame or "
                   "per confidence level) and holds only when calibration and test frames are exchangeable; it does "
                   "NOT hold for a cross-area (or cross-city, cross-season) calibration/test split")
@@ -78,10 +83,12 @@ def rows_from_cache(cache):
     return rows, meta
 
 
-def head_predictions(paths, test_arrays, fit_arrays, err_test, cfg):
+def head_predictions(paths, test_arrays, fit_arrays, val_ids, err_test, cfg):
     """{head name: {tau: dict(prob, qhat, has_ok, has_bad, n_cal)}} of every head checkpoint on the test cache. The
-    conformal half is the head's own validation frames looked up by id in the fit cache (None: no conformal numbers).
-    A test frame without a pose gets probability 0, as for every other model."""
+    conformal half is the fit cache's left-out validation frames (`val_ids`, the last --val-frames of the cache),
+    which must be exactly the frames the head was validated on (its checkpoint's val_ids; refused otherwise, since
+    the calibrators were fitted on the rest); None (no --fit-cache): no conformal numbers. A test frame without a
+    pose gets probability 0, as for every other model."""
     import torch
     from bevloc.model.certainty_head import load_head, predict
     dev = "cuda" if torch.cuda.is_available() else "cpu"
@@ -94,15 +101,19 @@ def head_predictions(paths, test_arrays, fit_arrays, err_test, cfg):
             sys.exit(f"{path} was trained for targets {taus}, the config asks for {list(cfg.targets_m)}")
         if list(ck.get("frame_keys") or []) != list(test_arrays.frame_keys):
             sys.exit(f"{path}: frame statistics {ck.get('frame_keys')} differ from the test cache's {test_arrays.frame_keys}")
+        if str(ck.get("token_grid")) != str(test_arrays.grid):
+            sys.exit(f"{path} was trained on a {ck.get('token_grid')!r} token grid, the test cache is {test_arrays.grid!r}")
         name = "head:" + Path(path).stem.replace("certainty_head_", "", 1)
         P = predict(head, test_arrays, dev)
         cal = None
         if fit_arrays is not None:
+            if set(ck.get("val_ids") or []) != set(val_ids):
+                sys.exit(f"{path} was validated on {len(ck.get('val_ids') or [])} frames that are not the last "
+                         f"{len(val_ids)} frames of --fit-cache (--val-frames must equal the head's; the calibrators "
+                         f"are fitted on the other frames)")
             pos = {i: j for j, i in enumerate(fit_arrays.ids)}
-            idx = [pos[i] for i in ck.get("val_ids") or [] if i in pos]
-            if idx:
-                sub = fit_arrays.subset(idx)
-                cal = (predict(head, sub, dev), sub.err)
+            sub = fit_arrays.subset([pos[i] for i in val_ids])
+            cal = (predict(head, sub, dev), sub.err)
         out[name] = {}
         for j, tau in enumerate(taus):
             prob = np.zeros(len(err_test))
@@ -123,10 +134,17 @@ def errors(rows, row):
     return np.array([np.inf if r.get(f"pose_{row}_m") is None else float(r[f"pose_{row}_m"]) for r in rows])
 
 
-def feature_names(rows_sets, row):
-    """Features present (key in every row, not all None) in every row set."""
+def cache_features(cache):
+    """(key, transform) of the frame statistics a certainty cache holds, in its own order (meta.frame_keys /
+    frame_log of scripts/certainty_cache_vigor.py): the head's frame stream and the logistic then see the same."""
+    m = cache["meta"]
+    return [(str(k), "log" if lg else None) for k, lg in zip(m["frame_keys"], m["frame_log"])]
+
+
+def feature_names(rows_sets, row, features=FEATURES):
+    """Features (of `features`, default FEATURES) present (key in every row, not all None) in every row set."""
     names = []
-    for key, tr in FEATURES:
+    for key, tr in features:
         k = key.format(row=row)
         if all(rows and all(k in r for r in rows) and any(r[k] is not None for r in rows) for rows in rows_sets):
             names.append((k, tr))
@@ -352,11 +370,18 @@ def main(argv=None):
                          "fitted on the same frames the heads trained on")
     ap.add_argument("--head", nargs="*", default=[],
                     help="pose-correctness head checkpoint(s) (train_certainty_head.py), one row each; needs --cache")
+    ap.add_argument("--val-frames", type=int, default=None,
+                    help="--fit-cache: the LAST N frames of the fit cache are the heads' validation frames and are "
+                         "left out of the isotonic / logistic fit (default cfg.certainty_head.val_frames, the "
+                         "trainer's rule); every --head must have been validated on exactly those frames")
     ap.add_argument("--tag", required=True)
     ap.add_argument("--out", default="", help="output folder (default: the folder of --eval-json / --cache)")
     ap.add_argument("--row", default="peak", help="which pose row is scored: pose_<row>_m / inliers_<row>")
     a = ap.parse_args(argv)
-    cfg = C.load(a.config).certainty
+    cfg_all = C.load(a.config)
+    cfg = cfg_all.certainty
+    if a.val_frames is None:                     # the trainer's fallback (the VIGOR configs predate the block)
+        a.val_frames = int((getattr(cfg_all, "certainty_head", None) or C.load().certainty_head).val_frames)
     cfg.targets_m = [float(t) for t in cfg.targets_m]
     cfg.rank_target_m = float(cfg.rank_target_m)
     if cfg.rank_target_m not in cfg.targets_m:
@@ -367,7 +392,8 @@ def main(argv=None):
         sys.exit("give at most one of --calib-json and --fit-cache")
     if a.head and not a.cache:
         sys.exit("--head needs the test frames as a cache (--cache): the heads read the maps and token rows")
-    test_arrays = fit_arrays = None
+    test_arrays = fit_arrays = val_ids = None
+    features = FEATURES
     if a.cache:
         from bevloc.model.certainty_head import CacheArrays, load_cache
         cache_t = load_cache(a.cache)
@@ -375,6 +401,7 @@ def main(argv=None):
             sys.exit("a certainty cache holds the peak row's statistics only (--row peak)")
         test, tmeta = rows_from_cache(cache_t)
         test_arrays = CacheArrays(cache_t)
+        features = cache_features(cache_t)
         if tmeta.get("draw") != "test":
             print(f"WARNING: --cache {a.cache} is a {tmeta.get('draw')!r} draw, not the test draw", flush=True)
     else:
@@ -396,15 +423,23 @@ def main(argv=None):
         if shared:
             sys.exit(f"{len(shared)} frames are in both the calibration and the test json: never fit and test on the "
                      f"same frames")
-        names = feature_names([calib, test], a.row)
+        if a.fit_cache:
+            # the trainer's split: the last --val-frames frames are the heads' validation frames (early stopping,
+            # temperature); the calibrators are fitted on the heads' training frames only (like for like)
+            if not 0 < int(a.val_frames) < len(calib):
+                sys.exit(f"--val-frames {a.val_frames} must leave fit frames: the fit cache holds {len(calib)}")
+            val_ids = [r["id"] for r in calib[len(calib) - int(a.val_frames):]]
+            calib = calib[:len(calib) - int(a.val_frames)]
+        names = feature_names([calib, test], a.row, features)
         pred = pool([run_split(calib, test, names, a.row, cfg, int(cfg.seed))], [np.arange(len(test))], len(test))
-        protocol = dict(mode="calib->test", calib_json=calib_src, n_calib=len(calib), calib_meta=cmeta)
+        protocol = dict(mode="calib->test", calib_json=calib_src, n_calib=len(calib), calib_meta=cmeta,
+                        **({"val_frames_left_out": len(val_ids)} if val_ids is not None else {}))
         if sorted(cmeta.get("cities") or []) != sorted(tmeta.get("cities") or []) or cmeta.get("split") != tmeta.get("split"):
             protocol["warning"] = (f"calibration cities/split {cmeta.get('cities')}/{cmeta.get('split')} differ from "
                                    f"the test's {tmeta.get('cities')}/{tmeta.get('split')}: the conformal guarantee "
                                    f"does not apply")
     else:
-        names = feature_names([test], a.row)
+        names = feature_names([test], a.row, features)
         perm = np.random.default_rng(int(cfg.seed)).permutation(len(test))
         folds = np.array_split(perm, int(cfg.folds))
         parts, idx_list = [], []
@@ -416,7 +451,7 @@ def main(argv=None):
         pred = pool(parts, idx_list, len(test))
         protocol = dict(mode=f"{int(cfg.folds)}-fold out-of-fold on the test json (by frame)")
     if a.head:
-        pred.update(head_predictions(a.head, test_arrays, fit_arrays, err, cfg))
+        pred.update(head_predictions(a.head, test_arrays, fit_arrays, val_ids, err, cfg))
         protocol["heads"] = list(a.head)
     print(f"test {a.eval_json or a.cache}: {len(test)} frames, {int(np.isinf(err).sum())} without a pose; protocol: "
           f"{protocol['mode']}; features {[k for k, _ in names]}; models {list(pred)}", flush=True)

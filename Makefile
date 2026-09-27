@@ -195,8 +195,8 @@ LOFTR_OUT ?= experiments/10_loc2_matcher
 loftr-fine: ## second-pass sanity check: coarse CKPT (CONFIG=configs/vigor_cell0125.yaml) + kornia LoFTR outdoor on the 56 m / 0.0625 m/px window around the coarse pose; SPLIT=, TAG=, LIMIT=, LOFTR_OUT= (default experiments/10_loc2_matcher; experiments/09_vigor for non-Task-04 checkpoints), VIGOR_ARGS="--cities Chicago --solver se2 [--loftr-weights PATH]"
 	$(RUN) scripts/loftr_fine_vigor.py --config $(CONFIG) --ckpt $(CKPT) --split $(SPLIT) --tag $(TAG) --limit $(LIMIT) --out $(LOFTR_OUT) $(VIGOR_ARGS)
 
-vigor-certainty: ## calibrated per-frame confidence: EVAL_JSON= (test draw) or CACHE= (test certainty cache), CALIB_JSON= (eval_vigor.py --calib frames) or FIT_CACHE= (calib certainty cache; neither = 5-fold on the test frames), HEADS="a.pt b.pt" (pose-correctness heads, needs CACHE=), TAG=, OUT= (default: the test file's folder)
-	$(RUN) scripts/certainty_vigor.py $(if $(CACHE),--cache $(CACHE),--eval-json $(EVAL_JSON)) $(if $(CALIB_JSON),--calib-json $(CALIB_JSON),) $(if $(FIT_CACHE),--fit-cache $(FIT_CACHE),) $(if $(HEADS),--head $(HEADS),) --tag $(TAG) $(if $(OUT),--out $(OUT),)
+vigor-certainty: ## calibrated per-frame confidence: EVAL_JSON= (test draw) or CACHE= (test certainty cache), CALIB_JSON= (eval_vigor.py --calib frames) or FIT_CACHE= (calib certainty cache, its last VAL_FRAMES= frames (default certainty_head.val_frames) left out of the fit as the heads' validation frames; neither = 5-fold on the test frames), HEADS="a.pt b.pt" (pose-correctness heads, needs CACHE=), TAG=, OUT= (default: the test file's folder)
+	$(RUN) scripts/certainty_vigor.py $(if $(CACHE),--cache $(CACHE),--eval-json $(EVAL_JSON)) $(if $(CALIB_JSON),--calib-json $(CALIB_JSON),) $(if $(FIT_CACHE),--fit-cache $(FIT_CACHE),) $(if $(VAL_FRAMES),--val-frames $(VAL_FRAMES),) $(if $(HEADS),--head $(HEADS),) --tag $(TAG) $(if $(OUT),--out $(OUT),)
 
 DRAW ?= calib
 

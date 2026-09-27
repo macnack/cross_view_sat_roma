@@ -361,24 +361,41 @@ def test_train_script_smoke_and_head_rows_in_certainty_vigor(caches):
     assert Path(pt_f).name == "certainty_head_t_frame.pt"
     with pytest.raises(SystemExit, match="not 'calib'"):                # never train on the test draw
         TR.main(["--cache", str(caches["test"]), "--tag", "x", "--out", str(tmp), "--epochs", "1", "--val-frames", "1"])
-    # certainty_vigor: the heads next to the isotonic / logistic rows, fitted on the same calibration cache
-    res = CV.main(["--cache", str(caches["test"]), "--fit-cache", str(caches["calib"]), "--head", str(pt), str(pt_f),
-                   "--tag", "h", "--out", str(tmp)])
+    # certainty_vigor: the heads next to the isotonic / logistic rows, which are fitted on the heads' TRAINING frames
+    # (the last --val-frames of the fit cache, the heads' validation frames, are left out and are their conformal half)
+    res = CV.main(["--cache", str(caches["test"]), "--fit-cache", str(caches["calib"]), "--val-frames", "1",
+                   "--head", str(pt), str(pt_f), "--tag", "h", "--out", str(tmp)])
     names = list(res["models"])
     assert names[:2] == ["inlier_isotonic", "logistic"] and "head:t_map-tokens-frame" in names and "head:t_frame" in names
     hd = res["models"]["head:t_map-tokens-frame"]["5.0"]
     assert 0 <= hd["ece"] <= 1 and hd["conformal"] is not None and hd["conformal"]["n_cal"] == 1
     assert res["abstention"]["head:t_frame"]["at90"]["n"] == 4
-    assert res["meta"]["protocol"]["mode"] == "calib->test" and res["meta"]["protocol"]["n_calib"] == 4
+    assert res["meta"]["protocol"]["mode"] == "calib->test" and res["meta"]["protocol"]["n_calib"] == 3
+    assert res["meta"]["protocol"]["val_frames_left_out"] == 1
     assert (tmp / "certainty_h.json").is_file() and (tmp / "certainty_h.png").is_file()
     assert "head:t_frame" in res["gate"]
-    # without a fit cache the head has no conformal half; a head needs the cache; a test-draw fit cache is refused
+    # the cache path scores the cache header's 19 statistics (the frame stream's), the eval-json path FEATURES: the
+    # reported logistic rows (2026-09-26) re-run with their own feature set
+    feats = [f["key"] for f in res["meta"]["features"]]
+    keys = pickle.load(open(caches["test"], "rb"))["meta"]["frame_keys"]
+    assert set(feats) < set(keys) and "vote_offtile_mass" in feats and "spread_hyp_m" not in feats
+    assert set(keys) - set(feats) == {"placed_depth_m"}                # None on a picture query: not a feature
+    assert "vote_offtile_mass" not in {k for k, _ in CV.FEATURES} and "spread_hyp_m" in {k for k, _ in CV.FEATURES}
+    # without a fit cache the head has no conformal half; a head needs the cache; a test-draw fit cache is refused; a
+    # head validated on other frames than the left-out ones is refused (its conformal half would overlap the fit)
     res = CV.main(["--cache", str(caches["test"]), "--head", str(pt), "--tag", "h2", "--out", str(tmp)])
     assert res["models"]["head:t_map-tokens-frame"]["5.0"]["conformal"] is None and res["meta"]["protocol"]["mode"].startswith("5-fold")
     with pytest.raises(SystemExit, match="needs the test frames as a cache"):
         CV.main(["--eval-json", "x.json", "--head", str(pt), "--tag", "h3", "--out", str(tmp)])
     with pytest.raises(SystemExit, match="held-out training frames only"):
-        CV.main(["--cache", str(caches["test"]), "--fit-cache", str(caches["test"]), "--tag", "h4", "--out", str(tmp)])
+        CV.main(["--cache", str(caches["test"]), "--fit-cache", str(caches["test"]), "--val-frames", "1", "--tag", "h4",
+                 "--out", str(tmp)])
+    with pytest.raises(SystemExit, match="not the last 2 frames"):
+        CV.main(["--cache", str(caches["test"]), "--fit-cache", str(caches["calib"]), "--val-frames", "2",
+                 "--head", str(pt), "--tag", "h5", "--out", str(tmp)])
+    with pytest.raises(SystemExit, match="must leave fit frames"):
+        CV.main(["--cache", str(caches["test"]), "--fit-cache", str(caches["calib"]), "--val-frames", "4", "--tag", "h6",
+                 "--out", str(tmp)])
 
 
 def test_per_city_auroc_is_reported_when_the_test_frames_span_cities():

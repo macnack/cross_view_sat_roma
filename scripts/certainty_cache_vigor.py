@@ -354,7 +354,9 @@ def build_parser():
     ap.add_argument("--calib-limit", type=int, default=None,
                     help="calibration frames (first N after the skip; default consensus_sweep.calib_limit)")
     ap.add_argument("--train-cities", nargs="*", default=None,
-                    help="with --assume-train-split: the checkpoint's training cities (default: the split's)")
+                    help="with --assume-train-split: the checkpoint's training cities IN THE ORDER of the training "
+                         "run's --cities (the held-out permutation is over the concatenated city lists; calib_split "
+                         "checks the set only); default: the split's")
     ap.add_argument("--cache-dir", default=None, help="default <out>/cert_cache (git-ignored)")
     ap.add_argument("--gate-frames", type=int, default=0,
                     help="reproduction gate on the first N frames (0 = every frame): eval_vigor.score re-decodes them")
