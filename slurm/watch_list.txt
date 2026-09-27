@@ -91,3 +91,10 @@
 8794472 cert_test  ^([0-9]+ samples|[A-Za-z]+ +n +[0-9]+|.*hyp|wrote |Traceback|.*Error|\[run\] exit)
 8794473 cert_calib ^([0-9]+ samples|calib|[A-Za-z]+ +n +[0-9]+|wrote |Traceback|.*Error|\[run\] exit)
 8794474 cert_fit   ^(AUROC|coverage|gate|wrote |Traceback|.*Error|\[run\] exit)
+# --- second pass at the paper budget: four-city and cross-area fine decoders; four-city coarse + Chicago fine ---
+8807290 fine2p_4city_chi_fineChi ^([A-Za-z]+ +n +[0-9]+|.*fine|wrote |Traceback|.*Error|\[run\] exit)
+8807291 fine00625_erpd_4city ^(train |window|step [0-9]*[05]000 VAL|wrote|Traceback|.*Error|error:|Killed|OOM|\[run\] exit)
+8807292 fine2p_4city_chi ^([A-Za-z]+ +n +[0-9]+|.*fine|wrote |Traceback|.*Error|\[run\] exit)
+8807293 fine2p_4city_all ^([A-Za-z]+ +n +[0-9]+|.*fine|wrote |Traceback|.*Error|\[run\] exit)
+8807294 fine00625_erpd_cross ^(train |window|step [0-9]*[05]000 VAL|wrote|Traceback|.*Error|error:|Killed|OOM|\[run\] exit)
+8807295 fine2p_cross ^([A-Za-z]+ +n +[0-9]+|.*fine|wrote |Traceback|.*Error|\[run\] exit)

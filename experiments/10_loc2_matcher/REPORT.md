@@ -5,6 +5,14 @@ Every row is scored on the same sample draw per split (seed 0: 3000 Chicago same
 
 | Method | Median (95 % CI) | Mean | ≤ 5 m | ≤ 10 m | n |
 |---|---|---|---|---|---|
+| Task 04 erp_depth, 2 m, trained refiner (last finite) | 1.74 m (1.67–1.82) | 3.91 m | 82 % | 89 % | 3000 |
+| Task 04 erp_depth, 2 m, trained refiner (last finite), refined_coarse | 1.72 m (1.64–1.79) | 3.83 m | 82 % | 90 % | 3000 |
+| Task 04 erp_depth, 2 m, trained refiner (last finite), refined_none | 1.73 m (1.64–1.81) | 3.81 m | 82 % | 90 % | 3000 |
+| Task 04 erp_depth, 2 m, trained refiner (last finite), refined_ransac | 1.73 m (1.65–1.81) | 3.88 m | 83 % | 89 % | 3000 |
+| Task 04 erp_depth, 2 m, trained refiner (last) | 1.74 m (1.67–1.82) | 3.91 m | 82 % | 89 % | 3000 |
+| Task 04 erp_depth, 2 m, trained refiner (last), refined_coarse | 1.72 m (1.64–1.79) | 3.83 m | 82 % | 90 % | 3000 |
+| Task 04 erp_depth, 2 m, trained refiner (last), refined_none | 1.73 m (1.64–1.81) | 3.81 m | 82 % | 90 % | 3000 |
+| Task 04 erp_depth, 2 m, trained refiner (last), refined_ransac | 1.73 m (1.65–1.81) | 3.88 m | 83 % | 89 % | 3000 |
 | vigor_chicago_same_30k_erp_depth_cell0125_last_se2_ref16 | 1.76 m (1.68–1.84) | 4.16 m | 82 % | 88 % | 3000 |
 | vigor_chicago_same_30k_erp_depth_cell0125_last_se2_ref16, refined_coarse | 3.27 m (3.18–3.38) | 5.13 m | 75 % | 88 % | 3000 |
 | vigor_chicago_same_30k_erp_depth_cell0125_last_se2_ref16, refined_none | 10.92 m (10.58–11.25) | 12.25 m | 19 % | 45 % | 3000 |
@@ -18,13 +26,24 @@ Every row is scored on the same sample draw per split (seed 0: 3000 Chicago same
 | vigor_chicago_same_30k_erp_depth_cell0125_last_se2_ref8, refined_none | 10.98 m (10.64–11.42) | 12.33 m | 18 % | 45 % | 3000 |
 | vigor_chicago_same_30k_erp_depth_cell0125_last_se2_ref8, refined_ransac | 3.32 m (3.22–3.42) | 5.17 m | 75 % | 88 % | 3000 |
 | Task 04 erp_depth + head + heat-map loss, 2 m cells, 30k, last, se2 | 1.76 m (1.68–1.84) | 4.16 m | 82 % | 88 % | 3000 |
-| vigor_chicago_same_30k_erp_depth_cell0125_last_se2_stats | 1.76 m (1.68–1.84) | 4.16 m | 82 % | 88 % | 3000 |
-| vigor_chicago_same_30k_erp_depth_cell0125_last_se2_stats, medoid of the bootstrap RANSAC hypotheses | 1.76 m (1.70–1.84) | 4.16 m | 82 % | 88 % | 3000 |
+| Task 04 erp_depth, 2 m, last, se2 (with statistics, hyp 8) | 1.76 m (1.68–1.84) | 4.16 m | 82 % | 88 % | 3000 |
+| Task 04 erp_depth, 2 m, last, se2 (with statistics, hyp 8), medoid of the bootstrap RANSAC hypotheses | 1.76 m (1.70–1.84) | 4.16 m | 82 % | 88 % | 3000 |
+| Two-pass, Task 04 erp_depth: 2 m coarse + 1 m fine window | 1.76 m (1.68–1.84) | 4.16 m | 82 % | 88 % | 3000 |
+| Two-pass, Task 04 erp_depth: 2 m coarse + 1 m fine window, fine | 1.20 m (1.16–1.26) | 3.69 m | 83 % | 89 % | 3000 |
+| Two-pass, Task 04 erp_depth: 2 m coarse + 1 m fine window, fine_gated | 1.20 m (1.16–1.26) | 3.70 m | 83 % | 89 % | 3000 |
+| Task 04 erp_depth, four-city, 2 m cells, last, se2 | 1.77 m (1.70–1.82) | 3.68 m | 84 % | 91 % | 3000 |
+| Task 04 erp_depth, four-city, 2 m cells, best, se2 | 1.80 m (1.74–1.86) | 3.87 m | 83 % | 90 % | 3000 |
 | Task 04 erp_depth + head + heat-map loss, 2 m cells, 30k, best, homography | 1.83 m (1.77–1.89) | 4.17 m | 81 % | 88 % | 3000 |
 | Task 04 erp_depth + head + heat-map loss, 2 m cells, 30k, best, se2 | 1.84 m (1.77–1.90) | 4.11 m | 82 % | 88 % | 3000 |
-| vigor_chicago_same_30k_cell0125_loftr_fine00625_se2 | 1.86 m (1.79–1.94) | 5.20 m | 74 % | 82 % | 3000 |
-| vigor_chicago_same_30k_cell0125_loftr_fine00625_se2, fine | 7.63 m (6.91–8.27) | 11.18 m | 43 % | 57 % | 3000 |
-| vigor_chicago_same_30k_cell0125_loftr_fine00625_se2, fine_gated | 2.16 m (2.05–2.28) | 5.40 m | 72 % | 82 % | 3000 |
+| Two-pass, picture coarse + LoFTR fine (sanity) | 1.86 m (1.79–1.94) | 5.20 m | 74 % | 82 % | 3000 |
+| Two-pass, picture coarse + LoFTR fine (sanity), fine | 7.63 m (6.91–8.27) | 11.18 m | 43 % | 57 % | 3000 |
+| Two-pass, picture coarse + LoFTR fine (sanity), fine_gated | 2.16 m (2.05–2.28) | 5.40 m | 72 % | 82 % | 3000 |
+| Two-pass, picture: 2 m coarse + 1 m fine window | 1.86 m (1.79–1.94) | 5.20 m | 74 % | 82 % | 3000 |
+| Two-pass, picture: 2 m coarse + 1 m fine window, fine | 1.47 m (1.39–1.56) | 4.99 m | 72 % | 83 % | 3000 |
+| Two-pass, picture: 2 m coarse + 1 m fine window, fine_gated | 1.47 m (1.39–1.56) | 5.00 m | 72 % | 83 % | 3000 |
+| Task 04 erp_depth, 112x56 tokens, 2 m, best, se2 | 1.91 m (1.84–1.98) | 4.27 m | 81 % | 88 % | 3000 |
+| Task 04 erp_depth, 112x56 tokens, 2 m, last, se2 | 1.92 m (1.85–2.00) | 4.27 m | 80 % | 88 % | 3000 |
+| Task 04 erp_depth, four-city, 2 m cells, last, se2 (all cities) | 2.05 m (2.01–2.08) | 3.69 m | 84 % | 92 % | 12000 |
 | Task 04 erp_depth + head + heat-map loss, 30k, best, se2 | 2.79 m (2.68–2.89) | 4.68 m | 75 % | 89 % | 3000 |
 | Task 04 erp_depth + head + heat-map loss, 30k, last, se2 | 2.83 m (2.76–2.94) | 4.69 m | 75 % | 89 % | 3000 |
 | Task 04 erp_depth + head + heat-map loss, 30k, best, homography | 2.84 m (2.73–2.95) | 5.12 m | 75 % | 89 % | 3000 |
@@ -36,4 +55,31 @@ Every row is scored on the same sample draw per split (seed 0: 3000 Chicago same
 | Task 04 erp_depth, no head, heat-map loss, 30k, last, se2 | 4.27 m (4.14–4.51) | 7.16 m | 56 % | 78 % | 3000 |
 | Task 04 erp_depth, no head, heat-map loss, 30k, best, se2 | 4.39 m (4.19–4.61) | 7.26 m | 55 % | 78 % | 3000 |
 
-Centre-guess chance (predict the tile centre): median 14.30 m.
+Centre-guess chance (predict the tile centre): median 14.26, 14.30 m.
+
+### Per city
+
+| Method | City | Median (95 % CI) | Mean | ≤ 5 m | ≤ 10 m | n |
+|---|---|---|---|---|---|---|
+| Task 04 erp_depth, four-city, 2 m cells, last, se2 (all cities) | Chicago | 1.79 m (1.74–1.87) | 3.70 m | 84 % | 91 % | 2944 |
+| Task 04 erp_depth, four-city, 2 m cells, last, se2 (all cities) | NewYork | 3.11 m (3.01–3.19) | 4.87 m | 72 % | 90 % | 3140 |
+| Task 04 erp_depth, four-city, 2 m cells, last, se2 (all cities) | SanFrancisco | 1.79 m (1.75–1.86) | 3.08 m | 89 % | 94 % | 3198 |
+| Task 04 erp_depth, four-city, 2 m cells, last, se2 (all cities) | Seattle | 1.83 m (1.78–1.90) | 3.03 m | 90 % | 94 % | 2718 |
+
+## Cross-area (train New York + Seattle, test San Francisco + Chicago)
+
+| Method | Median (95 % CI) | Mean | ≤ 5 m | ≤ 10 m | n |
+|---|---|---|---|---|---|
+| Task 04 erp_depth, NY + Seattle, 2 m cells, last, se2 | 2.50 m (2.45–2.55) | 4.19 m | 82 % | 91 % | 6000 |
+| Task 04 erp_depth, NY + Seattle, 2 m cells, best, se2 | 2.54 m (2.49–2.59) | 4.18 m | 82 % | 91 % | 6000 |
+
+Centre-guess chance (predict the tile centre): median 14.85 m.
+
+### Per city
+
+| Method | City | Median (95 % CI) | Mean | ≤ 5 m | ≤ 10 m | n |
+|---|---|---|---|---|---|---|
+| Task 04 erp_depth, NY + Seattle, 2 m cells, best, se2 | Chicago | 2.39 m (2.30–2.47) | 4.40 m | 80 % | 88 % | 2861 |
+| Task 04 erp_depth, NY + Seattle, 2 m cells, best, se2 | SanFrancisco | 2.65 m (2.59–2.71) | 3.99 m | 83 % | 93 % | 3139 |
+| Task 04 erp_depth, NY + Seattle, 2 m cells, last, se2 | Chicago | 2.34 m (2.27–2.41) | 4.44 m | 80 % | 89 % | 2861 |
+| Task 04 erp_depth, NY + Seattle, 2 m cells, last, se2 | SanFrancisco | 2.62 m (2.56–2.69) | 3.96 m | 85 % | 93 % | 3139 |
