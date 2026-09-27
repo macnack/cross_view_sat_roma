@@ -102,3 +102,4 @@
 8808369 sweep_erpd4 ^(cache |checkpoint |fine checkpoint |\[coarse\]|\[fine\]|re-caching|wrote |Traceback|.*Error|\[run\] exit)
 8808370 sweep_pic4  ^(cache |checkpoint |fine checkpoint |\[coarse\]|\[fine\]|re-caching|wrote |Traceback|.*Error|\[run\] exit)
 8808371 sweep_fine  ^(cache |checkpoint |fine checkpoint |\[coarse\]|\[fine\]|re-caching|wrote |Traceback|.*Error|\[run\] exit)
+8809032 sweep_fine_veto ^(\[fine\]|wrote |Traceback|.*Error|\[run\] exit)
