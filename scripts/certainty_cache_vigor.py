@@ -3,6 +3,9 @@
   make vigor-cert-cache CKPT=... CONFIG=configs/vigor_cell0125.yaml SPLIT=samearea DRAW=calib TAG=erpd4city \
        CALIB_LIMIT=8000 VIGOR_ARGS="--solver se2 --assume-train-split --val-samples 400 --train-cities Chicago NewYork SanFrancisco Seattle"
   make vigor-cert-cache CKPT=... CONFIG=... SPLIT=samearea DRAW=test CITIES=Chicago LIMIT=3000 TAG=erpd4city VIGOR_ARGS="--solver se2"
+  make vigor-cert-cache CKPT=... CONFIG=... SPLIT=samearea DRAW=test LIMIT=12000 TAG=erpd4city VIGOR_ARGS="--solver se2"
+       (all cities: leave CITIES unset; the seed-0 draw is over the concatenated city lists, so the tables' 12000-sample
+       rows, drawn in the split's default order NewYork Seattle SanFrancisco Chicago, are reproduced only in that order)
 
 One pass of the frozen matcher (checkpoint, config, solver and consensus exactly as eval_vigor.py's default path: the
 peak and means rows, the task-06 statistics of the peak row) over one draw:

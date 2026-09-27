@@ -266,6 +266,12 @@ def test_calib_draw_uses_the_heldout_rule_and_is_disjoint_from_the_test_draw(cac
         t = pickle.load(f)
     assert not set(m["ids"]) & set(t["meta"]["ids"])
     assert m["consensus"]["solver"] == "se2" and m["consensus_means"]["target"] == "means"
+    # the cache keeps calib_split's order (the seed-0 permutation of the train list), so the trainer's "last
+    # val_frames frames" is a random-like slice of the held-out frames, not the tail of one city's list
+    from bevloc.data.vigor import read_labels
+    labels = read_labels(caches["root"], ["Chicago"], "samearea", True)
+    held = np.random.default_rng(0).permutation(len(labels))[16:]
+    assert m["ids"] == [f"Chicago/{labels[i]['pano']}" for i in held] and list(held) != sorted(held)
 
 
 def test_gate_stops_the_script_on_a_mismatch(caches, monkeypatch):
