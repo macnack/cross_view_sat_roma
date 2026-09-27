@@ -1,6 +1,6 @@
 # Task 06 — A certainty that means something
 
-**Status (27 Sep 2026):** steps 1–3 implemented, reviewed and run (results below); step 4 (pose-correctness head) designed below and delegated for implementation on the four-city Task 04 checkpoint. Written from the measured VIGOR rows
+**Status (27 Sep 2026):** steps 1–4 implemented, reviewed and run (results below). Step 4's verdict: the head does not beat the calibrated logistic; the confidently-wrong frames are not separable from the matcher's own evidence. Certainty of record: the logistic on the 19 statistics (or the token-stream head, equal within noise). Written from the measured VIGOR rows
 (experiments/09_vigor, 10_loc2_matcher) and the papers in docs/related.
 
 ## The question
@@ -152,3 +152,38 @@ separable from the matcher's own evidence, and the certainty work stops at step 
 filter).
 
 **Not in scope.** Training the head jointly with the matcher (moving labels); the fine pass; Poznań routes.
+
+### Step 4 results (27 Sep 2026, four-city Task 04 matcher, Chicago 3000 draw; all-cities draw pending 8809952)
+
+Caches: 8000 held-out four-city training frames (`cert_cache/erpd4city_calib.pkl`, gate 0 mismatches, median 1.79 m,
+5.2 % > 10 m), Chicago test 3000 (`erpd4city_chi3000_test.pkl`, 0 mismatches, 1.77 m / 9.1 % — the reported row). Heads
+trained on the first 7000, validated on the last 1000 (early stop, temperature); the logistic and isotonic rows are fitted
+on the same 7000. Files: `certainty_erpd4city_head_chi3000.{json,png}`, `certainty_head_erpd4city_*.{pt,json}`; jobs
+8809944–8809951.
+
+| Score (Chicago 3000) | AUROC < 2 m | AUROC < 5 m | AUROC < 10 m | AP < 5 m | ECE | median @90 % | > 10 m @90 % | median @80 % | > 10 m @80 % | conformal cov. |
+|---|---|---|---|---|---|---|---|---|---|---|
+| inlier ratio, isotonic | 0.676 | 0.814 | 0.840 | 0.947 | 0.022 | 1.65 m | 5.4 % | 1.59 m | 3.5 % | 0.882 |
+| logistic, 19 statistics | 0.786 | 0.918 | 0.927 | 0.984 | 0.023 | 1.63 m | 4.7 % | 1.53 m | 2.4 % | 0.885 |
+| head, map + tokens + frame (87 K) | 0.786 | 0.919 | 0.927 | 0.984 | 0.024 | 1.64 m | 4.5 % | 1.52 m | 2.1 % | 0.895 |
+| head, map stream only (65 K) | 0.771 | 0.914 | 0.924 | 0.983 | 0.024 | 1.64 m | 4.5 % | 1.54 m | 2.0 % | 0.895 |
+| head, token stream only (18 K) | 0.787 | 0.919 | 0.927 | 0.984 | 0.021 | 1.63 m | 4.3 % | 1.52 m | 2.2 % | 0.892 |
+| head, frame stream only (5 K) | 0.785 | 0.913 | 0.915 | 0.982 | 0.028 | 1.64 m | 4.6 % | 1.53 m | 2.2 % | 0.890 |
+| oracle | | | | | | 1.61 m | 0.0 % | 1.44 m | 0.0 % | |
+
+Gates. Pipeline: the frame-only head is within 0.005 AUROC of the logistic — passed. Result: AUROC(< 5 m) 0.919 vs the
+0.92 line and 4.5 % gross at 90 % coverage (≤ 5 %): formally at the line, but **every row including the logistic passes
+the same gates**, and the head's gain over the logistic is 0.001 AUROC and 0.2 % gross — far inside the sampling noise of
+a 3000-frame draw with 273 gross misses (AUROC standard error ≈ 0.01). Rows differ from the step 1–3 table because the
+matcher and the calibration set changed: the four-city Task 04 checkpoint has a lighter tail (9.1 % vs 11.6 % gross) and
+the calibrators see 7000 four-city frames instead of 1000 Chicago ones; the univariate AUROCs moved accordingly
+(ego_mass_2cells 0.888 → 0.918, inlier ratio 0.804 → 0.814).
+
+Reading. Three heads with different inputs (vote-map images, per-token evidence, 19 scalars) converge on the same
+ranking as a logistic on the scalars: the information about pose correctness that the matcher's own output carries is
+already captured by the vote-map statistics, and the remaining 4.5 % gross misses at 90 % coverage are frames whose
+evidence looks like a correct frame's — sharp, consistent, well-supported votes at a repeated street pattern. No head on
+the matcher's output can separate them; that would need evidence the matcher does not produce (a second reference year,
+a route prior, or a verification pass at a finer scale). Decision: the certainty of record is the calibrated logistic
+(cheapest, no training, same numbers); the token-stream head is kept as the trained alternative for the filter. The
+certainty line stops here; the all-cities row (8809952) is recorded when it lands for completeness.
