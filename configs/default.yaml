@@ -144,6 +144,22 @@ certainty:                        # scripts/certainty_vigor.py (task 06): calibr
   stats_radius_cells: 2.0         # vote_mass_2cells / ego_mass_2cells: mass within this many cells of the pose
   ref_cell_min_frac: 0.5          # a reference cell is valid (on the tile) when this fraction of its px is non-black
 
+consensus_sweep:                  # scripts/sweep_consensus_vigor.py (make vigor-sweep); the VIGOR configs fall back to this block
+  cache_thr: 0.004                # mode threshold of the cache = the loosest one that can be swept
+  calib_limit: 1000               # calibration frames (held-out training frames after the checkpoint-selection ones)
+  select: median                  # calibration objective: median | mean (ties broken by the other)
+  joint_top: 3                    # joint grid over this many most sensitive factors of the one-factor-at-a-time pass
+  gross_m: 10.0                   # gross miss: error > this or no pose
+  n_boot: 1000                    # bootstrap resamples (median CI, paired chosen-vs-default interval)
+  grid:                           # values per factor; the one-factor pass varies each around the current default
+    reproj_cells: [0.5, 0.75, 1.0, 1.5, 2.0, 3.0]
+    target: [peak, means]
+    max_modes: [1, 2, 3, 5, 0]    # 0 = all modes of a token
+    mode_thr: [0.004, 0.008, 0.016, 0.03, 0.06]   # package fixed_threshold on the blurred categorical (default 0.008)
+    cert: ["off", weight, filter]
+    solver: [se2, sim, srt]
+    ransac: [default, 4x]         # 4x = four times max_iters and confidence 1 - (1 - 0.995)^4
+
 erp_query:                        # ERP-token query, placement after matching (task 03, Task 6)
   max_range_m: 40.0               # ground tokens beyond this are not placed (IPM too coarse there)
 

@@ -28,8 +28,10 @@ def _H(theta, t):
     return np.array([[c, -s, t[0]], [s, c, t[1]], [0.0, 0.0, 1.0]])
 
 
-def se2_ransac(a, b, thresh, n_iter=500, seed=0, min_inliers=4):
-    """2-point RANSAC for a rigid transform a -> b. Returns (H 3x3 or None, inlier mask (N,))."""
+def se2_ransac(a, b, thresh, n_iter=500, seed=0, min_inliers=4, weights=None):
+    """2-point RANSAC for a rigid transform a -> b. Returns (H 3x3 or None, inlier mask (N,)).
+    weights (N,) >= 0: sample the 2-point sets with probability proportional to them (the score stays the inlier
+    count); None = uniform, the original draw sequence."""
     a, b = np.asarray(a, float).reshape(-1, 2), np.asarray(b, float).reshape(-1, 2)
     N = len(a)
     best, best_inl = None, np.zeros(N, bool)
@@ -37,8 +39,14 @@ def se2_ransac(a, b, thresh, n_iter=500, seed=0, min_inliers=4):
         return None, best_inl
     rng = np.random.default_rng(seed)
     ah = np.c_[a, np.ones(N)]
+    p = None
+    if weights is not None:
+        w = np.asarray(weights, float).reshape(N)
+        ok = np.isfinite(w) & (w > 0)
+        if ok.sum() >= 2:
+            p = np.where(ok, w, 0.0) / w[ok].sum()
     for _ in range(int(n_iter)):
-        i, j = rng.choice(N, 2, replace=False)
+        i, j = rng.choice(N, 2, replace=False) if p is None else rng.choice(N, 2, replace=False, p=p)
         if np.linalg.norm(a[i] - a[j]) < 1e-9:
             continue
         theta, t = rigid_fit(a[[i, j]], b[[i, j]])

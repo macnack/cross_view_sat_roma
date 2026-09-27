@@ -8,7 +8,7 @@ FRAMES  ?= 0 1000 1600 2000
 REF     ?= 200
 RUN      = PYTHONPATH=src:.pydeps $(PY)
 
-.PHONY: fg2-vigor eagle-watch vigor-viz loc2-depth loc2-vigor vigor-report loftr-fine vigor-certainty
+.PHONY: fg2-vigor eagle-watch vigor-viz loc2-depth loc2-vigor vigor-report loftr-fine vigor-certainty vigor-sweep
 .PHONY: help deps test fetch stats mask lens viewer oxts odometry bevs mosaic smoke h1 targets overfit train calib all roma-viz mapillary mapillary-scan mapillary-sample ipm-smoke lift-overfit lift-splat lift-eval lift-splat-years lift-aug-viz lift-layers-viz lift-splat-aug lift-splat-pose-nll lift-splat-seq baselines-manifest fg2-smoke fg2-eval fg2-train bevsplat-smoke bevsplat-eval bevsplat-train baselines-report
 help:
 	@grep -E '^[a-z0-9_-]+:.*##' $(MAKEFILE_LIST) | sed -E 's/:.*## /\t/' | expand -t 12
@@ -187,6 +187,9 @@ LIMIT ?= 0
 
 vigor-eval: ## our method on VIGOR (known orientation): CKPT=, SPLIT=crossarea|samearea, TAG=, LIMIT=, VIGOR_ARGS= (sub-cell rows: "--refine 16|8|4 --refine-init none coarse ransac [--refine-gate CELLS --refine-min-cert P]"; coarse-to-fine second pass: "--fine-config configs/vigor_cell00625_fine.yaml --fine-ckpt <pt> [--fine-gate 6]"; task 06: "--hyp 8", "--calib --val-frac 0.2 [--assume-train-split --val-samples N]")
 	$(RUN) scripts/eval_vigor.py --config $(CONFIG) --ckpt $(CKPT) --split $(SPLIT) --tag $(TAG) --limit $(LIMIT) $(VIGOR_ARGS)
+
+vigor-sweep: ## consensus sweep (scripts/sweep_consensus_vigor.py): cache the decoder once per frame on the calibration draw (held-out training frames, CALIB_CITIES= default the checkpoint's, CALIB_LIMIT=1000) and the test draw (CITIES=, LIMIT=), then sweep reproj/target/max modes/mode threshold/certainty/solver/RANSAC budget, select on calib, report test; CKPT=, CONFIG=, SPLIT=, TAG=, [FINE_CONFIG= FINE_CKPT=], SWEEP="--stage sweep|cache --workers N --solvers se2 ...", VIGOR_ARGS= (e.g. "--solver se2 --val-frac 0.2")
+	$(RUN) scripts/sweep_consensus_vigor.py --config $(CONFIG) --ckpt $(CKPT) --split $(SPLIT) --tag $(TAG) --limit $(LIMIT) $(if $(CITIES),--cities $(CITIES),) $(if $(CALIB_CITIES),--calib-cities $(CALIB_CITIES),) $(if $(CALIB_LIMIT),--calib-limit $(CALIB_LIMIT),) $(if $(FINE_CKPT),--fine-config $(FINE_CONFIG) --fine-ckpt $(FINE_CKPT),) $(VIGOR_ARGS) $(SWEEP)
 
 LOFTR_OUT ?= experiments/10_loc2_matcher
 loftr-fine: ## second-pass sanity check: coarse CKPT (CONFIG=configs/vigor_cell0125.yaml) + kornia LoFTR outdoor on the 56 m / 0.0625 m/px window around the coarse pose; SPLIT=, TAG=, LIMIT=, LOFTR_OUT= (default experiments/10_loc2_matcher; experiments/09_vigor for non-Task-04 checkpoints), VIGOR_ARGS="--cities Chicago --solver se2 [--loftr-weights PATH]"
