@@ -15,3 +15,4 @@ experiments/**/*.tif
 # Claude Code linked worktrees
 .claude/worktrees/
 experiments/**/sweep_cache/
+experiments/**/cert_cache/

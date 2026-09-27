@@ -144,6 +144,22 @@ certainty:                        # scripts/certainty_vigor.py (task 06): calibr
   stats_radius_cells: 2.0         # vote_mass_2cells / ego_mass_2cells: mass within this many cells of the pose
   ref_cell_min_frac: 0.5          # a reference cell is valid (on the tile) when this fraction of its px is non-black
 
+certainty_head:                   # scripts/train_certainty_head.py (task 06 step 4, make vigor-cert-head); the VIGOR configs fall back to this block
+  streams: [map, tokens, frame]   # bevloc.model.certainty_head: map (4 x 56 x 56 conv), tokens (T x 8, attention pooling), frame (the 19 statistics)
+  lr: 1.0e-3                      # AdamW
+  weight_decay: 1.0e-4
+  batch: 256
+  epochs: 60
+  patience: 10                    # early stop: epochs without a better validation NLL at certainty.rank_target_m
+  val_frames: 1000                # the LAST val_frames frames of the calibration cache: early stopping + temperature only
+  map_channels: [32, 64, 64]      # conv(32, s2) > conv(64, s2) > conv(64, s2) > global average pool
+  token_dim: 64                   # per-token MLP 8 > 64 > 64, learned-query attention pooling
+  frame_dim: 32                   # standardised statistics > 32
+  fusion_dim: 128                 # concat > 128 > one logit per certainty.targets_m
+  dropout: 0.0                    # in the fusion layer
+  augment: true                   # random quarter turns + mirror of the maps, token azimuth shifted consistently
+  seed: 0
+
 consensus_sweep:                  # scripts/sweep_consensus_vigor.py (make vigor-sweep); the VIGOR configs fall back to this block
   cache_thr: 0.004                # mode threshold of the cache = the loosest one that can be swept
   calib_limit: 1000               # calibration frames (held-out training frames after the checkpoint-selection ones)

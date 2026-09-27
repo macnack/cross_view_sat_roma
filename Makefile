@@ -8,7 +8,7 @@ FRAMES  ?= 0 1000 1600 2000
 REF     ?= 200
 RUN      = PYTHONPATH=src:.pydeps $(PY)
 
-.PHONY: fg2-vigor eagle-watch vigor-viz loc2-depth loc2-vigor vigor-report loftr-fine vigor-certainty vigor-sweep
+.PHONY: fg2-vigor eagle-watch vigor-viz loc2-depth loc2-vigor vigor-report loftr-fine vigor-certainty vigor-sweep vigor-cert-cache vigor-cert-head
 .PHONY: help deps test fetch stats mask lens viewer oxts odometry bevs mosaic smoke h1 targets overfit train calib all roma-viz mapillary mapillary-scan mapillary-sample ipm-smoke lift-overfit lift-splat lift-eval lift-splat-years lift-aug-viz lift-layers-viz lift-splat-aug lift-splat-pose-nll lift-splat-seq baselines-manifest fg2-smoke fg2-eval fg2-train bevsplat-smoke bevsplat-eval bevsplat-train baselines-report
 help:
 	@grep -E '^[a-z0-9_-]+:.*##' $(MAKEFILE_LIST) | sed -E 's/:.*## /\t/' | expand -t 12
@@ -195,8 +195,16 @@ LOFTR_OUT ?= experiments/10_loc2_matcher
 loftr-fine: ## second-pass sanity check: coarse CKPT (CONFIG=configs/vigor_cell0125.yaml) + kornia LoFTR outdoor on the 56 m / 0.0625 m/px window around the coarse pose; SPLIT=, TAG=, LIMIT=, LOFTR_OUT= (default experiments/10_loc2_matcher; experiments/09_vigor for non-Task-04 checkpoints), VIGOR_ARGS="--cities Chicago --solver se2 [--loftr-weights PATH]"
 	$(RUN) scripts/loftr_fine_vigor.py --config $(CONFIG) --ckpt $(CKPT) --split $(SPLIT) --tag $(TAG) --limit $(LIMIT) --out $(LOFTR_OUT) $(VIGOR_ARGS)
 
-vigor-certainty: ## calibrated per-frame confidence: EVAL_JSON= (test draw), CALIB_JSON= (eval_vigor.py --calib frames; empty = 5-fold on EVAL_JSON), TAG=, OUT= (default: EVAL_JSON's folder)
-	$(RUN) scripts/certainty_vigor.py --eval-json $(EVAL_JSON) $(if $(CALIB_JSON),--calib-json $(CALIB_JSON),) --tag $(TAG) $(if $(OUT),--out $(OUT),)
+vigor-certainty: ## calibrated per-frame confidence: EVAL_JSON= (test draw) or CACHE= (test certainty cache), CALIB_JSON= (eval_vigor.py --calib frames) or FIT_CACHE= (calib certainty cache; neither = 5-fold on the test frames), HEADS="a.pt b.pt" (pose-correctness heads, needs CACHE=), TAG=, OUT= (default: the test file's folder)
+	$(RUN) scripts/certainty_vigor.py $(if $(CACHE),--cache $(CACHE),--eval-json $(EVAL_JSON)) $(if $(CALIB_JSON),--calib-json $(CALIB_JSON),) $(if $(FIT_CACHE),--fit-cache $(FIT_CACHE),) $(if $(HEADS),--head $(HEADS),) --tag $(TAG) $(if $(OUT),--out $(OUT),)
+
+DRAW ?= calib
+
+vigor-cert-cache: ## task 06 step 4: one frozen-matcher pass -> experiments/10_loc2_matcher/cert_cache/<TAG>_<DRAW>.pkl (maps, token rows, statistics, errors; gated against eval_vigor.py); CKPT=, CONFIG=, SPLIT=, DRAW=calib|test, TAG=, CALIB_LIMIT= (calib draw), CITIES= LIMIT= (test draw), VIGOR_ARGS="--solver se2 [--assume-train-split --val-samples 400 --train-cities ...] [--gate-frames 200]"
+	$(RUN) scripts/certainty_cache_vigor.py --config $(CONFIG) --ckpt $(CKPT) --split $(SPLIT) --draw $(DRAW) --tag $(TAG) --limit $(LIMIT) $(if $(CITIES),--cities $(CITIES),) $(if $(CALIB_LIMIT),--calib-limit $(CALIB_LIMIT),) $(VIGOR_ARGS)
+
+vigor-cert-head: ## task 06 step 4: train the pose-correctness head on a calib cache: CACHE=, TAG=, STREAMS="map tokens frame" (ablations: one stream), HEAD_ARGS="--epochs 60 --seed 0 --no-aug" -> experiments/10_loc2_matcher/certainty_head_<TAG>_<streams>.pt
+	$(RUN) scripts/train_certainty_head.py --config $(CONFIG) --cache $(CACHE) --tag $(TAG) $(if $(STREAMS),--streams $(STREAMS),) $(HEAD_ARGS)
 
 vigor-train: ## fine-tune CKPT on VIGOR (SPLIT=samearea|crossarea, CITIES="Chicago", STEPS=3000, TAG=); CKPT= empty + QUERY=ipm|erp|erp_depth = no warm start (erp_depth: loc2-depth TRAIN=1 first; VIGOR_ARGS="--head"; "--refine-weight 1" trains the conv refiner with RoMa's fine loss; CONFIG=configs/vigor_cell00625_fine.yaml = second-pass decoder on jittered 56 m windows)
 	$(RUN) scripts/train_vigor.py --config $(CONFIG) $(if $(CKPT),--ckpt $(CKPT),--query $(if $(QUERY),$(QUERY),ipm)) --split $(SPLIT) --tag $(TAG) $(if $(CITIES),--cities $(CITIES),) --steps $(if $(STEPS),$(STEPS),3000) $(VIGOR_ARGS)
