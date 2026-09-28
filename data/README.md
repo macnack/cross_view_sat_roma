@@ -85,11 +85,14 @@ vigor/
   wayback_tiles/metadata.json                capture metadata per (release, tile) from the metadata layer
   <City>/wayback_calibration.json            constant (dx, dy) offset VIGOR -> Wayback (make wayback-calib)
   <City>/wayback_calib_<year>/               the uncalibrated calibration windows (offset 0) and their sidecars
-  <City>/wayback_<year>/<sat_name>.png       the footprint of the VIGOR tile (640 * CITY_RES m) from the release
-                                             closest to 1 July <year>, ~0.125 m/px, north-up / east-right, calibrated
+  wayback_tiles/metadata.json                capture metadata (identify) per release and walk tile: the selection input
+  <City>/wayback_<year>/<sat_name>.png       the footprint of the VIGOR tile (640 * CITY_RES m) from the version whose
+                                             CAPTURE date is closest to 1 July <year> (`wayback.select_by`; publication
+                                             dates lag the capture by up to years), ~0.125 m/px, north-up / east-right,
+                                             calibrated
   <City>/wayback_<year>/<sat_name>.json      sidecar: release number + publication date, capture date / sensor /
-                                             resolution (metadata layer), zoom, source GSD, tiles + sha256 of their
-                                             bytes, offset applied, attribution
+                                             resolution (metadata layer), the selection rule and the dates it used,
+                                             zoom, source GSD, tiles + sha256 of their bytes, offset applied, attribution
 ```
 `vigor.ref_source: wayback_<year>` (or `eval_vigor.py --ref-source` / `--ref-sources a b`) reads these instead of the
 tile. Terms: Esri's Living Atlas imagery is free for research with the attribution **"Esri, Maxar, Earthstar

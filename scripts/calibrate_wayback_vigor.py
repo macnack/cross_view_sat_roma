@@ -5,8 +5,9 @@
 
 Google's tile centres and Esri's tiles disagree by a constant few pixels per city. On `wayback.calib_tiles` distinct
 tiles of the city (a seeded choice among the unique tiles of a 4x larger VigorPairs test-list draw, seed 0; several
-panoramas share a tile) the window of the release closest to `wayback.calib_year`
-(the VIGOR capture years, 2020-2021) is fetched UNCALIBRATED into <root>/<City>/wayback_calib_<year>/ (offset 0,
+panoramas share a tile) the window of the version whose capture date is closest to 1 July `wayback.calib_year`
+(the VIGOR capture years, 2020-2021; `wayback.select_by`, the fetcher's rule: a same-year reference means the
+closest CAPTURE, publication dates lag by years) is fetched UNCALIBRATED into <root>/<City>/wayback_calib_<year>/ (offset 0,
 sidecars as for any fetch; scripts/fetch_wayback_vigor.fetch_tile) and phase-correlated with the VIGOR tile resampled
 to the same raster (`bevloc.data.wayback.phase_correlation`, Hann window, 20x upsampled DFT, i.e. 0.05 px;
 `vigor_at_out_gsd` = VigorPairs' resampling). Per tile that gives (dx, dy): the content at VIGOR pixel (u, v) sits at
@@ -91,18 +92,20 @@ def calibrate(a, cfg, opener=None):
     client = F.make_client(a, wcfg, opener)
     releases = client.releases(root / "wayback" / "waybackconfig.json", refresh=a.refresh_releases)
     walks = F.Walks(root / "wayback_tiles" / f"tilemap_z{int(wcfg.walk_zoom)}.json", newest=releases[-1].num)
-    meta = None if a.no_metadata else F.Metadata(root / "wayback_tiles" / "metadata.json")
+    select_by = F.select_by_of(a, wcfg)
+    meta = None if (a.no_metadata and select_by != "capture") else F.Metadata(root / "wayback_tiles" / "metadata.json")
+    print(f"release selected by {select_by} date (closest to 1 July {year}; ties -> newer publication)", flush=True)
     dest = f"wayback_calib_{year}"
-    per_tile, rel_hist = [], collections.Counter()
+    per_tile, rel_hist, cap_hist, n_fallback = [], collections.Counter(), collections.Counter(), 0
     t0 = time.time()
     try:
         for k, tile in enumerate(tiles):
-            rel, _ = F.choose_release(walks, client, releases, tile, year, int(wcfg.walk_zoom))
+            rel, _, sel = F.choose_release(walks, client, releases, tile, year, int(wcfg.walk_zoom), meta, select_by)
             if rel is None:
                 per_tile.append(dict(sat=tile["sat"], status="no_data"))
                 continue
             r = F.fetch_tile(client, rel, tile, year, wcfg, root, (0.0, 0.0), dest_name=dest, metadata=meta,
-                             attribution=str(wcfg.attribution), calibration=None)
+                             attribution=str(wcfg.attribution), calibration=None, selection=sel)
             if r["status"] == "missing":
                 per_tile.append(dict(sat=tile["sat"], status="missing", release=rel.num))
                 continue
@@ -116,8 +119,10 @@ def calibrate(a, cfg, opener=None):
                 wb = cv2.resize(wb, (vg.shape[1], vg.shape[0]), interpolation=cv2.INTER_LINEAR)
             dx, dy, resp = W.phase_correlation(vg, wb, upsample=int(a.upsample))
             rel_hist[(rel.date.isoformat(), rel.num)] += 1
+            cap_hist[sel["capture_date"][:4] if sel["capture_date"] else "unknown"] += 1
+            n_fallback += int(bool(sel["fallback"]))
             per_tile.append(dict(sat=tile["sat"], status="ok", release=rel.num, release_date=rel.date.isoformat(),
-                                 dx_px=dx, dy_px=dy, response=resp))
+                                 capture_date=sel["capture_date"], dx_px=dx, dy_px=dy, response=resp))
             if (k + 1) % 25 == 0 or k + 1 == len(tiles):
                 ok = [t for t in per_tile if t["status"] == "ok"]
                 if ok:
@@ -134,6 +139,8 @@ def calibrate(a, cfg, opener=None):
                     float(wcfg.calib_min_response), float(wcfg.calib_max_dev_px), float(a.gate if a.gate is not None else wcfg.calib_gate_m))
     out = dict(city=city, year=year, split=a.split, seed=a.seed, draw_tiles=len(tiles), out_gsd_m=float(wcfg.out_gsd_m),
                releases={f"{d} (#{n})": c for (d, n), c in sorted(rel_hist.items(), reverse=True)},
+               select_by=select_by, capture_years=dict(sorted(cap_hist.items(), reverse=True)),
+               n_fallback_publication=int(n_fallback),
                method="phase correlation, Hann window, upsampled DFT (1/%d px); median over tiles; residual = median "
                       "|offset_i - median| in metres" % int(a.upsample),
                convention="content at VIGOR px (u, v) is at Wayback px (u + dx, v + dy); the fetcher samples the "
@@ -150,7 +157,8 @@ def calibrate(a, cfg, opener=None):
           f"({agg['offset_m'][0]:+.3f} m east, {agg['offset_m'][1]:+.3f} m south) over {agg['n_used']} tiles "
           f"({agg['n_low_response']} low response, {agg['n_outliers']} outliers of {agg['n']}); "
           f"residual {agg['residual_m']:.3f} m, robust sigma ({agg['robust_sigma_m'][0]:.3f}, {agg['robust_sigma_m'][1]:.3f}) m, "
-          f"SE of the median {agg['se_m']:.3f} m; releases {out['releases']}", flush=True)
+          f"SE of the median {agg['se_m']:.3f} m; releases {out['releases']}; capture years {out['capture_years']}"
+          + (f"; {n_fallback} tile(s) chosen on the publication date (no capture date)" if n_fallback else ""), flush=True)
     print(f"{city}: gate residual < {agg['gate_m']} m: {'PASS' if agg['pass'] else 'FAIL'}   wrote {path}", flush=True)
     return out
 
@@ -165,7 +173,10 @@ def build_parser():
     ap.add_argument("--seed", type=int, default=0)
     ap.add_argument("--gate", type=float, default=None, help="metres (default cfg.wayback.calib_gate_m)")
     ap.add_argument("--upsample", type=int, default=20, help="sub-pixel factor of the phase correlation")
-    ap.add_argument("--no-metadata", action="store_true")
+    ap.add_argument("--select-by", default=None, choices=W.SELECT_BY,
+                    help="the release by capture (metadata identify per version) or publication date "
+                         "(default cfg.wayback.select_by); the fetcher uses the same rule")
+    ap.add_argument("--no-metadata", action="store_true", help="publication selection only: skip the identify")
     ap.add_argument("--refresh-releases", action="store_true")
     return ap
 

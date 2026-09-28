@@ -26,8 +26,18 @@ Service facts, verified with real requests on 2026-09-28 (scripts/fetch_wayback_
 * Capture date: the release date is the PUBLICATION date. The metadata MapServer's `identify` at a point
   (`WaybackClient.metadata`) returns SRC_DATE (capture, YYYYMMDD), SRC_RES (m), SRC_ACC (CE90, m), SRC_DESC (sensor)
   and NICE_DESC (vendor): Chicago's 2026-03-26 release carries WorldView-3 imagery captured 2025-04-24 at 0.31 m
-  (Vantor/Maxar, CE90 8.5 m). Both dates go into the sidecar; the year requested on the command line selects by
-  release date (`pick_release`).
+  (Vantor/Maxar, CE90 8.5 m). Both dates go into the sidecar. Publication year != capture year, tile by tile: the
+  release published 2025-03-27 carries imagery captured 2022-06-20 at the Chicago Water Tower (review, 2026-09-28).
+  The year requested on the command line therefore selects by CAPTURE date (`wayback.select_by: capture`, the
+  default; `pick_version`): over the distinct versions at the tile centre, one identify per version (cached), the
+  version whose capture date is closest to 1 July of the year, ties -> the newer publication; a version without a
+  usable SRC_DATE falls back to its publication date (counted). `select_by: publication` is the old rule
+  (`pick_release`). Probe of the city centres (identify per version, 2026-09-28): the two rules agree for 2025 and
+  2021 in Chicago and Seattle and for 2025 in San Francisco; they differ for 2021 in New York (publication ->
+  2021-05-19 = 2020-03-21 imagery, capture -> 2025-04-24 = 2022-03-16) and San Francisco (2020-10-14 = 2019-09-24
+  vs 2022-06-08 = 2021-09-05), and for "2019" everywhere but Seattle (the 2019-12-12 release shows 2018 imagery; the
+  capture-closest 2019 version is usually a 2020-2021 release). Several distinct tile versions can share one capture
+  date (re-processings: six releases 2022-11 .. 2026-02 at the Water Tower all show 2022-06-20 imagery).
 * Terms (https://www.esri.com/en-us/legal/terms/full-master-agreement, Living Atlas): free for research with
   attribution "Esri, Maxar, Earthstar Geographics" (`ATTRIBUTION`); no redistribution of the tiles — they stay under
   data/ (never committed); the paper cites the source and the release dates. Requests carry a descriptive User-Agent
@@ -147,6 +157,44 @@ def pick_release(releases, year, month=7, day=1):
         return None
     target = _dt.date(int(year), month, day)
     return min(releases, key=lambda r: (abs((r.date - target).days), -r.date.toordinal()))
+
+
+SELECT_BY = ("capture", "publication")
+
+
+def capture_date(meta):
+    """The capture date of a `WaybackClient.metadata` dict (SRC_DATE, YYYYMMDD as int or str) as a date; None when
+    absent, "Null" or malformed."""
+    sd = (meta or {}).get("SRC_DATE")
+    if sd is None:
+        return None
+    try:
+        return _dt.datetime.strptime(str(int(str(sd).strip())), "%Y%m%d").date()
+    except (TypeError, ValueError):
+        return None
+
+
+def pick_version(versions, year, captures=None, select_by="capture", month=7, day=1):
+    """The version of `versions` (Release objects) for `year` under `select_by` (module doc). captures: {release
+    number: capture date or None} for select_by "capture" (a version missing from it, or with None, falls back to
+    its publication date). Returns (release or None, info dict: select_by, date used, capture_date, publication_date,
+    fallback (the chosen version used its publication date), n_fallback (versions without a capture date))."""
+    if select_by not in SELECT_BY:
+        raise ValueError(f"select_by must be one of {SELECT_BY}, got {select_by!r}")
+    if not versions:
+        return None, dict(select_by=select_by, date=None, capture_date=None, publication_date=None, fallback=False,
+                          n_fallback=0)
+    target = _dt.date(int(year), month, day)
+    caps = dict(captures or {})
+
+    def used(r):
+        c = caps.get(r.num) if select_by == "capture" else None
+        return (c, False) if c is not None else (r.date, select_by == "capture")
+    best = min(versions, key=lambda r: (abs((used(r)[0] - target).days), -r.date.toordinal()))
+    d, fb = used(best)
+    return best, dict(select_by=select_by, date=d.isoformat(), capture_date=None if caps.get(best.num) is None
+                      else caps[best.num].isoformat(), publication_date=best.date.isoformat(), fallback=fb,
+                      n_fallback=sum(used(r)[1] for r in versions))
 
 
 # ---- HTTP client -----------------------------------------------------------------------------------------------

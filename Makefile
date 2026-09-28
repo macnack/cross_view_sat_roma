@@ -230,10 +230,10 @@ vigor-check-labels: ## verify the (dy, dx) label convention from the lat/lon in 
 vigor-calibrate: ## settle row_sign and camera height on 150 VIGOR samples (CKPT=)
 	$(RUN) scripts/eval_vigor.py --config $(CONFIG) --ckpt $(CKPT) --split $(SPLIT) --tag calib --calibrate $(VIGOR_ARGS)
 
-wayback-fetch: ## task 05: Esri Wayback windows of the eval draw -> data/vigor/<City>/wayback_<year>/ (+ JSON sidecars); SPLIT=, CITIES=, LIMIT=, YEARS="2025 2019" (default wayback.years), WAYBACK_ARGS="--draw test|calib [--val-samples N] | --all | --dry-run | --stride N"; resumable
+wayback-fetch: ## task 05: Esri Wayback windows of the eval draw -> data/vigor/<City>/wayback_<year>/ (+ JSON sidecars); SPLIT=, CITIES=, LIMIT=, YEARS="2025 2019" (default wayback.years), WAYBACK_ARGS="--draw test|calib [--val-samples N] | --all | --dry-run | --select-by capture|publication | --stride N"; the version per year = closest CAPTURE date (wayback.select_by); resumable
 	$(RUN) scripts/fetch_wayback_vigor.py --config $(CONFIG) --split $(SPLIT) $(if $(CITIES),--cities $(CITIES),) --limit $(if $(LIMIT),$(LIMIT),0) $(if $(YEARS),--years $(YEARS),) $(WAYBACK_ARGS)
 
-wayback-calib: ## task 05: constant (dx, dy) offset VIGOR tile -> Wayback window of the release closest to wayback.calib_year, phase correlation on wayback.calib_tiles tiles of CITY= -> data/vigor/<City>/wayback_calibration.json (PASS/FAIL at wayback.calib_gate_m); WAYBACK_ARGS="--split samearea --year 2021 --tiles 150"
+wayback-calib: ## task 05: constant (dx, dy) offset VIGOR tile -> Wayback window of the version whose capture date is closest to wayback.calib_year (wayback.select_by), phase correlation on wayback.calib_tiles tiles of CITY= -> data/vigor/<City>/wayback_calibration.json (PASS/FAIL at wayback.calib_gate_m); WAYBACK_ARGS="--split samearea --year 2021 --tiles 150"
 	$(RUN) scripts/calibrate_wayback_vigor.py --config $(CONFIG) --city $(CITY) $(WAYBACK_ARGS)
 
 pose-diag: ## failure diagnostics of one EVAL_JSON (confidence gate, cross-year consistency, tail) for YEAR

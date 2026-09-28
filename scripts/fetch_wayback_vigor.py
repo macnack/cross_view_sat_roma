@@ -9,8 +9,12 @@ The draw is exactly eval_vigor.py's: VigorPairs(root, cfg, cities, split, train,
 test lists (--draw test), or eval_vigor.calib_split on the train lists (--draw calib: --val-frac / --val-samples as
 the checkpoint was trained, or --ckpt to read them), reduced to its unique tiles (several panoramas share a tile).
 Per tile and year: the distinct imagery versions at the tile centre (`WaybackClient.versions_at`, cached in
-<root>/wayback_tiles/tilemap_z<walk_zoom>.json), the release closest to 1 July of the year among them
-(`pick_release`; ties -> newer), its tiles at the finest zoom that has the centre tile (`fetch_window`; the raw tiles
+<root>/wayback_tiles/tilemap_z<walk_zoom>.json), the version whose CAPTURE date (metadata identify per version,
+cached in <root>/wayback_tiles/metadata.json) is closest to 1 July of the year (`pick_version`; ties -> the newer
+publication; a version without a usable SRC_DATE falls back to its publication date and is counted;
+`wayback.select_by` / --select-by publication = the old rule on publication dates, which mis-dates tiles: the
+release published 2025-03-27 shows 2022-06-20 imagery at the Chicago Water Tower), its tiles at the finest zoom that
+has the centre tile (`fetch_window`; the raw tiles
 are cached under <root>/wayback_tiles/<release>/<z>/), the mosaic rendered into the tile's frame at
 wayback.out_gsd_m (bevloc.data.wayback module doc) with the city's calibration offset (make wayback-calib,
 <root>/<City>/wayback_calibration.json; none = zero offset, recorded as such) and written as
@@ -18,8 +22,9 @@ wayback.out_gsd_m (bevloc.data.wayback module doc) with the city's calibration o
 sensor / resolution from the metadata layer, zoom, source GSD, tiles and the sha256 of their bytes, offset applied,
 attribution). Resumable: a tile whose sidecar records the same release, offset and width is skipped; a different
 offset (a new calibration) re-renders from the tile cache without downloads; --force re-renders everything.
---dry-run: the version walks (small JSON requests) and the choice per year, counts and volume estimates, nothing
-written. The release list is pinned at <root>/wayback/waybackconfig.json on first use (--refresh-releases updates it,
+--dry-run: the version walks and identifies (small JSON requests), the choice per year with the histogram of the
+chosen versions' capture years (how well "2025" is really 2025), the request count, counts and volume estimates,
+nothing written. The release list is pinned at <root>/wayback/waybackconfig.json on first use (--refresh-releases updates it,
 which can change which release is "closest" for recent years).
 """
 from __future__ import annotations
@@ -46,6 +51,14 @@ PNG_BYTES_EST = 500_000          # a ~570 px RGB PNG of imagery
 def wayback_cfg(cfg):
     """The `wayback:` block: the run's config, else configs/default.yaml (the VIGOR configs predate the block)."""
     return getattr(cfg, "wayback", None) or C.load().wayback
+
+
+def select_by_of(a, wcfg):
+    """The selection rule: --select-by, else cfg.wayback.select_by, else capture."""
+    sb = a.select_by or getattr(wcfg, "select_by", None) or "capture"
+    if sb not in W.SELECT_BY:
+        raise SystemExit(f"wayback.select_by must be one of {W.SELECT_BY}, got {sb!r}")
+    return str(sb)
 
 
 def _eval_vigor():
@@ -142,12 +155,14 @@ class Metadata:
         self.path = Path(path)
         self.d = json.loads(self.path.read_text()) if self.path.exists() else {}
         self.dirty = 0
+        self.n_fetched = 0                                         # identify requests made by this run
 
     def get(self, client, release, lat, lon, z):
         x, y = W.tile_xy(*W.latlon_to_merc_px(lat, lon, z))
         key = f"{release.num}/{z}/{x}/{y}"
         if key not in self.d:
             self.d[key] = client.metadata(release, lat, lon)
+            self.n_fetched += 1
             self.dirty += 1
             if self.dirty % 50 == 0:
                 self.save()
@@ -162,18 +177,38 @@ class Metadata:
             self.dirty = 0
 
 
-def choose_release(walks, client, releases, tile, year, walk_zoom):
-    """(release closest to `year` among the distinct versions at the tile centre, the versions) — (None, []) when the
-    service has nothing there."""
+def choose_release(walks, client, releases, tile, year, walk_zoom, metadata=None, select_by="capture"):
+    """(the version for `year` among the distinct versions at the tile centre, the versions, selection info of
+    `bevloc.data.wayback.pick_version`) — (None, [], info) when the service has nothing there. select_by "capture"
+    needs `metadata` (a `Metadata` cache): one identify per version (cached); a version whose identify fails or has
+    no SRC_DATE falls back to its publication date."""
     x, y = W.tile_xy(*W.latlon_to_merc_px(tile["lat"], tile["lon"], walk_zoom))
     versions = walks.get(client, releases, walk_zoom, x, y)
-    return W.pick_release(versions, year), versions
+    captures = None
+    if select_by == "capture":
+        if metadata is None:
+            raise ValueError("select_by 'capture' needs the metadata cache (do not pass --no-metadata)")
+        captures = {}
+        for r in versions:
+            try:
+                captures[r.num] = W.capture_date(metadata.get(client, r, tile["lat"], tile["lon"], walk_zoom))
+            except RuntimeError:                                   # identify failed after the retries: fall back
+                captures[r.num] = None
+    rel, info = W.pick_version(versions, year, captures, select_by)
+    if rel is not None and captures is None and metadata is not None:   # publication rule: still record the capture
+        try:
+            c = W.capture_date(metadata.get(client, rel, tile["lat"], tile["lon"], walk_zoom))
+            info["capture_date"] = None if c is None else c.isoformat()
+        except RuntimeError:
+            pass
+    return rel, versions, info
 
 
 def fetch_tile(client, release, tile, year, wcfg, root, offset_px, dest_name=None, metadata=None, force=False,
-               attribution=W.ATTRIBUTION, calibration=None):
+               attribution=W.ATTRIBUTION, calibration=None, selection=None):
     """Fetch, render and write one tile for one year. Returns dict(status = written | skipped | missing, path, ...).
-    dest_name: the folder under <root>/<City> (default wayback_<year>)."""
+    dest_name: the folder under <root>/<City> (default wayback_<year>); selection: the info dict of `choose_release`
+    (the rule and the dates it used), recorded in the sidecar."""
     city = tile["city"]
     out_dir = Path(root) / city / (dest_name or f"wayback_{year}")
     png = out_dir / tile["sat"]
@@ -205,7 +240,8 @@ def fetch_tile(client, release, tile, year, wcfg, root, offset_px, dest_name=Non
     tmp.replace(png)
     side.write_text(json.dumps(dict(
         sat=tile["sat"], city=city, lat=tile["lat"], lon=tile["lon"], year_requested=int(year),
-        **info, capture=meta, calibration=calibration, source="Esri World Imagery Wayback",
+        **info, capture=meta, capture_date=W.capture_date(meta) and W.capture_date(meta).isoformat(),
+        selection=selection, calibration=calibration, source="Esri World Imagery Wayback",
         attribution=attribution, fetched_at=time.strftime("%Y-%m-%dT%H:%M:%S"),
         frame="Web Mercator zoom-20 px x CITY_RES (the VIGOR tile's frame), north up, east right; output pixel "
               "(u, v) samples the release at (u + dx, v + dy) of the uncalibrated window (offset_px)"), indent=1))
@@ -229,6 +265,9 @@ def build_parser():
     ap.add_argument("--all", action="store_true", help="every tile of the cities' satellite_list.txt instead of a draw")
     ap.add_argument("--dry-run", action="store_true")
     ap.add_argument("--force", action="store_true", help="re-render every tile (the tile cache still avoids downloads)")
+    ap.add_argument("--select-by", default=None, choices=W.SELECT_BY,
+                    help="release per year by capture date (metadata identify per version) or publication date "
+                         "(default cfg.wayback.select_by)")
     ap.add_argument("--no-metadata", action="store_true")
     ap.add_argument("--no-calibration", action="store_true", help="zero offset even when wayback_calibration.json exists")
     ap.add_argument("--dest-name", default=None, help="folder under <root>/<City> (default wayback_<year>)")
@@ -259,7 +298,12 @@ def main(argv=None, opener=None):
     print(f"{len(releases)} releases {releases[0].date} .. {releases[-1].date}", flush=True)
     walk_zoom = int(wcfg.walk_zoom)
     walks = Walks(root / "wayback_tiles" / f"tilemap_z{walk_zoom}.json", newest=releases[-1].num)
+    select_by = select_by_of(a, wcfg)
     meta = None if (a.no_metadata or not bool(wcfg.metadata)) else Metadata(root / "wayback_tiles" / "metadata.json")
+    if select_by == "capture" and meta is None:
+        print("select_by capture needs the metadata layer: --no-metadata / wayback.metadata false ignored", flush=True)
+        meta = Metadata(root / "wayback_tiles" / "metadata.json")
+    print(f"release per year selected by {select_by} date (closest to 1 July; ties -> newer publication)", flush=True)
     calib = {}
     for city in sorted({t["city"] for t in tiles}):
         c = None if a.no_calibration else W.load_calibration(root, city)
@@ -270,6 +314,7 @@ def main(argv=None, opener=None):
               flush=True)
     counts = collections.Counter()
     chosen = {y: collections.Counter() for y in years}
+    cap_years = {y: collections.Counter() for y in years}         # histogram of the chosen versions' capture years
     n_versions = []
     t0 = time.time()
     try:
@@ -277,19 +322,23 @@ def main(argv=None, opener=None):
             city = tile["city"]
             off = W.offset_px_for(calib[city], float(wcfg.out_gsd_m))
             for year in years:
-                rel, versions = choose_release(walks, client, releases, tile, year, walk_zoom)
+                rel, versions, sel = choose_release(walks, client, releases, tile, year, walk_zoom, meta, select_by)
                 if year == years[0]:
                     n_versions.append(len(versions))
                 if rel is None:
                     counts["no_data"] += 1
                     continue
                 chosen[year][(rel.date.isoformat(), rel.num)] += 1
+                cap_years[year][sel["capture_date"][:4] if sel["capture_date"] else "unknown"] += 1
+                counts["fallback_publication"] += int(bool(sel["fallback"]))
+                counts["versions_without_capture"] += int(sel["n_fallback"])
                 if a.dry_run:
                     counts["dry"] += 1
                     continue
                 r = fetch_tile(client, rel, tile, year, wcfg, root, off, dest_name=a.dest_name, metadata=meta,
                                force=a.force, attribution=str(wcfg.attribution),
-                               calibration=None if calib[city] is None else str(W.calibration_path(root, city)))
+                               calibration=None if calib[city] is None else str(W.calibration_path(root, city)),
+                               selection=sel)
                 counts[r["status"]] += 1
                 if r["status"] == "written" and r.get("missing"):
                     counts["with_missing_tiles"] += 1
@@ -305,6 +354,14 @@ def main(argv=None, opener=None):
     for year in years:
         print(f"year {year}: releases chosen " + ", ".join(f"{d} (#{n}) x{c}" for (d, n), c in
                                                            sorted(chosen[year].items(), reverse=True)), flush=True)
+        tot = sum(cap_years[year].values())
+        print(f"year {year}: capture years of the chosen versions " + ", ".join(
+            f"{cy} x{c} ({100.0 * c / tot:.0f}%)" for cy, c in sorted(cap_years[year].items(), reverse=True)), flush=True)
+    if counts["fallback_publication"] or counts["versions_without_capture"]:
+        print(f"capture date missing: {counts['versions_without_capture']} version(s) fell back to the publication "
+              f"date, {counts['fallback_publication']} chosen tile-year(s) used a publication date", flush=True)
+    if meta is not None:
+        print(f"metadata identify requests this run: {meta.n_fetched} (cached: {len(meta.d) - meta.n_fetched})", flush=True)
     if a.dry_run:
         z = int(wcfg.zoom_pref[-1])
         n_tiles = 0
@@ -316,7 +373,7 @@ def main(argv=None, opener=None):
         print(f"dry run: {len(tiles)} tiles x {len(years)} years -> ~{per_year * len(years)} XYZ tiles at zoom {z} "
               f"(~{per_year * len(years) * TILE_BYTES_EST / 1e6:.0f} MB; x4 where zoom {z + 1} exists), "
               f"~{len(tiles) * len(years) * PNG_BYTES_EST / 1e9:.1f} GB of PNGs, "
-              f"~{len(tiles) * len(years)} metadata requests; walks made this run: {client.n_requests}", flush=True)
+              f"requests this run (walks + identify): {client.n_requests}", flush=True)
     print(f"done: {dict(counts)}; {client.n_requests} requests, {client.n_bytes / 1e6:.1f} MB", flush=True)
     return counts
 

@@ -41,8 +41,11 @@ def _load(name):
 
 RELEASES = {  # number: (date, owner at every tile); owner None = itself
     "10": ("2014-02-20", None), "4230": ("2014-03-26", 10), "9812": ("2021-02-24", None),
-    "58924": ("2025-09-25", 9812), "22869": ("2026-03-26", None),
+    "58924": ("2025-09-25", None), "22869": ("2026-03-26", None),
 }
+# capture date (SRC_DATE) the metadata layer reports per release: the 2025 release re-publishes 2020 imagery, the
+# 2026 one carries 2022 imagery (publication year != capture year, as on the real service), 2014 has no date
+CAPTURE = {"10": "Null", "4230": "20140101", "9812": "20200904", "58924": "20200501", "22869": "20220620"}
 WORLD_ZOOM = 19
 
 
@@ -98,7 +101,7 @@ class FakeService:
             rel = re.search(r"meta\.example/(\d+)/", url).group(1)
             return json.dumps({"results": [
                 {"layerId": 5, "layerName": "60cm", "attributes": {"SRC_DATE": "20250101", "SRC_RES": "0.6"}},
-                {"layerId": 4, "layerName": "30cm", "attributes": {"SRC_DATE": f"{RELEASES[rel][0][:4]}0424",
+                {"layerId": 4, "layerName": "30cm", "attributes": {"SRC_DATE": CAPTURE[rel],
                                                                      "SRC_RES": "0.31", "SRC_ACC": "8.5",
                                                                      "SRC_DESC": "WV03", "NICE_DESC": "Vantor"}}]}).encode()
         raise urllib.error.HTTPError(url, 404, "unknown", None, None)
@@ -235,9 +238,9 @@ def test_version_walk_lists_distinct_owners_in_one_request_each():
     rel = _releases(svc)
     x, y = W.tile_xy(*W.latlon_to_merc_px(LAT, LON, 19))
     v = cl.versions_at(rel, 19, x, y)
-    assert [r.num for r in v] == [22869, 9812, 10]
-    assert sum("/tilemap/" in u for u in svc.calls) == 3
-    assert W.pick_release(v, 2025).num == 22869 and W.pick_release(v, 2021).num == 9812 and W.pick_release(v, 2019).num == 9812
+    assert [r.num for r in v] == [22869, 58924, 9812, 10]
+    assert sum("/tilemap/" in u for u in svc.calls) == 4
+    assert W.pick_release(v, 2025).num == 58924 and W.pick_release(v, 2021).num == 9812 and W.pick_release(v, 2019).num == 9812
 
 
 def test_walk_cache_is_reused_and_dropped_when_the_release_list_changes(tmp_path):
@@ -250,14 +253,14 @@ def test_walk_cache_is_reused_and_dropped_when_the_release_list_changes(tmp_path
     x, y = W.tile_xy(*W.latlon_to_merc_px(LAT, LON, 19))
     p = tmp_path / "tilemap_z19.json"
     w = F.Walks(p, newest=rel[-1].num)
-    assert [r.num for r in w.get(cl, rel, 19, x, y)] == [22869, 9812, 10] and sum("/tilemap/" in u for u in svc.calls) == 3
+    assert [r.num for r in w.get(cl, rel, 19, x, y)] == [22869, 58924, 9812, 10] and sum("/tilemap/" in u for u in svc.calls) == 4
     w.save()
     w2 = F.Walks(p, newest=rel[-1].num)
-    assert [r.num for r in w2.get(cl, rel, 19, x, y)] == [22869, 9812, 10] and sum("/tilemap/" in u for u in svc.calls) == 3
+    assert [r.num for r in w2.get(cl, rel, 19, x, y)] == [22869, 58924, 9812, 10] and sum("/tilemap/" in u for u in svc.calls) == 4
     w3 = F.Walks(p, newest=rel[-1].num + 1)                            # a newer release appeared
     assert "19/%d/%d" % (x, y) not in w3.d and w3.dirty
     w3.get(cl, rel, 19, x, y)
-    assert sum("/tilemap/" in u for u in svc.calls) == 6
+    assert sum("/tilemap/" in u for u in svc.calls) == 8
 
 
 def test_mosaic_render_matches_the_world_and_the_zoom_falls_back(tmp_path):
@@ -324,7 +327,10 @@ def test_calibration_recovers_the_planted_google_offset_and_the_fetch_applies_it
     assert W.calibration_path(root, "Chicago").exists()
     assert (root / "Chicago" / "wayback_calib_2021" / SAT).exists()
     side = json.loads((root / "Chicago" / "wayback_calib_2021" / SAT.replace(".png", ".json")).read_text())
-    assert side["release"] == 9812 and side["offset_px"] == [0.0, 0.0] and side["capture"]["SRC_DATE"] == "20210424"
+    assert side["release"] == 9812 and side["offset_px"] == [0.0, 0.0] and side["capture"]["SRC_DATE"] == "20200904"
+    assert side["capture_date"] == "2020-09-04" and side["selection"]["select_by"] == "capture"
+    assert side["selection"]["date"] == "2020-09-04" and side["selection"]["publication_date"] == "2021-02-24"
+    assert out["select_by"] == "capture" and out["capture_years"] == {"2020": 1} and out["n_fallback_publication"] == 0
     assert side["attribution"] == W.ATTRIBUTION and side["zoom"] == 19
     # the fetcher applies the calibration: the 2021 window now coincides with the VIGOR tile at the output GSD
     F = _load("fetch_wayback_vigor")
@@ -601,3 +607,90 @@ def test_run_default_and_ref_source_vigor_are_identical_and_missing_source_stops
     with pytest.raises(SystemExit, match="first of --ref-sources"):
         _run(ev, tmp_path, root, ["--ref-source", "wayback_2025", "--ref-sources", "vigor", "wayback_2025"],
              monkeypatch, tmp_path / "d")
+
+
+# ---- selection by capture date ------------------------------------------------------------------------------------
+
+def test_pick_version_by_capture_differs_from_publication_and_falls_back():
+    import datetime as dt
+    svc = FakeService()
+    by_num = {r.num: r for r in _releases(svc)}
+    versions = [by_num[n] for n in (22869, 58924, 9812, 10)]                # the walk, newest first
+    caps = {n: W.capture_date({"SRC_DATE": CAPTURE[str(n)]}) for n in (22869, 58924, 9812, 10)}
+    assert caps[10] is None and caps[22869] == dt.date(2022, 6, 20)
+    # 2025: the publication rule takes the 2025-09-25 release (2020 imagery); the capture rule the 2022 imagery
+    pub, ip = W.pick_version(versions, 2025, caps, "publication")
+    cap, ic = W.pick_version(versions, 2025, caps, "capture")
+    assert pub.num == 58924 and cap.num == 22869
+    assert ip == dict(select_by="publication", date="2025-09-25", capture_date="2020-05-01",
+                      publication_date="2025-09-25", fallback=False, n_fallback=0)
+    assert ic == dict(select_by="capture", date="2022-06-20", capture_date="2022-06-20",
+                      publication_date="2026-03-26", fallback=False, n_fallback=1)
+    # 2021: both rules agree; 2019: capture picks the 2020-05-01 imagery published in 2025
+    assert W.pick_version(versions, 2021, caps, "capture")[0].num == 9812 == W.pick_version(versions, 2021, caps, "publication")[0].num
+    assert W.pick_version(versions, 2019, caps, "capture")[0].num == 58924
+    # a version without a capture date falls back to its publication date (and is the choice when nearest)
+    r, info = W.pick_version(versions, 2014, caps, "capture")
+    assert r.num == 10 and info["fallback"] is True and info["date"] == "2014-02-20" and info["capture_date"] is None
+    assert W.pick_version(versions, 2014, None, "capture")[1]["n_fallback"] == 4     # no captures at all
+    # ties on the capture date -> the newer publication
+    same = {22869: dt.date(2021, 1, 1), 9812: dt.date(2021, 1, 1)}
+    assert W.pick_version([by_num[9812], by_num[22869]], 2021, same, "capture")[0].num == 22869
+    assert W.pick_version([], 2021, caps, "capture")[0] is None
+    with pytest.raises(ValueError):
+        W.pick_version(versions, 2021, caps, "release")
+    for bad in (None, "Null", "", "2025-04-24", 2025):
+        assert W.capture_date({"SRC_DATE": bad}) is None
+    assert W.capture_date({"SRC_DATE": 20250424}) == dt.date(2025, 4, 24) == W.capture_date({"SRC_DATE": " 20250424 "})
+    assert W.capture_date(None) is None
+
+
+def test_choose_release_by_capture_identifies_each_version_once(tmp_path):
+    F = _load("fetch_wayback_vigor")
+    svc = FakeService()
+    cl = _client(svc, cache_dir=tmp_path / "tiles")
+    rel = _releases(svc)
+    walks = F.Walks(tmp_path / "walks.json", newest=rel[-1].num)
+    meta = F.Metadata(tmp_path / "metadata.json")
+    tile = dict(city="Chicago", sat=SAT, lat=LAT, lon=LON)
+    r, versions, info = F.choose_release(walks, cl, rel, tile, 2025, 19, meta, "capture")
+    assert r.num == 22869 and len(versions) == 4 and info["capture_date"] == "2022-06-20" and info["n_fallback"] == 1
+    assert meta.n_fetched == 4 and sum("/identify?" in u for u in svc.calls) == 4
+    r2, _, _ = F.choose_release(walks, cl, rel, tile, 2019, 19, meta, "capture")
+    assert r2.num == 58924 and meta.n_fetched == 4                                 # cached: no new identify
+    rp, _, ip = F.choose_release(walks, cl, rel, tile, 2025, 19, None, "publication")
+    assert rp.num == 58924 and ip["select_by"] == "publication" and sum("/identify?" in u for u in svc.calls) == 4
+    with pytest.raises(ValueError, match="metadata"):
+        F.choose_release(walks, cl, rel, tile, 2025, 19, None, "capture")
+    meta.save()
+    meta2 = F.Metadata(tmp_path / "metadata.json")
+    assert len(meta2.d) == 4 and meta2.n_fetched == 0
+
+
+def test_dry_run_prints_the_capture_year_histogram_and_the_request_count(tmp_path, capsys):
+    root = _make(tmp_path)
+    for f in ("pano_label_balanced.txt", "same_area_balanced_test.txt", "same_area_balanced_train.txt", "satellite_list.txt"):
+        p = root / "splits" / "VIGOR" / "Chicago" / f
+        p.write_text(p.read_text().replace("s1.png", SAT))
+    F = _load("fetch_wayback_vigor")
+    svc = FakeService()
+    counts = F.main(["--root", str(root), "--split", "samearea", "--cities", "Chicago", "--years", "2025", "2019",
+                     "--dry-run"], opener=svc)
+    out = capsys.readouterr().out
+    assert counts["dry"] == 2 and not (root / "Chicago" / "wayback_2025").exists()
+    assert "release per year selected by capture date" in out
+    assert "year 2025: releases chosen 2026-03-26 (#22869) x1" in out
+    assert "year 2025: capture years of the chosen versions 2022 x1 (100%)" in out
+    assert "year 2019: releases chosen 2025-09-25 (#58924) x1" in out
+    assert "year 2019: capture years of the chosen versions 2020 x1 (100%)" in out
+    assert "metadata identify requests this run: 4 (cached: 0)" in out
+    assert "capture date missing: 2 version(s) fell back" in out           # release 10, once per year
+    assert sum("/identify?" in u for u in svc.calls) == 4 and not any("/tile/" in u for u in svc.calls)
+    # the old rule on request: no identify, the 2025-09-25 release for 2025
+    svc2 = FakeService()
+    F.main(["--root", str(root), "--split", "samearea", "--cities", "Chicago", "--years", "2025", "--dry-run",
+            "--select-by", "publication"], opener=svc2)
+    out = capsys.readouterr().out
+    assert "selected by publication date" in out and "year 2025: releases chosen 2025-09-25 (#58924) x1" in out
+    assert "capture years of the chosen versions 2020 x1" in out            # still reported from the sidecar metadata
+    assert (root / "wayback_tiles" / "metadata.json").exists()
