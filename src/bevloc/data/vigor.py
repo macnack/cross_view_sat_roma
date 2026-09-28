@@ -378,9 +378,13 @@ class VigorPairs(Dataset):
         return self._query_part(out, lab, pano)
 
     def ref_canvas(self, i, source=None, ref_centre_en=None):
-        """The reference tensor (3, S, S) of sample i from `source` (None = ref_source), built exactly like `item`'s:
-        the whole tile, or (ref_centre_en given, or ref_window_m set) the window centred there. Pass the sample's own
-        ``ref_centre_en`` to get the same window from another source (training draws a fresh jitter otherwise)."""
+        """The reference tensor (3, S, S) of sample i from `source` (None = ref_source), built by `item`'s rule for
+        the same ``ref_centre_en`` argument: None without ref_window_m = the whole tile (`reference`); otherwise the
+        window centred there (`window_reference`; None = the training / validation jitter). Pass what `item` was
+        given: None for ``ds[i]``, and in window mode the sample's own ``ref_centre_en`` for the same window from
+        another source (training draws a fresh jitter otherwise). The sample's zeros of the whole-tile canvas are NOT
+        that argument: a window at the tile centre differs from `reference` by the resampling and, when the canvas
+        and the resized tile differ by an odd number of px, by half a canvas px."""
         lab = self.labels[i]
         if ref_centre_en is None and self.ref_window_m is None:
             canvas = self.reference(lab["city"], lab["sat"], source)[0]

@@ -132,7 +132,8 @@ vigor:                            # src/bevloc/data/vigor.py, scripts/eval_vigor
 wayback:                          # Esri World Imagery Wayback reference years (task 05; bevloc.data.wayback, scripts/fetch_wayback_vigor.py)
   years: [2025, 2019]             # default YEARS of make wayback-fetch: the release closest to 1 July of each year (ties -> newer)
   calib_year: 2021                # make wayback-calib: the release closest to the VIGOR capture (2020-2021), phase-correlated with the tile
-  calib_tiles: 150                # tiles per city in the calibration draw (VigorPairs limit, seed 0)
+  calib_tiles: 150                # distinct tiles per city in the calibration (a seeded choice among the unique tiles of a
+                                  # 4x larger VigorPairs test-list draw, seed 0; several panoramas share a tile)
   calib_gate_m: 0.3               # PASS when the median residual |offset_i - median| is below this (docs/tasks/05_reference_years.md)
   calib_min_response: 0.05        # phase-correlation peak below this: the tile is dropped from the aggregate
   calib_max_dev_px: 4.0           # tiles more than this from the median offset are outliers (dropped, counted)

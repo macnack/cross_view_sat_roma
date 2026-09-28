@@ -143,6 +143,14 @@ def decode_refs(matcher, f_q, refs):
     return gms, certs
 
 
+def other_ref(ds, i, s, source):
+    """The reference canvas (3, S, S) of `source` for the coarse sample s = ds[i], built by the rule that built
+    s["ref"] (item(i, None)): the whole tile without ref_window_m, else the window at the sample's centre. A window
+    at the sample's zeros would not be the whole-tile canvas (another resampling and, for an odd canvas / tile size
+    gap, half a canvas px), so the centre is passed only in window mode."""
+    return ds.ref_canvas(i, source, ref_centre_en=None if ds.ref_window_m is None else s["ref_centre_en"])
+
+
 def union_row(m, sources):
     """The per-source keys of a union Match (`consensus_union`): modes, inliers and the inlier share per source."""
     tot = sum(v["n_inliers"] for v in (m.sources or {}).values())
@@ -265,8 +273,7 @@ def score(ds, query, matcher, cons, cfg, dev, n_max=0, verbose=False, refine=0, 
     for i in idx:
         try:
             s = ds[i]
-            refs_more = [] if not union else [ds.ref_canvas(i, src, ref_centre_en=s["ref_centre_en"])[None].to(dev)
-                                              for src in union[1:]]
+            refs_more = [] if not union else [other_ref(ds, i, s, src)[None].to(dev) for src in union[1:]]
         except RuntimeError as e:                                   # unreadable / missing image
             print(f"  skip {i}: {e}", flush=True)
             continue

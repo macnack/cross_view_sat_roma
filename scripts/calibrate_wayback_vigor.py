@@ -3,8 +3,9 @@
   make wayback-calib CITY=Chicago                     # 150 tiles, the release closest to 1 July wayback.calib_year
   make wayback-calib CITY=Chicago WAYBACK_ARGS="--year 2021 --tiles 150 --split samearea"
 
-Google's tile centres and Esri's tiles disagree by a constant few pixels per city. On `wayback.calib_tiles` tiles of
-the city (VigorPairs test-list draw, seed 0, unique tiles) the window of the release closest to `wayback.calib_year`
+Google's tile centres and Esri's tiles disagree by a constant few pixels per city. On `wayback.calib_tiles` distinct
+tiles of the city (a seeded choice among the unique tiles of a 4x larger VigorPairs test-list draw, seed 0; several
+panoramas share a tile) the window of the release closest to `wayback.calib_year`
 (the VIGOR capture years, 2020-2021) is fetched UNCALIBRATED into <root>/<City>/wayback_calib_<year>/ (offset 0,
 sidecars as for any fetch; scripts/fetch_wayback_vigor.fetch_tile) and phase-correlated with the VIGOR tile resampled
 to the same raster (`bevloc.data.wayback.phase_correlation`, Hann window, 20x upsampled DFT, i.e. 0.05 px;
@@ -79,8 +80,12 @@ def calibrate(a, cfg, opener=None):
     n_tiles = int(a.tiles if a.tiles is not None else wcfg.calib_tiles)
     root = Path(a.root)
     city = a.city
-    ds = VigorPairs(root, cfg, cities=[city], split=a.split, train=False, limit=n_tiles, seed=a.seed)
+    # n_tiles distinct tiles: several panoramas share a tile, so a draw of n labels has fewer; draw 4 n labels and
+    # take a seeded choice of n of their unique tiles (file order kept)
+    ds = VigorPairs(root, cfg, cities=[city], split=a.split, train=False, limit=4 * n_tiles, seed=a.seed)
     tiles = F.unique_tiles(ds.labels)
+    pick = np.sort(np.random.default_rng(a.seed).permutation(len(tiles))[:n_tiles])
+    tiles = [tiles[j] for j in pick]
     print(f"{city}: {len(tiles)} unique tiles of a {len(ds.labels)}-label draw (split {a.split}, seed {a.seed}); "
           f"release closest to 1 July {year}; out GSD {wcfg.out_gsd_m} m", flush=True)
     client = F.make_client(a, wcfg, opener)
@@ -156,7 +161,7 @@ def build_parser():
     ap.add_argument("--city", required=True)
     ap.add_argument("--split", default="samearea", choices=("crossarea", "samearea"))
     ap.add_argument("--year", type=int, default=None, help="default cfg.wayback.calib_year")
-    ap.add_argument("--tiles", type=int, default=None, help="labels drawn (default cfg.wayback.calib_tiles)")
+    ap.add_argument("--tiles", type=int, default=None, help="distinct tiles used (default cfg.wayback.calib_tiles)")
     ap.add_argument("--seed", type=int, default=0)
     ap.add_argument("--gate", type=float, default=None, help="metres (default cfg.wayback.calib_gate_m)")
     ap.add_argument("--upsample", type=int, default=20, help="sub-pixel factor of the phase correlation")

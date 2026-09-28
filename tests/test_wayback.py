@@ -21,7 +21,7 @@ from bevloc.data.vigor import CITY_RES, VigorPairs
 from bevloc.match.satroma import SatRoMa, consensus_for_query, consensus_union
 
 sys.path.insert(0, str(Path(__file__).resolve().parent))
-from test_vigor_window import _make  # noqa: E402
+from test_vigor_window import DX, DY, SIGMA, _camera_px, _make, _marker_centroid  # noqa: E402
 from tiny_satroma import StubPictureQuery, plant_translation, tiny_decoder, tiny_matcher  # noqa: E402
 
 LAT, LON = 41.88, -87.63
@@ -169,6 +169,18 @@ def test_output_pixel_round_trip_is_sub_pixel_and_centre_is_the_tile_centre():
     assert np.isclose(x1 - x, g["k"]) and np.isclose(y1 - y, g["k"])
     lat1, lon1 = W.merc_px_to_latlon(x1, y1, 20)
     assert lon1 > LON and lat1 < LAT
+    # the window's outer pixel edges are the VIGOR tile's: 320 zoom-20 px either side of the centre (a 640 px Google
+    # Static Maps image centred on the label), whatever the output pixel count; half of that at zoom 19
+    w = g["width"]
+    assert np.allclose(W.output_to_merc(-0.5, -0.5, g, 20), (g["cx"] - 320.0, g["cy"] - 320.0))
+    assert np.allclose(W.output_to_merc(w - 0.5, w - 0.5, g, 20), (g["cx"] + 320.0, g["cy"] + 320.0))
+    assert np.allclose(W.output_to_merc(-0.5, -0.5, g, 19), ((g["cx"] - 320.0) / 2, (g["cy"] - 320.0) / 2))
+    # a Mercator point on the seam of tiles x0 / x0 + 1 is mosaic index 255.5 (pixel i of tile x covers [256 x + i, +1))
+    mosaic = np.zeros((256, 512, 3), np.uint8)
+    mosaic[:, :256] = 200
+    x0, y0 = W.tile_xy(*W.output_to_merc(0.0, 0.0, g, 20))
+    g1 = dict(g, width=1, k=1.0, cx=256.0 * (x0 + 1), cy=256.0 * y0 + 0.5)   # one output px centred on the seam
+    assert W.render_window(mosaic, x0, y0, g1, 20)[0, 0, 0] == 100          # half of each tile
 
 
 def test_pick_release_closest_to_mid_year_ties_go_to_the_newer():
@@ -183,6 +195,36 @@ def test_pick_release_closest_to_mid_year_ties_go_to_the_newer():
     c = W.Release(3, dt.date(2020, 7, 31), "", "", "")               # exactly 30 days, like a
     assert W.pick_release([a, b, c], 2020) is c                       # tie a / c -> the newer c
     assert W.pick_release([], 2020) is None
+
+
+def test_client_retries_with_backoff_and_rate_limits_every_request(monkeypatch):
+    """Transient errors: retries 1 / 2 / 4 s (no sleep after the last attempt), then RuntimeError; 404 = None at once;
+    every request (tile, tilemap json, config) waits for the rate interval."""
+    sleeps = []
+    monkeypatch.setattr(W.time, "sleep", lambda s: sleeps.append(round(s, 3)))
+    calls = []
+
+    def flaky(url, headers):
+        calls.append(url)
+        if len(calls) < 3:
+            raise urllib.error.URLError("down")
+        return b"ok"
+    cl = W.WaybackClient(rate_hz=0, retries=3, opener=flaky)
+    assert cl.get("u") == b"ok" and len(calls) == 3 and sleeps == [1.0, 2.0]
+    calls.clear(); sleeps.clear()
+    cl = W.WaybackClient(rate_hz=0, retries=2, opener=lambda u, h: (_ for _ in ()).throw(urllib.error.URLError("x")))
+    with pytest.raises(RuntimeError, match="3 attempts"):
+        cl.get("u")
+    assert sleeps == [1.0, 2.0]
+    sleeps.clear()
+    monkeypatch.setattr(W.time, "monotonic", lambda: 100.0)           # time stands still: every wait is the interval
+    svc = FakeService()
+    cl = W.WaybackClient(rate_hz=4.0, retries=0, opener=svc)
+    assert cl.get("https://wayback.example/tile/22869/20/1/1") is None and not sleeps   # 404: no retry, first: no wait
+    cl.releases()
+    cl.tilemap(_releases(svc)[0], 19, 1, 1)
+    cl.tile(_releases(svc)[-1], 19, 1, 1)
+    assert sleeps == [0.25, 0.25, 0.25] and cl.n_requests == 4        # config, tilemap, tile: each waits 1 / rate_hz
 
 
 # ---- fake service: walk, mosaic, fetch ---------------------------------------------------------------------------
@@ -367,6 +409,64 @@ def test_default_ref_source_is_bit_identical(tmp_path):
     for k in ("erp", "R_w2c", "se2", "ref", "H", "en", "ref_centre_en", "bev", "bev_valid"):
         assert torch.equal(sa[k], sb[k]), k
     assert a.ref_source == "vigor" and str(a.ref_path("Chicago", "s1.png")).endswith("Chicago/satellite/s1.png")
+
+
+def _marker_layout(tmp_path, width=570):
+    """`_make`'s VIGOR tile (a Gaussian marker at the label, 640 px) plus a `width` px Wayback file of the same
+    footprint with the same marker: tile px t -> file px (t + 0.5) * width / 640 - 0.5 (both cover 640 * RES m)."""
+    root = _make(tmp_path)
+    k = width / 640.0
+    xc, yc = ((639 / 2.0 - DX) + 0.5) * k - 0.5, ((639 / 2.0 + DY) + 0.5) * k - 0.5
+    yy, xx = np.mgrid[0:width, 0:width].astype(np.float64)
+    g = np.exp(-((xx - xc) ** 2 + (yy - yc) ** 2) / (2 * (SIGMA * k) ** 2))
+    img = np.full((width, width, 3), 60.0)
+    img[..., 2] += 195.0 * g
+    d = root / "Chicago" / "wayback_2025"
+    d.mkdir()
+    cv2.imwrite(str(d / "s1.png"), np.round(img).astype(np.uint8))
+    return root
+
+
+@pytest.mark.parametrize("cell_m,window,centre", [(0.125, None, None), (0.25, None, None), (0.0625, None, None),
+                                                  (0.0625, 56.0, (3.0, -2.0)), (0.125, 40.0, (-2.5, 4.0))])
+def test_vigorpairs_places_the_wayback_file_on_the_tile_footprint(tmp_path, cell_m, window, centre):
+    """A 570 px Wayback file and the 640 px VIGOR tile of the same footprint put the same marker on the same canvas
+    pixel (whole tile at three cell sizes, two windows): the resampling rule footprint / width / cell of `reference`
+    and `window_reference` is source-independent to a few hundredths of a px (the label's camera px is the check)."""
+    root = _marker_layout(tmp_path)
+    cfg = _cfg(cell_m)
+    cfg.vigor.ref_window_m = window
+    ds = VigorPairs(root, cfg, cities=["Chicago"], split="crossarea")
+    c = None if centre is None else torch.tensor(centre, dtype=torch.float64)
+    s = ds.item(0, ref_centre_en=c)
+    near = _camera_px(s)
+    cv = _marker_centroid(ds.ref_canvas(0, "vigor", ref_centre_en=c), near)
+    cw = _marker_centroid(ds.ref_canvas(0, "wayback_2025", ref_centre_en=c), near)
+    assert np.abs(cv - cw).max() < 0.05, (cv, cw)                     # the two sources agree to 5 mm at 0.125 m
+    assert np.abs(cv - near).max() < 0.6                              # both sit on the label (whole tile: +-0.5 px)
+
+
+def test_other_ref_builds_the_canvas_by_the_samples_rule(tmp_path):
+    """eval_vigor.other_ref: the other source's canvas of a coarse sample is built by the rule that built the
+    sample's (whole tile without ref_window_m, the sample's own window otherwise, also under a fresh training
+    jitter); a window at the whole-tile sample's zeros is NOT that canvas (half a px at an odd size gap)."""
+    ev = _load("eval_vigor")
+    root = _make(tmp_path)
+    d = root / "Chicago" / "wayback_2025"
+    d.mkdir()
+    (d / "s1.png").write_bytes((root / "Chicago" / "satellite" / "s1.png").read_bytes())   # the same file, other source
+    for cell, window, train in ((0.25, None, False), (0.125, None, False), (0.0625, 56.0, False), (0.0625, 56.0, True)):
+        cfg = _cfg(cell)
+        cfg.vigor.ref_window_m = window
+        cfg.vigor.ref_jitter_m = 6.0 if window else 0.0
+        ds = VigorPairs(root, cfg, cities=["Chicago"], split="crossarea", train=train)
+        s = ds[0]
+        assert torch.equal(ev.other_ref(ds, 0, s, "vigor"), s["ref"]), (cell, window, train)
+        assert torch.equal(ev.other_ref(ds, 0, s, "wayback_2025"), s["ref"]), (cell, window, train)
+    ds = VigorPairs(root, _cfg(0.25), cities=["Chicago"], split="crossarea")   # 896 canvas, 285 px tile: odd gap
+    s = ds[0]
+    assert torch.equal(s["ref_centre_en"], torch.zeros(2, dtype=torch.float64))
+    assert not torch.equal(ds.ref_canvas(0, "vigor", ref_centre_en=s["ref_centre_en"]), s["ref"])
 
 
 # ---- union of modes ---------------------------------------------------------------------------------------------------

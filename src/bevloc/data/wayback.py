@@ -193,7 +193,8 @@ class WaybackClient:
                 err = e
             except (urllib.error.URLError, TimeoutError, OSError) as e:
                 err = e
-            time.sleep(2.0 ** attempt)
+            if attempt < self.retries:
+                time.sleep(2.0 ** attempt)
         raise RuntimeError(f"GET {url} failed after {self.retries + 1} attempts: {err}")
 
     def json(self, url):
