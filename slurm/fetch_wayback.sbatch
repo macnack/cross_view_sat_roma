@@ -10,7 +10,7 @@
 #SBATCH --job-name=fetch_wayback
 #SBATCH --account=pl1269-01
 #SBATCH --partition=proxima-cpu
-#SBATCH --cpus-per-task=8                 # wayback.workers (6) threads decode / warp / encode concurrently
+#SBATCH --cpus-per-task=8                 # wayback.workers (6) threads decode / warp / encode; the global rate_hz (10/s), not the CPUs, bounds the fetch
 #SBATCH --mem=16G
 #SBATCH --time=24:00:00
 #SBATCH --output=slurm/logs/%x_%j.log

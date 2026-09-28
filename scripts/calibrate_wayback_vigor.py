@@ -14,7 +14,8 @@ against the VIGOR tile resampled to the same raster (`vigor_at_out_gsd` = VigorP
 `bevloc.data.wayback.calib_match` (module doc "Cross-source calibration": VIGOR blurred to the Wayback source
 resolution, gradient domain, band-limited phase correlation constrained to wayback.calib_max_shift_m, 20x upsampled
 DFT). Per tile: (dx, dy) — the content at VIGOR pixel (u, v) sits at Wayback pixel (u + dx, v + dy) — the response
-and the peak-to-sidelobe ratio (PSR). Aggregate (`aggregate`): tiles with PSR < wayback.calib_min_psr are dropped;
+and the peak-to-sidelobe ratio (PSR). Aggregate (`aggregate`): tiles with PSR < wayback.calib_min_psr are dropped,
+so are tiles whose peak lies outside the search radius (`edge`: the rim guard of `phase_correlation_psr`);
 the median offset over the rest; tiles farther than wayback.calib_max_dev_px from it are outliers (dropped, counted,
 the median recomputed). Reported: the median offset in px and metres, the residual = median over the kept tiles of
 |offset_i - median| in metres (the misalignment a constant offset leaves), the per-axis IQR, the fraction of the
@@ -72,8 +73,8 @@ def source_res_of(side):
 def measure_pair(vg_bgr, wb_bgr, side, city, wcfg, upsample=20):
     """Per-tile calibration measurement (module doc): the VIGOR tile at the output GSD, blurred to the Wayback source
     resolution, both through `calib_preprocess(wayback.calib_domain)`, phase correlation constrained to
-    wayback.calib_max_shift_m with the peak-to-sidelobe ratio. Returns dict(dx_px, dy_px, response, psr,
-    blur_sigma_px, source_res_m)."""
+    wayback.calib_max_shift_m with the peak-to-sidelobe ratio. Returns dict(dx_px, dy_px, response, psr, edge,
+    blur_sigma_px, source_res_m); edge = the peak lies outside the search radius (the tile is rejected)."""
     out_gsd = float(wcfg.out_gsd_m)
     vg = W.vigor_at_out_gsd(vg_bgr, CITY_RES[city], out_gsd)
     wb = wb_bgr
@@ -85,23 +86,25 @@ def measure_pair(vg_bgr, wb_bgr, side, city, wcfg, upsample=20):
     r = W.calib_match(vg, wb, str(getattr(wcfg, "calib_domain", "gradient")), sigma,
                       None if max_m is None else float(max_m) / out_gsd, int(upsample),
                       float(getattr(wcfg, "calib_psr_exclude_px", 5)), bool(getattr(wcfg, "calib_band", True)))
-    return dict(dx_px=r["dx"], dy_px=r["dy"], response=r["response"], psr=r["psr"], blur_sigma_px=sigma,
-                source_res_m=src)
+    return dict(dx_px=r["dx"], dy_px=r["dy"], response=r["response"], psr=r["psr"], edge=bool(r["edge"]),
+                blur_sigma_px=sigma, source_res_m=src)
 
 
-def aggregate(offsets, psrs, gsd, min_psr, max_dev_px, gate_m, min_tiles=30):
+def aggregate(offsets, psrs, gsd, min_psr, max_dev_px, gate_m, min_tiles=30, edges=None):
     """The calibration numbers from per-tile (dx, dy) and peak-to-sidelobe ratios (module doc). Tiles with PSR below
-    `min_psr` are dropped (their peak is indistinguishable from the correlation noise); the median over the rest; tiles
-    farther than `max_dev_px` from it are outliers (dropped, counted, the median recomputed). Reported: the median
+    `min_psr` are dropped (their peak is indistinguishable from the correlation noise), so are tiles whose peak lies
+    outside the search radius (`edges`, counted as n_edge); the median over the rest; tiles farther than
+    `max_dev_px` from it are outliers (dropped, counted, the median recomputed). Reported: the median
     offset, the residual = median |offset_i - median| (m), the robust sigma (1.4826 MAD per axis, m), the standard
     error of the median, the per-axis inter-quartile range (m) and the fraction of the PSR-accepted tiles within
     0.5 m of the median. PASS = residual < gate_m AND n_used >= min_tiles."""
     off = np.asarray(offsets, np.float64).reshape(-1, 2)
     psr = np.asarray(psrs, np.float64).reshape(-1)
-    ok = psr >= float(min_psr)
-    n_low = int((~ok).sum())
-    base = dict(n=int(len(off)), n_low_psr=n_low, gsd_m=float(gsd), gate_m=float(gate_m), min_tiles=int(min_tiles),
-                min_psr=float(min_psr), psr_percentiles={f"p{q}": float(np.percentile(psr, q)) for q in (10, 50, 90, 99)}
+    edge = np.zeros(len(psr), bool) if edges is None else np.asarray(edges, bool).reshape(-1)
+    ok = (psr >= float(min_psr)) & ~edge
+    n_low = int((psr < float(min_psr)).sum())
+    base = dict(n=int(len(off)), n_low_psr=n_low, n_edge=int((edge & (psr >= float(min_psr))).sum()), gsd_m=float(gsd),
+                gate_m=float(gate_m), min_tiles=int(min_tiles), min_psr=float(min_psr), psr_percentiles={f"p{q}": float(np.percentile(psr, q)) for q in (10, 50, 90, 99)}
                 if len(psr) else {})
     if not ok.any():
         return dict(base, n_used=0, n_outliers=0, offset_px=None, offset_m=None, residual_m=None, robust_sigma_m=None,
@@ -143,15 +146,17 @@ def finish(city, root, year, per_tile, gsd, wcfg, a, extra):
     min_psr = float(a.min_psr if a.min_psr is not None else wcfg.calib_min_psr)
     min_tiles = int(a.min_tiles if a.min_tiles is not None else getattr(wcfg, "calib_min_tiles", 30))
     agg = aggregate([[t["dx_px"], t["dy_px"]] for t in ok], [t["psr"] for t in ok], gsd, min_psr,
-                    float(wcfg.calib_max_dev_px), float(a.gate if a.gate is not None else wcfg.calib_gate_m), min_tiles)
+                    float(wcfg.calib_max_dev_px), float(a.gate if a.gate is not None else wcfg.calib_gate_m), min_tiles,
+                    [t.get("edge", False) for t in ok])
     for t in ok:
-        t["accepted"] = bool(t["psr"] >= min_psr)
+        t["accepted"] = bool(t["psr"] >= min_psr and not t.get("edge", False))
+    n_err = sum(t["status"] == "error" for t in per_tile)
     out = dict(city=city, year=year, out_gsd_m=float(wcfg.out_gsd_m), **extra,
                domain=str(getattr(wcfg, "calib_domain", "gradient")), blur_k=float(getattr(wcfg, "calib_blur_k", 0.5)),
                max_shift_m=getattr(wcfg, "calib_max_shift_m", None), method=_method(wcfg, a.upsample),
                convention="content at VIGOR px (u, v) is at Wayback px (u + dx, v + dy); the fetcher samples the "
                           "release at (u + dx, v + dy) for output px (u, v)",
-               calib_dir=str(root / city / f"wayback_calib_{year}"), **agg, per_tile=per_tile,
+               calib_dir=str(root / city / f"wayback_calib_{year}"), **agg, n_error=n_err, per_tile=per_tile,
                written=time.strftime("%Y-%m-%dT%H:%M:%S"))
     path = W.calibration_path(root, city)
     path.parent.mkdir(parents=True, exist_ok=True)
@@ -159,13 +164,16 @@ def finish(city, root, year, per_tile, gsd, wcfg, a, extra):
     pp = agg["psr_percentiles"]
     if pp:
         print(f"{city}: PSR over {agg['n']} tiles p10 {pp['p10']:.1f} / p50 {pp['p50']:.1f} / p90 {pp['p90']:.1f} / "
-              f"p99 {pp['p99']:.1f}; accepted (PSR >= {min_psr}) {agg['n'] - agg['n_low_psr']}", flush=True)
+              f"p99 {pp['p99']:.1f}; accepted (PSR >= {min_psr}, peak inside the radius) "
+              f"{agg['n'] - agg['n_low_psr'] - agg['n_edge']} ({agg['n_edge']} at the rim)", flush=True)
+    if n_err:
+        print(f"{city}: {n_err} tile(s) FAILED with an exception (status 'error' in per_tile, not measured)", flush=True)
     if agg["offset_px"] is None:
-        print(f"{city}: no usable tile (every PSR below {min_psr}); wrote {path}; FAIL", flush=True)
+        print(f"{city}: no usable tile (every PSR below {min_psr} or its peak at the rim); wrote {path}; FAIL", flush=True)
         return out
     print(f"{city}: offset ({agg['offset_px'][0]:+.2f}, {agg['offset_px'][1]:+.2f}) px = "
           f"({agg['offset_m'][0]:+.3f} m east, {agg['offset_m'][1]:+.3f} m south) over {agg['n_used']} tiles "
-          f"({agg['n_low_psr']} low PSR, {agg['n_outliers']} outliers of {agg['n']}); residual {agg['residual_m']:.3f} m, "
+          f"({agg['n_low_psr']} low PSR, {agg['n_edge']} at the rim, {agg['n_outliers']} outliers of {agg['n']}); residual {agg['residual_m']:.3f} m, "
           f"IQR ({agg['iqr_m'][0]:.3f}, {agg['iqr_m'][1]:.3f}) m, {100 * agg['frac_within_0_5m']:.0f}% of the accepted "
           f"tiles within 0.5 m, robust sigma ({agg['robust_sigma_m'][0]:.3f}, {agg['robust_sigma_m'][1]:.3f}) m, "
           f"SE of the median {agg['se_m']:.3f} m", flush=True)
@@ -231,11 +239,19 @@ def calibrate(a, cfg, opener=None):
     workers = max(1, int(a.workers if a.workers is not None else getattr(wcfg, "workers", 1) or 1))
 
     def one(tile):
+        try:
+            return _one(tile)
+        except Exception as e:                                     # counted in per_tile, reported by finish()
+            print(f"  {tile['sat']}: {type(e).__name__}: {e}", flush=True)
+            return dict(sat=tile["sat"], status="error", error=f"{type(e).__name__}: {e}"[:300]), None, None
+
+    def _one(tile):
         rel, _, sel = F.choose_release(walks, client, releases, tile, year, int(wcfg.walk_zoom), meta, select_by)
         if rel is None:
             return dict(sat=tile["sat"], status="no_data"), None, None
         r = F.fetch_tile(client, rel, tile, year, wcfg, root, (0.0, 0.0), dest_name=dest, metadata=meta,
-                         attribution=str(wcfg.attribution), calibration=None, selection=sel)
+                         attribution=str(wcfg.attribution), calibration=None, selection=sel,
+                         calibration_status=dict(status="uncalibrated", reason="calibration window (offset 0)"))
         if r["status"] == "missing":
             return dict(sat=tile["sat"], status="missing", release=rel.num), None, None
         wb = cv2.imread(r["path"], cv2.IMREAD_COLOR)

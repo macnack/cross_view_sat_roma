@@ -872,20 +872,78 @@ def test_rate_limit_is_global_over_threads():
     assert peak[0] >= 2                                              # ... but the requests overlapped
 
 
-def test_fetch_applies_only_a_passing_calibration_and_survives_an_empty_one(tmp_path):
+def test_fetch_applies_only_a_passing_calibration_and_survives_an_empty_one(tmp_path, capsys):
     """A FAIL calibration (or one without any usable tile: offset_m None, which crashed the Eagle dry run 8813461) is
-    not applied: offset 0, recorded; --apply-failed-calibration applies a FAIL offset that exists."""
+    not applied: offset 0, the status and reason recorded in the sidecar; --apply-failed-calibration applies a FAIL
+    offset that exists. Resumable WITHOUT --force: a change of the applied offset re-renders the window, the same
+    offset skips it (and only refreshes the recorded status)."""
     root = _layout(tmp_path)
     F = _load("fetch_wayback_vigor")
     p = W.calibration_path(root, "Chicago")
-    args = ["--root", str(root), "--split", "samearea", "--cities", "Chicago", "--years", "2021", "--force"]
+    args = ["--root", str(root), "--split", "samearea", "--cities", "Chicago", "--years", "2021"]
     side = root / "Chicago" / "wayback_2021" / SAT.replace(".png", ".json")
+    rd = lambda: json.loads(side.read_text())                        # noqa: E731
     p.write_text(json.dumps({"offset_m": None, "offset_px": None, "residual_m": None, "n_used": 0, "pass": False}))
+    assert F.main(args + ["--dry-run"], opener=FakeService())["dry"] == 1          # the 8813461 crash path
+    assert "no usable tile" in capsys.readouterr().out
     assert F.main(args, opener=FakeService())["written"] == 1
-    assert json.loads(side.read_text())["offset_px"] == [0.0, 0.0] and json.loads(side.read_text())["calibration"] is None
+    s = rd()
+    assert s["offset_px"] == [0.0, 0.0] and s["calibration"] is None
+    assert s["calibration_status"]["status"] == "not_applied" and "no usable tile" in s["calibration_status"]["reason"]
     p.write_text(json.dumps({"offset_m": [0.25, -0.125], "residual_m": 0.9, "n_used": 5, "pass": False}))
-    F.main(args, opener=FakeService())
-    assert json.loads(side.read_text())["offset_px"] == [0.0, 0.0]
-    F.main(args + ["--apply-failed-calibration"], opener=FakeService())
-    assert np.allclose(json.loads(side.read_text())["offset_px"], [0.25 / 0.125, -0.125 / 0.125])   # offset_px_for
+    assert F.main(args, opener=FakeService())["skipped"] == 1                       # same offset 0: not re-rendered
+    s = rd()
+    assert s["offset_px"] == [0.0, 0.0] and s["calibration_status"]["status"] == "not_applied"
+    assert "FAIL (residual 0.9 m over 5 tiles)" in s["calibration_status"]["reason"]   # the record follows the file
+    assert s["calibration_status"]["offset_m"] == [0.25, -0.125]
+    assert F.main(args + ["--apply-failed-calibration"], opener=FakeService())["written"] == 1   # new offset: re-render
+    s = rd()
+    assert np.allclose(s["offset_px"], [0.25 / 0.125, -0.125 / 0.125]) and s["calibration_status"]["status"] == "applied_fail"
+    assert F.main(args, opener=FakeService())["written"] == 1              # back to the default policy: offset 0 again
+    assert rd()["offset_px"] == [0.0, 0.0]
+    p.write_text(json.dumps({"offset_m": [0.25, -0.125], "residual_m": 0.1, "n_used": 40, "pass": True}))
+    assert F.main(args, opener=FakeService())["written"] == 1
+    s = rd()
+    assert np.allclose(s["offset_px"], [2.0, -1.0]) and s["calibration_status"]["status"] == "applied"
+    assert s["calibration"].endswith("wayback_calibration.json")
+    assert F.main(args + ["--no-calibration"], opener=FakeService())["written"] == 1
+    assert rd()["calibration_status"]["status"] == "disabled" and rd()["offset_px"] == [0.0, 0.0]
     assert W.offset_px_for({"offset_m": None}, 0.125) == (0.0, 0.0)
+
+
+def test_rim_guard_rejects_a_peak_outside_the_search_radius():
+    """A true shift just outside the radius: the constrained search must not return one of its ringing lobes inside
+    the disc (which has a PSR far above 7); it returns the outside peak flagged `edge`, and the aggregate drops it.
+    Shifts just inside the radius are measured to 0.15 px and not flagged."""
+    base = _city_block(seed=5)
+    A = W.calib_preprocess(base, "gradient")
+    for shift in ((24.3, 0.0), (24.6, 0.0), (17.5, 17.8), (0.0, -25.5)):            # |shift| > 24 px
+        r = W.phase_correlation_psr(A, W.calib_preprocess(W.fourier_shift(base, *shift), "gradient"), 20, 24)
+        assert r["edge"] and math.hypot(r["dx"], r["dy"]) > 24
+    for shift in ((23.2, 0.0), (-16.6, 16.6), (-20.1, -8.7), (0.3, -0.4)):          # |shift| < 24 px
+        r = W.phase_correlation_psr(A, W.calib_preprocess(W.fourier_shift(base, *shift), "gradient"), 20, 24)
+        assert not r["edge"] and abs(r["dx"] - shift[0]) < 0.15 and abs(r["dy"] - shift[1]) < 0.15
+    cal = _load("calibrate_wayback_vigor")
+    off = np.array([[2.0, -1.0]] * 3 + [[23.9, 0.0]])
+    agg = cal.aggregate(off, np.full(4, 20.0), 0.125, 7.0, 40.0, 0.3, 3, edges=[False, False, False, True])
+    assert agg["n_edge"] == 1 and agg["n_used"] == 3 and agg["offset_px"] == [2.0, -1.0]
+
+
+def test_a_failing_tile_is_counted_reported_and_the_others_are_written(tmp_path, monkeypatch, capsys):
+    """A worker exception (e.g. a request failing after its retries) must not vanish in the pool nor stop the other
+    tiles: it is counted as `error`, printed, and the CLI exits 1."""
+    F = _load("fetch_wayback_vigor")
+    root, names = _multi_tile_root(tmp_path, n=6)
+    real = F.fetch_tile
+
+    def flaky(client, rel, tile, *a, **k):
+        if tile["sat"] == names[2]:
+            raise RuntimeError("GET ... failed after 4 attempts")
+        return real(client, rel, tile, *a, **k)
+    monkeypatch.setattr(F, "fetch_tile", flaky)
+    counts = F.main(["--root", str(root), "--cities", "Chicago", "--all", "--years", "2021", "--workers", "3"],
+                    opener=FakeService())
+    assert counts["error"] == 1 and counts["written"] == len(names) - 1
+    out = capsys.readouterr().out
+    assert f"ERROR {names[2]}: RuntimeError" in out and "1 tile(s) FAILED" in out
+    assert not (root / "Chicago" / "wayback_2021" / names[2]).exists()

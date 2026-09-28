@@ -70,7 +70,8 @@ src = the sidecar's SRC_RES, else the tile GSD); (2) both go to the gradient-mag
 `wayback.calib_domain: gradient | intensity`); (3) Hann window after removing the window-weighted mean (a plain mean
 leaves a spurious zero-shift peak); (4) phase correlation whose whitened cross-power spectrum is weighted by the same
 Gaussian (`band_sigma_px`: only the common band votes; 0.25 -> 0.08 px on the synthetic cross-source test); (5) the
-integer peak is searched only within `wayback.calib_max_shift_m` of zero, refined by the upsampled DFT; (6) the
+integer peak is searched only within `wayback.calib_max_shift_m` of zero (+2 px, so that a peak just outside is
+found and flagged `edge` -> rejected, instead of one of its ringing lobes inside), refined by the upsampled DFT; (6) the
 peak-to-sidelobe ratio PSR = (peak - mean) / std of the surface inside that disc, 5 px around the peak excluded, is
 the acceptance statistic (`wayback.calib_min_psr`), not the absolute response (which is 0.01-0.1 on real pairs even
 when right). Real pairs (150 per city, the release closest to 2021): unrelated-content PSRs are 3-6 (median 3.6-4.2
@@ -554,11 +555,15 @@ def phase_correlation_psr(A, B, upsample=20, max_shift_px=None, exclude_px=5, ba
     spectrum common to both images: a spurious peak at zero shift). The integer peak is searched only within
     `max_shift_px` of zero (None = everywhere), refined by the upsampled DFT (1 / upsample px). PSR = (peak - mean) /
     std of the correlation surface inside the search disc excluding `exclude_px` around the peak (the whole surface
-    when unconstrained). band_sigma_px > 0: the whitened cross-power spectrum is weighted by exp(-2 pi^2 f^2 s^2)
-    (the squared transfer function of a Gaussian of that sigma), i.e. only the band both sources carry votes: above
-    the coarser source's cut-off the whitened spectrum is pure noise with unit weight, which costs the sub-pixel
-    peak ~0.2 px on blurred pairs with clutter (tests). Returns dict(dx, dy, response, psr) with
-    `phase_correlation`'s sign convention."""
+    when unconstrained). band_sigma_px > 0: the whitened cross-power spectrum is weighted by exp(-2 pi^2 f^2 s^2),
+    f in cycles / px (the transfer function of a Gaussian of sigma s px, i.e. the blur applied to the finer image),
+    so only the band both sources carry votes: above the coarser source's cut-off the whitened spectrum is pure
+    noise with unit weight, which costs the sub-pixel peak ~0.2 px on blurred pairs with clutter (tests).
+    Rim guard (constrained search): the integer peak is searched over a disc 2 px wider than the radius and refined
+    there; when the refined peak lies outside the radius, `edge` is True and the caller rejects the tile (searching
+    only inside the radius would return a ringing lobe of that outside peak, 1-2 px inside the rim, with a PSR of
+    15-20 on synthetic pairs). Returns dict(dx, dy, response, psr, edge) with `phase_correlation`'s sign
+    convention."""
     A, B = np.asarray(A, np.float64), np.asarray(B, np.float64)
     if A.shape != B.shape:
         raise ValueError(f"shapes differ: {A.shape} vs {B.shape}")
@@ -573,11 +578,14 @@ def phase_correlation_psr(A, B, upsample=20, max_shift_px=None, exclude_px=5, ba
         fy, fx = np.fft.fftfreq(h), np.fft.fftfreq(w)
         R = R * np.exp(-2.0 * np.pi ** 2 * float(band_sigma_px) ** 2 * (fy[:, None] ** 2 + fx[None, :] ** 2))
     r = np.fft.ifft2(R).real
-    sy = np.fft.fftfreq(h) * h                                        # signed integer shift of each surface row
-    sx = np.fft.fftfreq(w) * w
+    sy = np.rint(np.fft.fftfreq(h) * h)                               # signed integer shift of each surface row
+    sx = np.rint(np.fft.fftfreq(w) * w)                               # (rint: fftfreq(320) * 320 has 24.000000000000004)
     d2 = sy[:, None] ** 2 + sx[None, :] ** 2
     inside = np.ones_like(r, bool) if max_shift_px is None else d2 <= float(max_shift_px) ** 2
-    py, px = np.unravel_index(int(np.argmax(np.where(inside, r, -np.inf))), r.shape)
+    # the integer peak is searched 2 px beyond the radius: a peak just outside it would otherwise hand the search one
+    # of its own ringing lobes inside the disc, with a high PSR; such a peak is found, refined and flagged `edge`
+    wide = np.ones_like(r, bool) if max_shift_px is None else d2 <= (float(max_shift_px) + 2.0) ** 2
+    py, px = np.unravel_index(int(np.argmax(np.where(wide, r, -np.inf))), r.shape)
     dy0, dx0 = float(sy[py]), float(sx[px])
     side = inside & ((sy[:, None] - dy0) ** 2 + (sx[None, :] - dx0) ** 2 > float(exclude_px) ** 2)
     vals = r[side]
@@ -589,15 +597,16 @@ def phase_correlation_psr(A, B, upsample=20, max_shift_px=None, exclude_px=5, ba
         v = v.real
         iy, ix = np.unravel_index(int(np.argmax(v)), v.shape)
         dy, dx, peak = float(ys[iy]), float(xs[ix]), float(v[iy, ix]) / (h * w)
-    return dict(dx=dx, dy=dy, response=float(np.clip(peak, 0.0, 1.0)), psr=psr)
+    edge = max_shift_px is not None and bool(math.hypot(dx, dy) > float(max_shift_px))
+    return dict(dx=dx, dy=dy, response=float(np.clip(peak, 0.0, 1.0)), psr=psr, edge=edge)
 
 
 def calib_match(vigor_img, wayback_img, domain="gradient", blur_sigma=0.0, max_shift_px=None, upsample=20,
                 exclude_px=5, band=True):
     """One calibration pair (both at the output GSD): the VIGOR tile blurred by `blur_sigma` to the Wayback source
     resolution, both images through `calib_preprocess(domain)`, then `phase_correlation_psr` (band-limited to the
-    same sigma when `band`). Returns dict(dx, dy, response, psr): the content at VIGOR px (u, v) is at Wayback px
-    (u + dx, v + dy)."""
+    same sigma when `band`). Returns dict(dx, dy, response, psr, edge): the content at VIGOR px (u, v) is at Wayback
+    px (u + dx, v + dy); edge = the peak is not inside the search disc (the tile is rejected)."""
     A = calib_preprocess(vigor_img, domain, blur_sigma)
     B = calib_preprocess(wayback_img, domain, 0.0)
     return phase_correlation_psr(A, B, upsample, max_shift_px, exclude_px, blur_sigma if band else 0.0)

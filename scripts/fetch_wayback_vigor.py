@@ -18,7 +18,8 @@ has the centre tile (`fetch_window`; the raw tiles
 are cached under <root>/wayback_tiles/<release>/<z>/), the mosaic rendered into the tile's frame at
 wayback.out_gsd_m (bevloc.data.wayback module doc) with the city's calibration offset (make wayback-calib,
 <root>/<City>/wayback_calibration.json, applied only when it PASSes (--apply-failed-calibration applies a FAIL
-offset too); none / FAIL = zero offset, recorded as such) and written as
+offset too); none / FAIL = zero offset; the sidecar's `calibration_status` records applied / applied_fail /
+not_applied / absent / disabled with the reason and the measured numbers) and written as
 <root>/<City>/wayback_<year>/<sat_name> plus the JSON sidecar <stem>.json (release number and date, capture date /
 sensor / resolution from the metadata layer, zoom, source GSD, tiles and the sha256 of their bytes, offset applied,
 attribution). Resumable: a tile whose sidecar records the same release, offset and width is skipped; a different
@@ -30,7 +31,8 @@ which can change which release is "closest" for recent years).
 Throughput: `wayback.workers` (--workers, default 6) tiles are processed concurrently by threads sharing one
 WaybackClient, whose rate limit (`wayback.rate_hz`) is global (request starts spaced 1 / rate_hz over all threads);
 sequentially the fetch is latency-bound at ~1-2 requests/s. The per-tile work and its outputs do not depend on the
-worker count (tests: byte-identical PNGs and sidecars for 1 and 4 workers).
+worker count (tests: byte-identical PNGs and sidecars for 1 and 4 workers). A tile whose work raises (e.g. a
+request failing after its retries) is counted as `error` and printed; the other tiles go on and the exit code is 1.
 """
 from __future__ import annotations
 
@@ -158,7 +160,7 @@ class Walks:
         with self.lock:
             if self.dirty:
                 self.path.parent.mkdir(parents=True, exist_ok=True)
-                tmp = self.path.with_suffix(".tmp")
+                tmp = self.path.with_name(f"{self.path.name}.{os.getpid()}.{threading.get_ident()}.tmp")
                 tmp.write_text(json.dumps(self.d))
                 tmp.replace(self.path)
                 self.dirty = 0
@@ -194,7 +196,7 @@ class Metadata:
         with self.lock:
             if self.dirty:
                 self.path.parent.mkdir(parents=True, exist_ok=True)
-                tmp = self.path.with_suffix(".tmp")
+                tmp = self.path.with_name(f"{self.path.name}.{os.getpid()}.{threading.get_ident()}.tmp")
                 tmp.write_text(json.dumps(self.d))
                 tmp.replace(self.path)
                 self.dirty = 0
@@ -228,10 +230,11 @@ def choose_release(walks, client, releases, tile, year, walk_zoom, metadata=None
 
 
 def fetch_tile(client, release, tile, year, wcfg, root, offset_px, dest_name=None, metadata=None, force=False,
-               attribution=W.ATTRIBUTION, calibration=None, selection=None):
+               attribution=W.ATTRIBUTION, calibration=None, selection=None, calibration_status=None):
     """Fetch, render and write one tile for one year. Returns dict(status = written | skipped | missing, path, ...).
     dest_name: the folder under <root>/<City> (default wayback_<year>); selection: the info dict of `choose_release`
-    (the rule and the dates it used), recorded in the sidecar."""
+    (the rule and the dates it used), recorded in the sidecar; calibration_status: dict(status, reason, ...) of
+    `calibration_policy`, recorded in the sidecar (and refreshed in the sidecar of a skipped tile)."""
     city = tile["city"]
     out_dir = Path(root) / city / (dest_name or f"wayback_{year}")
     png = out_dir / tile["sat"]
@@ -246,6 +249,9 @@ def fetch_tile(client, release, tile, year, wcfg, root, offset_px, dest_name=Non
             old = {}
         if (old.get("release") == release.num and old.get("width") == geom["width"]
                 and np.allclose(old.get("offset_m", [np.nan, np.nan]), off_m, atol=1e-6)):
+            if (old.get("calibration"), old.get("calibration_status")) != (calibration, calibration_status):
+                old.update(calibration=calibration, calibration_status=calibration_status)   # same pixels, new record
+                _write_json(side, old)
             return dict(status="skipped", path=str(png), release=release.num)
     img, info = W.fetch_window(client, release, tile["lat"], tile["lon"], CITY_RES[city], out_gsd,
                                zoom_prefs=tuple(int(z) for z in wcfg.zoom_pref), offset_px=offset_px)
@@ -258,17 +264,45 @@ def fetch_tile(client, release, tile, year, wcfg, root, offset_px, dest_name=Non
         except RuntimeError as e:                                  # the metadata service is not essential
             meta = dict(error=str(e)[:200])
     out_dir.mkdir(parents=True, exist_ok=True)
-    tmp = png.with_suffix(".part.png")
+    tmp = png.with_name(f"{png.stem}.{os.getpid()}.{threading.get_ident()}.part.png")
     cv2.imwrite(str(tmp), img)
     tmp.replace(png)
-    side.write_text(json.dumps(dict(
+    _write_json(side, dict(
         sat=tile["sat"], city=city, lat=tile["lat"], lon=tile["lon"], year_requested=int(year),
         **info, capture=meta, capture_date=W.capture_date(meta) and W.capture_date(meta).isoformat(),
-        selection=selection, calibration=calibration, source="Esri World Imagery Wayback",
+        selection=selection, calibration=calibration, calibration_status=calibration_status,
+        source="Esri World Imagery Wayback",
         attribution=attribution, fetched_at=time.strftime("%Y-%m-%dT%H:%M:%S"),
         frame="Web Mercator zoom-20 px x CITY_RES (the VIGOR tile's frame), north up, east right; output pixel "
-              "(u, v) samples the release at (u + dx, v + dy) of the uncalibrated window (offset_px)"), indent=1))
+              "(u, v) samples the release at (u + dx, v + dy) of the uncalibrated window (offset_px)"))
     return dict(status="written", path=str(png), release=release.num, zoom=info["zoom"], missing=info["missing_tiles"])
+
+
+def _write_json(path, d):
+    tmp = Path(path).with_name(f"{Path(path).name}.{os.getpid()}.{threading.get_ident()}.tmp")
+    tmp.write_text(json.dumps(d, indent=1))
+    tmp.replace(path)
+
+
+def calibration_policy(root, city, no_calibration=False, apply_failed=False):
+    """(calib dict to apply or None, status dict recorded in every sidecar): a calibration is applied only when it
+    PASSes (or apply_failed and it has an offset); otherwise offset 0 with the reason."""
+    path = W.calibration_path(root, city)
+    if no_calibration:
+        return None, dict(status="disabled", reason="--no-calibration")
+    c = W.load_calibration(root, city)
+    if c is None:
+        return None, dict(status="absent", reason=f"no {path.name}")
+    measured = {"file": str(path), "pass": bool(c.get("pass")), "offset_m": c.get("offset_m"),
+                "residual_m": c.get("residual_m"), "n_used": c.get("n_used"), "written": c.get("written")}
+    if c.get("offset_m") is None:
+        return None, dict(status="not_applied", reason="FAIL: no usable tile (offset_m null)", **measured)
+    if c.get("pass"):
+        return c, dict(status="applied", reason="PASS", **measured)
+    if apply_failed:
+        return c, dict(status="applied_fail", reason="FAIL applied on request (--apply-failed-calibration)", **measured)
+    return None, dict(status="not_applied", reason=f"FAIL (residual {c.get('residual_m')} m over {c.get('n_used')} "
+                                                   f"tiles): a FAIL offset is not applied", **measured)
 
 
 def build_parser():
@@ -331,15 +365,13 @@ def main(argv=None, opener=None):
         print("select_by capture needs the metadata layer: --no-metadata / wayback.metadata false ignored", flush=True)
         meta = Metadata(root / "wayback_tiles" / "metadata.json")
     print(f"release per year selected by {select_by} date (closest to 1 July; ties -> newer publication)", flush=True)
-    calib = {}
+    calib, calib_status = {}, {}
     for city in sorted({t["city"] for t in tiles}):
-        c = None if a.no_calibration else W.load_calibration(root, city)
-        if c is not None and (c.get("offset_m") is None or not (c.get("pass") or a.apply_failed_calibration)):
-            print(f"{city}: calibration {W.calibration_path(root, city)} is a FAIL "
-                  f"({c.get('n_used')} usable tiles, residual {c.get('residual_m')}) -> NOT applied, offset 0 "
+        c, st = calibration_policy(root, city, a.no_calibration, a.apply_failed_calibration)
+        if st["status"] == "not_applied":
+            print(f"{city}: calibration {W.calibration_path(root, city)}: {st['reason']} -> NOT applied, offset 0 "
                   f"(--apply-failed-calibration to apply a FAIL offset anyway)", flush=True)
-            c = None
-        calib[city] = c
+        calib[city], calib_status[city] = c, st
         print(f"{city}: calibration " + ("none (offset 0)" if c is None else
                                           f"offset {c['offset_m'][0]:+.3f} m E, {c['offset_m'][1]:+.3f} m S "
                                           f"(residual {c['residual_m']:.3f} m over {c.get('n_used')} tiles, "
@@ -352,6 +384,16 @@ def main(argv=None, opener=None):
     workers = max(1, int(a.workers if a.workers is not None else getattr(wcfg, "workers", 1) or 1))
 
     def one_tile(tile):
+        """Every year of one tile; an exception is counted ('error'), reported and makes the exit code 1 (the other
+        tiles go on; a re-run retries only what is not on disk)."""
+        try:
+            return _one_tile(tile)
+        except Exception as e:
+            msg = f"{tile['sat']}: {type(e).__name__}: {e}"[:300]
+            print(f"  ERROR {msg}", flush=True)
+            return dict(counts=collections.Counter(error=1), chosen=[], n_versions=None, error=msg)
+
+    def _one_tile(tile):
         """Every year of one tile; returns the per-tile tallies (merged by the main thread)."""
         city = tile["city"]
         off = W.offset_px_for(calib[city], float(wcfg.out_gsd_m))
@@ -373,7 +415,7 @@ def main(argv=None, opener=None):
             r = fetch_tile(client, rel, tile, year, wcfg, root, off, dest_name=a.dest_name, metadata=meta,
                            force=a.force, attribution=str(wcfg.attribution),
                            calibration=None if calib[city] is None else str(W.calibration_path(root, city)),
-                           selection=sel)
+                           selection=sel, calibration_status=calib_status[city])
             out["counts"][r["status"]] += 1
             if r["status"] == "written" and r.get("missing"):
                 out["counts"]["with_missing_tiles"] += 1
@@ -423,8 +465,11 @@ def main(argv=None, opener=None):
               f"~{len(tiles) * len(years) * PNG_BYTES_EST / 1e9:.1f} GB of PNGs, "
               f"requests this run (walks + identify): {client.n_requests}", flush=True)
     print(f"done: {dict(counts)}; {client.n_requests} requests, {client.n_bytes / 1e6:.1f} MB", flush=True)
+    if counts["error"]:
+        print(f"{counts['error']} tile(s) FAILED with an exception (ERROR lines above; their years are not written); "
+              f"exit code 1 — re-run to retry them", flush=True)
     return counts
 
 
 if __name__ == "__main__":
-    main()
+    raise SystemExit(1 if main()["error"] else 0)

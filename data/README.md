@@ -107,6 +107,6 @@ city against the release closest to 2021; `bevloc.data.wayback` module doc): **N
 the 2021-ish Esri layer there is 0.46–0.5 m off-nadir satellite imagery (WorldView-2 / GeoEye-1); only 4–6 of 150
 tiles give a peak above the noise (PSR ≥ 7) and their offsets scatter by ~1 m: roofs and trees are displaced
 relative to the ground (relief displacement), so no constant offset aligns the tile to < 0.3 m. Their
-`wayback_<year>` windows are written with offset 0 (uncalibrated, recorded in the sidecar).
+`wayback_<year>` windows are written with offset 0 (uncalibrated; the sidecar's `calibration_status` says why).
 Re-measure the windows already on disk without the network: `make wayback-calib CITY=<City> WAYBACK_ARGS="--pairs-dir
 $VIGOR_DIR"`. The fetch runs `wayback.workers` (6) tiles at a time under the global `wayback.rate_hz` (10/s).
