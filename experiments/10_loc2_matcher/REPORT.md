@@ -32,6 +32,9 @@ Every row is scored on the same sample draw per split (seed 0: 3000 Chicago same
 | Two-pass, Task 04 erp_depth: 2 m coarse + 1 m fine window, fine | 1.20 m (1.16–1.26) | 3.69 m | 83 % | 89 % | 3000 |
 | Two-pass, Task 04 erp_depth: 2 m coarse + 1 m fine window, fine_gated | 1.20 m (1.16–1.26) | 3.70 m | 83 % | 89 % | 3000 |
 | Task 04 erp_depth, four-city, 2 m cells, last, se2 | 1.77 m (1.70–1.82) | 3.68 m | 84 % | 91 % | 3000 |
+| Two-pass, Task 04 four-city coarse + four-city fine | 1.77 m (1.70–1.82) | 3.68 m | 84 % | 91 % | 3000 |
+| Two-pass, Task 04 four-city coarse + four-city fine, fine | 1.24 m (1.19–1.29) | 3.33 m | 85 % | 91 % | 3000 |
+| Two-pass, Task 04 four-city coarse + four-city fine, fine_gated | 1.24 m (1.19–1.29) | 3.33 m | 85 % | 91 % | 3000 |
 | Two-pass, Task 04 four-city coarse + Chicago fine decoder | 1.77 m (1.70–1.82) | 3.68 m | 84 % | 91 % | 3000 |
 | Two-pass, Task 04 four-city coarse + Chicago fine decoder, fine | 1.19 m (1.15–1.25) | 3.24 m | 85 % | 91 % | 3000 |
 | Two-pass, Task 04 four-city coarse + Chicago fine decoder, fine_gated | 1.19 m (1.15–1.25) | 3.24 m | 85 % | 91 % | 3000 |
@@ -47,6 +50,9 @@ Every row is scored on the same sample draw per split (seed 0: 3000 Chicago same
 | Task 04 erp_depth, 112x56 tokens, 2 m, best, se2 | 1.91 m (1.84–1.98) | 4.27 m | 81 % | 88 % | 3000 |
 | Task 04 erp_depth, 112x56 tokens, 2 m, last, se2 | 1.92 m (1.85–2.00) | 4.27 m | 80 % | 88 % | 3000 |
 | Task 04 erp_depth, four-city, 2 m cells, last, se2 (all cities) | 2.05 m (2.01–2.08) | 3.69 m | 84 % | 92 % | 12000 |
+| Two-pass, Task 04 four-city coarse + four-city fine (all cities) | 2.05 m (2.01–2.08) | 3.69 m | 84 % | 92 % | 12000 |
+| Two-pass, Task 04 four-city coarse + four-city fine (all cities), fine | 1.51 m (1.48–1.54) | 3.33 m | 85 % | 92 % | 12000 |
+| Two-pass, Task 04 four-city coarse + four-city fine (all cities), fine_gated | 1.51 m (1.48–1.54) | 3.33 m | 85 % | 92 % | 12000 |
 | Task 04 erp_depth + head + heat-map loss, 30k, best, se2 | 2.79 m (2.68–2.89) | 4.68 m | 75 % | 89 % | 3000 |
 | Task 04 erp_depth + head + heat-map loss, 30k, last, se2 | 2.83 m (2.76–2.94) | 4.69 m | 75 % | 89 % | 3000 |
 | Task 04 erp_depth + head + heat-map loss, 30k, best, homography | 2.84 m (2.73–2.95) | 5.12 m | 75 % | 89 % | 3000 |
@@ -68,11 +74,26 @@ Centre-guess chance (predict the tile centre): median 14.26, 14.30 m.
 | Task 04 erp_depth, four-city, 2 m cells, last, se2 (all cities) | NewYork | 3.11 m (3.01–3.19) | 4.87 m | 72 % | 90 % | 3140 |
 | Task 04 erp_depth, four-city, 2 m cells, last, se2 (all cities) | SanFrancisco | 1.79 m (1.75–1.86) | 3.08 m | 89 % | 94 % | 3198 |
 | Task 04 erp_depth, four-city, 2 m cells, last, se2 (all cities) | Seattle | 1.83 m (1.78–1.90) | 3.03 m | 90 % | 94 % | 2718 |
+| Two-pass, Task 04 four-city coarse + four-city fine (all cities) | Chicago | 1.79 m (1.74–1.87) | 3.70 m | 84 % | 91 % | 2944 |
+| Two-pass, Task 04 four-city coarse + four-city fine (all cities) | NewYork | 3.11 m (3.01–3.19) | 4.87 m | 72 % | 90 % | 3140 |
+| Two-pass, Task 04 four-city coarse + four-city fine (all cities) | SanFrancisco | 1.79 m (1.75–1.86) | 3.08 m | 89 % | 94 % | 3198 |
+| Two-pass, Task 04 four-city coarse + four-city fine (all cities) | Seattle | 1.83 m (1.78–1.90) | 3.03 m | 90 % | 94 % | 2718 |
+| Two-pass, Task 04 four-city coarse + four-city fine (all cities), fine | Chicago | 1.25 m (1.21–1.31) | 3.32 m | 85 % | 91 % | 2944 |
+| Two-pass, Task 04 four-city coarse + four-city fine (all cities), fine | NewYork | 2.95 m (2.84–3.04) | 4.72 m | 74 % | 90 % | 3140 |
+| Two-pass, Task 04 four-city coarse + four-city fine (all cities), fine | SanFrancisco | 1.20 m (1.15–1.23) | 2.56 m | 90 % | 94 % | 3198 |
+| Two-pass, Task 04 four-city coarse + four-city fine (all cities), fine | Seattle | 1.35 m (1.31–1.40) | 2.64 m | 90 % | 94 % | 2718 |
+| Two-pass, Task 04 four-city coarse + four-city fine (all cities), fine_gated | Chicago | 1.25 m (1.21–1.31) | 3.32 m | 85 % | 91 % | 2944 |
+| Two-pass, Task 04 four-city coarse + four-city fine (all cities), fine_gated | NewYork | 2.95 m (2.84–3.04) | 4.72 m | 74 % | 90 % | 3140 |
+| Two-pass, Task 04 four-city coarse + four-city fine (all cities), fine_gated | SanFrancisco | 1.20 m (1.15–1.23) | 2.56 m | 90 % | 94 % | 3198 |
+| Two-pass, Task 04 four-city coarse + four-city fine (all cities), fine_gated | Seattle | 1.35 m (1.31–1.40) | 2.64 m | 90 % | 94 % | 2718 |
 
 ## Cross-area (train New York + Seattle, test San Francisco + Chicago)
 
 | Method | Median (95 % CI) | Mean | ≤ 5 m | ≤ 10 m | n |
 |---|---|---|---|---|---|
+| Two-pass, Task 04 cross-area coarse + cross-area fine | 2.50 m (2.45–2.55) | 4.19 m | 82 % | 91 % | 6000 |
+| Two-pass, Task 04 cross-area coarse + cross-area fine, fine | 1.94 m (1.88–1.98) | 3.82 m | 84 % | 91 % | 6000 |
+| Two-pass, Task 04 cross-area coarse + cross-area fine, fine_gated | 1.94 m (1.88–1.98) | 3.82 m | 84 % | 91 % | 6000 |
 | Task 04 erp_depth, NY + Seattle, 2 m cells, last, se2 | 2.50 m (2.45–2.55) | 4.19 m | 82 % | 91 % | 6000 |
 | Task 04 erp_depth, NY + Seattle, 2 m cells, best, se2 | 2.54 m (2.49–2.59) | 4.18 m | 82 % | 91 % | 6000 |
 
@@ -86,3 +107,9 @@ Centre-guess chance (predict the tile centre): median 14.85 m.
 | Task 04 erp_depth, NY + Seattle, 2 m cells, best, se2 | SanFrancisco | 2.65 m (2.59–2.71) | 3.99 m | 83 % | 93 % | 3139 |
 | Task 04 erp_depth, NY + Seattle, 2 m cells, last, se2 | Chicago | 2.34 m (2.27–2.41) | 4.44 m | 80 % | 89 % | 2861 |
 | Task 04 erp_depth, NY + Seattle, 2 m cells, last, se2 | SanFrancisco | 2.62 m (2.56–2.69) | 3.96 m | 85 % | 93 % | 3139 |
+| Two-pass, Task 04 cross-area coarse + cross-area fine | Chicago | 2.34 m (2.27–2.41) | 4.44 m | 80 % | 89 % | 2861 |
+| Two-pass, Task 04 cross-area coarse + cross-area fine | SanFrancisco | 2.62 m (2.56–2.69) | 3.96 m | 85 % | 93 % | 3139 |
+| Two-pass, Task 04 cross-area coarse + cross-area fine, fine | Chicago | 1.85 m (1.78–1.92) | 4.17 m | 81 % | 89 % | 2861 |
+| Two-pass, Task 04 cross-area coarse + cross-area fine, fine | SanFrancisco | 1.99 m (1.94–2.05) | 3.50 m | 87 % | 93 % | 3139 |
+| Two-pass, Task 04 cross-area coarse + cross-area fine, fine_gated | Chicago | 1.85 m (1.78–1.92) | 4.17 m | 81 % | 89 % | 2861 |
+| Two-pass, Task 04 cross-area coarse + cross-area fine, fine_gated | SanFrancisco | 1.99 m (1.94–2.05) | 3.50 m | 87 % | 93 % | 3139 |
