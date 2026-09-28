@@ -120,3 +120,9 @@
 8813384 wb_calib_NY      ^(\[wayback\]|.*PASS|.*FAIL|.*offset|.*residual|wrote |Traceback|.*Error|error:)
 8813385 wb_calib_Seattle ^(\[wayback\]|.*PASS|.*FAIL|.*offset|.*residual|wrote |Traceback|.*Error|error:)
 8813386 wb_dry_chi       ^(\[wayback\]|.*release|.*tiles|.*requests|Traceback|.*Error|error:)
+# --- Task 05: re-runs under capture-date selection (afterany the publication-rule jobs) ---
+8813457 wb_calibcap_Chicago ^(\[wayback\]|.*PASS|.*FAIL|.*offset|.*residual|.*capture|wrote |Traceback|.*Error|error:)
+8813458 wb_calibcap_SF      ^(\[wayback\]|.*PASS|.*FAIL|.*offset|.*residual|.*capture|wrote |Traceback|.*Error|error:)
+8813459 wb_calibcap_NY      ^(\[wayback\]|.*PASS|.*FAIL|.*offset|.*residual|.*capture|wrote |Traceback|.*Error|error:)
+8813460 wb_calibcap_Seattle ^(\[wayback\]|.*PASS|.*FAIL|.*offset|.*residual|.*capture|wrote |Traceback|.*Error|error:)
+8813461 wb_drycap_chi       ^(\[wayback\]|.*release|.*capture|.*tiles|.*requests|Traceback|.*Error|error:)
