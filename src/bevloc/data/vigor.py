@@ -32,6 +32,14 @@ path (ref_window_m None, no centre passed) is unchanged, bit for bit.
 Depth (query mode ``erp_depth``, task 04): UniK3D metric depth in Loc²'s layout, ``<root>/<City>/unik3d_depth/<stem>.png``
 (uint16 millimetres along the ray, clipped at 65 m; scripts/loc2_depth_vigor.py). The sample carries it as ``depth``
 (1, h, w) metres at the ERP size (nearest resampling); panoramas without a file are dropped by `keep_with_depth`.
+
+Reference source (task 05): ``cfg.vigor.ref_source`` / ``ref_source=`` = ``vigor`` (the tile under <City>/satellite,
+the default; every number is what it was) or ``wayback_<year>``: the same footprint from Esri World Imagery Wayback
+under <City>/wayback_<year>/<sat_name> (scripts/fetch_wayback_vigor.py; bevloc.data.wayback). A Wayback file covers
+exactly the VIGOR tile's footprint (640 * CITY_RES metres) at another pixel count, so the same resampling rule
+(footprint / width / cell) places it on the same canvas; the label geometry (dx, dy in VIGOR tile px) never depends on
+the file. `ref_canvas(i, source, ref_centre_en)` builds the reference of any source for the sample's window (the
+cross-source union of scripts/eval_vigor.py --ref-sources); `missing_refs` lists the labels whose file is absent.
 """
 from __future__ import annotations
 
@@ -43,8 +51,10 @@ import torch
 from torch.utils.data import Dataset
 
 from bevloc.bev.ipm_sphere import ipm_erp
+from bevloc.data.wayback import SOURCE_RE, source_dir
 
 CITIES = ("NewYork", "Seattle", "SanFrancisco", "Chicago")
+TILE_PX = 640                # the VIGOR tile: 640 px at CITY_RES m/px; the labels' (dx, dy) are in these px
 # metres per pixel of the 640 px tile (FG² config.ini [Constants])
 CITY_RES = {"NewYork": 0.113248, "Seattle": 0.100817, "SanFrancisco": 0.118141, "Chicago": 0.111262}
 # world ENU -> camera for a north-aligned panorama: camera x = east, y = down, z = north (forward)
@@ -176,10 +186,14 @@ class VigorPairs(Dataset):
     train=False). `item(i, ref_centre_en)` builds the window around a given centre (the evaluator's second pass)."""
 
     def __init__(self, root, cfg, cities=None, split="crossarea", train=False, limit=0, stride=1,
-                 erp_size=None, row_sign=None, col_sign=None, height_m=None, seed=0, depth=None):
+                 erp_size=None, row_sign=None, col_sign=None, height_m=None, seed=0, depth=None, ref_source=None):
         self.root = Path(root)
         self.cfg = cfg
         V = getattr(cfg, "vigor", None)
+        src = ref_source if ref_source is not None else (getattr(V, "ref_source", None) or "vigor")
+        if not SOURCE_RE.match(str(src)):
+            raise ValueError(f"vigor.ref_source must be 'vigor' or 'wayback_<year>', got {src!r}")
+        self.ref_source = str(src)
         # Verified from the file names' lat/lon (scripts/vigor_check_labels.py, median residual 0.05 m over
         # 3000 labels per city): dy > 0 = panorama SOUTH of the tile centre (row down: sign +1);
         # dx > 0 = panorama WEST of the tile centre (column right: sign -1).
@@ -221,14 +235,24 @@ class VigorPairs(Dataset):
         L = getattr(self.cfg, "lift", None)
         return str(getattr(L, "query_mode", "lift") or "lift") if L else "lift"
 
-    def reference(self, city, sat_name):
-        """Tile resampled to cfg.grid.cell_m, centred in a black (S, S) canvas. Returns (canvas, scale, half_px)."""
+    def ref_path(self, city, sat_name, source=None):
+        """File of the reference tile of `source` (None = this dataset's ref_source)."""
+        return source_dir(self.root, city, self.ref_source if source is None else source) / sat_name
+
+    def missing_refs(self, source=None):
+        """Labels (dicts) whose reference file of `source` is absent (a fetch that did not cover the draw)."""
+        return [lab for lab in self.labels if not self.ref_path(lab["city"], lab["sat"], source).is_file()]
+
+    def label_scale(self, city):
+        """(canvas px per VIGOR tile px, metres per VIGOR tile px): the label geometry, independent of the file."""
+        return CITY_RES[city] * 640.0 / TILE_PX / float(self.cfg.grid.cell_m), CITY_RES[city] * 640.0 / TILE_PX
+
+    def reference(self, city, sat_name, source=None):
+        """Tile of `source` (None = ref_source) resampled to cfg.grid.cell_m, centred in a black (S, S) canvas. Returns
+        (canvas, scale, half_px, (w0, h0)); the file covers 640 * CITY_RES metres whatever its pixel count."""
         g = self.cfg.grid
         size = int(g.n * self.cfg.reference.scale)
-        img = cv2.imread(str(self.root / city / "satellite" / sat_name), cv2.IMREAD_COLOR)
-        if img is None:
-            raise RuntimeError(f"unreadable tile {city}/{sat_name}")
-        img = cv2.cvtColor(img, cv2.COLOR_BGR2RGB)
+        img = self._tile(city, sat_name, source)
         h0, w0 = img.shape[:2]
         s = CITY_RES[city] * 640.0 / w0 / float(g.cell_m)        # tile px -> canvas px
         new = (max(1, int(round(w0 * s))), max(1, int(round(h0 * s))))
@@ -240,19 +264,25 @@ class VigorPairs(Dataset):
                                                     max(0, -x0):max(0, -x0) + (x1 - max(0, x0))]
         return canvas, s, (size - 1) / 2.0, (w0, h0)
 
-    def _tile(self, city, sat_name):
-        img = cv2.imread(str(self.root / city / "satellite" / sat_name), cv2.IMREAD_COLOR)
+    def _tile(self, city, sat_name, source=None):
+        """RGB tile of `source` (None = ref_source). RuntimeError when the file is absent or unreadable."""
+        p = self.ref_path(city, sat_name, source)
+        src = self.ref_source if source is None else source
+        if not p.is_file():
+            hint = "" if src == "vigor" else f" (fetch it: make wayback-fetch ... YEARS={src[len('wayback_'):]})"
+            raise RuntimeError(f"no {src} reference {city}/{sat_name}: {p} is missing{hint}")
+        img = cv2.imread(str(p), cv2.IMREAD_COLOR)
         if img is None:
             raise RuntimeError(f"unreadable tile {city}/{sat_name}")
         return cv2.cvtColor(img, cv2.COLOR_BGR2RGB)
 
-    def window_reference(self, city, sat_name, centre_en, img=None):
+    def window_reference(self, city, sat_name, centre_en, img=None, source=None):
         """Window of the tile at cfg.grid.cell_m: its centre pixel on the canvas centre and at `centre_en` (east,
         north metres from the tile centre) in the tile. Off-tile and outside-ref_window_m pixels are black.
         Returns (canvas, metres per tile px, (w0, h0))."""
         g = self.cfg.grid
         size = int(g.n * self.cfg.reference.scale)
-        img = self._tile(city, sat_name) if img is None else img
+        img = self._tile(city, sat_name, source) if img is None else img
         h0, w0 = img.shape[:2]
         res = CITY_RES[city] * 640.0 / w0
         M = window_affine(w0, h0, res, float(g.cell_m), size, centre_en)
@@ -293,7 +323,8 @@ class VigorPairs(Dataset):
             return self._window_item(i, lab, ref_centre_en)
         g = self.cfg.grid
         n = int(g.n)
-        canvas, s, c, (w0, h0) = self.reference(lab["city"], lab["sat"])
+        canvas, _, c, _ = self.reference(lab["city"], lab["sat"])
+        s, res = self.label_scale(lab["city"])                   # the labels are in VIGOR tile px, whatever the file
         pano = cv2.imread(str(self.root / lab["city"] / "panorama" / lab["pano"]), cv2.IMREAD_COLOR)
         if pano is None:
             raise RuntimeError(f"unreadable panorama {lab['city']}/{lab['pano']}")
@@ -303,7 +334,6 @@ class VigorPairs(Dataset):
         cy = c + self.row_sign * lab["dy"] * s
         o = (n - 1) / 2.0                                        # the camera is the BEV centre
         H = np.array([[1.0, 0.0, cx - o], [0.0, 1.0, cy - o], [0.0, 0.0, 1.0]], np.float32)
-        res = CITY_RES[lab["city"]] * 640.0 / w0
         erp = cv2.resize(pano, (self.erp_w, self.erp_h), interpolation=cv2.INTER_AREA)
         out = dict(
             id=f"{lab['city']}/{lab['pano']}", city=lab["city"], year=0, scale=int(self.cfg.reference.scale),
@@ -320,14 +350,13 @@ class VigorPairs(Dataset):
     def _window_item(self, i, lab, ref_centre_en):
         g = self.cfg.grid
         n, size, cell = int(g.n), int(g.n * self.cfg.reference.scale), float(g.cell_m)
-        img = self._tile(lab["city"], lab["sat"])
-        res = CITY_RES[lab["city"]] * 640.0 / img.shape[1]
+        _, res = self.label_scale(lab["city"])
         en = np.array([self.col_sign * lab["dx"] * res, -self.row_sign * lab["dy"] * res], np.float64)
         if ref_centre_en is None:
             centre = self.window_centre(i, en)
         else:
             centre = torch.as_tensor(ref_centre_en, dtype=torch.float64).detach().cpu().numpy().reshape(2).copy()
-        canvas, _, _ = self.window_reference(lab["city"], lab["sat"], centre, img=img)
+        canvas, _, _ = self.window_reference(lab["city"], lab["sat"], centre)
         pano = cv2.imread(str(self.root / lab["city"] / "panorama" / lab["pano"]), cv2.IMREAD_COLOR)
         if pano is None:
             raise RuntimeError(f"unreadable panorama {lab['city']}/{lab['pano']}")
@@ -347,6 +376,23 @@ class VigorPairs(Dataset):
             ref_centre_en=torch.from_numpy(centre),
         )
         return self._query_part(out, lab, pano)
+
+    def ref_canvas(self, i, source=None, ref_centre_en=None):
+        """The reference tensor (3, S, S) of sample i from `source` (None = ref_source), built exactly like `item`'s:
+        the whole tile, or (ref_centre_en given, or ref_window_m set) the window centred there. Pass the sample's own
+        ``ref_centre_en`` to get the same window from another source (training draws a fresh jitter otherwise)."""
+        lab = self.labels[i]
+        if ref_centre_en is None and self.ref_window_m is None:
+            canvas = self.reference(lab["city"], lab["sat"], source)[0]
+        else:
+            if ref_centre_en is None:
+                _, res = self.label_scale(lab["city"])
+                centre = self.window_centre(i, np.array([self.col_sign * lab["dx"] * res,
+                                                         -self.row_sign * lab["dy"] * res], np.float64))
+            else:
+                centre = torch.as_tensor(ref_centre_en, dtype=torch.float64).detach().cpu().numpy().reshape(2).copy()
+            canvas = self.window_reference(lab["city"], lab["sat"], centre, source=source)[0]
+        return torch.from_numpy(np.ascontiguousarray(canvas)).permute(2, 0, 1).float().div(255.0)
 
     def _query_part(self, out, lab, pano):
         """The query keys, identical for the whole-tile and the window reference (placement is in metres)."""

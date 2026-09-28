@@ -8,7 +8,7 @@ FRAMES  ?= 0 1000 1600 2000
 REF     ?= 200
 RUN      = PYTHONPATH=src:.pydeps $(PY)
 
-.PHONY: fg2-vigor eagle-watch vigor-viz loc2-depth loc2-vigor vigor-report loftr-fine vigor-certainty vigor-sweep vigor-cert-cache vigor-cert-head
+.PHONY: wayback-fetch wayback-calib eagle-fetch-wayback fg2-vigor eagle-watch vigor-viz loc2-depth loc2-vigor vigor-report loftr-fine vigor-certainty vigor-sweep vigor-cert-cache vigor-cert-head
 .PHONY: help deps test fetch stats mask lens viewer oxts odometry bevs mosaic smoke h1 targets overfit train calib all roma-viz mapillary mapillary-scan mapillary-sample ipm-smoke lift-overfit lift-splat lift-eval lift-splat-years lift-aug-viz lift-layers-viz lift-splat-aug lift-splat-pose-nll lift-splat-seq baselines-manifest fg2-smoke fg2-eval fg2-train bevsplat-smoke bevsplat-eval bevsplat-train baselines-report
 help:
 	@grep -E '^[a-z0-9_-]+:.*##' $(MAKEFILE_LIST) | sed -E 's/:.*## /\t/' | expand -t 12
@@ -230,6 +230,12 @@ vigor-check-labels: ## verify the (dy, dx) label convention from the lat/lon in 
 vigor-calibrate: ## settle row_sign and camera height on 150 VIGOR samples (CKPT=)
 	$(RUN) scripts/eval_vigor.py --config $(CONFIG) --ckpt $(CKPT) --split $(SPLIT) --tag calib --calibrate $(VIGOR_ARGS)
 
+wayback-fetch: ## task 05: Esri Wayback windows of the eval draw -> data/vigor/<City>/wayback_<year>/ (+ JSON sidecars); SPLIT=, CITIES=, LIMIT=, YEARS="2025 2019" (default wayback.years), WAYBACK_ARGS="--draw test|calib [--val-samples N] | --all | --dry-run | --stride N"; resumable
+	$(RUN) scripts/fetch_wayback_vigor.py --config $(CONFIG) --split $(SPLIT) $(if $(CITIES),--cities $(CITIES),) --limit $(if $(LIMIT),$(LIMIT),0) $(if $(YEARS),--years $(YEARS),) $(WAYBACK_ARGS)
+
+wayback-calib: ## task 05: constant (dx, dy) offset VIGOR tile -> Wayback window of the release closest to wayback.calib_year, phase correlation on wayback.calib_tiles tiles of CITY= -> data/vigor/<City>/wayback_calibration.json (PASS/FAIL at wayback.calib_gate_m); WAYBACK_ARGS="--split samearea --year 2021 --tiles 150"
+	$(RUN) scripts/calibrate_wayback_vigor.py --config $(CONFIG) --city $(CITY) $(WAYBACK_ARGS)
+
 pose-diag: ## failure diagnostics of one EVAL_JSON (confidence gate, cross-year consistency, tail) for YEAR
 	$(RUN) scripts/diag_eval.py --config $(CONFIG) --eval-json $(EVAL_JSON) --year $(YEAR)
 
@@ -247,6 +253,10 @@ eagle-pull: ## on Eagle: sync the checkout to the pushed branch (hard reset; the
 eagle-fetch-vigor: ## on Eagle: download + extract VIGOR from the shared Drive folder (CPU job, resumable) into project_data/.../vigor
 	mkdir -p slurm/logs
 	FETCH_ARGS="$(FETCH_ARGS)" sbatch --export=ALL $(SBATCH_ARGS) slurm/fetch_vigor.sbatch    # FETCH_ARGS="--only-extract" to just extract; SBATCH_ARGS="--begin=..." to retry after the Drive quota resets
+
+eagle-fetch-wayback: ## on Eagle: CPU job running `make wayback-fetch` / `wayback-calib` with the given variables (CPU node, internet): WAYBACK_TARGET=wayback-fetch|wayback-calib plus that target's variables (SPLIT= CITIES= LIMIT= YEARS= CITY= WAYBACK_ARGS=)
+	mkdir -p slurm/logs
+	WAYBACK_TARGET="$(WAYBACK_TARGET)" SPLIT="$(SPLIT)" CITIES="$(CITIES)" LIMIT="$(LIMIT)" YEARS="$(YEARS)" CITY="$(CITY)" WAYBACK_ARGS="$(WAYBACK_ARGS)" CONFIG="$(CONFIG)" sbatch --export=ALL $(SBATCH_ARGS) slurm/fetch_wayback.sbatch
 
 eagle-watch: ## from the laptop: follow every job in slurm/watch_list.txt (queue + new log lines) until all have finished
 	bash slurm/watch_all.sh

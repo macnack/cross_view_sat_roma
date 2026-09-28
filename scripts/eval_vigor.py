@@ -42,6 +42,15 @@ read from the checkpoint and checked, --assume-train-split for checkpoints that 
 both coarse rows (each row keeps its own peak / means target; the chosen target names the row the fine pass is centred
 on, meta.consensus.primary_row) and its `chosen_fine` block, if any, to the fine pass. Absent: every number is what
 it was.
+--ref-source vigor|wayback_<year> (task 05; default cfg.vigor.ref_source = vigor, and then every number is what it
+was): the reference of every sample (coarse and fine pass alike) comes from that source (`VigorPairs` ref_source;
+data/README.md). --ref-sources a b [c] (cross-year voting): the query is decoded once, the reference encoder + decoder
+run once per source, and one consensus runs over the UNION of the modes of all sources (`consensus_union`); the peak /
+means rows are that union's, `union_modes_<src>` / `union_inliers_<src>` / `union_inlier_share_<src>` record what each
+source contributed under the union pose, and `pose_peak_<src>_m` is the single-source peak pose from the same decodes
+(the per-source rows on identical frames). The fine pass, when present, unions the same sources. The vote-map
+statistics (STAT_KEYS) are per decode and are None in union mode; --refine is not available with several sources.
+A source whose file is missing for any sample of the draw stops the run (fetch it: make wayback-fetch).
 Calibration mode scores row_sign in {+1, -1} x height in {1.6, 2.0, 2.5, 3.0} on a small subset and prints
 the table; the best pair is what `vigor:` in configs/default.yaml should carry.
 """
@@ -61,7 +70,7 @@ from bevloc.data.vigor import CITY_RES, VigorPairs, pose_en, split_cities
 from bevloc.eval.metrics import pose_errors
 from bevloc.eval.report import summarise_pose
 from bevloc.match.consensus import apply_settings, load_chosen, settings_of
-from bevloc.match.satroma import REFINE_INITS, SatRoMa, consensus_for_query, refined_for_query
+from bevloc.match.satroma import REFINE_INITS, SatRoMa, consensus_for_query, consensus_union, refined_for_query
 from bevloc.match.vote_stats import pose_px, ref_cell_valid, stats_row
 from bevloc.model.coarse import FeatureQueryMatcher
 from bevloc.model.query import apply_query_cfg, build_query, load_query_state
@@ -84,28 +93,66 @@ class DecoderFine:
     ds: VigorPairs built with the fine config over the same labels as the coarse pass; query / matcher / cons: built
     from the fine config and checkpoint. Called with (i, centre_en) -> (Match on the window, the window sample)."""
 
-    def __init__(self, ds, query, matcher, cons, cfg, dev):
+    def __init__(self, ds, query, matcher, cons, cfg, dev, sources=None):
         self.ds, self.query, self.matcher, self.cons, self.cfg, self.dev = ds, query, matcher, cons, cfg, dev
+        self.sources = list(sources) if sources else None          # several reference sources: the union (task 05)
 
     def decode(self, i, centre_en):
         """The fine decode of sample i around centre_en: (gm (K*K, h, w) logits, certainty (h, w) logits or None,
         batch, frac, window sample)."""
+        gms, certs, batch, frac, s = self.decode_all(i, centre_en, sources=None)
+        return gms[0], certs[0], batch, frac, s
+
+    def decode_all(self, i, centre_en, sources=None):
+        """The fine decodes of sample i around centre_en against every source of `sources` (None = the dataset's
+        ref_source only): (gms, certs, batch, frac, window sample)."""
         s = self.ds.item(i, ref_centre_en=centre_en)
         batch = {k: (v[None].to(self.dev) if torch.is_tensor(v) else v) for k, v in s.items()}
         with torch.no_grad():
             f_q, frac = self.query(batch, self.matcher)
-            f_s = self.matcher.reference_features(batch["ref"])
-            sf = float(((f_q.shape[-2] * 16) * (f_q.shape[-1] * 16)) ** 0.5 / 560.0)
-            with self.matcher.model.exposed_intermediates():
-                o16 = self.matcher.model.decoder({16: f_q}, f_s, scale_factor=sf)[16]
-        cert = o16["gm_certainty"][0, 0] if o16.get("gm_certainty") is not None else None
-        return o16["gm_cls"][0], cert, batch, frac, s
+        refs = [batch["ref"]] + [self.ds.ref_canvas(i, src, ref_centre_en=s["ref_centre_en"])[None].to(self.dev)
+                                 for src in (sources or [])[1:]]
+        gms, certs = decode_refs(self.matcher, f_q, refs)
+        return gms, certs, batch, frac, s
 
     def __call__(self, i, centre_en):
-        gm, cert, batch, frac, s = self.decode(i, centre_en)
-        m = consensus_for_query(self.cons, gm, self.query, batch, frac, int(self.cfg.grid.n), min_frac=0.05,
-                                certainty=cert, stats=False)
+        gms, certs, batch, frac, s = self.decode_all(i, centre_en, sources=self.sources)
+        n = int(self.cfg.grid.n)
+        if self.sources and len(self.sources) > 1:
+            m = consensus_union(self.cons, gms, self.query, batch, frac, n, min_frac=0.05, certainties=certs,
+                                sources=self.sources)
+        else:
+            m = consensus_for_query(self.cons, gms[0], self.query, batch, frac, n, min_frac=0.05,
+                                    certainty=certs[0], stats=False)
         return m, s
+
+
+def decode_refs(matcher, f_q, refs):
+    """The Sat-RoMa decoder of the query tokens f_q against each reference of `refs` ((1, 3, S, S) tensors):
+    (gms: list of (K*K, h, w) logits, certs: list of (h, w) certainty logits or None). One reference = the single
+    decode of the evaluators."""
+    gms, certs = [], []
+    with torch.no_grad():
+        sf = float(((f_q.shape[-2] * 16) * (f_q.shape[-1] * 16)) ** 0.5 / 560.0)
+        for ref in refs:
+            f_s = matcher.reference_features(ref)
+            with matcher.model.exposed_intermediates():
+                o16 = matcher.model.decoder({16: f_q}, f_s, scale_factor=sf)[16]
+            gms.append(o16["gm_cls"][0])
+            certs.append(o16["gm_certainty"][0, 0] if o16.get("gm_certainty") is not None else None)
+    return gms, certs
+
+
+def union_row(m, sources):
+    """The per-source keys of a union Match (`consensus_union`): modes, inliers and the inlier share per source."""
+    tot = sum(v["n_inliers"] for v in (m.sources or {}).values())
+    out = {}
+    for src in sources:
+        v = (m.sources or {}).get(src, dict(n_modes=0, n_inliers=0))
+        out[f"union_modes_{src}"] = int(v["n_modes"])
+        out[f"union_inliers_{src}"] = int(v["n_inliers"])
+        out[f"union_inlier_share_{src}"] = None if not tot else float(v["n_inliers"]) / tot
+    return out
 
 
 FINE_KEYS = ("pose_fine_m", "yaw_fine_deg", "inliers_fine", "pose_fine_gated_m", "fine_shift_m", "no_coarse_fine",
@@ -197,21 +244,29 @@ def calib_split(n_labels, train_meta, val_frac, cities, limit, assume=None):
 
 def score(ds, query, matcher, cons, cfg, dev, n_max=0, verbose=False, refine=0, refine_inits=("coarse",),
           refine_gate=None, refine_min_cert=0.0, refine_min_corr=8, fine=None, fine_gate=6.0, hyp=0,
-          refine_precision=None, primary="peak"):
+          refine_precision=None, primary="peak", sources=None):
     """refine = 0: the coarse rows only (identical to before the sub-cell stage, plus the STAT_KEYS statistics of the
     peak row). refine = S > 0: also the refined row(s) from the decoder's stride-16 refiner, correspondences on a
     stride-S query grid (see module doc); refine_precision = the refiner's autocast dtype (from a trained refiner's
     checkpoint, else the package default). fine (e.g. `DecoderFine`): also the second-pass rows around the coarse
     `peak` pose (`fine_pass_row`; `primary` = "means" centres it on the means row, --consensus-json with a chosen
-    means target). hyp = K > 0: also the bootstrap-hypothesis keys (HYP_KEYS) of the peak row."""
+    means target). hyp = K > 0: also the bootstrap-hypothesis keys (HYP_KEYS) of the peak row.
+    sources: several reference sources (sources[0] = ds.ref_source): the coarse rows are the union consensus over
+    all of them (module doc, `consensus_union`), with `union_row` keys and `pose_peak_<src>_m` per source; None or one
+    source = the single-source path, unchanged."""
     rows = []
     tags = refine_tags(refine_inits) if refine else {}
     n = int(cfg.grid.n)
     cc = certainty_cfg(cfg)
+    union = list(sources) if sources and len(sources) > 1 else None
+    if union and refine:
+        raise ValueError("--refine is not available with several --ref-sources")
     idx = range(len(ds)) if not n_max else range(min(n_max, len(ds)))
     for i in idx:
         try:
             s = ds[i]
+            refs_more = [] if not union else [ds.ref_canvas(i, src, ref_centre_en=s["ref_centre_en"])[None].to(dev)
+                                              for src in union[1:]]
         except RuntimeError as e:                                   # unreadable / missing image
             print(f"  skip {i}: {e}", flush=True)
             continue
@@ -225,18 +280,34 @@ def score(ds, query, matcher, cons, cfg, dev, n_max=0, verbose=False, refine=0, 
                 o16 = matcher.model.decoder({16: f_q}, f_s, scale_factor=sf)[16]
             gm = o16["gm_cls"][0]
         cert = o16["gm_certainty"][0, 0] if o16.get("gm_certainty") is not None else None
+        gms, certs = [gm], [cert]
+        if union:
+            g2, c2 = decode_refs(matcher, f_q, refs_more)
+            gms, certs = gms + g2, certs + c2
         ref_valid = ref_cell_valid(batch["ref"], int(round(gm.shape[0] ** 0.5)), min_frac=float(cc.ref_cell_min_frac))
         H = s["H"].numpy().astype(float)
         row = dict(id=s["id"], city=s["city"], centre_guess_m=ds.centre_guess_m(i))
         coarse = {}
         for tag, c in cons.items():
             c.stats_radius = float(cc.stats_radius_cells)
-            m = coarse[tag] = consensus_for_query(c, gm, query, batch, frac, n, min_frac=0.05, certainty=cert,
-                                                  ref_valid=ref_valid, stats=tag == "peak")
+            if union:
+                m = coarse[tag] = consensus_union(c, gms, query, batch, frac, n, min_frac=0.05, certainties=certs,
+                                                  sources=union)
+            else:
+                m = coarse[tag] = consensus_for_query(c, gm, query, batch, frac, n, min_frac=0.05, certainty=cert,
+                                                      ref_valid=ref_valid, stats=tag == "peak")
             err = pose_errors(m.H, H, n, float(cfg.grid.cell_m)) if m.H is not None else None
             row[f"pose_{tag}_m"] = None if err is None else err["position_m"]
             row[f"yaw_{tag}_deg"] = None if err is None else err["yaw_deg"]
             row[f"inliers_{tag}"] = m.inlier_ratio
+        if union and "peak" in coarse:
+            row.update(union_row(coarse["peak"], union))
+            for src, g, ce in zip(union, gms, certs):               # the single-source peak pose on the same decode
+                ms = consensus_for_query(cons["peak"], g, query, batch, frac, n, min_frac=0.05, certainty=ce,
+                                         stats=False)
+                es = pose_errors(ms.H, H, n, float(cfg.grid.cell_m)) if ms.H is not None else None
+                row[f"pose_peak_{src}_m"] = None if es is None else es["position_m"]
+                row[f"inliers_peak_{src}"] = ms.inlier_ratio
         if "peak" in coarse:
             mh = coarse["means"].H if "means" in coarse else None
             row.update(stats_row(coarse["peak"].stats, None if mh is None else pose_px(mh, int(cons["peak"].m.im_a_size)),
@@ -334,9 +405,35 @@ def build_parser(doc=__doc__):
     ap.add_argument("--consensus-json", nargs="+", default=None,
                     help="sweep json(s) of scripts/sweep_consensus_vigor.py: its `chosen` consensus settings on the "
                          "coarse rows, `chosen_fine` on the fine pass (later files override); absent = unchanged")
+    ap.add_argument("--ref-source", default=None,
+                    help="reference source of every sample: vigor | wayback_<year> (default cfg.vigor.ref_source)")
+    ap.add_argument("--ref-sources", nargs="+", default=None,
+                    help="cross-year voting: several sources (e.g. vigor wayback_2025); the query is decoded once "
+                         "against each and one consensus runs over the union of their modes (module doc)")
     ap.add_argument("--out", default="experiments/09_vigor")
     ap.add_argument("--tag", required=True)
     return ap
+
+
+def ref_sources_of(a, cfg):
+    """(primary source, list of sources or None) from --ref-source / --ref-sources / cfg.vigor.ref_source."""
+    if a.ref_sources:
+        srcs = list(dict.fromkeys(a.ref_sources))                  # unique, order kept
+        if a.ref_source and a.ref_source != srcs[0]:
+            raise SystemExit("--ref-source must be the first of --ref-sources (or be omitted)")
+        return srcs[0], (srcs if len(srcs) > 1 else None)
+    src = a.ref_source or getattr(getattr(cfg, "vigor", None), "ref_source", None) or "vigor"
+    return str(src), None
+
+
+def check_ref_sources(ds, sources):
+    """Stop with a clear message when a source's file is missing for any label of the draw."""
+    for src in sources:
+        miss = ds.missing_refs(src)
+        if miss:
+            ex = ", ".join(f"{m['city']}/{m['sat']}" for m in miss[:3])
+            raise SystemExit(f"{len(miss)} of {len(ds.labels)} samples have no {src} reference (e.g. {ex}); fetch the "
+                             f"draw first: make wayback-fetch SPLIT=... CITIES=... LIMIT=... YEARS=\"<year>\"")
 
 
 def chosen_consensus(a):
@@ -358,7 +455,8 @@ def fine_dataset(a, cfg_f, ds):
     any depth filtering)."""
     train_labels = bool(a.train_split or getattr(a, "calib", False))   # a calibration draw reads the train lists
     ds_f = VigorPairs(a.root, cfg_f, cities=a.cities or split_cities(a.split, train_labels), split=a.split,
-                      train=train_labels, row_sign=ds.row_sign, height_m=ds.height)
+                      train=train_labels, row_sign=ds.row_sign, height_m=ds.height,
+                      ref_source=getattr(ds, "ref_source", None))
     ds_f.labels = ds.labels
     return ds_f
 
@@ -408,7 +506,10 @@ def decoder_fine(a, cfg, ds, dev):
                 matcher="Sat-RoMa decoder", skipped_no_depth=n_drop)
     if fine_c is not None:
         meta["consensus"] = settings_of(cons).to_dict()
-    return DecoderFine(ds_f, query, matcher, cons, cfg_f, dev), meta
+    sources = ref_sources_of(a, cfg)[1]
+    if sources:
+        meta["ref_sources"] = list(sources)
+    return DecoderFine(ds_f, query, matcher, cons, cfg_f, dev, sources=sources), meta
 
 
 def _mean_capped(rows, key):
@@ -420,6 +521,7 @@ def run(a, make_fine=None):
     cfg = C.load(a.config)
     if a.solver:
         cfg.matcher.solver = a.solver
+    ref_primary, sources = ref_sources_of(a, cfg)                     # task 05: reference source(s)
     dev = "cuda" if torch.cuda.is_available() else "cpu"
     state = torch.load(a.ckpt, map_location=dev, weights_only=False)
     mode = state.get("mode", "lift")
@@ -483,7 +585,8 @@ def run(a, make_fine=None):
     calib = None
     if a.calib:
         # train_vigor.py's held-out split, bit for bit: the full train list, permutation(seed 0), last val_frac held out
-        ds = VigorPairs(a.root, cfg, cities=cities, split=a.split, train=True, row_sign=a.row_sign, height_m=a.height)
+        ds = VigorPairs(a.root, cfg, cities=cities, split=a.split, train=True, row_sign=a.row_sign, height_m=a.height,
+                        ref_source=ref_primary)
         assume = None
         if a.assume_train_split:
             if a.val_samples is None:
@@ -500,15 +603,19 @@ def run(a, make_fine=None):
               f"{calib['source']})", flush=True)
     else:
         ds = VigorPairs(a.root, cfg, cities=cities, split=a.split, train=a.train_split, limit=a.limit,
-                        stride=a.stride, row_sign=a.row_sign, height_m=a.height)
+                        stride=a.stride, row_sign=a.row_sign, height_m=a.height, ref_source=ref_primary)
     n_no_depth = ds.keep_with_depth() if ds.depth else 0      # after the draw: a subset of the same samples
     if ds.depth:
         print(f"depth: {n_no_depth} panoramas of the draw have no depth file (skipped)", flush=True)
+    if ref_primary != "vigor" or sources:
+        check_ref_sources(ds, sources or [ref_primary])
+        print(f"reference source(s): {sources or [ref_primary]}" + (" (union of modes)" if sources else ""), flush=True)
     fine, fine_meta = make_fine(a, cfg, ds, dev) if make_fine is not None else (None, None)
     print(f"{len(ds)} samples, split {a.split}, cities {cities}, row_sign {ds.row_sign:+.0f}, height {ds.height} m", flush=True)
     rows = score(ds, query, matcher, cons, cfg, dev, verbose=True, refine=a.refine, refine_inits=tuple(a.refine_init),
                  refine_gate=refine_gate, refine_min_cert=a.refine_min_cert, refine_min_corr=a.refine_min_corr,
-                 fine=fine, fine_gate=a.fine_gate, hyp=a.hyp, refine_precision=refine_precision, primary=primary)
+                 fine=fine, fine_gate=a.fine_gate, hyp=a.hyp, refine_precision=refine_precision, primary=primary,
+                 sources=sources)
     rtags = list(refine_tags(a.refine_init).values()) if a.refine else []
     ftags = ["fine", "fine_gated"] if fine is not None else []
     summary = {}
@@ -534,6 +641,12 @@ def run(a, make_fine=None):
             summary[name]["fallback_fine_gated"] = int(sum(bool(r["fallback_fine"]) for r in sub))
             summary[name]["no_coarse_fine"] = int(sum(bool(r["no_coarse_fine"]) for r in sub))
             summary[name]["fine_errors"] = int(sum(r.get("fine_error") is not None for r in sub))
+        if sources:                                               # union mode: the single-source rows + shares
+            for src in sources:
+                summary[name][f"peak_{src}"] = summarise_pose([r.get(f"pose_peak_{src}_m") for r in sub])
+                sh = [r.get(f"union_inlier_share_{src}") for r in sub]
+                sh = [v for v in sh if v is not None]
+                summary[name][f"union_inlier_share_{src}"] = float(np.mean(sh)) if sh else None
         if a.hyp:
             summary[name]["hyp_med"] = summarise_pose([r["pose_hyp_med_m"] for r in sub])
             summary[name]["mean_hyp_med_m"] = _mean_capped(sub, "pose_hyp_med_m")
@@ -553,6 +666,7 @@ def run(a, make_fine=None):
                                               if a.refine else None,
                                               fine=fine_meta,
                                               city_res=CITY_RES, hyp=a.hyp, calib=calib,
+                                              ref_source=ref_primary, ref_sources=sources,
                                               **({"consensus": consensus_meta} if consensus_meta else {}),
                                               stats=dict(radius_cells=float(certainty_cfg(cfg).stats_radius_cells),
                                                          ref_cell_min_frac=float(certainty_cfg(cfg).ref_cell_min_frac),
@@ -572,6 +686,12 @@ def run(a, make_fine=None):
             print(f"{'':13s} {t:>14s} median {r['median_m']:.2f} m {tuple(round(v, 2) for v in r['median_ci'])}  "
                   f"mean {s[f'mean_{t}_m']:.2f} m  R@5 {r['recall@5m']:.2f}  R@10 {r['recall@10m']:.2f}  {tail}",
                   flush=True)
+        if sources:
+            for src in sources:
+                r, sh = s[f"peak_{src}"], s[f"union_inlier_share_{src}"]
+                print(f"{'':13s} {('peak ' + src):>24s} median {r['median_m']:.2f} m  R@5 {r['recall@5m']:.2f}  "
+                      f"R@10 {r['recall@10m']:.2f}  | share of the union's inliers "
+                      f"{'n/a' if sh is None else f'{sh:.2f}'}", flush=True)
         if a.hyp:
             r = s["hyp_med"]
             print(f"{'':13s} {'hyp medoid':>14s} median {r['median_m']:.2f} m  R@5 {r['recall@5m']:.2f}  "

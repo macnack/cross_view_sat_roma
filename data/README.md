@@ -66,3 +66,31 @@ Parser: `bevloc.data.dur360.read_scan`.
 Environment Agency Vertical Aerial Photography (OGL v3), EPSG:27700. Build one VRT over the tiles
 (`gdalbuildvrt`) and point `data.ortho` in `configs/default.yaml` at it; `bevloc.data.ortho.OrthoMap`
 rejects any other CRS.
+
+## vigor/ — VIGOR (Zhu et al., CVPR 2021) and the Esri Wayback reference years (task 05)
+
+`scripts/fetch_vigor.py` (`make eagle-fetch-vigor`) extracts the release to `$VIGOR_DIR` (default `data/vigor`):
+`<City>/panorama/`, `<City>/satellite/satellite_<lat>_<lon>.png` (640 px Google Static Maps tiles, zoom 20,
+captured 2020–2021) and `splits/`; `bevloc.data.vigor` documents the label conventions.
+
+Multi-year references of the same footprints from **Esri World Imagery Wayback** (`bevloc.data.wayback`,
+`scripts/fetch_wayback_vigor.py`, `make wayback-fetch` / `wayback-calib`; `wayback:` in `configs/default.yaml`):
+
+```
+vigor/
+  wayback/waybackconfig.json                 pinned release list (re-download with --refresh-releases)
+  wayback_tiles/<release>/<z>/<x>_<y>.jpg    raw XYZ tiles as served (the resumable layer; .missing = HTTP 404)
+  wayback_tiles/tilemap_z<z>.json            version walks per tile: which releases actually changed there
+  <City>/wayback_calibration.json            constant (dx, dy) offset VIGOR -> Wayback (make wayback-calib)
+  <City>/wayback_calib_<year>/               the uncalibrated calibration windows (offset 0) and their sidecars
+  <City>/wayback_<year>/<sat_name>.png       the footprint of the VIGOR tile (640 * CITY_RES m) from the release
+                                             closest to 1 July <year>, ~0.125 m/px, north-up / east-right, calibrated
+  <City>/wayback_<year>/<sat_name>.json      sidecar: release number + publication date, capture date / sensor /
+                                             resolution (metadata layer), zoom, source GSD, tiles + sha256 of their
+                                             bytes, offset applied, attribution
+```
+`vigor.ref_source: wayback_<year>` (or `eval_vigor.py --ref-source` / `--ref-sources a b`) reads these instead of the
+tile. Terms: Esri's Living Atlas imagery is free for research with the attribution **"Esri, Maxar, Earthstar
+Geographics"**; the tiles must not be redistributed — everything under `data/` stays uncommitted, and the paper cites
+the source and the release / capture dates recorded in the sidecars. Volume: ~9 zoom-19 tiles (~15 kB each) per
+footprint and year, ~0.5 MB per written PNG.

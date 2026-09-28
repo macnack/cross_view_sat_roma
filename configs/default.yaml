@@ -126,6 +126,24 @@ vigor:                            # src/bevloc/data/vigor.py, scripts/eval_vigor
   ref_window_m: null              # null = whole tile centred in the canvas; a number = a window of the tile this wide
                                   # (the coarse-to-fine second pass, configs/vigor_cell00625_fine.yaml)
   ref_jitter_m: 0.0               # window mode, train/val: centre = true position + uniform disc jitter of this radius
+  ref_source: vigor               # vigor = the VIGOR tile (<City>/satellite); wayback_<year> = the Esri Wayback window of that
+                                  # footprint (<City>/wayback_<year>, make wayback-fetch); eval_vigor.py --ref-source / --ref-sources
+
+wayback:                          # Esri World Imagery Wayback reference years (task 05; bevloc.data.wayback, scripts/fetch_wayback_vigor.py)
+  years: [2025, 2019]             # default YEARS of make wayback-fetch: the release closest to 1 July of each year (ties -> newer)
+  calib_year: 2021                # make wayback-calib: the release closest to the VIGOR capture (2020-2021), phase-correlated with the tile
+  calib_tiles: 150                # tiles per city in the calibration draw (VigorPairs limit, seed 0)
+  calib_gate_m: 0.3               # PASS when the median residual |offset_i - median| is below this (docs/tasks/05_reference_years.md)
+  calib_min_response: 0.05        # phase-correlation peak below this: the tile is dropped from the aggregate
+  calib_max_dev_px: 4.0           # tiles more than this from the median offset are outliers (dropped, counted)
+  out_gsd_m: 0.125                # the written window: round(640 * CITY_RES / this) px over the tile's 640 * CITY_RES m footprint
+  zoom_pref: [20, 19]             # finest zoom first; the first whose centre tile exists is used (19 in Chicago / Seattle, 20 in NY / SF)
+  walk_zoom: 19                   # tilemap zoom of the version walk (exists in all four cities)
+  rate_hz: 10.0                   # at most this many requests per second (tiles, tilemap, metadata)
+  retries: 3                      # per request, 1 / 2 / 4 s back-off
+  metadata: true                  # also query the capture date / sensor of the chosen release at the tile centre (one request each)
+  user_agent: "cross_view_sat_roma/0.1 (academic research; maciej.krupka@gmail.com)"
+  attribution: "Esri, Maxar, Earthstar Geographics"
 
 certainty:                        # scripts/certainty_vigor.py (task 06): calibrated per-frame confidence from eval_vigor.py rows
   targets_m: [2.0, 5.0, 10.0]     # events "position error < tau", one calibrated probability each

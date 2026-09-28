@@ -79,6 +79,8 @@ class Match:
     # the correspondences the consensus saw: (placed (N, 2), tgt (N, 2), in_dim, out_dim) grid units, for
     # `hypothesis_spread`; None when there were none
     modes: tuple | None = field(default=None, repr=False, compare=False)
+    # cross-source union (`consensus_union`): {source: dict(n_modes, n_inliers)}; None for a single source
+    sources: dict | None = field(default=None, compare=False)
 
 
 class SatRoMa:
@@ -524,6 +526,63 @@ def query_tokens(cons, query, batch, frac, n, min_frac=0.05):
         return valid[0], xy[0]
     mask = F.interpolate(frac[:, None].float(), size=(n, n), mode="nearest")[0, 0] >= min_frac
     return cons.query_patches(mask), None
+
+
+def grid_errors(cons, m):
+    """Reprojection error (grid cells) of every correspondence the consensus of Match `m` saw, under its H: the
+    pixel H converted back to grid units (the inverse of convert_to_pixel_homography, cell-centre convention), so that
+    (err <= cons.reproj).sum() == m.n_inliers. None when m has no modes or no pose."""
+    if m.modes is None or m.H is None:
+        return None
+    placed, tgt, in_dim, out_dim = m.modes
+    sa = float(cons.m.im_a_size) / float(in_dim)                   # query px per grid unit
+    sb = float(cons.m.im_b_size) / float(out_dim)
+    Ta = np.array([[sa, 0.0, sa / 2 - 0.5], [0.0, sa, sa / 2 - 0.5], [0.0, 0.0, 1.0]])
+    Tb = np.array([[sb, 0.0, sb / 2 - 0.5], [0.0, sb, sb / 2 - 0.5], [0.0, 0.0, 1.0]])
+    Hf = np.linalg.inv(Tb) @ np.asarray(m.H, np.float64) @ Ta
+    p = np.c_[placed, np.ones(len(placed))] @ Hf.T
+    return np.linalg.norm(p[:, :2] / p[:, 2:3] - np.asarray(tgt, np.float64), axis=1)
+
+
+def consensus_union(cons, gms, query, batch, frac, n, min_frac=0.05, certainties=None, sources=None):
+    """Cross-source voting (task 05): the modes of several decodes of the SAME query tokens against different
+    references (gms: list of (K*K, h, w) logits, e.g. one per reference year) are pooled and one consensus
+    (this instance's solver / threshold / seed) runs over the union; a pose is consistent with the modes of any
+    source. The per-source mode extraction is `_pick_modes` under the same settings as the single-source path, on
+    the same token validity (`query_tokens`), so with one source this is `consensus_for_query` minus the statistics.
+    certainties: the decoders' certainty logits per source (or None); sources: the tags of the sources (default
+    0, 1, ...). Match.sources = {tag: dict(n_modes, n_inliers)} (`grid_errors` under the union pose): the share of
+    the inliers each source contributed. Match.stats is None (the vote-map statistics are per decode)."""
+    if not gms:
+        raise ValueError("consensus_union needs at least one decode")
+    tags = list(sources) if sources is not None else list(range(len(gms)))
+    certs = list(certainties) if certainties is not None else [None] * len(gms)
+    valid, xy = query_tokens(cons, query, batch, frac, n, min_frac)
+    parts = []
+    for gm, cert in zip(gms, certs):
+        gmm = gm.clone()
+        gmm[:, ~valid] = 0.0
+        md, idx, w = _pick_modes(cons, gmm, cert, valid)
+        parts.append((md["tok"][idx], md["peaks"][idx], md["means"][idx], w))
+    pts = np.concatenate([p[0] for p in parts], 0) if parts else np.zeros((0, 2), np.float32)
+    peaks = np.concatenate([p[1] for p in parts], 0)
+    means = np.concatenate([p[2] for p in parts], 0)
+    weights = None if any(p[3] is None for p in parts) else np.concatenate([p[3] for p in parts], 0)
+    src_of = np.concatenate([np.full(len(p[0]), k) for k, p in enumerate(parts)]) if parts else np.zeros(0, int)
+    out_dim = int(round(gms[0].shape[0] ** 0.5))
+    if xy is not None:
+        import torch
+        xy_np = torch.as_tensor(xy).detach().float().cpu().numpy()
+        m = SatRoMa.placed_fit(cons, pts, peaks, means, xy_np, out_dim, weights=weights)
+    else:
+        m = SatRoMa.package_fit(cons, pts, peaks, means, int(gms[0].shape[-1]), out_dim, None, weights=weights)
+    err = grid_errors(cons, m)
+    m.sources = {}
+    for k, tag in enumerate(tags):
+        sel = src_of == k
+        n_inl = 0 if err is None else int((err[sel] <= cons.reproj).sum())
+        m.sources[tag] = dict(n_modes=int(sel.sum()), n_inliers=n_inl)
+    return m
 
 
 REFINE_INITS = ("none", "coarse", "ransac")
