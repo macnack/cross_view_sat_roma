@@ -90,7 +90,7 @@ def calibrate(a, cfg, opener=None):
           f"release closest to 1 July {year}; out GSD {wcfg.out_gsd_m} m", flush=True)
     client = F.make_client(a, wcfg, opener)
     releases = client.releases(root / "wayback" / "waybackconfig.json", refresh=a.refresh_releases)
-    walks = F.Walks(root / "wayback_tiles" / f"tilemap_z{int(wcfg.walk_zoom)}.json")
+    walks = F.Walks(root / "wayback_tiles" / f"tilemap_z{int(wcfg.walk_zoom)}.json", newest=releases[-1].num)
     meta = None if a.no_metadata else F.Metadata(root / "wayback_tiles" / "metadata.json")
     dest = f"wayback_calib_{year}"
     per_tile, rel_hist = [], collections.Counter()

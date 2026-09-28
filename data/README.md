@@ -80,7 +80,8 @@ Multi-year references of the same footprints from **Esri World Imagery Wayback**
 vigor/
   wayback/waybackconfig.json                 pinned release list (re-download with --refresh-releases)
   wayback_tiles/<release>/<z>/<x>_<y>.jpg    raw XYZ tiles as served (the resumable layer; .missing = HTTP 404)
-  wayback_tiles/tilemap_z<z>.json            version walks per tile: which releases actually changed there
+  wayback_tiles/tilemap_z<z>.json            version walks per tile: which releases actually changed there (dropped
+                                             automatically when the pinned release list gains a newer release)
   wayback_tiles/metadata.json                capture metadata per (release, tile) from the metadata layer
   <City>/wayback_calibration.json            constant (dx, dy) offset VIGOR -> Wayback (make wayback-calib)
   <City>/wayback_calib_<year>/               the uncalibrated calibration windows (offset 0) and their sidecars

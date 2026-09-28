@@ -100,12 +100,21 @@ def unique_tiles(labels):
 
 
 class Walks:
-    """Version walks per (z, x, y), persisted as JSON: {"z/x/y": [owner release numbers, newest first]}."""
+    """Version walks per (z, x, y), persisted as JSON: {"z/x/y": [owner release numbers, newest first], "_newest":
+    the newest release number the walks started from}. A walk starts at the newest release, so a refreshed release
+    list (--refresh-releases with new releases) invalidates every cached walk: `newest` differing from the file's
+    drops them (they are re-walked on demand)."""
 
-    def __init__(self, path):
+    def __init__(self, path, newest=None):
         self.path = Path(path)
         self.d = json.loads(self.path.read_text()) if self.path.exists() else {}
         self.dirty = 0
+        if newest is not None and self.d.get("_newest") != int(newest):
+            if self.d:
+                print(f"release list changed (newest {self.d.get('_newest')} -> {newest}): dropping "
+                      f"{sum(k != '_newest' for k in self.d)} cached version walks in {self.path}", flush=True)
+            self.d = {"_newest": int(newest)}
+            self.dirty = 1
 
     def get(self, client, releases, z, x, y):
         key = f"{z}/{x}/{y}"
@@ -249,7 +258,7 @@ def main(argv=None, opener=None):
     releases = client.releases(root / "wayback" / "waybackconfig.json", refresh=a.refresh_releases)
     print(f"{len(releases)} releases {releases[0].date} .. {releases[-1].date}", flush=True)
     walk_zoom = int(wcfg.walk_zoom)
-    walks = Walks(root / "wayback_tiles" / f"tilemap_z{walk_zoom}.json")
+    walks = Walks(root / "wayback_tiles" / f"tilemap_z{walk_zoom}.json", newest=releases[-1].num)
     meta = None if (a.no_metadata or not bool(wcfg.metadata)) else Metadata(root / "wayback_tiles" / "metadata.json")
     calib = {}
     for city in sorted({t["city"] for t in tiles}):

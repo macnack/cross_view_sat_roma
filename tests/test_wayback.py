@@ -240,6 +240,26 @@ def test_version_walk_lists_distinct_owners_in_one_request_each():
     assert W.pick_release(v, 2025).num == 22869 and W.pick_release(v, 2021).num == 9812 and W.pick_release(v, 2019).num == 9812
 
 
+def test_walk_cache_is_reused_and_dropped_when_the_release_list_changes(tmp_path):
+    """Walks: one tilemap request per version on the first call, none on the second (persisted), and a newer
+    release list (--refresh-releases) drops the cached walks (a walk starts at the newest release)."""
+    F = _load("fetch_wayback_vigor")
+    svc = FakeService()
+    cl = _client(svc)
+    rel = _releases(svc)
+    x, y = W.tile_xy(*W.latlon_to_merc_px(LAT, LON, 19))
+    p = tmp_path / "tilemap_z19.json"
+    w = F.Walks(p, newest=rel[-1].num)
+    assert [r.num for r in w.get(cl, rel, 19, x, y)] == [22869, 9812, 10] and sum("/tilemap/" in u for u in svc.calls) == 3
+    w.save()
+    w2 = F.Walks(p, newest=rel[-1].num)
+    assert [r.num for r in w2.get(cl, rel, 19, x, y)] == [22869, 9812, 10] and sum("/tilemap/" in u for u in svc.calls) == 3
+    w3 = F.Walks(p, newest=rel[-1].num + 1)                            # a newer release appeared
+    assert "19/%d/%d" % (x, y) not in w3.d and w3.dirty
+    w3.get(cl, rel, 19, x, y)
+    assert sum("/tilemap/" in u for u in svc.calls) == 6
+
+
 def test_mosaic_render_matches_the_world_and_the_zoom_falls_back(tmp_path):
     svc = FakeService()
     cl = _client(svc, cache_dir=tmp_path / "tiles")
