@@ -83,7 +83,8 @@ vigor/
   wayback_tiles/tilemap_z<z>.json            version walks per tile: which releases actually changed there (dropped
                                              automatically when the pinned release list gains a newer release)
   wayback_tiles/metadata.json                capture metadata per (release, tile) from the metadata layer
-  <City>/wayback_calibration.json            constant (dx, dy) offset VIGOR -> Wayback (make wayback-calib)
+  <City>/wayback_calibration.json            constant (dx, dy) offset VIGOR -> Wayback (make wayback-calib; per-tile
+                                             offsets, responses, PSRs; applied by the fetcher only when it PASSes)
   <City>/wayback_calib_<year>/               the uncalibrated calibration windows (offset 0) and their sidecars
   wayback_tiles/metadata.json                capture metadata (identify) per release and walk tile: the selection input
   <City>/wayback_<year>/<sat_name>.png       the footprint of the VIGOR tile (640 * CITY_RES m) from the version whose
@@ -99,3 +100,13 @@ tile. Terms: Esri's Living Atlas imagery is free for research with the attributi
 Geographics"**; the tiles must not be redistributed — everything under `data/` stays uncommitted, and the paper cites
 the source and the release / capture dates recorded in the sidecars. Volume: ~9 zoom-19 tiles (~15 kB each) per
 footprint and year, ~0.5 MB per written PNG.
+
+Calibration status (2026-09-28, gradient-domain band-limited phase correlation with a PSR gate, 150 real pairs per
+city against the release closest to 2021; `bevloc.data.wayback` module doc): **New York PASS** — +0.50 m east,
++0.21 m south, residual 0.16 m over 39 tiles (0.15 m NYS aerial ortho). **Chicago, San Francisco, Seattle FAIL** —
+the 2021-ish Esri layer there is 0.46–0.5 m off-nadir satellite imagery (WorldView-2 / GeoEye-1); only 4–6 of 150
+tiles give a peak above the noise (PSR ≥ 7) and their offsets scatter by ~1 m: roofs and trees are displaced
+relative to the ground (relief displacement), so no constant offset aligns the tile to < 0.3 m. Their
+`wayback_<year>` windows are written with offset 0 (uncalibrated, recorded in the sidecar).
+Re-measure the windows already on disk without the network: `make wayback-calib CITY=<City> WAYBACK_ARGS="--pairs-dir
+$VIGOR_DIR"`. The fetch runs `wayback.workers` (6) tiles at a time under the global `wayback.rate_hz` (10/s).

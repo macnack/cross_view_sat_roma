@@ -5,8 +5,10 @@ from __future__ import annotations
 
 import importlib.util
 import json
+import math
 import re
 import sys
+import time
 import urllib.error
 from pathlib import Path
 
@@ -316,11 +318,15 @@ def test_calibration_recovers_the_planted_google_offset_and_the_fetch_applies_it
     root = _layout(tmp_path, offset_px=planted)
     svc = FakeService()
     cal = _load("calibrate_wayback_vigor")
-    a = cal.build_parser().parse_args(["--root", str(root), "--city", "Chicago", "--split", "samearea", "--tiles", "5",
-                                       "--upsample", "50"])
+    args = ["--root", str(root), "--city", "Chicago", "--split", "samearea", "--tiles", "5", "--upsample", "50"]
     cfg = C.load(str(C.REPO / "configs/default.yaml"))
-    out = cal.calibrate(a, cfg, opener=svc)
+    out = cal.calibrate(cal.build_parser().parse_args(args), cfg, opener=svc)
+    assert out["n_used"] == 1 and out["pass"] is False                 # one tile < calib_min_tiles (30): FAIL
+    out = cal.calibrate(cal.build_parser().parse_args(args + ["--min-tiles", "1"]), cfg, opener=svc)
     assert out["n_used"] == 1 and out["releases"] == {"2021-02-24 (#9812)": 1}
+    t = out["per_tile"][0]
+    assert t["psr"] >= cfg.wayback.calib_min_psr and t["accepted"] and t["source_res_m"] == pytest.approx(0.31)
+    assert t["blur_sigma_px"] == pytest.approx(W.calib_blur_sigma(0.31, RES, 0.125, cfg.wayback.calib_blur_k))
     assert abs(out["offset_px"][0] - planted[0]) < 0.05 and abs(out["offset_px"][1] - planted[1]) < 0.05
     assert out["pass"] is True and out["residual_m"] == 0.0            # one tile: no spread
     assert np.allclose(out["offset_m"], np.multiply(out["offset_px"], out["gsd_m"]))
@@ -358,17 +364,24 @@ def test_calibration_recovers_the_planted_google_offset_and_the_fetch_applies_it
     assert counts["dry"] == 1 and not (root / "Chicago" / "wayback_2019").exists()
 
 
-def test_aggregate_is_robust_to_outliers_and_low_response():
+def test_aggregate_is_robust_to_outliers_and_low_psr_and_needs_30_tiles():
     cal = _load("calibrate_wayback_vigor")
     rng = np.random.default_rng(1)
     off = np.array([[2.0, -1.0]]) + rng.normal(0, 0.3, (40, 2))
-    off = np.vstack([off, [[30.0, 30.0], [2.0, -1.0]]])              # a gross outlier, a low-response tile
-    resp = np.r_[np.full(41, 0.5), 0.01]
-    agg = cal.aggregate(off, resp, 0.125, 0.05, 4.0, 0.3)
-    assert agg["n"] == 42 and agg["n_low_response"] == 1 and agg["n_outliers"] == 1 and agg["n_used"] == 40
+    off = np.vstack([off, [[30.0, 30.0], [2.0, -1.0]]])              # a gross outlier, a low-PSR tile
+    psr = np.r_[np.full(41, 12.0), 3.5]
+    agg = cal.aggregate(off, psr, 0.125, 7.0, 4.0, 0.3, 30)
+    assert agg["n"] == 42 and agg["n_low_psr"] == 1 and agg["n_outliers"] == 1 and agg["n_used"] == 40
     assert abs(agg["offset_px"][0] - 2.0) < 0.15 and abs(agg["offset_px"][1] + 1.0) < 0.15
     assert 0.0 < agg["residual_m"] < 0.1 and agg["pass"]
-    assert cal.aggregate(off, np.zeros(42), 0.125, 0.05, 4.0, 0.3)["offset_px"] is None
+    assert agg["frac_within_0_5m"] == pytest.approx(40 / 41) and all(0 < q < 0.15 for q in agg["iqr_m"])
+    assert agg["psr_percentiles"]["p50"] == 12.0
+    none = cal.aggregate(off, np.full(42, 3.0), 0.125, 7.0, 4.0, 0.3, 30)
+    assert none["offset_px"] is None and none["n_used"] == 0 and none["pass"] is False
+    # the same tight cluster on 20 tiles: residual far below the gate, but n_used < 30 -> FAIL
+    few = cal.aggregate(off[:20], np.full(20, 12.0), 0.125, 7.0, 4.0, 0.3, 30)
+    assert few["n_used"] == 20 and few["residual_m"] < 0.1 and few["pass"] is False
+    assert cal.aggregate(off[:20], np.full(20, 12.0), 0.125, 7.0, 4.0, 0.3, 20)["pass"] is True
 
 
 # ---- VigorPairs.ref_source -----------------------------------------------------------------------------------------
@@ -694,3 +707,185 @@ def test_dry_run_prints_the_capture_year_histogram_and_the_request_count(tmp_pat
     assert "selected by publication date" in out and "year 2025: releases chosen 2025-09-25 (#58924) x1" in out
     assert "capture years of the chosen versions 2020 x1" in out            # still reported from the sidecar metadata
     assert (root / "wayback_tiles" / "metadata.json").exists()
+
+
+# ---- cross-source calibration: gradient domain, constrained search, PSR ----------------------------------------------
+
+def _city_block(seed=0, n=320):
+    """Synthetic imagery with sharp structure: 60 flat rectangles (roofs, roads), band-limited (sigma 1 px)."""
+    rng = np.random.default_rng(seed)
+    img = np.full((n, n), 110.0)
+    for _ in range(60):
+        x0, y0 = rng.integers(0, n - 20, 2)
+        w, h = rng.integers(8, 70, 2)
+        img[y0:y0 + h, x0:x0 + w] = rng.uniform(40, 220)
+    return cv2.GaussianBlur(img, (0, 0), 1.0)
+
+
+def _cars(img, seed, k=60):
+    """k random elongated +-blobs ("cars", 60-120 grey levels): differ between the two sources."""
+    rng = np.random.default_rng(seed)
+    out = img.copy()
+    yy, xx = np.mgrid[:img.shape[0], :img.shape[1]]
+    for _ in range(k):
+        cx, cy = rng.uniform(0, img.shape[1], 2)
+        out += rng.choice([-1, 1]) * rng.uniform(60, 120) * np.exp(-((xx - cx) ** 2 / 6 + (yy - cy) ** 2 / 2))
+    return out
+
+
+def _cross_source_pair(shift, blur=2.0, k=60, noise=3.0):
+    """(google, esri): the same block; Esri blurred by `blur` px, its own cars, another gain / offset, sensor noise,
+    and its content shifted by `shift` (google (u, v) -> esri (u + dx, v + dy))."""
+    base = _city_block()
+    a = _cars(base, 1, k) + np.random.default_rng(4).normal(0, noise, base.shape)
+    b = _cars(cv2.GaussianBlur(base, (0, 0), blur), 2, k) * 0.6 + 40
+    b = W.fourier_shift(b, *shift) + np.random.default_rng(3).normal(0, noise, base.shape)
+    return a, b
+
+
+@pytest.mark.parametrize("shift", [(3.27, -1.63), (-7.4, 12.9), (0.5, 0.5), (10.2, 4.4)])
+def test_gradient_constrained_psr_recovers_a_cross_source_shift_the_intensity_path_rejects(shift):
+    a, b = _cross_source_pair(shift)
+    g = W.calib_match(a, b, "gradient", blur_sigma=2.0, max_shift_px=24, upsample=20)
+    assert abs(g["dx"] - shift[0]) < 0.1 and abs(g["dy"] - shift[1]) < 0.1
+    assert g["psr"] >= 7.0                                           # above the default acceptance
+    # the previous calibration (whole-image intensity phase correlation, absolute response floor 0.05) rejects it
+    dx, dy, resp = W.phase_correlation(a, b, upsample=20)
+    assert resp < 0.05
+    # and the intensity domain of the new path, without the blur, is off by more than the gradient path's tolerance
+    i = W.calib_match(a, b, "intensity", blur_sigma=0.0, max_shift_px=24, upsample=20, band=False)
+    assert max(abs(i["dx"] - shift[0]), abs(i["dy"] - shift[1])) > 0.1
+
+
+def test_constrained_search_ignores_a_stronger_peak_outside_the_radius():
+    """Two copies of the content: a strong one far away (a repeated facade / the wrong block) and a weaker one at a
+    small shift: unconstrained -> the far peak; constrained to 24 px -> the near one, to 0.1 px, with a PSR."""
+    base = _city_block(seed=5)
+    near, far = (2.4, -1.3), (41.0, -33.0)
+    b = W.fourier_shift(base, *far) + 0.6 * W.fourier_shift(base, *near)
+    A, B = W.calib_preprocess(base, "gradient"), W.calib_preprocess(b, "gradient")
+    free = W.phase_correlation_psr(A, B, upsample=20)
+    assert abs(free["dx"] - far[0]) < 0.5 and abs(free["dy"] - far[1]) < 0.5
+    con = W.phase_correlation_psr(A, B, upsample=20, max_shift_px=24)
+    assert abs(con["dx"] - near[0]) < 0.1 and abs(con["dy"] - near[1]) < 0.1 and con["psr"] > 7.0
+
+
+def test_psr_is_noise_level_for_unrelated_images_and_blur_sigma_rule():
+    psrs = []
+    for s in range(5):
+        a = _city_block(seed=10 + s)
+        b = _city_block(seed=20 + s)
+        psrs.append(W.calib_match(a, b, "gradient", 2.0, 24)["psr"])
+    assert max(psrs) < 7.0                                           # unrelated content stays below the default
+    assert W.calib_blur_sigma(0.5, 0.111, 0.125, 0.5) == pytest.approx(0.5 * math.sqrt(0.25 - 0.111 ** 2) / 0.125)
+    assert W.calib_blur_sigma(0.1, 0.111, 0.125, 0.5) == 0.0 and W.calib_blur_sigma(None, 0.111, 0.125) == 0.0
+    with pytest.raises(ValueError):
+        W.calib_preprocess(np.zeros((8, 8)), "sobel")
+
+
+def test_offline_pairs_dir_calibrates_without_network(tmp_path):
+    """--pairs-dir: windows + sidecars under <dir>/<City>/wayback_calib_<year>/ and the VIGOR tiles under
+    <dir>/<City>/satellite/: the planted offset is recovered, nothing is requested."""
+    planted = (2.6, -1.4)
+    root = _layout(tmp_path, offset_px=planted)
+    svc = FakeService()
+    cal = _load("calibrate_wayback_vigor")
+    cfg = C.load(str(C.REPO / "configs/default.yaml"))
+    cal.calibrate(cal.build_parser().parse_args(["--root", str(root), "--city", "Chicago", "--tiles", "5"]), cfg,
+                  opener=svc)                                         # writes the uncalibrated window once
+    W.calibration_path(root, "Chicago").unlink()
+    def boom(url, headers):
+        raise AssertionError(f"network in offline mode: {url}")
+    out = cal.calibrate(cal.build_parser().parse_args(["--pairs-dir", str(root), "--city", "Chicago", "--min-tiles",
+                                                       "1", "--upsample", "50"]), cfg, opener=boom)
+    assert out["n"] == 1 and out["n_used"] == 1 and out["pass"] is True
+    assert abs(out["offset_px"][0] - planted[0]) < 0.05 and abs(out["offset_px"][1] - planted[1]) < 0.05
+    assert out["per_tile"][0]["release"] == 9812 and out["source"].startswith("offline")
+    assert W.calibration_path(root, "Chicago").exists()
+
+
+# ---- concurrency: worker pool under a global rate limit -------------------------------------------------------------
+
+def _multi_tile_root(tmp_path, n=8):
+    """A layout with only satellite_list.txt (enough for `--all`): n tiles around LAT, LON, ~100 m apart."""
+    names = [f"satellite_{LAT + 0.001 * (i // 3):.6f}_{LON + 0.0012 * (i % 3):.6f}.png" for i in range(n)]
+    d = tmp_path / "splits" / "VIGOR" / "Chicago"
+    d.mkdir(parents=True)
+    (d / "satellite_list.txt").write_text("\n".join(names) + "\n")
+    return tmp_path, names
+
+
+def test_worker_pool_writes_the_same_files_as_sequential(tmp_path):
+    F = _load("fetch_wayback_vigor")
+    outs = {}
+    for workers in (1, 4):
+        root, names = _multi_tile_root(tmp_path / f"w{workers}")
+        svc = FakeService()
+        counts = F.main(["--root", str(root), "--cities", "Chicago", "--all", "--years", "2021", "2025",
+                         "--workers", str(workers)], opener=svc)
+        assert counts["written"] == 2 * len(names) and not counts.get("missing")
+        files = {}
+        for year in (2021, 2025):
+            for nm in names:
+                png = root / "Chicago" / f"wayback_{year}" / nm
+                side = json.loads(png.with_suffix(".json").read_text())
+                side.pop("fetched_at")
+                files[(year, nm)] = (png.read_bytes(), side)
+        assert not list((root / "wayback_tiles").rglob("*.part"))    # every cache write completed and renamed
+        walks = json.loads((root / "wayback_tiles" / "tilemap_z19.json").read_text())
+        outs[workers] = (files, walks, json.loads((root / "wayback_tiles" / "metadata.json").read_text()))
+    f1, w1, m1 = outs[1]
+    f4, w4, m4 = outs[4]
+    assert f1.keys() == f4.keys()
+    for k in f1:
+        assert f1[k][0] == f4[k][0], f"PNG differs: {k}"             # byte-identical imagery
+        assert f1[k][1] == f4[k][1], f"sidecar differs: {k}"
+    assert w1 == w4 and m1 == m4
+
+
+def test_rate_limit_is_global_over_threads():
+    """4 threads x 15 requests at rate_hz 100: every request start is >= 1 / rate after the previous one, over all
+    threads (so <= rate_hz per second), while requests themselves overlap (they take 30 ms each)."""
+    import threading
+    starts, lock = [], threading.Lock()
+    inflight, peak = [0], [0]
+
+    def slow(url, headers):
+        with lock:
+            starts.append(time.monotonic())
+            inflight[0] += 1
+            peak[0] = max(peak[0], inflight[0])
+        time.sleep(0.03)
+        with lock:
+            inflight[0] -= 1
+        return b"x"
+    cl = W.WaybackClient(rate_hz=100.0, retries=0, opener=slow)
+    ths = [threading.Thread(target=lambda: [cl.get(f"u{i}") for i in range(15)]) for _ in range(4)]
+    for t in ths:
+        t.start()
+    for t in ths:
+        t.join()
+    st = np.sort(starts)
+    assert len(st) == 60 and cl.n_requests == 60 and cl.n_bytes == 60
+    assert np.diff(st).min() >= 0.01 - 2e-3                          # spacing 1 / rate_hz (timer slack)
+    assert (st[-1] - st[0]) >= 59 * 0.01 - 0.01                      # 60 starts need >= 59 intervals
+    assert peak[0] >= 2                                              # ... but the requests overlapped
+
+
+def test_fetch_applies_only_a_passing_calibration_and_survives_an_empty_one(tmp_path):
+    """A FAIL calibration (or one without any usable tile: offset_m None, which crashed the Eagle dry run 8813461) is
+    not applied: offset 0, recorded; --apply-failed-calibration applies a FAIL offset that exists."""
+    root = _layout(tmp_path)
+    F = _load("fetch_wayback_vigor")
+    p = W.calibration_path(root, "Chicago")
+    args = ["--root", str(root), "--split", "samearea", "--cities", "Chicago", "--years", "2021", "--force"]
+    side = root / "Chicago" / "wayback_2021" / SAT.replace(".png", ".json")
+    p.write_text(json.dumps({"offset_m": None, "offset_px": None, "residual_m": None, "n_used": 0, "pass": False}))
+    assert F.main(args, opener=FakeService())["written"] == 1
+    assert json.loads(side.read_text())["offset_px"] == [0.0, 0.0] and json.loads(side.read_text())["calibration"] is None
+    p.write_text(json.dumps({"offset_m": [0.25, -0.125], "residual_m": 0.9, "n_used": 5, "pass": False}))
+    F.main(args, opener=FakeService())
+    assert json.loads(side.read_text())["offset_px"] == [0.0, 0.0]
+    F.main(args + ["--apply-failed-calibration"], opener=FakeService())
+    assert np.allclose(json.loads(side.read_text())["offset_px"], [0.25 / 0.125, -0.125 / 0.125])   # offset_px_for
+    assert W.offset_px_for({"offset_m": None}, 0.125) == (0.0, 0.0)

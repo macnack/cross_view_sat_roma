@@ -17,7 +17,8 @@ release published 2025-03-27 shows 2022-06-20 imagery at the Chicago Water Tower
 has the centre tile (`fetch_window`; the raw tiles
 are cached under <root>/wayback_tiles/<release>/<z>/), the mosaic rendered into the tile's frame at
 wayback.out_gsd_m (bevloc.data.wayback module doc) with the city's calibration offset (make wayback-calib,
-<root>/<City>/wayback_calibration.json; none = zero offset, recorded as such) and written as
+<root>/<City>/wayback_calibration.json, applied only when it PASSes (--apply-failed-calibration applies a FAIL
+offset too); none / FAIL = zero offset, recorded as such) and written as
 <root>/<City>/wayback_<year>/<sat_name> plus the JSON sidecar <stem>.json (release number and date, capture date /
 sensor / resolution from the metadata layer, zoom, source GSD, tiles and the sha256 of their bytes, offset applied,
 attribution). Resumable: a tile whose sidecar records the same release, offset and width is skipped; a different
@@ -26,6 +27,10 @@ offset (a new calibration) re-renders from the tile cache without downloads; --f
 chosen versions' capture years (how well "2025" is really 2025), the request count, counts and volume estimates,
 nothing written. The release list is pinned at <root>/wayback/waybackconfig.json on first use (--refresh-releases updates it,
 which can change which release is "closest" for recent years).
+Throughput: `wayback.workers` (--workers, default 6) tiles are processed concurrently by threads sharing one
+WaybackClient, whose rate limit (`wayback.rate_hz`) is global (request starts spaced 1 / rate_hz over all threads);
+sequentially the fetch is latency-bound at ~1-2 requests/s. The per-tile work and its outputs do not depend on the
+worker count (tests: byte-identical PNGs and sidecars for 1 and 4 workers).
 """
 from __future__ import annotations
 
@@ -34,7 +39,9 @@ import collections
 import importlib.util
 import json
 import os
+import threading
 import time
+from concurrent.futures import ThreadPoolExecutor
 from pathlib import Path
 
 import cv2
@@ -116,12 +123,14 @@ class Walks:
     """Version walks per (z, x, y), persisted as JSON: {"z/x/y": [owner release numbers, newest first], "_newest":
     the newest release number the walks started from}. A walk starts at the newest release, so a refreshed release
     list (--refresh-releases with new releases) invalidates every cached walk: `newest` differing from the file's
-    drops them (they are re-walked on demand)."""
+    drops them (they are re-walked on demand). Thread-safe: the dict is read and written under a lock, the walk itself
+    runs outside it (two threads may walk the same tile once each; same answer), saves are atomic (tmp + rename)."""
 
     def __init__(self, path, newest=None):
         self.path = Path(path)
         self.d = json.loads(self.path.read_text()) if self.path.exists() else {}
         self.dirty = 0
+        self.lock = threading.RLock()
         if newest is not None and self.d.get("_newest") != int(newest):
             if self.d:
                 print(f"release list changed (newest {self.d.get('_newest')} -> {newest}): dropping "
@@ -131,50 +140,64 @@ class Walks:
 
     def get(self, client, releases, z, x, y):
         key = f"{z}/{x}/{y}"
-        if key not in self.d:
-            self.d[key] = [r.num for r in client.versions_at(releases, z, x, y)]
-            self.dirty += 1
-            if self.dirty % 50 == 0:
-                self.save()
+        with self.lock:
+            nums = self.d.get(key)
+        if nums is None:
+            nums = [r.num for r in client.versions_at(releases, z, x, y)]
+            with self.lock:
+                if key not in self.d:
+                    self.d[key] = nums
+                    self.dirty += 1
+                    if self.dirty % 50 == 0:
+                        self.save()
+                nums = self.d[key]
         by_num = {r.num: r for r in releases}
-        return [by_num[n] for n in self.d[key] if n in by_num]
+        return [by_num[n] for n in nums if n in by_num]
 
     def save(self):
-        if self.dirty:
-            self.path.parent.mkdir(parents=True, exist_ok=True)
-            tmp = self.path.with_suffix(".tmp")
-            tmp.write_text(json.dumps(self.d))
-            tmp.replace(self.path)
-            self.dirty = 0
+        with self.lock:
+            if self.dirty:
+                self.path.parent.mkdir(parents=True, exist_ok=True)
+                tmp = self.path.with_suffix(".tmp")
+                tmp.write_text(json.dumps(self.d))
+                tmp.replace(self.path)
+                self.dirty = 0
 
 
 class Metadata:
-    """Capture metadata per (release, walk tile), persisted as JSON."""
+    """Capture metadata per (release, walk tile), persisted as JSON. Thread-safe as `Walks`."""
 
     def __init__(self, path):
         self.path = Path(path)
         self.d = json.loads(self.path.read_text()) if self.path.exists() else {}
         self.dirty = 0
+        self.lock = threading.RLock()
         self.n_fetched = 0                                         # identify requests made by this run
 
     def get(self, client, release, lat, lon, z):
         x, y = W.tile_xy(*W.latlon_to_merc_px(lat, lon, z))
         key = f"{release.num}/{z}/{x}/{y}"
-        if key not in self.d:
-            self.d[key] = client.metadata(release, lat, lon)
-            self.n_fetched += 1
-            self.dirty += 1
-            if self.dirty % 50 == 0:
-                self.save()
-        return self.d[key]
+        with self.lock:
+            if key in self.d:
+                return self.d[key]
+        m = client.metadata(release, lat, lon)
+        with self.lock:
+            if key not in self.d:
+                self.d[key] = m
+                self.n_fetched += 1
+                self.dirty += 1
+                if self.dirty % 50 == 0:
+                    self.save()
+            return self.d[key]
 
     def save(self):
-        if self.dirty:
-            self.path.parent.mkdir(parents=True, exist_ok=True)
-            tmp = self.path.with_suffix(".tmp")
-            tmp.write_text(json.dumps(self.d))
-            tmp.replace(self.path)
-            self.dirty = 0
+        with self.lock:
+            if self.dirty:
+                self.path.parent.mkdir(parents=True, exist_ok=True)
+                tmp = self.path.with_suffix(".tmp")
+                tmp.write_text(json.dumps(self.d))
+                tmp.replace(self.path)
+                self.dirty = 0
 
 
 def choose_release(walks, client, releases, tile, year, walk_zoom, metadata=None, select_by="capture"):
@@ -270,9 +293,13 @@ def build_parser():
                          "(default cfg.wayback.select_by)")
     ap.add_argument("--no-metadata", action="store_true")
     ap.add_argument("--no-calibration", action="store_true", help="zero offset even when wayback_calibration.json exists")
+    ap.add_argument("--apply-failed-calibration", action="store_true",
+                    help="apply the offset of a FAIL calibration too (default: only a PASS is applied, else offset 0)")
     ap.add_argument("--dest-name", default=None, help="folder under <root>/<City> (default wayback_<year>)")
     ap.add_argument("--refresh-releases", action="store_true")
     ap.add_argument("--max-tiles", type=int, default=0, help="stop after this many tiles (smoke tests)")
+    ap.add_argument("--workers", type=int, default=None,
+                    help="tiles processed concurrently under the global rate limit (default cfg.wayback.workers)")
     return ap
 
 
@@ -307,44 +334,65 @@ def main(argv=None, opener=None):
     calib = {}
     for city in sorted({t["city"] for t in tiles}):
         c = None if a.no_calibration else W.load_calibration(root, city)
+        if c is not None and (c.get("offset_m") is None or not (c.get("pass") or a.apply_failed_calibration)):
+            print(f"{city}: calibration {W.calibration_path(root, city)} is a FAIL "
+                  f"({c.get('n_used')} usable tiles, residual {c.get('residual_m')}) -> NOT applied, offset 0 "
+                  f"(--apply-failed-calibration to apply a FAIL offset anyway)", flush=True)
+            c = None
         calib[city] = c
         print(f"{city}: calibration " + ("none (offset 0)" if c is None else
                                           f"offset {c['offset_m'][0]:+.3f} m E, {c['offset_m'][1]:+.3f} m S "
-                                          f"(residual {c['residual_m']:.3f} m, {'PASS' if c.get('pass') else 'FAIL'})"),
+                                          f"(residual {c['residual_m']:.3f} m over {c.get('n_used')} tiles, "
+                                          f"{'PASS' if c.get('pass') else 'FAIL, applied on request'})"),
               flush=True)
     counts = collections.Counter()
     chosen = {y: collections.Counter() for y in years}
     cap_years = {y: collections.Counter() for y in years}         # histogram of the chosen versions' capture years
     n_versions = []
+    workers = max(1, int(a.workers if a.workers is not None else getattr(wcfg, "workers", 1) or 1))
+
+    def one_tile(tile):
+        """Every year of one tile; returns the per-tile tallies (merged by the main thread)."""
+        city = tile["city"]
+        off = W.offset_px_for(calib[city], float(wcfg.out_gsd_m))
+        out = dict(counts=collections.Counter(), chosen=[], n_versions=None)
+        for year in years:
+            rel, versions, sel = choose_release(walks, client, releases, tile, year, walk_zoom, meta, select_by)
+            if year == years[0]:
+                out["n_versions"] = len(versions)
+            if rel is None:
+                out["counts"]["no_data"] += 1
+                continue
+            out["chosen"].append((year, (rel.date.isoformat(), rel.num),
+                                  sel["capture_date"][:4] if sel["capture_date"] else "unknown"))
+            out["counts"]["fallback_publication"] += int(bool(sel["fallback"]))
+            out["counts"]["versions_without_capture"] += int(sel["n_fallback"])
+            if a.dry_run:
+                out["counts"]["dry"] += 1
+                continue
+            r = fetch_tile(client, rel, tile, year, wcfg, root, off, dest_name=a.dest_name, metadata=meta,
+                           force=a.force, attribution=str(wcfg.attribution),
+                           calibration=None if calib[city] is None else str(W.calibration_path(root, city)),
+                           selection=sel)
+            out["counts"][r["status"]] += 1
+            if r["status"] == "written" and r.get("missing"):
+                out["counts"]["with_missing_tiles"] += 1
+        return out
+
+    print(f"{workers} worker(s), global rate limit {float(wcfg.rate_hz)} requests/s", flush=True)
     t0 = time.time()
     try:
-        for k, tile in enumerate(tiles):
-            city = tile["city"]
-            off = W.offset_px_for(calib[city], float(wcfg.out_gsd_m))
-            for year in years:
-                rel, versions, sel = choose_release(walks, client, releases, tile, year, walk_zoom, meta, select_by)
-                if year == years[0]:
-                    n_versions.append(len(versions))
-                if rel is None:
-                    counts["no_data"] += 1
-                    continue
-                chosen[year][(rel.date.isoformat(), rel.num)] += 1
-                cap_years[year][sel["capture_date"][:4] if sel["capture_date"] else "unknown"] += 1
-                counts["fallback_publication"] += int(bool(sel["fallback"]))
-                counts["versions_without_capture"] += int(sel["n_fallback"])
-                if a.dry_run:
-                    counts["dry"] += 1
-                    continue
-                r = fetch_tile(client, rel, tile, year, wcfg, root, off, dest_name=a.dest_name, metadata=meta,
-                               force=a.force, attribution=str(wcfg.attribution),
-                               calibration=None if calib[city] is None else str(W.calibration_path(root, city)),
-                               selection=sel)
-                counts[r["status"]] += 1
-                if r["status"] == "written" and r.get("missing"):
-                    counts["with_missing_tiles"] += 1
-            if (k + 1) % 50 == 0 or k + 1 == len(tiles):
-                print(f"  {k + 1}/{len(tiles)} tiles  {dict(counts)}  requests {client.n_requests}  "
-                      f"{client.n_bytes / 1e6:.1f} MB  {time.time() - t0:.0f} s", flush=True)
+        with ThreadPoolExecutor(max_workers=workers) as pool:
+            for k, res in enumerate(pool.map(one_tile, tiles)):     # results in tile order; work runs concurrently
+                counts.update(res["counts"])
+                if res["n_versions"] is not None:
+                    n_versions.append(res["n_versions"])
+                for year, key, cy in res["chosen"]:
+                    chosen[year][key] += 1
+                    cap_years[year][cy] += 1
+                if (k + 1) % 50 == 0 or k + 1 == len(tiles):
+                    print(f"  {k + 1}/{len(tiles)} tiles  {dict(counts)}  requests {client.n_requests}  "
+                          f"{client.n_bytes / 1e6:.1f} MB  {time.time() - t0:.0f} s", flush=True)
     finally:
         walks.save()
         if meta is not None:

@@ -52,7 +52,7 @@ covering the same 640 zoom-20 pixels around the same centre (`window_geometry`),
 affine map (`render_window`, cv2.warpAffine, pixel centres at integer + 0.5 in Mercator pixel space). No datum or
 projection resampling is involved: both sources are the same projection, so the map is a pure scale + translation and
 the only free parameter is the constant offset between Google's and Esri's georeferencing, measured by
-`scripts/calibrate_wayback_vigor.py` (phase correlation, `phase_correlation`) and applied through `offset_px`. The
+`scripts/calibrate_wayback_vigor.py` (`calib_match`, below) and applied through `offset_px`. The
 file written for a tile has the SAME footprint (640 * CITY_RES m) as the VIGOR tile at a different pixel count, so
 `VigorPairs` reads it unchanged (`ref_source: wayback_<year>`): its resampling scale is footprint / width / cell.
 
@@ -60,6 +60,26 @@ Sign conventions. `phase_correlation(a, b)` returns (dx, dy) such that the conte
 b's pixel (u + dx, v + dy). The calibration stores the offset of the Wayback window relative to the VIGOR tile in that
 sense (a = VIGOR, b = Wayback, both at out_gsd), and the fetcher samples the Wayback mosaic at (u + dx, v + dy) for
 output pixel (u, v), which puts the Wayback content where the VIGOR content is.
+
+Cross-source calibration (`calib_match`; 2026-09-28). Whole-image intensity phase correlation fails on these pairs:
+the Esri source is often much coarser than the Google tile (WorldView-2 0.5 m in Chicago / SF, GeoEye-1 0.46 m in
+Seattle, served on 0.22 m zoom-19 tiles; New York is the 0.15 m NYS aerial ortho), cars, shadows and seasons differ,
+and the whitened spectrum above the coarse source's cut-off is pure noise. Per pair: (1) the VIGOR tile at the output
+GSD is blurred to the Wayback source resolution (`calib_blur_sigma`: sigma = k sqrt(src^2 - vigor^2) / out_gsd,
+src = the sidecar's SRC_RES, else the tile GSD); (2) both go to the gradient-magnitude domain (`calib_preprocess`,
+`wayback.calib_domain: gradient | intensity`); (3) Hann window after removing the window-weighted mean (a plain mean
+leaves a spurious zero-shift peak); (4) phase correlation whose whitened cross-power spectrum is weighted by the same
+Gaussian (`band_sigma_px`: only the common band votes; 0.25 -> 0.08 px on the synthetic cross-source test); (5) the
+integer peak is searched only within `wayback.calib_max_shift_m` of zero, refined by the upsampled DFT; (6) the
+peak-to-sidelobe ratio PSR = (peak - mean) / std of the surface inside that disc, 5 px around the peak excluded, is
+the acceptance statistic (`wayback.calib_min_psr`), not the absolute response (which is 0.01-0.1 on real pairs even
+when right). Real pairs (150 per city, the release closest to 2021): unrelated-content PSRs are 3-6 (median 3.6-4.2
+in every city); New York is bimodal with a matched mode at 7-35 -> default 7.0. New York PASSes (+0.50 m E, +0.21 m
+S, residual 0.16 m over 39 tiles); Chicago / SF / Seattle do not: 4-6 tiles of 150 reach PSR 7, and even at PSR 5 the
+accepted offsets scatter by 0.8-1.1 m (median |offset - median|). The imagery there is not related to the Google tile
+by a translation: an off-nadir satellite scene orthorectified on the terrain displaces roofs and trees by
+height x tan(off-nadir), so the averaged correlation surface over 150 tiles is a streak, not a peak (from ~+1 m to
+~+3 m east in Chicago, south-east in SF): the ground and the roofs want different offsets.
 """
 from __future__ import annotations
 
@@ -67,7 +87,9 @@ import datetime as _dt
 import hashlib
 import json
 import math
+import os
 import re
+import threading
 import time
 import urllib.error
 import urllib.request
@@ -204,7 +226,13 @@ class WaybackClient:
 
     opener(url, headers) -> bytes, or raises urllib.error.HTTPError; tests inject a fake. cache_dir: tiles are kept
     at <cache_dir>/<release>/<z>/<x>_<y>.jpg (a 404 leaves an empty <x>_<y>.missing marker), so a re-render of the
-    windows (new calibration) costs no requests."""
+    windows (new calibration) costs no requests.
+
+    Thread-safe (the fetcher's worker pool shares one client): request STARTS are spaced by at least 1 / rate_hz
+    across all threads (the wait happens under a lock, the request itself outside it, so up to `workers` requests are
+    in flight but never more than rate_hz start per second); the counters are updated under the lock; a tile is
+    written to a per-thread `.part` file and renamed, so two threads fetching the same tile both leave a complete
+    file (the rename is atomic, the bytes identical)."""
 
     def __init__(self, rate_hz=10.0, user_agent=USER_AGENT, retries=3, timeout=30.0, cache_dir=None, opener=None):
         self.min_interval = 0.0 if not rate_hz else 1.0 / float(rate_hz)
@@ -214,6 +242,7 @@ class WaybackClient:
         self.cache_dir = None if cache_dir is None else Path(cache_dir)
         self.opener = opener or self._urlopen
         self._last = 0.0
+        self._lock = threading.Lock()
         self.n_requests = 0
         self.n_bytes = 0
 
@@ -226,14 +255,16 @@ class WaybackClient:
         """Bytes of `url`; None on 404. Retries (1, 2, 4 s) on other errors, then raises."""
         err = None
         for attempt in range(self.retries + 1):
-            wait = self._last + self.min_interval - time.monotonic()
-            if wait > 0:
-                time.sleep(wait)
-            self._last = time.monotonic()
-            self.n_requests += 1
+            with self._lock:                                          # global rate limit over all threads
+                wait = self._last + self.min_interval - time.monotonic()
+                if wait > 0:
+                    time.sleep(wait)
+                self._last = time.monotonic()
+                self.n_requests += 1
             try:
                 b = self.opener(url, self.headers)
-                self.n_bytes += len(b)
+                with self._lock:
+                    self.n_bytes += len(b)
                 return b
             except urllib.error.HTTPError as e:
                 if e.code == 404:
@@ -276,7 +307,7 @@ class WaybackClient:
             if b is None:
                 miss.touch()
             else:
-                tmp = f.with_suffix(".part")
+                tmp = f.with_name(f"{f.stem}.{os.getpid()}.{threading.get_ident()}.part")
                 tmp.write_bytes(b)
                 tmp.replace(f)
         return b
@@ -489,6 +520,89 @@ def phase_correlation(a, b, upsample=20, window=True):
     return dx, dy, float(np.clip(peak, 0.0, 1.0))
 
 
+CALIB_DOMAINS = ("gradient", "intensity")
+
+
+def calib_blur_sigma(source_res_m, vigor_res_m, out_gsd, k=0.5):
+    """Gaussian sigma (output px at `out_gsd`) that degrades the VIGOR tile (vigor_res_m m per px) to the Wayback
+    source resolution (source_res_m: the sensor's SRC_RES when the metadata layer gives it, else the tile GSD):
+    k * sqrt(max(source^2 - vigor^2, 0)) / out_gsd (k ~ 0.5: a pixel of pitch p ~ a Gaussian PSF of sigma p / 2).
+    0 when the source is not coarser."""
+    if not source_res_m or not k:
+        return 0.0
+    d2 = float(source_res_m) ** 2 - float(vigor_res_m) ** 2
+    return float(k) * math.sqrt(d2) / float(out_gsd) if d2 > 0 else 0.0
+
+
+def calib_preprocess(img, domain="gradient", blur_sigma=0.0):
+    """The image the calibration correlates: grey, Gaussian blur of `blur_sigma` px (0 = none), then for domain
+    'gradient' the Sobel gradient magnitude (edges survive a change of source, sensor and season; flat albedo and
+    illumination differences do not), for 'intensity' the grey values."""
+    if domain not in CALIB_DOMAINS:
+        raise ValueError(f"calib domain must be one of {CALIB_DOMAINS}, got {domain!r}")
+    g = _gray(img)
+    if blur_sigma and blur_sigma > 0:
+        g = cv2.GaussianBlur(g, (0, 0), float(blur_sigma))
+    if domain == "gradient":
+        g = np.hypot(cv2.Sobel(g, cv2.CV_64F, 1, 0, ksize=3), cv2.Sobel(g, cv2.CV_64F, 0, 1, ksize=3))
+    return g
+
+
+def phase_correlation_psr(A, B, upsample=20, max_shift_px=None, exclude_px=5, band_sigma_px=0.0):
+    """Phase correlation of two preprocessed same-size float images with a constrained peak search and a
+    peak-to-sidelobe ratio. Hann window after removing the WINDOW-WEIGHTED mean (a plain mean leaves the window's own
+    spectrum common to both images: a spurious peak at zero shift). The integer peak is searched only within
+    `max_shift_px` of zero (None = everywhere), refined by the upsampled DFT (1 / upsample px). PSR = (peak - mean) /
+    std of the correlation surface inside the search disc excluding `exclude_px` around the peak (the whole surface
+    when unconstrained). band_sigma_px > 0: the whitened cross-power spectrum is weighted by exp(-2 pi^2 f^2 s^2)
+    (the squared transfer function of a Gaussian of that sigma), i.e. only the band both sources carry votes: above
+    the coarser source's cut-off the whitened spectrum is pure noise with unit weight, which costs the sub-pixel
+    peak ~0.2 px on blurred pairs with clutter (tests). Returns dict(dx, dy, response, psr) with
+    `phase_correlation`'s sign convention."""
+    A, B = np.asarray(A, np.float64), np.asarray(B, np.float64)
+    if A.shape != B.shape:
+        raise ValueError(f"shapes differ: {A.shape} vs {B.shape}")
+    h, w = A.shape
+    win = np.outer(np.hanning(h), np.hanning(w))
+    A = (A - (A * win).sum() / win.sum()) * win
+    B = (B - (B * win).sum() / win.sum()) * win
+    R = np.conj(np.fft.fft2(A)) * np.fft.fft2(B)
+    mag = np.abs(R)
+    R = R / np.where(mag > 1e-12, mag, 1.0)
+    if band_sigma_px and band_sigma_px > 0:
+        fy, fx = np.fft.fftfreq(h), np.fft.fftfreq(w)
+        R = R * np.exp(-2.0 * np.pi ** 2 * float(band_sigma_px) ** 2 * (fy[:, None] ** 2 + fx[None, :] ** 2))
+    r = np.fft.ifft2(R).real
+    sy = np.fft.fftfreq(h) * h                                        # signed integer shift of each surface row
+    sx = np.fft.fftfreq(w) * w
+    d2 = sy[:, None] ** 2 + sx[None, :] ** 2
+    inside = np.ones_like(r, bool) if max_shift_px is None else d2 <= float(max_shift_px) ** 2
+    py, px = np.unravel_index(int(np.argmax(np.where(inside, r, -np.inf))), r.shape)
+    dy0, dx0 = float(sy[py]), float(sx[px])
+    side = inside & ((sy[:, None] - dy0) ** 2 + (sx[None, :] - dx0) ** 2 > float(exclude_px) ** 2)
+    vals = r[side]
+    psr = float((r[py, px] - vals.mean()) / vals.std()) if vals.size > 1 and vals.std() > 0 else 0.0
+    dx, dy, peak = dx0, dy0, float(r[py, px])
+    if upsample and upsample > 1:
+        region = int(math.ceil(1.5 * upsample)) * 2 + 1
+        v, ys, xs = _upsampled_dft(R, upsample, region, dy0, dx0)
+        v = v.real
+        iy, ix = np.unravel_index(int(np.argmax(v)), v.shape)
+        dy, dx, peak = float(ys[iy]), float(xs[ix]), float(v[iy, ix]) / (h * w)
+    return dict(dx=dx, dy=dy, response=float(np.clip(peak, 0.0, 1.0)), psr=psr)
+
+
+def calib_match(vigor_img, wayback_img, domain="gradient", blur_sigma=0.0, max_shift_px=None, upsample=20,
+                exclude_px=5, band=True):
+    """One calibration pair (both at the output GSD): the VIGOR tile blurred by `blur_sigma` to the Wayback source
+    resolution, both images through `calib_preprocess(domain)`, then `phase_correlation_psr` (band-limited to the
+    same sigma when `band`). Returns dict(dx, dy, response, psr): the content at VIGOR px (u, v) is at Wayback px
+    (u + dx, v + dy)."""
+    A = calib_preprocess(vigor_img, domain, blur_sigma)
+    B = calib_preprocess(wayback_img, domain, 0.0)
+    return phase_correlation_psr(A, B, upsample, max_shift_px, exclude_px, blur_sigma if band else 0.0)
+
+
 def fourier_shift(img, dx, dy):
     """`img` (2-D float) translated by (dx, dy) px with the Fourier shift theorem (periodic; for tests): the content
     at (u, v) moves to (u + dx, v + dy)."""
@@ -513,7 +627,7 @@ def load_calibration(root, city):
 
 def offset_px_for(calib, out_gsd):
     """The calibration's offset in output px at `out_gsd` (it is stored in metres): (dx, dy), zeros without one."""
-    if not calib:
+    if not calib or calib.get("offset_m") is None:                # none, or a calibration without a usable tile
         return (0.0, 0.0)
     m = calib["offset_m"]
     return (float(m[0]) / float(out_gsd), float(m[1]) / float(out_gsd))

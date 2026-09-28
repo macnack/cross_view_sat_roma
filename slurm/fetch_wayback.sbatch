@@ -5,11 +5,12 @@
 # Submit from the repo root on Eagle:
 #   make eagle-fetch-wayback WAYBACK_TARGET=wayback-calib CITY=Chicago
 #   make eagle-fetch-wayback WAYBACK_TARGET=wayback-fetch SPLIT=samearea CITIES=Chicago LIMIT=3000 YEARS="2025 2021 2019"
+#   make eagle-fetch-wayback WAYBACK_TARGET=wayback-calib CITY=Chicago WAYBACK_ARGS="--pairs-dir /mnt/storage_6/project_data/pl1269-01/krupka_maciej/vigor"   (offline re-measure)
 #   ... WAYBACK_ARGS="--dry-run" first to see the releases chosen and the volume.
 #SBATCH --job-name=fetch_wayback
 #SBATCH --account=pl1269-01
 #SBATCH --partition=proxima-cpu
-#SBATCH --cpus-per-task=4
+#SBATCH --cpus-per-task=8                 # wayback.workers (6) threads decode / warp / encode concurrently
 #SBATCH --mem=16G
 #SBATCH --time=24:00:00
 #SBATCH --output=slurm/logs/%x_%j.log
