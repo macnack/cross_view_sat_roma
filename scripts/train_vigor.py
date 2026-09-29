@@ -40,8 +40,14 @@ the query module = projection head, and the decoder; the frozen DINOv3 encoder l
 saved - asserted at start-up). After every validation `vigor_<tag>_resume.pt` (weights + AdamW state + RNG +
 counters, written atomically) is refreshed; --resume auto continues from it (same sample order: the training order
 is a permutation seeded by (seed, epoch)), so SLURM requeues and 7-day segments chained with afterany continue
-instead of restarting. --profile N times N steps (data wait / host-to-device / compute, peak memory, GPU util, a
-per-phase breakdown) and exits: `make eagle-probe`. --pin-memory, --prefetch, --tf32 (default off) tune throughput.
+instead of restarting; a job killed mid-epoch loses that epoch only, its CSV rows past the resume step are dropped on
+resume, and a different batch / training-set size / tag is refused. Exact on resume: weights, AdamW, sample order,
+the main-process RNG (VCE draws); NOT bitwise: the DataLoader workers' RNG (the fine config's fresh reference jitter
+per draw; same distribution, other draws) and cuDNN nondeterminism. A run found finished rewrites `_last.pt` and exits
+0 (afterok chains). All checkpoints are written atomically (tmp + fsync + rename). --profile N times N steps (data
+wait / host-to-device / compute, peak memory, GPU util, a per-phase breakdown) and exits without checkpoints (refused
+with --resume / --save-every-epochs): `make eagle-probe`. --pin-memory, --prefetch, --tf32 (default off; recorded in
+the checkpoints' train dict) tune throughput.
 """
 from __future__ import annotations
 
@@ -96,8 +102,9 @@ def main():
                          "validation, no checkpoints; exit code 3 on CUDA OOM")
     ap.add_argument("--profile-warmup", type=int, default=3)
     ap.add_argument("--tf32", action="store_true",
-                    help="allow TF32 for float32 matmuls/convs (the frozen encoder runs in float32; default off = "
-                         "the precision of every run so far)")
+                    help="allow TF32 for float32 matmuls (the frozen encoder runs in float32; default off = the "
+                         "precision of every run so far; cuDNN convolutions already default to TF32 in PyTorch). "
+                         "Recorded in the checkpoints' train dict")
     ap.add_argument("--train-limit", type=int, default=0, help="smoke tests: keep only the first N training labels")
     ap.add_argument("--batch", type=int, default=4)
     ap.add_argument("--workers", type=int, default=0, help="DataLoader workers (the IPM picture is built on the CPU per sample)")
@@ -123,12 +130,15 @@ def main():
     ap.add_argument("--tag", required=True)
     ap.add_argument("--out", default="experiments/09_vigor")
     a = ap.parse_args()
+    if a.profile and (a.resume or a.save_every_epochs):
+        raise SystemExit("--profile is a throughput probe (exits after the timed steps, writes no checkpoint): "
+                         "refusing it together with --resume / --save-every-epochs (a real run's flags)")
     cfg = C.load(a.config)
     L = cfg.lift
     dev = "cuda" if torch.cuda.is_available() else "cpu"
     if a.tf32:                                     # off by default: every run so far used full float32 matmuls
         torch.backends.cuda.matmul.allow_tf32 = True
-        torch.backends.cudnn.allow_tf32 = True
+        torch.backends.cudnn.allow_tf32 = True     # already PyTorch's default; set explicitly for the record
         print("TF32 matmuls/convolutions ON (--tf32)", flush=True)
     torch.manual_seed(cfg.train.seed)
     np.random.seed(cfg.train.seed)
@@ -208,7 +218,10 @@ def main():
         a.steps = R.epoch_steps(len(tr), a.batch, a.epochs)
     if a.val_every is None:
         a.val_every = spe if a.epochs > 0 else 500
-    train_meta.update(steps=a.steps, epochs=a.epochs or None, steps_per_epoch=spe, lr_decoder=float(cfg.train.lr_decoder))
+    train_meta.update(steps=a.steps, epochs=a.epochs or None, steps_per_epoch=spe, n_train=len(tr),
+                      lr_decoder=float(cfg.train.lr_decoder), tf32=bool(a.tf32),
+                      matmul_tf32=bool(torch.backends.cuda.matmul.allow_tf32),
+                      cudnn_tf32=bool(torch.backends.cudnn.allow_tf32))
     print(f"{spe} steps per epoch (batch {a.batch}, drop_last)  total {a.steps} steps"
           + (f" = {a.epochs} epochs" if a.epochs else f" = {a.steps / spe:.2f} epochs")
           + f"  validation every {a.val_every} steps  workers {a.workers} prefetch {a.prefetch if a.workers else '-'} "
@@ -236,6 +249,7 @@ def main():
         E = getattr(cfg, "erp_depth", None)
         lr_q = float(getattr(E, "lr_head", L.lr_lift)) if mode == "erp_depth" and E is not None else L.lr_lift
         groups.append({"params": qp, "lr": lr_q})
+        train_meta.update(lr_query=float(lr_q))
         print(f"query {mode}: {sum(p.numel() for p in qp) / 1e6:.2f} M trainable parameters (lr {lr_q})", flush=True)
     dec = [p for p in matcher.model.decoder.parameters() if p.requires_grad]
     groups.append({"params": dec, "lr": cfg.train.lr_decoder})
@@ -307,21 +321,32 @@ def main():
     k0, best, best_step, n_skip_step, elapsed0, v = 0, float("inf"), None, 0, 0.0, None
     if rp is not None:
         cnt = R.load_resume(rp, query, matcher.model.decoder, opt, loader_gen=g_loader)
-        if int(cnt["batch"]) != a.batch or int(cnt["steps_per_epoch"]) != spe:
-            raise SystemExit(f"{rp}: batch {cnt['batch']} / {cnt['steps_per_epoch']} steps per epoch, this run "
-                             f"{a.batch} / {spe}: resume needs the same batch and training set")
+        R.check_resume(cnt, a.batch, spe, len(tr), a.tag)
         k0, best, best_step = int(cnt["step"]), float(cnt["best"]), cnt["best_step"]
         n_skip_step, guard.total, elapsed0 = int(cnt["n_skip_step"]), int(cnt["guard_total"]), float(cnt["elapsed"])
         v = cnt.get("val")
+        if bool(cnt.get("tf32", False)) != bool(a.tf32):
+            print(f"WARNING: resume file trained with tf32={cnt.get('tf32', False)}, this segment --tf32={a.tf32}",
+                  flush=True)
         print(f"resumed {rp}: step {k0} (epoch {k0 / spe:.2f}), best {best:.3f} at step {best_step}", flush=True)
         if k0 >= a.steps:
-            print(f"already at step {k0} >= {a.steps}: nothing to do", flush=True)
+            # finished: make sure `_last.pt` exists and is whole (a kill between the final resume save and the
+            # `_last.pt` write would otherwise leave a chained fine run without its --ckpt), then exit 0 (afterok)
+            last_path = ckpt_path.with_name(f"vigor_{a.tag}_last.pt")
+            R.atomic_save(ckpt_state(k0, v), last_path)
+            print(f"already at step {k0} >= {a.steps}: nothing to do (rewrote {last_path})", flush=True)
             return
+        n_drop = R.truncate_log(log, k0)
+        if n_drop:
+            print(f"{log}: dropped {n_drop} rows after step {k0} (re-run by this segment)", flush=True)
     else:
-        C.snapshot(cfg, out, dict(tag=a.tag, ckpt=a.ckpt, split=a.split, train_cities=tr_cities, val_cities=va_cities,
-                                  val_frac=a.val_frac, val_samples=a.val_samples, query_mode=mode,
-                                  vce_weight=vce_w, no_depth=n_no_depth, pose_nll_weight=a.pose_nll_weight,
-                                  refine_weight=refine_w, epochs=a.epochs, steps=a.steps, batch=a.batch))
+        snap = dict(tag=a.tag, ckpt=a.ckpt, split=a.split, train_cities=tr_cities, val_cities=va_cities,
+                    val_frac=a.val_frac, val_samples=a.val_samples, query_mode=mode,
+                    vce_weight=vce_w, no_depth=n_no_depth, pose_nll_weight=a.pose_nll_weight,
+                    refine_weight=refine_w, epochs=a.epochs, steps=a.steps, batch=a.batch, tf32=a.tf32)
+        p_snap = C.snapshot(cfg, out, snap)
+        # several runs may share --out (the coarse and fine long runs do) and overwrite config.yaml: keep a per-tag copy
+        (out / f"config_{a.tag}.yaml").write_text(Path(p_snap).read_text())
     if rp is None or not log.is_file():
         log.write_text("step,split,ce,top1,cell_err_m,pose_nll,pose_err_m,n,sec,vce_m,vce_pose_m,fine_epe_px,"
                        "fine_epe_in_px,fine_skipped\n")
@@ -329,7 +354,8 @@ def main():
     def save_resume(k, v):
         R.atomic_save(R.make_resume(ckpt_state(k, v), opt, loader_gen=g_loader, counters=dict(
             step=k, best=best, best_step=best_step, n_skip_step=n_skip_step, guard_total=guard.total,
-            elapsed=time.time() - t0, batch=a.batch, steps_per_epoch=spe, tag=a.tag, val=v)), res_path)
+            elapsed=time.time() - t0, batch=a.batch, steps_per_epoch=spe, n_train=len(tr), tag=a.tag,
+            tf32=bool(a.tf32), val=v)), res_path)
 
     def batches(k_start):
         e, skip = divmod(k_start, spe)
@@ -365,7 +391,8 @@ def main():
                   + (f"  fine EPE {st['fine_epe_px']:.2f} px (input {st['fine_epe_in_px']:.2f})"
                      f"  non-finite steps {guard.total}" if refine_w else "")
                   + f"  ({time.time() - t0:.0f}s, epoch {k / spe:.2f})", flush=True)
-        if k % a.val_every == 0 or k == a.steps:
+        e_save = R.is_epoch_save(k, spe, a.save_every_epochs) if a.epochs else 0
+        if k % a.val_every == 0 or k == a.steps or e_save:          # an epoch save always validates first
             v = validate(query, matcher, va_loader, cfg, L.min_patch_valid, a.local_radius, device=dev,
                          max_batches=max(1, -(-a.val_samples // a.batch)), certainty_weight=0.01,
                          pose_nll_weight=a.pose_nll_weight, vce_weight=vce_w, vce_opts=vce_opts,
@@ -388,20 +415,19 @@ def main():
                 print(f"  WARNING step {k}: validation not finite ({ {kk: v.get(kk) for kk in val_keys} }, "
                       f"fine batches skipped {v.get('fine_skipped', 0)}): not a checkpoint candidate", flush=True)
             else:
-                torch.save(ckpt_state(k, v), last_finite_path)
+                R.atomic_save(ckpt_state(k, v), last_finite_path)
             if is_best:
                 best, best_step = score, k
-                torch.save(ckpt_state(k, v), ckpt_path)
+                R.atomic_save(ckpt_state(k, v), ckpt_path)
                 print(f"  best -> {ckpt_path}", flush=True)
-            e_save = R.is_epoch_save(k, spe, a.save_every_epochs) if a.epochs else 0
             if e_save:
                 p_ep = R.epoch_ckpt_path(ckpt_dir, a.tag, e_save)
-                torch.save(ckpt_state(k, v), p_ep)
+                R.atomic_save(ckpt_state(k, v), p_ep)
                 print(f"  epoch {e_save} -> {p_ep} ({p_ep.stat().st_size / 2 ** 20:.0f} MiB)", flush=True)
             save_resume(k, v)
             query.train()
     last_path = ckpt_path.with_name(f"vigor_{a.tag}_last.pt")   # a late (multimodal) checkpoint stays evaluable
-    torch.save(ckpt_state(a.steps, v if a.steps else None), last_path)
+    R.atomic_save(ckpt_state(a.steps, v if a.steps else None), last_path)
     print(f"wrote {ckpt_path} (best, step {best_step}), {last_finite_path} (last finite validation) and {last_path} "
           f"(last, step {a.steps}, {last_path.stat().st_size / 2 ** 20:.0f} MiB); resume state {res_path}; "
           f"non-finite steps {guard.total}, no-update steps {n_skip_step}", flush=True)

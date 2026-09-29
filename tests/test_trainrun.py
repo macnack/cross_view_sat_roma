@@ -160,3 +160,38 @@ def test_profile_summary_fields():
     assert d["samples_per_s"] == pytest.approx(8.0)
     assert d["headroom_frac"] == pytest.approx(0.375)
     assert R.profile_summary(4, [], [], [], 0, 0, 0)["steps"] == 0
+
+
+# ---- review fixes: atomic write, resume refusal, log de-duplication ----------------------------------------------
+
+class _Boom:
+    def __reduce__(self):
+        raise RuntimeError("killed mid-write")
+
+
+def test_atomic_save_keeps_previous_file_when_the_write_dies(tmp_path):
+    p = tmp_path / "r.pt"
+    R.atomic_save({"step": 1}, p)
+    with pytest.raises(RuntimeError):
+        R.atomic_save({"step": 2, "x": _Boom()}, p)                  # dies after the tmp file was opened
+    assert torch.load(p, weights_only=False) == {"step": 1}
+    R.atomic_save({"step": 3}, p)                                  # a stale .tmp does not get in the way
+    assert torch.load(p, weights_only=False) == {"step": 3}
+
+
+def test_check_resume_refuses_other_batch_or_training_set():
+    cnt = dict(batch=32, steps_per_epoch=1315, n_train=42087, tag="t")
+    R.check_resume(cnt, 32, 1315, 42087, "t")                      # passes
+    R.check_resume(dict(batch=32, steps_per_epoch=1315), 32, 1315, 42090)   # older file: no n_train stored
+    for args in ((16, 2630, 42087, "t"), (32, 1315, 42090, "t"), (32, 1315, 42087, "other")):
+        with pytest.raises(SystemExit):
+            R.check_resume(cnt, *args)
+
+
+def test_truncate_log_drops_rows_after_the_resume_step(tmp_path):
+    p = tmp_path / "train.csv"
+    p.write_text("step,split,ce\n1,train,1\n2,train,1\n2,val,1\n3,train,1\n4,tra")   # killed at step 4 mid-line
+    assert R.truncate_log(p, 2) == 2
+    assert p.read_text() == "step,split,ce\n1,train,1\n2,train,1\n2,val,1\n"
+    assert R.truncate_log(p, 2) == 0
+    assert R.truncate_log(tmp_path / "missing.csv", 5) == 0

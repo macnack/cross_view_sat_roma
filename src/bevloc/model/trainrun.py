@@ -116,11 +116,56 @@ def set_rng_state(s: dict):
 
 
 def atomic_save(obj, path):
-    """torch.save to path via a temporary file + rename, so a job killed mid-write leaves the previous file."""
+    """torch.save to path via a temporary file + fsync + rename, so a job killed mid-write (SLURM time limit, node
+    failure) leaves the previous file intact; a stale `<name>.tmp` from such a kill is simply overwritten next time."""
     path = Path(path)
     tmp = path.with_name(path.name + ".tmp")
-    torch.save(obj, tmp)
+    with open(tmp, "wb") as f:
+        torch.save(obj, f)
+        f.flush()
+        os.fsync(f.fileno())
     os.replace(tmp, path)
+
+
+def check_resume(counters: dict, batch: int, spe: int, n_train: int, tag: str | None = None):
+    """Raise SystemExit unless a resume file's counters match this run: same batch, steps per epoch and training-set
+    size (the epoch permutation is over range(n_train), so a different set would silently reorder every epoch) and,
+    when both are known, the same tag. Files written before n_train was stored skip that check."""
+    bad = []
+    if int(counters["batch"]) != int(batch):
+        bad.append(f"batch {counters['batch']} != {batch}")
+    if int(counters["steps_per_epoch"]) != int(spe):
+        bad.append(f"steps per epoch {counters['steps_per_epoch']} != {spe}")
+    if counters.get("n_train") is not None and int(counters["n_train"]) != int(n_train):
+        bad.append(f"training samples {counters['n_train']} != {n_train}")
+    if tag is not None and counters.get("tag") not in (None, tag):
+        bad.append(f"tag {counters['tag']!r} != {tag!r}")
+    if bad:
+        raise SystemExit("resume refused: " + "; ".join(bad) + " (resume needs the same batch and training set)")
+
+
+def truncate_log(path, k0: int) -> int:
+    """Drop the CSV rows (after the header) whose step is > k0: the steps a killed segment ran after its last resume
+    save are re-run by the resumed job and would otherwise appear twice. Returns the number of rows dropped."""
+    path = Path(path)
+    if not path.is_file():
+        return 0
+    lines = path.read_text().splitlines(keepends=True)
+    keep, drop = lines[:1], 0
+    for ln in lines[1:]:
+        try:
+            ok = int(ln.split(",", 1)[0]) <= k0 and ln.endswith("\n")
+        except ValueError:                         # a torn last line from the kill
+            ok = False
+        if ok:
+            keep.append(ln)
+        else:
+            drop += 1
+    if drop:
+        tmp = path.with_name(path.name + ".tmp")
+        tmp.write_text("".join(keep))
+        os.replace(tmp, path)
+    return drop
 
 
 def make_resume(ckpt: dict, opt, counters: dict, loader_gen: torch.Generator | None = None) -> dict:
