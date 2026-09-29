@@ -115,9 +115,10 @@ def sanity_image(ds, ds_f, i, cfg, out_path):
     return out_path
 
 
-def load_matcher_query(ckpt, cfg, dev):
+def load_matcher_query(ckpt, cfg, dev, decoder_dtype="float16"):
     from bevloc.model.coarse import FeatureQueryMatcher
     from bevloc.model.query import apply_query_cfg, build_query, load_query_state
+    from bevloc.model.speed import DECODER_DTYPE_DEFAULT, set_decoder_dtype
     state = torch.load(ckpt, map_location=dev, weights_only=False)
     mode = state.get("mode", "lift")
     if mode != "erp_depth":
@@ -126,6 +127,8 @@ def load_matcher_query(ckpt, cfg, dev):
     apply_query_cfg(cfg, state)
     matcher = FeatureQueryMatcher(cfg.matcher.checkpoint, dev, train_decoder=False)
     matcher.model.decoder.load_state_dict(state["decoder"], strict=False)
+    if decoder_dtype != DECODER_DTYPE_DEFAULT:
+        set_decoder_dtype(matcher.model.decoder, decoder_dtype)
     query = build_query(cfg, mode).to(dev)
     load_query_state(query, state)
     query.eval()
@@ -145,6 +148,9 @@ def main():
     ap.add_argument("--fine-config", default=None)
     ap.add_argument("--fine-ckpt", default=None)
     ap.add_argument("--solver", default=None)
+    ap.add_argument("--decoder-dtype", default="float16", choices=("bfloat16", "float16", "float32"),
+                    help="autocast dtype of both Sat-RoMa decoders on CUDA; default float16 = the package's, every "
+                         "published row (bevloc.model.speed.set_decoder_dtype)")
     ap.add_argument("--fine-gate", type=float, default=None)
     ap.add_argument("--limit", "--n", dest="limit", type=int, default=0,
                     help="first N unique frame ids (0 = all); --n as in eval_fg2.py / eval_loc2.py")
@@ -186,8 +192,8 @@ def main():
     from bevloc.match.satroma import SatRoMa
     dev = "cuda" if torch.cuda.is_available() else "cpu"
     coarse_ckpt, fine_ckpt = a.coarse_ckpt or Q.coarse_ckpt, a.fine_ckpt or Q.fine_ckpt
-    state, matcher, query = load_matcher_query(coarse_ckpt, cfg, dev)
-    state_f, matcher_f, query_f = load_matcher_query(fine_ckpt, cfg_f, dev)
+    state, matcher, query = load_matcher_query(coarse_ckpt, cfg, dev, a.decoder_dtype)
+    state_f, matcher_f, query_f = load_matcher_query(fine_ckpt, cfg_f, dev, a.decoder_dtype)
     check_fine_grid(state_f, cfg_f, fine_ckpt, a.fine_config or Q.fine_config)
     cons = {tag: SatRoMa.from_wrapper(matcher.wrapper, cfg, use_means=m, min_valid_frac=0.05)
             for tag, m in (("peak", False), ("means", True))}
@@ -236,12 +242,13 @@ def main():
         ego_mask_deg=a.ego_mask_deg, coarse=dict(config=a.coarse_config or Q.coarse_config, ckpt=coarse_ckpt,
                                                   step=state.get("step")),
         fine=dict(config=a.fine_config or Q.fine_config, ckpt=fine_ckpt, step=state_f.get("step"), gate_m=gate),
-        solver=cons["peak"].solver, n=len(rows), n_entries=len(ds), sec_per_entry=sec,
+        solver=cons["peak"].solver, decoder_dtype=a.decoder_dtype, n=len(rows), n_entries=len(ds), sec_per_entry=sec,
         map_vs_tile_error_max_diff_m=max_check, median_abs_residual_rot_deg=float(np.median(no_rot)) if no_rot else None,
         summary=summary), indent=2))
     (out / "score_rows.json").write_text(json.dumps(rows, indent=1, default=float))
     C.snapshot(cfg, out, dict(manifest=manifest, heading=a.heading, ref_up=a.ref_up, coarse_ckpt=coarse_ckpt,
-                              fine_ckpt=fine_ckpt, fine_config=a.fine_config or Q.fine_config))
+                              fine_ckpt=fine_ckpt, fine_config=a.fine_config or Q.fine_config,
+                              decoder_dtype=a.decoder_dtype))
     for name, s in summary.items():
         ME.print_summary(name, s)
     print(f"map-frame vs tile-frame error, max difference {max_check:.2e} m; median |residual rotation| "

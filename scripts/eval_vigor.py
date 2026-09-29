@@ -75,6 +75,15 @@ from bevloc.match.vote_stats import pose_px, ref_cell_valid, stats_row
 from bevloc.model.coarse import FeatureQueryMatcher
 from bevloc.model.query import apply_query_cfg, build_query, load_query_state
 from bevloc.model.refine import REFINER_KEY, RefinerTap
+from bevloc.model.speed import DECODER_DTYPE_DEFAULT, DECODER_DTYPES, set_decoder_dtype
+
+
+def apply_decoder_dtype(matcher, a):
+    """--decoder-dtype on an evaluator's matcher (default float16 = the package's autocast, every published row)."""
+    dt = getattr(a, "decoder_dtype", DECODER_DTYPE_DEFAULT) or DECODER_DTYPE_DEFAULT
+    if dt != DECODER_DTYPE_DEFAULT:
+        set_decoder_dtype(matcher.model.decoder, dt)
+    return dt
 
 
 def refine_tags(inits):
@@ -362,6 +371,9 @@ def med(rows, key="pose_peak_m"):
 def build_parser(doc=__doc__):
     ap = C.add_args(argparse.ArgumentParser(description=doc))
     ap.add_argument("--ckpt", required=True)
+    ap.add_argument("--decoder-dtype", default=DECODER_DTYPE_DEFAULT, choices=sorted(DECODER_DTYPES),
+                    help="autocast dtype of the Sat-RoMa decoder on CUDA (coarse and --fine-ckpt passes; a trained "
+                         "refiner keeps its training precision); default float16 = the package's, every published row")
     ap.add_argument("--root", default=os.environ.get("VIGOR_DIR", "data/vigor"))
     ap.add_argument("--split", default="crossarea", choices=("crossarea", "samearea"))
     ap.add_argument("--train-split", action="store_true", help="evaluate on the training cities/labels instead")
@@ -492,6 +504,7 @@ def decoder_fine(a, cfg, ds, dev):
     apply_query_cfg(cfg_f, state)
     matcher = FeatureQueryMatcher(cfg_f.matcher.checkpoint, dev, train_decoder=False)
     matcher.model.decoder.load_state_dict(state["decoder"], strict=False)
+    dec_dtype = apply_decoder_dtype(matcher, a)
     query = build_query(cfg_f, mode).to(dev)
     load_query_state(query, state)
     query.eval()
@@ -510,7 +523,7 @@ def decoder_fine(a, cfg, ds, dev):
           + (f"; {n_drop} panoramas without depth dropped from both passes" if n_drop else ""), flush=True)
     meta = dict(config=a.fine_config, ckpt=a.fine_ckpt, mode=mode, ckpt_step=state.get("step"), train=state.get("train"),
                 cell_m=float(cfg_f.grid.cell_m), window_m=ds_f.ref_window_m, gate_m=a.fine_gate,
-                matcher="Sat-RoMa decoder", skipped_no_depth=n_drop)
+                matcher="Sat-RoMa decoder", skipped_no_depth=n_drop, decoder_dtype=dec_dtype)
     if fine_c is not None:
         meta["consensus"] = settings_of(cons).to_dict()
     sources = ref_sources_of(a, cfg)[1]
@@ -538,6 +551,9 @@ def run(a, make_fine=None):
     print(f"checkpoint {a.ckpt}: mode {mode}, step {state.get('step')}, training {train_meta}", flush=True)
     matcher = FeatureQueryMatcher(cfg.matcher.checkpoint, dev, train_decoder=False)
     matcher.model.decoder.load_state_dict(state["decoder"], strict=False)
+    dec_dtype = apply_decoder_dtype(matcher, a)
+    print(f"decoder autocast {dec_dtype} (checkpoint trained with "
+          f"{(train_meta or {}).get('decoder_dtype', DECODER_DTYPE_DEFAULT)})", flush=True)
     trained_refiner = any(REFINER_KEY in k for k in state["decoder"])
     # a refiner trained with the fine loss runs at its training precision (float32 since 2026-09-26); the released
     # (frozen) refiner keeps the package's float16 autocast
@@ -663,7 +679,7 @@ def run(a, make_fine=None):
     path.write_text(json.dumps(dict(meta=dict(ckpt=a.ckpt, mode=mode, split=a.split, cities=cities, n=len(rows),
                                               row_sign=ds.row_sign, height_m=ds.height, solver=cons["peak"].solver,
                                               skipped_no_depth=n_no_depth, ckpt_step=state.get("step"),
-                                              train=train_meta,
+                                              train=train_meta, decoder_dtype=dec_dtype,
                                               refine=dict(stride=a.refine, inits=a.refine_init, gate_cells=refine_gate,
                                                           min_cert=a.refine_min_cert, min_corr=a.refine_min_corr,
                                                           trained_refiner=trained_refiner,

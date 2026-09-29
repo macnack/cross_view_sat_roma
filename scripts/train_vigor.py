@@ -49,6 +49,15 @@ wait / host-to-device / compute, peak memory, GPU util, a per-phase breakdown) a
 with --resume / --save-every-epochs): `make eagle-probe`. --pin-memory, --prefetch, --tf32 (default off; recorded in
 the checkpoints' train dict) tune throughput.
 
+Decoder precision (2026-09-29, bevloc.model.speed.set_decoder_dtype): --decoder-dtype float16 | bfloat16 | float32 sets
+the autocast dtype the Sat-RoMa decoder opens on CUDA (the package's `amp_dtype`; default float16 = the released
+configuration and every run before this flag). Training has no GradScaler, so float16 flushes the small per-logit
+gradients to zero in backward; bfloat16 keeps float32's exponent range. Recorded in the train dict, the config
+snapshot and the resume counters (a resume with another decoder dtype warns). --check-decoder validates a --ckpt with
+the float16 decoder and with --decoder-dtype (one CHECK json line, as --check-encoder); --dump-grads PATH runs one
+training step and saves the step-1 gradient of the trainable head + decoder (DDP: the summed global-batch gradient)
+for scripts/grad_compare.py, then exits (no checkpoints).
+
 Multi-GPU (bevloc.model.ddp; `make eagle-submit-ddp`, slurm/run_ddp.sbatch): `torchrun --standalone --nproc_per_node W
 scripts/train_vigor.py ... --batch B`. --batch is ALWAYS the global optimizer batch: each rank draws B / W samples
 (printed as "global batch B = W ranks x b per rank"), so steps per epoch, lr and epochs are those of one GPU at batch
@@ -84,7 +93,8 @@ from bevloc import config as C  # noqa: E402
 from bevloc.model import trainrun as R  # noqa: E402
 from bevloc.model.ddp import DDP_LOSS_NORM, Dist, assert_unwrapped, check_resume_world, per_rank_batch  # noqa: E402
 from bevloc.model.speed import (  # noqa: E402
-    COMPILE_CHOICES, ENCODER_DTYPES, attention_report, compile_modules, encoder_diff, set_encoder_dtype,
+    COMPILE_CHOICES, DECODER_DTYPE_DEFAULT, DECODER_DTYPES, ENCODER_DTYPES, attention_report, compile_modules,
+    encoder_diff, precision_mismatch, precision_record, set_decoder_dtype, set_encoder_dtype,
 )
 from bevloc.data.vigor import VigorPairs, collate_vigor, split_cities  # noqa: E402
 from bevloc.model.coarse import FeatureQueryMatcher, resolve_vce_weight, vce_options  # noqa: E402
@@ -126,7 +136,11 @@ def main():
                          "Recorded in the checkpoints' train dict")
     ap.add_argument("--encoder-dtype", default="float32", choices=sorted(ENCODER_DTYPES),
                     help="autocast dtype of the FROZEN encoder's forward (outputs cast back to float32; the decoder "
-                         "keeps its own float16 autocast); default float32 = every run so far (bevloc.model.speed)")
+                         "keeps its own autocast, --decoder-dtype); default float32 = every run so far (bevloc.model.speed)")
+    ap.add_argument("--decoder-dtype", default=DECODER_DTYPE_DEFAULT, choices=sorted(DECODER_DTYPES),
+                    help="autocast dtype of the Sat-RoMa decoder on CUDA (the package's amp_dtype; training has no "
+                         "GradScaler: float16 underflows small gradients, bfloat16 does not); default float16 = the "
+                         "released configuration and every run so far (bevloc.model.speed.set_decoder_dtype)")
     ap.add_argument("--compile", default="none", choices=COMPILE_CHOICES,
                     help="in-place torch.compile (dynamic=False) of the frozen encoder / the decoder; state dict keys "
                          "unchanged")
@@ -134,6 +148,13 @@ def main():
                     help="accuracy check of --encoder-dtype: with --ckpt, validate the --val-samples frames with the "
                          "float32 encoder and with --encoder-dtype, plus the token difference on one batch; prints one "
                          "CHECK json line and exits (no training, no checkpoints)")
+    ap.add_argument("--check-decoder", action="store_true",
+                    help="accuracy check of --decoder-dtype: with --ckpt, validate the --val-samples frames with the "
+                         "float16 decoder and with --decoder-dtype; prints one CHECK json line and exits")
+    ap.add_argument("--dump-grads", default=None,
+                    help="diagnostic: run ONE training step, save {name: gradient} of the trainable head + decoder "
+                         "(DDP: the summed global-batch gradient, rank 0) to this .pt and exit (no checkpoints); "
+                         "compare dumps with scripts/grad_compare.py")
     ap.add_argument("--train-limit", type=int, default=0, help="smoke tests: keep only the first N training labels")
     ap.add_argument("--batch", type=int, default=4,
                     help="GLOBAL batch (samples per optimizer step); under torchrun each of the W ranks draws batch / W")
@@ -163,6 +184,9 @@ def main():
     ap.add_argument("--tag", required=True)
     ap.add_argument("--out", default="experiments/09_vigor")
     a = ap.parse_args()
+    if a.dump_grads and (a.resume or a.save_every_epochs or a.profile):
+        raise SystemExit("--dump-grads is a one-step diagnostic: refusing it with --resume / --save-every-epochs / "
+                         "--profile")
     if a.profile and (a.resume or a.save_every_epochs):
         raise SystemExit("--profile is a throughput probe (exits after the timed steps, writes no checkpoint): "
                          "refusing it together with --resume / --save-every-epochs (a real run's flags)")
@@ -276,10 +300,12 @@ def main():
     matcher = FeatureQueryMatcher(cfg.matcher.checkpoint, dev, train_decoder=True)
     if a.encoder_dtype != "float32" or a.check_encoder:
         set_encoder_dtype(matcher.model.encoder, a.encoder_dtype)
-    print(f"encoder autocast {a.encoder_dtype}  compile {a.compile}  attention: encoder "
+    if a.decoder_dtype != DECODER_DTYPE_DEFAULT:
+        set_decoder_dtype(matcher.model.decoder, a.decoder_dtype)
+    print(f"encoder autocast {a.encoder_dtype}  decoder autocast {a.decoder_dtype}  compile {a.compile}  attention: encoder "
           f"{attention_report(matcher.model.encoder)} decoder {attention_report(matcher.model.decoder)}", flush=True)
-    if a.encoder_dtype != "float32" or a.compile != "none":   # single-GPU default runs keep their train dict unchanged
-        train_meta.update(encoder_dtype=a.encoder_dtype, compile=a.compile)
+    prec = precision_record(a.encoder_dtype, a.compile, a.decoder_dtype)   # train dict, snapshot, resume counters
+    train_meta.update(prec)
     n_ref = set_refiner_trainable(matcher.model.decoder, refine_w > 0)
     if refine_w:
         print(f"conv refiner unfrozen: {n_ref / 1e6:.2f} M parameters (fine loss weight {refine_w})", flush=True)
@@ -392,7 +418,7 @@ def main():
             tick("optimizer")
         return loss, st, bad, g_ok
 
-    if a.check_encoder:
+    if a.check_encoder or a.check_decoder:
         run_check_encoder(a, query, matcher, va, va_loader, cfg, L, dev, to_dev, dict(
             pose_nll_weight=a.pose_nll_weight, vce_weight=vce_w, vce_opts=vce_opts, refine_weight=refine_w,
             refine_opts=refine_opts), D)
@@ -431,9 +457,9 @@ def main():
         if bool(cnt.get("tf32", False)) != bool(a.tf32):
             print(f"WARNING: resume file trained with tf32={cnt.get('tf32', False)}, this segment --tf32={a.tf32}",
                   flush=True)
-        for key, now, dflt in (("encoder_dtype", a.encoder_dtype, "float32"), ("compile", a.compile, "none")):
-            if cnt.get(key, dflt) != now:              # the precision of the frozen encoder changes mid-run
-                print(f"WARNING: resume file trained with {key}={cnt.get(key, dflt)}, this segment {now}", flush=True)
+        for w in precision_mismatch(cnt, dict(encoder_dtype=a.encoder_dtype, compile=a.compile,
+                                              decoder_dtype=a.decoder_dtype)):
+            print(f"WARNING: {w}", flush=True)         # the precision of the encoder / decoder changes mid-run
         if D.on and cnt.get("loss_norm") != DDP_LOSS_NORM:
             raise SystemExit(f"resume refused: {rp} was written by a DDP run without the global-count loss "
                              f"normalisation ({cnt.get('loss_norm')!r} != {DDP_LOSS_NORM!r}); continuing it would "
@@ -455,11 +481,9 @@ def main():
         snap = dict(tag=a.tag, ckpt=a.ckpt, split=a.split, train_cities=tr_cities, val_cities=va_cities,
                     val_frac=a.val_frac, val_samples=a.val_samples, query_mode=mode,
                     vce_weight=vce_w, no_depth=n_no_depth, pose_nll_weight=a.pose_nll_weight,
-                    refine_weight=refine_w, epochs=a.epochs, steps=a.steps, batch=a.batch, tf32=a.tf32)
+                    refine_weight=refine_w, epochs=a.epochs, steps=a.steps, batch=a.batch, tf32=a.tf32, **prec)
         if D.on:
             snap.update(world_size=D.world, batch_per_rank=b_rank, val_batch=a.val_batch, loss_norm=DDP_LOSS_NORM)
-        if a.encoder_dtype != "float32" or a.compile != "none":
-            snap.update(encoder_dtype=a.encoder_dtype, compile=a.compile)
         if D.main:
             p_snap = C.snapshot(cfg, out, snap)
             # several runs may share --out (the coarse and fine long runs do) and overwrite config.yaml: keep a per-tag copy
@@ -471,9 +495,7 @@ def main():
     def save_resume(k, v):
         cnt = dict(step=k, best=best, best_step=best_step, n_skip_step=n_skip_step, guard_total=guard.total,
                    elapsed=time.time() - t0, batch=a.batch, steps_per_epoch=spe, n_train=len(tr), tag=a.tag,
-                   tf32=bool(a.tf32), val=v)
-        if a.encoder_dtype != "float32" or a.compile != "none":   # single-GPU default files keep their keys
-            cnt.update(encoder_dtype=a.encoder_dtype, compile=a.compile)
+                   tf32=bool(a.tf32), val=v, **prec)
         if not D.on:
             R.atomic_save(R.make_resume(ckpt_state(k, v), opt, loader_gen=g_loader, counters=cnt), res_path)
             return
@@ -501,6 +523,11 @@ def main():
     for k in range(k0 + 1, a.steps + 1):
         batch = to_dev(next(it))
         loss, st, bad, g_ok = train_step(batch)
+        if a.dump_grads:                               # one-step diagnostic: the (DDP: summed) gradient, then exit
+            dump_grads(a.dump_grads, query, matcher.model.decoder, loss, st, bad, a, D)
+            D.barrier()
+            D.close()
+            return
         if bad:                                        # no update at all from a non-finite total loss
             n_skip_step += 1
             print(f"step {k}: non-finite loss, no update ({n_skip_step} so far)", flush=True)
@@ -571,17 +598,33 @@ def main():
 
 def run_check_encoder(a, query, matcher, va, va_loader, cfg, L, dev, to_dev, vkw, D):
     """--check-encoder: float32 vs --encoder-dtype on the frozen encoder. One CHECK json line with the token
-    difference on the first validation batch (reference and panorama) and the validation metrics both ways."""
+    difference on the first validation batch (reference and panorama) and the validation metrics both ways.
+    --check-decoder: the same validation with the float16 decoder and with --decoder-dtype (the encoder at
+    --encoder-dtype both times)."""
     import json
     if not D.main:
         return
-    enc = matcher.model.encoder
-    b = to_dev(next(iter(va_loader)))
-    diff = dict(ref=encoder_diff(enc, b["ref"]), pano=encoder_diff(enc, b["erp"][:, 0]))
-    out = dict(encoder_dtype=a.encoder_dtype, ckpt=a.ckpt, val_samples=len(va), token_diff=diff, tf32=a.tf32)
+    out = dict(encoder_dtype=a.encoder_dtype, decoder_dtype=a.decoder_dtype, ckpt=a.ckpt, val_samples=len(va),
+               tf32=a.tf32)
+    if a.check_decoder:
+        dec = matcher.model.decoder
+        out["check"] = "decoder"
+
+        def switch(name):
+            set_decoder_dtype(dec, name)
+        names = (DECODER_DTYPE_DEFAULT, a.decoder_dtype)
+    else:
+        enc = matcher.model.encoder
+        b = to_dev(next(iter(va_loader)))
+        out.update(check="encoder",
+                   token_diff=dict(ref=encoder_diff(enc, b["ref"]), pano=encoder_diff(enc, b["erp"][:, 0])))
+
+        def switch(name):
+            enc._bevloc_amp_dtype = name
+        names = ("float32", a.encoder_dtype)
     m_per_cell = (cfg.grid.n * cfg.reference.scale / 56.0) * cfg.grid.cell_m
-    for name in ("float32", a.encoder_dtype):
-        enc._bevloc_amp_dtype = name
+    for name in names:
+        switch(name)
         t = time.time()
         v = validate(query, matcher, va_loader, cfg, L.min_patch_valid, a.local_radius, device=dev,
                      max_batches=max(1, -(-a.val_samples // a.val_batch)), certainty_weight=0.01, **vkw)
@@ -590,6 +633,24 @@ def run_check_encoder(a, query, matcher, va, va_loader, cfg, L, dev, to_dev, vkw
         out[name] = v
         print(f"check {name}: {v}", flush=True)
     print("CHECK " + json.dumps(out), flush=True)
+
+
+def dump_grads(path, query, decoder, loss, st, bad, a, D):
+    """--dump-grads: {"grads": {"query.<n>" / "decoder.<n>": float32 CPU gradient}, "meta": ...} of every trainable
+    parameter after one training step (DDP: after the all-reduce = the global-batch gradient; rank 0 writes)."""
+    if not D.main:
+        return
+    g = {}
+    for pre, mod in (("query", query), ("decoder", decoder)):
+        for n, p in mod.named_parameters():
+            if p.requires_grad and p.grad is not None:
+                g[f"{pre}.{n}"] = p.grad.detach().float().cpu().clone()
+    meta = dict(loss=float(loss.detach()), ce=st.get("ce"), n=st.get("n"), bad=bool(bad), decoder_dtype=a.decoder_dtype,
+                encoder_dtype=a.encoder_dtype, tf32=bool(a.tf32), compile=a.compile, world_size=D.world,
+                batch=a.batch, n_tensors=len(g), n_params=int(sum(t.numel() for t in g.values())))
+    Path(path).parent.mkdir(parents=True, exist_ok=True)
+    torch.save(dict(grads=g, meta=meta), path)
+    print(f"GRADDUMP {path}: {meta}", flush=True)
 
 
 def run_profile(a, tr, tr_loader, sampler, dev, to_dev, train_step, matcher=None, D=None, b_rank=None):
@@ -606,7 +667,7 @@ def run_profile(a, tr, tr_loader, sampler, dev, to_dev, train_step, matcher=None
     print(f"per-sample CPU cost (main process, s): {cost}", flush=True)
     base = dict(workers=a.workers, prefetch=a.prefetch if a.workers else None, pin_memory=a.pin_memory,
                 cpus=len(os.sched_getaffinity(0)), config=a.config, sample_cost_s=cost,
-                encoder_dtype=a.encoder_dtype, compile=a.compile)
+                encoder_dtype=a.encoder_dtype, decoder_dtype=a.decoder_dtype, compile=a.compile)
     if D.on:
         base.update(rank=D.rank, world_size=D.world, global_batch=a.batch)
     if cuda:
