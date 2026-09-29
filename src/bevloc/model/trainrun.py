@@ -55,24 +55,46 @@ class EpochSampler(Sampler):
     """A permutation of range(n) seeded by (seed, epoch), optionally skipping the first `skip` indices.
 
     Iterated in the main process every time the DataLoader starts an epoch (persistent workers included), so a
-    resumed run sees exactly the sample order it would have seen: set_epoch(e, skip=samples already used)."""
+    resumed run sees exactly the sample order it would have seen: set_epoch(e, skip=samples already used).
 
-    def __init__(self, n: int, seed: int = 0):
+    Data parallel (world > 1, bevloc.model.ddp): the permutation is the single-GPU one, truncated to a multiple of the
+    GLOBAL batch (what drop_last drops on one GPU), and rank r takes its positions r, r + W, r + 2W, ... after `skip`
+    (a multiple of the global batch). Rank r's j-th batch of b = B / W is then positions r::W of the single-GPU j-th
+    batch of B: the ranks' batches at one step are disjoint and together ARE the single-GPU global batch, every
+    sample is drawn once per epoch in total, and a resume (skip = steps done x B) continues every shard."""
+
+    def __init__(self, n: int, seed: int = 0, rank: int = 0, world: int = 1, global_batch: int | None = None):
         self.n, self.seed = int(n), int(seed)
+        self.rank, self.world = int(rank), int(world)
+        self.global_batch = int(global_batch) if global_batch else None
+        if self.world > 1:
+            if not self.global_batch or self.global_batch % self.world:
+                raise ValueError("a sharded EpochSampler needs a global batch that is a multiple of the world size")
+            if not 0 <= self.rank < self.world:
+                raise ValueError(f"rank {rank} outside world {world}")
         self.epoch, self.skip = 0, 0
 
     def set_epoch(self, epoch: int, skip: int = 0):
+        if self.world > 1 and int(skip) % self.global_batch:
+            raise ValueError(f"skip {skip} is not a whole number of global batches ({self.global_batch})")
         self.epoch, self.skip = int(epoch), int(skip)
 
     def order(self, epoch: int):
         g = torch.Generator().manual_seed(self.seed * 1_000_003 + int(epoch))
         return torch.randperm(self.n, generator=g)
 
+    def _used(self):
+        return (self.n // self.global_batch) * self.global_batch if self.world > 1 else self.n
+
     def __iter__(self):
-        return iter(self.order(self.epoch)[self.skip:].tolist())
+        o = self.order(self.epoch)
+        if self.world > 1:
+            return iter(o[:self._used()][self.skip:][self.rank::self.world].tolist())
+        return iter(o[self.skip:].tolist())
 
     def __len__(self):
-        return max(0, self.n - self.skip)
+        m = max(0, self._used() - self.skip)
+        return m // self.world if self.world > 1 else m
 
 
 # ---- checkpoint contents ----------------------------------------------------------------------------------------
@@ -100,10 +122,16 @@ def assert_no_frozen_encoder(state: dict, encoder: torch.nn.Module | None = None
         raise AssertionError(f"checkpoint carries frozen-encoder tensors: {bad[:5]} (+{max(0, len(bad) - 5)})")
 
 
+def _distributed() -> bool:
+    return torch.distributed.is_available() and torch.distributed.is_initialized()
+
+
 def rng_state() -> dict:
+    """Global RNG states. Under torchrun (a process group is up) only this rank's CUDA device: touching the other
+    GPUs would open a CUDA context on each of them from every rank."""
     s = dict(torch=torch.get_rng_state(), numpy=np.random.get_state(), python=random.getstate())
     if torch.cuda.is_available():
-        s["cuda"] = torch.cuda.get_rng_state_all()
+        s["cuda"] = torch.cuda.get_rng_state() if _distributed() else torch.cuda.get_rng_state_all()
     return s
 
 
@@ -112,7 +140,12 @@ def set_rng_state(s: dict):
     np.random.set_state(s["numpy"])
     random.setstate(s["python"])
     if "cuda" in s and torch.cuda.is_available():
-        torch.cuda.set_rng_state_all(s["cuda"])
+        if torch.is_tensor(s["cuda"]):             # one device (written under torchrun)
+            torch.cuda.set_rng_state(s["cuda"])
+        elif _distributed():                       # a single-GPU file read under torchrun: refused later anyway
+            torch.cuda.set_rng_state(s["cuda"][0])
+        else:
+            torch.cuda.set_rng_state_all(s["cuda"])
 
 
 def atomic_save(obj, path):
@@ -195,11 +228,14 @@ def load_resume(path, query, decoder, opt, loader_gen: torch.Generator | None = 
 class GpuUtil:
     """Samples `nvidia-smi` GPU utilisation / memory every `ms` while active; mean() is None when unavailable."""
 
-    def __init__(self, ms=250):
+    def __init__(self, ms=250, index=None):
         self.ms, self.samples, self.proc, self.th = ms, [], None, None
+        self.index = index                         # this process's GPU among CUDA_VISIBLE_DEVICES (torchrun rank)
 
     def __enter__(self):
-        idx = os.environ.get("CUDA_VISIBLE_DEVICES", "0").split(",")[0] or "0"
+        vis = os.environ.get("CUDA_VISIBLE_DEVICES", "").split(",")
+        i = int(self.index or 0)
+        idx = (vis[i] if i < len(vis) and vis[i] else str(i)) if vis != [""] else str(i)
         try:
             self.proc = subprocess.Popen(
                 ["nvidia-smi", "-i", idx, "--query-gpu=utilization.gpu,memory.used", "--format=csv,noheader,nounits",
@@ -254,6 +290,25 @@ def profile_summary(batch, t_data, t_h2d, t_compute, peak_alloc, peak_reserved, 
                gpu_util_pct=util[0] if util else None, gpu_mem_used_mib=util[1] if util else None)
     out.update(extra or {})
     return out
+
+
+def aggregate_profiles(rows, global_batch):
+    """The node-level PROFILE line of a torchrun --profile: global batch x timed steps / the mean per-rank wall time
+    (the ranks are synchronised by the per-step all-reduce), next to the sum and spread of the per-rank rates."""
+    ok = [r for r in rows if not r.get("oom") and r.get("steps")]
+    if not ok:
+        return dict(aggregate=True, global_batch=int(global_batch), world_size=len(rows), oom=True)
+    step_s = float(np.mean([r["step_s"] for r in ok]))
+    per = [r["samples_per_s"] for r in ok]
+    return dict(aggregate=True, global_batch=int(global_batch), world_size=len(rows), steps=int(ok[0]["steps"]),
+                step_s=step_s, samples_per_s=float(global_batch / step_s), samples_per_s_sum_ranks=float(sum(per)),
+                samples_per_s_rank_min=float(min(per)), samples_per_s_rank_max=float(max(per)),
+                data_wait_frac_max=float(max(r["data_wait_frac"] for r in ok)),
+                peak_reserved_gib_max=float(max(r["peak_reserved_gib"] for r in ok)),
+                gpu_util_pct_mean=(float(np.mean([r["gpu_util_pct"] for r in ok if r.get("gpu_util_pct") is not None]))
+                                   if any(r.get("gpu_util_pct") is not None for r in ok) else None),
+                breakdown_s_rank0=ok[0].get("breakdown_s"), tf32=ok[0].get("tf32"),
+                encoder_dtype=ok[0].get("encoder_dtype"), compile=ok[0].get("compile"), oom=False)
 
 
 def sample_cost(ds, n=16, seed=0):
