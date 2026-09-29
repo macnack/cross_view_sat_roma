@@ -164,12 +164,18 @@ holds the CSV log and `config.yaml` (+ a per-tag `config_<tag>.yaml`, since both
 - H100 switches (default off = every earlier run): `--tf32`, `--encoder-dtype bfloat16` (the frozen encoder under
   bfloat16 autocast, outputs back to float32; validation unchanged within noise), `--compile encoder`. Measured, with
   accuracy checks and the DDP-vs-1-GPU loss comparison: experiments/13_panoroma_long/PROFILE.md ("4 x H100").
+- `--decoder-dtype bfloat16` (2026-09-29; default float16 = the package's autocast and every earlier run): the
+  Sat-RoMa decoder's autocast dtype (`bevloc.model.speed.set_decoder_dtype`). Training has no GradScaler, so the float16
+  decoder's backward underflows: its step-1 gradient is 0.53 (rel. L2) from the float32-decoder gradient with 16 % of
+  the signs flipped; bfloat16 is 7e-3 away at the same speed (88 vs 92 samples/s) and memory. Old checkpoints evaluate
+  the same with any decoder dtype. The evaluators take the same flag (default float16). PROFILE.md "Decoder precision".
 
 | 4 x H100, global 32 | Samples/s | 100 epochs coarse | fine |
 |---|---|---|---|
 | float32 | 29.6 | ~41 h | ~41 h |
 | `--tf32` | 45.8 | ~27 h | ~27 h |
-| `--tf32 --encoder-dtype bfloat16 --compile encoder` (recommended) | 92.2 (fine 86.7) | ~14 h | ~15 h |
+| `--tf32 --encoder-dtype bfloat16 --compile encoder` | 92.2 (fine 86.7) | ~14 h | ~15 h |
+| `--tf32 --encoder-dtype bfloat16 --decoder-dtype bfloat16 --compile encoder` (recommended) | 88.1 (fine 84.6) | ~14.5 h | ~15 h |
 
 PanoRoMa 100-epoch runs (recommended setting; the fine run starts when the coarse job exits 0):
 
@@ -177,18 +183,18 @@ PanoRoMa 100-epoch runs (recommended setting; the fine run starts when the coars
 make eagle-submit-ddp JOB=pano_coarse_e100 SBATCH_ARGS="--time=2-00:00:00" CMD="scripts/train_vigor.py \
   --config configs/vigor_cell0125.yaml --query erp_depth --head --pose-nll-weight 0.5 --split samearea \
   --val-frac 0.2 --val-samples 400 --batch 32 --epochs 100 --save-every-epochs 10 --resume auto \
-  --workers 8 --pin-memory --tf32 --encoder-dtype bfloat16 --compile encoder \
+  --workers 8 --pin-memory --tf32 --encoder-dtype bfloat16 --decoder-dtype bfloat16 --compile encoder \
   --tag samearea_4city_erp_depth_cell0125_e100 --out experiments/13_panoroma_long"
 make eagle-submit-ddp JOB=pano_fine_e100 SBATCH_ARGS="--time=2-00:00:00 --dependency=afterok:<coarse job id>" \
   CMD="scripts/train_vigor.py --config configs/vigor_cell00625_fine.yaml \
   --ckpt checkpoints/vigor_samearea_4city_erp_depth_cell0125_e100_last.pt --query erp_depth --head \
   --pose-nll-weight 0.5 --split samearea --val-frac 0.2 --val-samples 400 --batch 32 --epochs 100 \
-  --save-every-epochs 10 --resume auto --workers 8 --pin-memory --tf32 --encoder-dtype bfloat16 --compile encoder \
+  --save-every-epochs 10 --resume auto --workers 8 --pin-memory --tf32 --encoder-dtype bfloat16 --decoder-dtype bfloat16 --compile encoder \
   --tag samearea_4city_fine00625_erp_depth_e100 --out experiments/13_panoroma_long"
 ```
 
-Precision of the earlier runs instead: drop `--tf32 --encoder-dtype bfloat16 --compile encoder` (float32, ~41 h per
-run) or keep only `--tf32` (~27 h); use the default 7-day `--time` then. A segment that times out or crashes continues
+Precision of the earlier runs instead: drop `--tf32 --encoder-dtype bfloat16 --decoder-dtype bfloat16 --compile encoder`
+(float32 encoder, float16 decoder, ~41 h per run) or keep only `--tf32` (~27 h); use the default 7-day `--time` then. A segment that times out or crashes continues
 with the same command (`--resume auto`); resubmit it with the same GPU count.
 
 ## Older files

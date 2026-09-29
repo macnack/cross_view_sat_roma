@@ -1,0 +1,244 @@
+{
+  "ref": "experiments/13_panoroma_long/bf16/grad/g4_fp32.pt",
+  "meta_ref": {
+    "loss": 3.1361846923828125,
+    "ce": 7.842641843971631,
+    "n": 37224,
+    "bad": false,
+    "decoder_dtype": "float32",
+    "encoder_dtype": "float32",
+    "tf32": false,
+    "compile": "none",
+    "world_size": 4,
+    "batch": 32,
+    "n_tensors": 87,
+    "n_params": 68942401
+  },
+  "rows": {
+    "experiments/13_panoroma_long/bf16/grad/g4_fp32_again.pt": {
+      "rel_l2": 7.344674392396117e-06,
+      "sign_flip_pct": 1.4504861819361352e-05,
+      "zero_pct": 2.859943911730025,
+      "zero_pct_ref": 2.859943911730025,
+      "cosine": 0.9999999999754857,
+      "norm_ratio": 0.9999999785809413,
+      "n_entries": 68942401,
+      "n_tensors": 87,
+      "mismatched_keys": [],
+      "per_group_rel_l2": {
+        "query.head": 5.473333972221731e-06,
+        "decoder.embedding_decoder": 1.1395261639889791e-07,
+        "decoder.gps": 1.0847837918888913e-05,
+        "decoder.proj": 1.707938004043271e-05
+      },
+      "worst": [
+        [
+          2.1776350823776e-05,
+          "decoder.gps.16.pos_conv.weight"
+        ],
+        [
+          1.7397818753567656e-05,
+          "decoder.proj.16.0.weight"
+        ],
+        [
+          5.473342253448248e-06,
+          "query.head.up.weight"
+        ]
+      ],
+      "meta": {
+        "loss": 3.1361846923828125,
+        "ce": 7.842641843971631,
+        "n": 37224,
+        "bad": false,
+        "decoder_dtype": "float32",
+        "encoder_dtype": "float32",
+        "tf32": false,
+        "compile": "none",
+        "world_size": 4,
+        "batch": 32,
+        "n_tensors": 87,
+        "n_params": 68942401
+      }
+    },
+    "experiments/13_panoroma_long/bf16/grad/g4_fp16.pt": {
+      "rel_l2": 0.5339206010933142,
+      "sign_flip_pct": 16.434323196837894,
+      "zero_pct": 5.951621847344713,
+      "zero_pct_ref": 2.859943911730025,
+      "cosine": 0.8499720405189529,
+      "norm_ratio": 0.7632329030725169,
+      "n_entries": 68942401,
+      "n_tensors": 87,
+      "mismatched_keys": [],
+      "per_group_rel_l2": {
+        "query.head": 0.5493867387806721,
+        "decoder.embedding_decoder": 0.46002921067218105,
+        "decoder.gps": 0.24949684651752563,
+        "decoder.proj": 0.5752749825820321
+      },
+      "worst": [
+        [
+          1.6446619754984886,
+          "decoder.embedding_decoder.blocks.4.norm2.weight"
+        ],
+        [
+          1.603932878646859,
+          "decoder.embedding_decoder.blocks.2.norm1.weight"
+        ],
+        [
+          1.600274323206994,
+          "decoder.embedding_decoder.blocks.3.norm1.weight"
+        ]
+      ],
+      "meta": {
+        "loss": 3.1361377239227295,
+        "ce": 7.842589794218783,
+        "n": 37224,
+        "bad": false,
+        "decoder_dtype": "float16",
+        "encoder_dtype": "float32",
+        "tf32": false,
+        "compile": "none",
+        "world_size": 4,
+        "batch": 32,
+        "n_tensors": 87,
+        "n_params": 68942401
+      }
+    },
+    "experiments/13_panoroma_long/bf16/grad/g4_bf16.pt": {
+      "rel_l2": 0.007190471353740639,
+      "sign_flip_pct": 0.36682070298073893,
+      "zero_pct": 2.8759282694549615,
+      "zero_pct_ref": 2.859943911730025,
+      "cosine": 0.9999741845016284,
+      "norm_ratio": 1.0002434782916743,
+      "n_entries": 68942401,
+      "n_tensors": 87,
+      "mismatched_keys": [],
+      "per_group_rel_l2": {
+        "query.head": 0.007209798740309506,
+        "decoder.embedding_decoder": 0.006912909463205165,
+        "decoder.gps": 0.008302078738703386,
+        "decoder.proj": 0.0070372579246430955
+      },
+      "worst": [
+        [
+          0.019972433166092655,
+          "decoder.embedding_decoder.blocks.1.norm2.weight"
+        ],
+        [
+          0.014710870245792042,
+          "decoder.embedding_decoder.blocks.2.norm1.weight"
+        ],
+        [
+          0.013217592284781627,
+          "decoder.embedding_decoder.blocks.3.norm1.weight"
+        ]
+      ],
+      "meta": {
+        "loss": 3.135127067565918,
+        "ce": 7.84196771572104,
+        "n": 37224,
+        "bad": false,
+        "decoder_dtype": "bfloat16",
+        "encoder_dtype": "float32",
+        "tf32": false,
+        "compile": "none",
+        "world_size": 4,
+        "batch": 32,
+        "n_tensors": 87,
+        "n_params": 68942401
+      }
+    },
+    "experiments/13_panoroma_long/bf16/grad/g1_fp16.pt": {
+      "rel_l2": 0.5330779555690668,
+      "sign_flip_pct": 16.354019930347363,
+      "zero_pct": 5.880894690627326,
+      "zero_pct_ref": 2.859943911730025,
+      "cosine": 0.8505630999457444,
+      "norm_ratio": 0.7632149819909878,
+      "n_entries": 68942401,
+      "n_tensors": 87,
+      "mismatched_keys": [],
+      "per_group_rel_l2": {
+        "query.head": 0.5484985373623139,
+        "decoder.embedding_decoder": 0.459561492955038,
+        "decoder.gps": 0.24955252473704367,
+        "decoder.proj": 0.574170669618747
+      },
+      "worst": [
+        [
+          1.6452265425259642,
+          "decoder.embedding_decoder.blocks.4.norm2.weight"
+        ],
+        [
+          1.610047681968353,
+          "decoder.embedding_decoder.blocks.2.norm1.weight"
+        ],
+        [
+          1.5969632325496945,
+          "decoder.embedding_decoder.blocks.3.norm1.weight"
+        ]
+      ],
+      "meta": {
+        "loss": 12.140447616577148,
+        "ce": 7.842563152313232,
+        "n": 37224,
+        "bad": false,
+        "decoder_dtype": "float16",
+        "encoder_dtype": "float32",
+        "tf32": false,
+        "compile": "none",
+        "world_size": 1,
+        "batch": 32,
+        "n_tensors": 87,
+        "n_params": 68942401
+      }
+    },
+    "experiments/13_panoroma_long/bf16/grad/g1_bf16.pt": {
+      "rel_l2": 0.007257148511907278,
+      "sign_flip_pct": 0.35792051976837885,
+      "zero_pct": 2.860470438214068,
+      "zero_pct_ref": 2.859943911730025,
+      "cosine": 0.9999736860743957,
+      "norm_ratio": 1.0001711459261813,
+      "n_entries": 68942401,
+      "n_tensors": 87,
+      "mismatched_keys": [],
+      "per_group_rel_l2": {
+        "query.head": 0.007240739433717559,
+        "decoder.embedding_decoder": 0.007051652598433645,
+        "decoder.gps": 0.008372871627250597,
+        "decoder.proj": 0.007279919843230912
+      },
+      "worst": [
+        [
+          0.023169053658402484,
+          "decoder.embedding_decoder.blocks.1.norm2.weight"
+        ],
+        [
+          0.015755294109044686,
+          "decoder.embedding_decoder.blocks.2.norm1.weight"
+        ],
+        [
+          0.01474923914959115,
+          "decoder.embedding_decoder.blocks.3.norm1.weight"
+        ]
+      ],
+      "meta": {
+        "loss": 12.139179229736328,
+        "ce": 7.841854572296143,
+        "n": 37224,
+        "bad": false,
+        "decoder_dtype": "bfloat16",
+        "encoder_dtype": "float32",
+        "tf32": false,
+        "compile": "none",
+        "world_size": 1,
+        "batch": 32,
+        "n_tensors": 87,
+        "n_params": 68942401
+      }
+    }
+  }
+}

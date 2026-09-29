@@ -198,3 +198,93 @@ Per epoch: 42,080 samples / node rate + rank-0 validation of 400 frames (~15-35 
 | (1 GPU float32, the reviewed plan) | 7.8 /s -> ~150 h | ~150 h | ~12.5 days |
 
 Every 4-GPU setting fits one 7-day `proxima` segment per run; `--resume auto` stays in the commands for requeues.
+
+## Decoder precision: `--decoder-dtype bfloat16` (2026-09-29, branch `panoroma/bf16-decoder`)
+
+Mechanism: the Sat-RoMa package opens `torch.autocast(device, dtype=self.amp_dtype)` in `Decoder.forward` (proj),
+`TransformerDecoder.forward` (coarse classifier) and `ConvRefiner.forward` (refiner), and
+`sat_roma.utils.get_autocast_params` forces that autocast ON on any CUDA device (OFF on CPU) with `amp_dtype = float16`
+(`build_sat_roma`). `bevloc.model.speed.set_decoder_dtype` sets `amp_dtype` on those three modules: the package's
+own attribute, read at every forward (no forward replaced, nothing in third_party edited; an outer autocast of ours
+could not win, the package's inner context re-enables its dtype). `--decoder-dtype float16|bfloat16|float32` in
+`scripts/train_vigor.py` (train dict, config snapshot, resume counters; a resume with another dtype warns),
+`scripts/eval_vigor.py` and `scripts/eval_panoroma_poznan.py` (default float16 = every published row). A trained
+refiner's `RefinerTap(precision="float32")` still wins for the refiner and restores the decoder dtype on exit.
+Tools: `train_vigor.py --dump-grads PATH` (one step, the (DDP: summed) gradient of head + decoder) +
+`scripts/grad_compare.py`; `train_vigor.py --check-decoder` (validation with float16 vs `--decoder-dtype`).
+Raw: `bf16/grad/gradcmp_8858913.txt`, `bf16/grad/cmp_ref_*.json`, `bf16/loss/*.csv`, `bf16/check_decoder_8858915.jsonl`,
+`bf16/probe_speed_8858916.jsonl` (jobs 8858913-8858916).
+
+### Step-1 gradient vs a float32 decoder (job 8858913)
+
+Coarse config, erp_depth + head, global batch 32, VCE off, encoder float32, no TF32 (only the decoder dtype differs),
+same batch; relative L2 distance of the head + decoder gradient (68.9 M entries) to the float32-decoder gradient:
+
+| Step-1 gradient | rel. L2 vs fp32 decoder | sign differs | exact zeros | cosine | norm / fp32 norm |
+|---|---|---|---|---|---|
+| float32 decoder, 4 GPU again (noise floor) | 7.3e-6 | 0.0000 % | 2.86 % | 1.000000 | 1.0000 |
+| float32 decoder, 1 GPU vs 4 GPU | 1.3e-5 | 0.0001 % | 2.86 % | 1.000000 | 1.0000 |
+| **float16 decoder (every run so far), 1 GPU** | **0.533** | **16.4 %** | 5.88 % | 0.851 | 0.763 |
+| float16 decoder, 4 GPU | 0.534 | 16.4 % | 5.95 % | 0.850 | 0.763 |
+| **bfloat16 decoder, 1 GPU** | **7.3e-3** | **0.36 %** | 2.86 % | 0.99997 | 1.0002 |
+| bfloat16 decoder, 4 GPU | 7.2e-3 | 0.37 % | 2.88 % | 0.99997 | 1.0002 |
+
+Per group (1 GPU) rel. L2, float16 / bfloat16: head 0.55 / 7.2e-3, transformer 0.46 / 7.1e-3, GP 0.25 / 8.4e-3, proj
+0.57 / 7.3e-3. The float16 decoder loses a quarter of the gradient norm (3 % more entries are exactly zero: underflow)
+and 16 % of the signs; bfloat16 is 70x closer to float32 (its 8-bit mantissa rounding, no underflow). DDP vs 1 GPU
+with the same decoder dtype: bfloat16 1.4e-3 (0.08 % signs), float16 5.5e-3 (as in the review).
+
+### First 12 steps, same seed, global batch 32, VCE off (job 8858914, `bf16/loss/`)
+
+Training CE per step (`ce`, global batch). "fast" = `--tf32 --encoder-dtype bfloat16 --compile encoder` on 4 GPUs;
+the 1-GPU float16 column is the review's `ddp_cmp/review/train_rcmp0_single.csv` (plain float32 encoder):
+
+| Step | fast, fp32 decoder (reference) | **fast, bf16 decoder** | fast, fp16 decoder | 4 GPU bf16 (plain) | 1 GPU bf16 (plain) | 1 GPU fp16 (review) |
+|---|---|---|---|---|---|---|
+| 1 | 7.8441 | 7.8457 | 7.8485 | 7.8420 | 7.8419 | 7.8426 |
+| 2 | 7.0450 | 7.0461 | 6.9602 | 7.0456 | 7.0457 | 6.9614 |
+| 3 | 6.8412 | 6.8411 | 6.7840 | 6.8401 | 6.8399 | 6.7852 |
+| 4 | 6.6514 | 6.6523 | 6.6748 | 6.6547 | 6.6546 | 6.6759 |
+| 6 | 6.1074 | 6.1075 | 6.0098 | 6.1046 | 6.1045 | 6.0074 |
+| 8 | 6.2920 | 6.2933 | 6.2494 | 6.2944 | 6.2945 | 6.2538 |
+| 9 | 6.3372 | 6.3386 | 6.3458 | 6.3422 | 6.3425 | 6.3482 |
+| 11 | 6.1663 | 6.1665 | 6.2111 | 6.1686 | 6.1686 | 6.2129 |
+| 12 | 6.3064 | 6.3075 | 6.3228 | 6.3041 | 6.3042 | 6.3204 |
+| val @12 | 6.1528 | 6.1532 | 6.1724 | 6.1532 | 6.1532 | 6.1718 |
+
+- bf16 decoder tracks the fp32-decoder reference to <= 0.0016 CE over the 12 steps (validation 4e-4); the fp16
+  decoder departs by up to 0.10 (step 6) and ends 0.02 higher on validation: the underflowed gradient is a different
+  optimisation, not noise.
+- DDP vs 1 GPU still holds with bf16: 4 GPU vs 1 GPU <= 0.0003 CE, validation equal to 1e-4.
+
+### Existing (float16-trained) checkpoints evaluated with another decoder dtype (job 8858915)
+
+`--check-decoder`, 400 held-out validation frames (`--val-frac 0.2`), encoder float32, no TF32, fixed VCE draw:
+
+| Checkpoint | Decoder | CE | top-1 | top-5 | VCE pose (m) | heat-map argmax (m) |
+|---|---|---|---|---|---|---|
+| coarse `vigor_samearea_4city_erp_depth_cell0125_last` | float16 (trained) | 3.6867 | 11.99 % | 41.30 % | 3.651 | 4.124 |
+| | bfloat16 | 3.6885 | 12.02 % | 41.33 % | 3.654 | 4.152 |
+| | float32 | 3.6866 | 11.98 % | 41.27 % | 3.652 | 4.133 |
+| fine `vigor_samearea_4city_fine00625_erp_depth_last` | float16 (trained) | 4.0502 | 6.74 % | 28.17 % | 1.824 | 2.054 |
+| | bfloat16 | 4.0527 | 6.89 % | 28.28 % | 1.825 | 2.037 |
+| | float32 | 4.0501 | 6.69 % | 28.15 % | 1.825 | 2.055 |
+
+Evaluation dtype does not matter for the old checkpoints: VCE pose within 4 mm, CE within 0.003 (bf16 slightly higher,
+float32 = float16 to 1e-4), top-1 within 0.15 pp (fine, both directions). Published rows (float16) stay as they are;
+new checkpoints trained with bf16 record `decoder_dtype` in their train dict.
+
+### Throughput (job 8858916; 4 x H100, global 32, `--tf32 --encoder-dtype bfloat16 --compile encoder`)
+
+| Config | Decoder | Samples/s (node) | Step (s) | Peak reserved / GPU | GPU util |
+|---|---|---|---|---|---|
+| coarse `vigor_cell0125` | float16 | 91.6 | 0.349 | 14.9 GiB | 97 % |
+| | **bfloat16** | **88.1** | 0.363 | 14.8 GiB | 95 % |
+| fine `vigor_cell00625_fine` | float16 | 85.4 | 0.375 | 14.9 GiB | 96 % |
+| | **bfloat16** | **84.6** | 0.378 | 14.8 GiB | 94 % |
+
+Same within 1-4 % (per-phase breakdown equal to the ms: decoder forward 0.178 vs 0.177 s, backward 0.067 s); memory
+unchanged. 100 epochs at global 32: coarse ~8.0 min/epoch -> ~14.5 h, fine ~8.3 min/epoch -> ~15 h.
+
+Verdict: the bfloat16 decoder gives the float32 gradient (7e-3 vs 0.53 for float16) at float16 speed. Adopted for the
+100-epoch runs (`--decoder-dtype bfloat16`); the default stays float16 so old commands and evaluations are unchanged.
