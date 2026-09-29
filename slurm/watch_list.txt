@@ -126,3 +126,6 @@
 8813459 wb_calibcap_NY      ^(\[wayback\]|.*PASS|.*FAIL|.*offset|.*residual|.*capture|wrote |Traceback|.*Error|error:)
 8813460 wb_calibcap_Seattle ^(\[wayback\]|.*PASS|.*FAIL|.*offset|.*residual|.*capture|wrote |Traceback|.*Error|error:)
 8813461 wb_drycap_chi       ^(\[wayback\]|.*release|.*capture|.*tiles|.*requests|Traceback|.*Error|error:)
+# --- PanoRoMa 100 epochs, 4x H100, bf16 encoder+decoder, TF32, compiled encoder ---
+8859503 pano_coarse_e100 ^(train |DDP|resumed|step [0-9]* VAL|wrote|saved|Traceback|.*Error|error:|Killed|OOM|\[run\] exit)
+8859504 pano_fine_e100   ^(train |DDP|resumed|step [0-9]* VAL|wrote|saved|Traceback|.*Error|error:|Killed|OOM|\[run\] exit)
