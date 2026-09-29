@@ -135,6 +135,45 @@ Training CE per step (CSV `ce`, the global-batch value); VCE off (`--vce-weight 
 With VCE on (`cmp_*.csv`), step 1 CE is again identical (7.8426) and the VCE terms differ from step 1 (each rank draws
 its own VCE samples; rank 0 keeps the single-GPU seed).
 
+**Review 2026-09-29 (branch `review/panoroma-ddp`): the cause above was wrong, and the gradient is now the 1-GPU one.**
+Step-1 gradient dumps (head + decoder, same command as above with `--steps 1`, probe jobs 8858140 / 8858387, debug
+patch not committed; `ddp_cmp/review/gradcmp.txt`), relative L2 distance to the 1-GPU gradient:
+
+| Step-1 gradient | rel. L2 vs 1 GPU | entries with flipped sign |
+|---|---|---|
+| 1 GPU again | 4.2e-4 | 0.001 % |
+| 4 GPU, per-rank means averaged (implementer's version) | 0.43 | 10.3 % |
+| 4 GPU, global-count normalisation, n_r·W/N + mean (first review commit) | 0.42 | 10.2 % |
+| **4 GPU, each rank backpropagates its share n_r/N of the global loss, gradients summed (final)** | **5.5e-3** | **0.26 %** |
+| 1 GPU with the loss x 1024 before backward and the gradient / 1024 after (diagnostic) | 0.70 | 14.7 % |
+
+The token-count normalisation was a small part of the 0.42: the Sat-RoMa decoder runs under **float16 autocast on
+CUDA** (`sat_roma.utils.get_autocast_params` enables it on any CUDA device) and training has **no GradScaler**, so the
+backward flushes the tiny per-logit gradients ((p - y) / 37,000 tokens ~ 1e-8) to zero. A rank whose loss is its own
+mean backpropagates W = 4 times larger values and underflows less: a different (arguably better) gradient, but not the
+1-GPU one. With the share n_r / N the float16 backward sees exactly the single-GPU values, and the sum of the ranks'
+gradients matches the 1-GPU gradient to float noise. 12 steps, same command as the table above (`ddp_cmp/review/`):
+
+| Step | 1 GPU | 4 GPU (final) | 4 GPU (final) TF32 + bf16 encoder + compile |
+|---|---|---|---|
+| 1 | 7.8426 | 7.8426 | 7.8435 |
+| 2 | 6.9614 | 6.9618 | 6.9618 |
+| 3 | 6.7852 | 6.7848 | 6.7837 |
+| 6 | 6.0074 | 6.0065 | 6.0087 |
+| 9 | 6.3482 | 6.3484 | 6.3472 |
+| 12 | 6.3204 | 6.3213 | 6.3245 |
+| val @12 | 6.1718 | 6.1717 | 6.1719 |
+
+4 GPU vs 1 GPU: at most 0.0009 CE over the 12 steps (was 0.08), validation equal to 1e-4. The 1 GPU x 1024 row says
+the single-GPU plan's own gradient loses most of its small components to float16 underflow (70 % of its L2 changes
+when nothing underflows). That is a property of the plan, not of DDP, and left as it is (the run of record = the
+single-GPU optimisation); a static loss scale / GradScaler or a bfloat16 decoder autocast is an open decision.
+
+Review smoke (job 8857863, `ddp_cmp/review/review_ddp_8857863_filtered.log`, `train_rsmoke.csv`): fast setting,
+`--train-limit 128 --epochs 2` then `--epochs 3` with `--resume auto` and `--val-samples 48` (validation batches of
+32 and 16: 6 compiled encoder graphs, within the raised recompile limit of 16, no error): resumed at step 8, wrote
+`_ep003.pt`, CSV 1-12 without duplicates.
+
 ### Smoke + resume under DDP (`ddp_check_smoke_8856566.log`, `ddp_fast_smoke_8856805.log`)
 
 `--train-limit 128 --batch 32` (4 steps per epoch), `--epochs 2 --save-every-epochs 1 --resume auto`, then the same
