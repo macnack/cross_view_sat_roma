@@ -264,18 +264,22 @@ def main():
     def to_dev(b):
         return {kk: (x.to(dev, non_blocking=a.pin_memory) if torch.is_tensor(x) else x) for kk, x in b.items()}
 
-    def train_step(batch):
-        """One optimizer step; returns (loss, stats, bad) as the main loop needs them."""
+    def train_step(batch, tick=lambda name: None):
+        """One optimizer step; returns (loss, stats, bad, g_ok) as the main loop needs them. tick(name) is called
+        after the forward, backward and optimizer phases (the --profile breakdown synchronises there)."""
         opt.zero_grad(set_to_none=True)
         loss, st = step(query, matcher, batch, cfg, L.min_patch_valid, a.local_radius,
                         a.neighbour_radius, a.neighbour_weight, **step_kw)
         bad = not bool(torch.isfinite(loss.detach()))
+        tick("forward")
         g_ok = True
         if not bad:
             loss.backward()
+            tick("backward")
             if ref_params:
                 _, g_ok = clip_refiner_grads(ref_params, grad_clip)
             opt.step()
+            tick("optimizer")
         return loss, st, bad, g_ok
 
     if a.profile:
@@ -435,19 +439,36 @@ def run_profile(a, tr, tr_loader, sampler, dev, to_dev, train_step, matcher=None
                              peak_reserved_gib=torch.cuda.max_memory_reserved() / 1024 ** 3, **base))
         sys.exit(3)
     gu.__exit__(None, None, None)
-    enc_s = None
-    if matcher is not None and a.profile:          # share of the step spent in the frozen encoder (no grad)
-        with torch.no_grad():
-            ts = []
-            for _ in range(3):
+    if matcher is not None and a.profile:
+        # breakdown on the last batch, 3 repeats, medians: frozen encoder (no grad) on the reference and on the
+        # panorama separately, then the full step split at synchronised forward / backward / optimizer boundaries
+        # (forward includes both encoder passes; decoder forward = forward - encoder)
+        rows = []
+        for _ in range(3):
+            r = {}
+            with torch.no_grad():
                 sync()
                 t = time.perf_counter()
                 matcher.reference_features(batch["ref"])
+                sync()
+                r["enc_ref"] = time.perf_counter() - t
+                t = time.perf_counter()
                 matcher.model.encoder(batch["erp"][:, 0])
                 sync()
-                ts.append(time.perf_counter() - t)
-        enc_s = float(np.median(ts))
-        base.update(encoder_s=enc_s, tf32=a.tf32)
+                r["enc_pano"] = time.perf_counter() - t
+            last = [time.perf_counter()]
+
+            def tick(name, r=r, last=last):
+                sync()
+                now = time.perf_counter()
+                r[name] = now - last[0]
+                last[0] = now
+            train_step(batch, tick)
+            rows.append(r)
+        bd = {k: float(np.median([r.get(k, float("nan")) for r in rows])) for k in rows[0]}
+        bd["decoder_fwd_etc"] = bd["forward"] - bd["enc_ref"] - bd["enc_pano"]
+        base.update(breakdown_s=bd, tf32=a.tf32,
+                    shapes=dict(ref=list(batch["ref"].shape), erp=list(batch["erp"].shape)))
     R.print_profile(R.profile_summary(
         a.batch, t_data, t_h2d, t_comp, torch.cuda.max_memory_allocated() if cuda else 0,
         torch.cuda.max_memory_reserved() if cuda else 0, total, util=gu.mean(), extra=dict(oom=False, **base)))
