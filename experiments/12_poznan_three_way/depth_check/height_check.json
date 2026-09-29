@@ -1,0 +1,1826 @@
+{
+  "summary": {
+    "manifest": "experiments/06_fg2_bevsplat/manifest.json",
+    "n_panoramas": 200,
+    "n_with_depth": 200,
+    "n_road_only": 200,
+    "band_deg": [
+      -20.0,
+      -8.0
+    ],
+    "azimuth_deg": 30.0,
+    "height_median_m": 1.052837700276402,
+    "height_p10_m": 0.9037490832158339,
+    "height_p90_m": 1.333036229686536,
+    "loc2_flat_proxy_m": 1.65,
+    "ipm_height_m": 1.7,
+    "depth_size": [
+      2048,
+      1024
+    ],
+    "model": "unik3d-vitl",
+    "resolution_level": 9
+  },
+  "frames": [
+    {
+      "frame_id": "2095057974553082",
+      "n_px": 3547,
+      "road_only": true,
+      "height_median_m": 2.2963012156466793,
+      "height_p25_m": 2.267468945963808,
+      "height_p75_m": 2.30536622495604,
+      "depth_median_m": 8.776000022888184
+    },
+    {
+      "frame_id": "2134127433808624",
+      "n_px": 11627,
+      "road_only": true,
+      "height_median_m": 2.2716277424828277,
+      "height_p25_m": 2.2414152150842197,
+      "height_p75_m": 2.3015517122247937,
+      "depth_median_m": 21.45050048828125
+    },
+    {
+      "frame_id": "28398706986416513",
+      "n_px": 9462,
+      "road_only": true,
+      "height_median_m": 2.2276782070542858,
+      "height_p25_m": 2.2129354512343964,
+      "height_p75_m": 2.279487224476729,
+      "depth_median_m": 12.592000007629395
+    },
+    {
+      "frame_id": "1100804636233191",
+      "n_px": 8,
+      "road_only": true,
+      "height_median_m": 1.9684659134278872,
+      "height_p25_m": 1.9668817828728904,
+      "height_p75_m": 1.97022264893593,
+      "depth_median_m": 8.354999542236328
+    },
+    {
+      "frame_id": "1794136951725433",
+      "n_px": 2278,
+      "road_only": true,
+      "height_median_m": 2.0858978827150376,
+      "height_p25_m": 2.0763357050693982,
+      "height_p75_m": 2.094896345358923,
+      "depth_median_m": 10.204999923706055
+    },
+    {
+      "frame_id": "2250285992180932",
+      "n_px": 8695,
+      "road_only": true,
+      "height_median_m": 2.327469569773523,
+      "height_p25_m": 2.304478131257854,
+      "height_p75_m": 2.3513753550597025,
+      "depth_median_m": 10.072999954223633
+    },
+    {
+      "frame_id": "1113377307836084",
+      "n_px": 12308,
+      "road_only": true,
+      "height_median_m": 2.114308397624291,
+      "height_p25_m": 2.099519956890421,
+      "height_p75_m": 2.1296568675675798,
+      "depth_median_m": 11.427000045776367
+    },
+    {
+      "frame_id": "2163701757795311",
+      "n_px": 0,
+      "road_only": true,
+      "height_median_m": null,
+      "height_p25_m": null,
+      "height_p75_m": null,
+      "depth_median_m": 8.217000007629395
+    },
+    {
+      "frame_id": "1407730031543039",
+      "n_px": 2365,
+      "road_only": true,
+      "height_median_m": 1.841016007665905,
+      "height_p25_m": 1.7691135038045822,
+      "height_p75_m": 1.9780122277507313,
+      "depth_median_m": 9.534000396728516
+    },
+    {
+      "frame_id": "4644665985853547",
+      "n_px": 22328,
+      "road_only": true,
+      "height_median_m": 0.8310048210825979,
+      "height_p25_m": 0.4145994611995871,
+      "height_p75_m": 1.3075302286491026,
+      "depth_median_m": 3.193000078201294
+    },
+    {
+      "frame_id": "2298484727642838",
+      "n_px": 18040,
+      "road_only": true,
+      "height_median_m": 1.9460498680175227,
+      "height_p25_m": 1.9308151241879803,
+      "height_p75_m": 1.9546902854430652,
+      "depth_median_m": 9.005999565124512
+    },
+    {
+      "frame_id": "978411255289595",
+      "n_px": 896,
+      "road_only": true,
+      "height_median_m": 1.965562564863732,
+      "height_p25_m": 1.9297940982650457,
+      "height_p75_m": 2.038798907142635,
+      "depth_median_m": 8.873000144958496
+    },
+    {
+      "frame_id": "1394833675537922",
+      "n_px": 0,
+      "road_only": true,
+      "height_median_m": null,
+      "height_p25_m": null,
+      "height_p75_m": null,
+      "depth_median_m": 6.367000102996826
+    },
+    {
+      "frame_id": "1395652132772836",
+      "n_px": 19136,
+      "road_only": true,
+      "height_median_m": 0.9579335232900104,
+      "height_p25_m": 0.69375377887569,
+      "height_p75_m": 1.34059522935654,
+      "depth_median_m": 7.0960001945495605
+    },
+    {
+      "frame_id": "1400355921620343",
+      "n_px": 3929,
+      "road_only": true,
+      "height_median_m": 0.8179233941066839,
+      "height_p25_m": 0.41486423982941373,
+      "height_p75_m": 1.4578006060542037,
+      "depth_median_m": 8.434000015258789
+    },
+    {
+      "frame_id": "1659474219043827",
+      "n_px": 6282,
+      "road_only": true,
+      "height_median_m": 0.9054880168255335,
+      "height_p25_m": 0.4688227383296762,
+      "height_p75_m": 1.4863076405821247,
+      "depth_median_m": 9.095000267028809
+    },
+    {
+      "frame_id": "3757320467753222",
+      "n_px": 7200,
+      "road_only": true,
+      "height_median_m": 1.0749235908117936,
+      "height_p25_m": 0.3894794606276615,
+      "height_p75_m": 1.7109560476066004,
+      "depth_median_m": 6.650000095367432
+    },
+    {
+      "frame_id": "1084706981111921",
+      "n_px": 6426,
+      "road_only": true,
+      "height_median_m": 1.1221545862809594,
+      "height_p25_m": 0.5407806768909752,
+      "height_p75_m": 1.906644400015999,
+      "depth_median_m": 6.71999979019165
+    },
+    {
+      "frame_id": "1569936184813606",
+      "n_px": 8501,
+      "road_only": true,
+      "height_median_m": 1.0993959468701078,
+      "height_p25_m": 0.5834893877369522,
+      "height_p75_m": 1.8628021028124764,
+      "depth_median_m": 8.211000442504883
+    },
+    {
+      "frame_id": "1966035434037497",
+      "n_px": 17271,
+      "road_only": true,
+      "height_median_m": 1.0527303364580771,
+      "height_p25_m": 0.5610368392704017,
+      "height_p75_m": 1.741200558026778,
+      "depth_median_m": 7.7729997634887695
+    },
+    {
+      "frame_id": "1897080597943369",
+      "n_px": 20411,
+      "road_only": true,
+      "height_median_m": 1.0823829222831198,
+      "height_p25_m": 0.5485295265362953,
+      "height_p75_m": 1.7391048381280976,
+      "depth_median_m": 6.914000034332275
+    },
+    {
+      "frame_id": "962616489483305",
+      "n_px": 16771,
+      "road_only": true,
+      "height_median_m": 1.1209554451058859,
+      "height_p25_m": 0.562427286943556,
+      "height_p75_m": 1.8262227830672033,
+      "depth_median_m": 6.841000080108643
+    },
+    {
+      "frame_id": "2210288512880939",
+      "n_px": 16632,
+      "road_only": true,
+      "height_median_m": 1.0062660612877772,
+      "height_p25_m": 0.5164483582380982,
+      "height_p75_m": 1.54819654392639,
+      "depth_median_m": 6.1579999923706055
+    },
+    {
+      "frame_id": "1039518862467428",
+      "n_px": 45549,
+      "road_only": true,
+      "height_median_m": 1.0530212223564945,
+      "height_p25_m": 0.5182161703131583,
+      "height_p75_m": 1.5937355546434326,
+      "depth_median_m": 8.836999893188477
+    },
+    {
+      "frame_id": "1068673502542792",
+      "n_px": 2431,
+      "road_only": true,
+      "height_median_m": 0.9612324804225475,
+      "height_p25_m": 0.2833866091271934,
+      "height_p75_m": 1.6944044959980378,
+      "depth_median_m": 4.560999870300293
+    },
+    {
+      "frame_id": "1614796256716672",
+      "n_px": 20296,
+      "road_only": true,
+      "height_median_m": 1.077103804925374,
+      "height_p25_m": 0.546078269950306,
+      "height_p75_m": 1.6394986041238997,
+      "depth_median_m": 7.619999885559082
+    },
+    {
+      "frame_id": "1623097549539635",
+      "n_px": 18365,
+      "road_only": true,
+      "height_median_m": 1.1787188592585245,
+      "height_p25_m": 0.6077228445772216,
+      "height_p75_m": 1.824504965793013,
+      "depth_median_m": 7.6620001792907715
+    },
+    {
+      "frame_id": "1585086595814553",
+      "n_px": 20055,
+      "road_only": true,
+      "height_median_m": 1.1418718717383465,
+      "height_p25_m": 0.5881270019830349,
+      "height_p75_m": 1.7855410346461933,
+      "depth_median_m": 7.581999778747559
+    },
+    {
+      "frame_id": "1605463537903045",
+      "n_px": 14806,
+      "road_only": true,
+      "height_median_m": 1.1248986441744657,
+      "height_p25_m": 0.5815658787499499,
+      "height_p75_m": 1.8877041742378489,
+      "depth_median_m": 7.473999977111816
+    },
+    {
+      "frame_id": "3789502397873420",
+      "n_px": 9002,
+      "road_only": true,
+      "height_median_m": 1.114861644942963,
+      "height_p25_m": 0.5571060144871431,
+      "height_p75_m": 1.8398752008381205,
+      "depth_median_m": 6.7789998054504395
+    },
+    {
+      "frame_id": "1950003419008286",
+      "n_px": 54,
+      "road_only": true,
+      "height_median_m": 0.322503760660218,
+      "height_p25_m": 0.32085341157955166,
+      "height_p75_m": 2.2404305687862647,
+      "depth_median_m": 4.929999828338623
+    },
+    {
+      "frame_id": "1783034616269773",
+      "n_px": 6235,
+      "road_only": true,
+      "height_median_m": 1.0863042353279542,
+      "height_p25_m": 0.5813630816532231,
+      "height_p75_m": 1.776584316160272,
+      "depth_median_m": 4.952000141143799
+    },
+    {
+      "frame_id": "1751971182727263",
+      "n_px": 9,
+      "road_only": true,
+      "height_median_m": 1.7099961307523859,
+      "height_p25_m": 1.7088029189970295,
+      "height_p75_m": 1.7113425223666727,
+      "depth_median_m": 4.400000095367432
+    },
+    {
+      "frame_id": "1041946372000040",
+      "n_px": 0,
+      "road_only": true,
+      "height_median_m": null,
+      "height_p25_m": null,
+      "height_p75_m": null,
+      "depth_median_m": 5.323999881744385
+    },
+    {
+      "frame_id": "1058349307017059",
+      "n_px": 1036,
+      "road_only": true,
+      "height_median_m": 1.0504727631872832,
+      "height_p25_m": 0.5329061261212664,
+      "height_p75_m": 1.5277599249987623,
+      "depth_median_m": 5.656000137329102
+    },
+    {
+      "frame_id": "1588073185524588",
+      "n_px": 4602,
+      "road_only": true,
+      "height_median_m": 1.0960989046375704,
+      "height_p25_m": 0.5495267155149705,
+      "height_p75_m": 1.7797664416064842,
+      "depth_median_m": 5.914000034332275
+    },
+    {
+      "frame_id": "1098905325943467",
+      "n_px": 390,
+      "road_only": true,
+      "height_median_m": 0.9908061275120128,
+      "height_p25_m": 0.5411559609588554,
+      "height_p75_m": 1.4214502705557472,
+      "depth_median_m": 3.986999988555908
+    },
+    {
+      "frame_id": "3499536660219793",
+      "n_px": 4665,
+      "road_only": true,
+      "height_median_m": 0.99207276445218,
+      "height_p25_m": 0.5513788178227771,
+      "height_p75_m": 1.5055248460405262,
+      "depth_median_m": 3.9019999504089355
+    },
+    {
+      "frame_id": "2175866539657391",
+      "n_px": 21697,
+      "road_only": true,
+      "height_median_m": 1.0529450640947267,
+      "height_p25_m": 0.5297516029305719,
+      "height_p75_m": 1.7045660455052873,
+      "depth_median_m": 5.510000228881836
+    },
+    {
+      "frame_id": "1470108621835604",
+      "n_px": 0,
+      "road_only": true,
+      "height_median_m": null,
+      "height_p25_m": null,
+      "height_p75_m": null,
+      "depth_median_m": 4.794000148773193
+    },
+    {
+      "frame_id": "1261127602821029",
+      "n_px": 5940,
+      "road_only": true,
+      "height_median_m": 1.0097644301241706,
+      "height_p25_m": 0.5158835468830225,
+      "height_p75_m": 1.7042398742294609,
+      "depth_median_m": 6.209000110626221
+    },
+    {
+      "frame_id": "1810167326654101",
+      "n_px": 3173,
+      "road_only": true,
+      "height_median_m": 1.022006902554868,
+      "height_p25_m": 0.5161757717299291,
+      "height_p75_m": 1.7562542897218705,
+      "depth_median_m": 5.440999984741211
+    },
+    {
+      "frame_id": "28353982287585850",
+      "n_px": 12177,
+      "road_only": true,
+      "height_median_m": 0.9215436937893396,
+      "height_p25_m": 0.43937779690101036,
+      "height_p75_m": 1.4984431009029016,
+      "depth_median_m": 7.4029998779296875
+    },
+    {
+      "frame_id": "3724194881070199",
+      "n_px": 2866,
+      "road_only": true,
+      "height_median_m": 1.146865940263401,
+      "height_p25_m": 0.560154554191045,
+      "height_p75_m": 1.6609207485586404,
+      "depth_median_m": 8.659000396728516
+    },
+    {
+      "frame_id": "2127011918227183",
+      "n_px": 1314,
+      "road_only": true,
+      "height_median_m": 1.0396147441292019,
+      "height_p25_m": 0.3179418641110917,
+      "height_p75_m": 1.8752200420998717,
+      "depth_median_m": 5.369999885559082
+    },
+    {
+      "frame_id": "1050395951111401",
+      "n_px": 667,
+      "road_only": true,
+      "height_median_m": 0.9802386176861485,
+      "height_p25_m": 0.3007349883318935,
+      "height_p75_m": 1.7265808636746522,
+      "depth_median_m": 4.117000102996826
+    },
+    {
+      "frame_id": "1833929260931559",
+      "n_px": 45,
+      "road_only": true,
+      "height_median_m": 0.3014154066660815,
+      "height_p25_m": 0.3009182590406513,
+      "height_p75_m": 2.143931403962954,
+      "depth_median_m": 4.698999881744385
+    },
+    {
+      "frame_id": "1547432720042956",
+      "n_px": 515,
+      "road_only": true,
+      "height_median_m": 0.9403195117350062,
+      "height_p25_m": 0.29677862759716783,
+      "height_p75_m": 1.692957483869582,
+      "depth_median_m": 4.800000190734863
+    },
+    {
+      "frame_id": "948728088280240",
+      "n_px": 21139,
+      "road_only": true,
+      "height_median_m": 1.0733928306166416,
+      "height_p25_m": 0.5288305757518845,
+      "height_p75_m": 1.6376968089749675,
+      "depth_median_m": 4.249000072479248
+    },
+    {
+      "frame_id": "1085515110888108",
+      "n_px": 22807,
+      "road_only": true,
+      "height_median_m": 1.0644538249008073,
+      "height_p25_m": 0.5316057580776343,
+      "height_p75_m": 1.6524386693966107,
+      "depth_median_m": 7.172999858856201
+    },
+    {
+      "frame_id": "1414526570784660",
+      "n_px": 1733,
+      "road_only": true,
+      "height_median_m": 1.0362995112893942,
+      "height_p25_m": 0.541684567126426,
+      "height_p75_m": 1.806064589809278,
+      "depth_median_m": 6.676000118255615
+    },
+    {
+      "frame_id": "4655499598016038",
+      "n_px": 2644,
+      "road_only": true,
+      "height_median_m": 1.0214517360937678,
+      "height_p25_m": 0.410674913790799,
+      "height_p75_m": 1.7608228666925254,
+      "depth_median_m": 6.120999813079834
+    },
+    {
+      "frame_id": "3033300290207352",
+      "n_px": 259,
+      "road_only": true,
+      "height_median_m": 1.0029443847046162,
+      "height_p25_m": 0.3144418164606978,
+      "height_p75_m": 1.907720683547896,
+      "depth_median_m": 5.879000186920166
+    },
+    {
+      "frame_id": "1423796489689610",
+      "n_px": 3392,
+      "road_only": true,
+      "height_median_m": 0.9601265300891689,
+      "height_p25_m": 0.2768936335867105,
+      "height_p75_m": 1.6501721918217183,
+      "depth_median_m": 5.822000026702881
+    },
+    {
+      "frame_id": "2132600394311539",
+      "n_px": 5966,
+      "road_only": true,
+      "height_median_m": 1.0149245755834169,
+      "height_p25_m": 0.49339672812294716,
+      "height_p75_m": 1.7738356676493885,
+      "depth_median_m": 5.3460001945495605
+    },
+    {
+      "frame_id": "989523250818847",
+      "n_px": 6757,
+      "road_only": true,
+      "height_median_m": 0.9897748482100971,
+      "height_p25_m": 0.5166890773891977,
+      "height_p75_m": 1.6349652213121582,
+      "depth_median_m": 7.085999965667725
+    },
+    {
+      "frame_id": "1632250488424820",
+      "n_px": 0,
+      "road_only": true,
+      "height_median_m": null,
+      "height_p25_m": null,
+      "height_p75_m": null,
+      "depth_median_m": 6.521999835968018
+    },
+    {
+      "frame_id": "2077858049513350",
+      "n_px": 0,
+      "road_only": true,
+      "height_median_m": null,
+      "height_p25_m": null,
+      "height_p75_m": null,
+      "depth_median_m": 5.673999786376953
+    },
+    {
+      "frame_id": "1589393802867647",
+      "n_px": 261,
+      "road_only": true,
+      "height_median_m": 0.8306193840510517,
+      "height_p25_m": 0.2595001479262052,
+      "height_p75_m": 1.6695104401420438,
+      "depth_median_m": 3.947999954223633
+    },
+    {
+      "frame_id": "1390751626576697",
+      "n_px": 0,
+      "road_only": true,
+      "height_median_m": null,
+      "height_p25_m": null,
+      "height_p75_m": null,
+      "depth_median_m": 4.38100004196167
+    },
+    {
+      "frame_id": "1779130370087030",
+      "n_px": 1857,
+      "road_only": true,
+      "height_median_m": 1.0146368075457681,
+      "height_p25_m": 0.5123311700416971,
+      "height_p75_m": 1.6900248707949186,
+      "depth_median_m": 4.5279998779296875
+    },
+    {
+      "frame_id": "1081892811088637",
+      "n_px": 9933,
+      "road_only": true,
+      "height_median_m": 1.0930563124986217,
+      "height_p25_m": 0.5435764839360202,
+      "height_p75_m": 1.7115288927749304,
+      "depth_median_m": 5.432000160217285
+    },
+    {
+      "frame_id": "1571657080838112",
+      "n_px": 0,
+      "road_only": true,
+      "height_median_m": null,
+      "height_p25_m": null,
+      "height_p75_m": null,
+      "depth_median_m": 4.443999767303467
+    },
+    {
+      "frame_id": "952888117221424",
+      "n_px": 0,
+      "road_only": true,
+      "height_median_m": null,
+      "height_p25_m": null,
+      "height_p75_m": null,
+      "depth_median_m": 3.5490000247955322
+    },
+    {
+      "frame_id": "1088755186866756",
+      "n_px": 1851,
+      "road_only": true,
+      "height_median_m": 1.0890531234582193,
+      "height_p25_m": 0.5655885531771102,
+      "height_p75_m": 1.8973861086417718,
+      "depth_median_m": 4.138000011444092
+    },
+    {
+      "frame_id": "1666620238369939",
+      "n_px": 1420,
+      "road_only": true,
+      "height_median_m": 1.0749496352950163,
+      "height_p25_m": 0.4561767728061003,
+      "height_p75_m": 1.5911374486473098,
+      "depth_median_m": 5.7820000648498535
+    },
+    {
+      "frame_id": "1762029464919045",
+      "n_px": 6853,
+      "road_only": true,
+      "height_median_m": 1.1688705989996346,
+      "height_p25_m": 0.5810061949021322,
+      "height_p75_m": 1.969263418862122,
+      "depth_median_m": 5.769999980926514
+    },
+    {
+      "frame_id": "1132839019071351",
+      "n_px": 2047,
+      "road_only": true,
+      "height_median_m": 1.1723230917105885,
+      "height_p25_m": 0.5677547261496103,
+      "height_p75_m": 1.9064459045839812,
+      "depth_median_m": 6.5370001792907715
+    },
+    {
+      "frame_id": "1796949328283937",
+      "n_px": 6551,
+      "road_only": true,
+      "height_median_m": 1.1285967802562946,
+      "height_p25_m": 0.5888447487877484,
+      "height_p75_m": 1.7003106591969361,
+      "depth_median_m": 6.861000061035156
+    },
+    {
+      "frame_id": "1457053619817270",
+      "n_px": 11155,
+      "road_only": true,
+      "height_median_m": 1.0268420859100549,
+      "height_p25_m": 0.5268200539298925,
+      "height_p75_m": 1.6427338337188533,
+      "depth_median_m": 4.921999931335449
+    },
+    {
+      "frame_id": "1837757387401780",
+      "n_px": 2300,
+      "road_only": true,
+      "height_median_m": 1.0457476903984468,
+      "height_p25_m": 0.5395302863677194,
+      "height_p75_m": 1.7524554092939753,
+      "depth_median_m": 5.235000133514404
+    },
+    {
+      "frame_id": "910305541902539",
+      "n_px": 116,
+      "road_only": true,
+      "height_median_m": 0.5112970430497772,
+      "height_p25_m": 0.28249476967281745,
+      "height_p75_m": 2.0207561260087514,
+      "depth_median_m": 3.4619998931884766
+    },
+    {
+      "frame_id": "943623705468611",
+      "n_px": 15451,
+      "road_only": true,
+      "height_median_m": 1.0827992871108274,
+      "height_p25_m": 0.5505612800742168,
+      "height_p75_m": 1.7469710798299714,
+      "depth_median_m": 6.827000141143799
+    },
+    {
+      "frame_id": "29302096676059304",
+      "n_px": 2130,
+      "road_only": true,
+      "height_median_m": 1.340532952075923,
+      "height_p25_m": 0.616074496809529,
+      "height_p75_m": 1.8256823841503675,
+      "depth_median_m": 7.197000026702881
+    },
+    {
+      "frame_id": "945959455229054",
+      "n_px": 3093,
+      "road_only": true,
+      "height_median_m": 1.3286533019809827,
+      "height_p25_m": 0.8459783018062235,
+      "height_p75_m": 1.8014221112003552,
+      "depth_median_m": 8.15999984741211
+    },
+    {
+      "frame_id": "1673666160842107",
+      "n_px": 209,
+      "road_only": true,
+      "height_median_m": 1.4781786522392164,
+      "height_p25_m": 0.8997671001394323,
+      "height_p75_m": 1.9803759144371273,
+      "depth_median_m": 8.612000465393066
+    },
+    {
+      "frame_id": "1090951123865054",
+      "n_px": 1166,
+      "road_only": true,
+      "height_median_m": 1.3398987976649064,
+      "height_p25_m": 0.8627978643844698,
+      "height_p75_m": 1.835924018709138,
+      "depth_median_m": 7.283999919891357
+    },
+    {
+      "frame_id": "2599151813871531",
+      "n_px": 4639,
+      "road_only": true,
+      "height_median_m": 0.9767667582079891,
+      "height_p25_m": 0.3041104666315434,
+      "height_p75_m": 1.7348259105675758,
+      "depth_median_m": 9.135000228881836
+    },
+    {
+      "frame_id": "1597452008592561",
+      "n_px": 9412,
+      "road_only": true,
+      "height_median_m": 1.000815688151142,
+      "height_p25_m": 0.5078501374291252,
+      "height_p75_m": 1.6337429538145303,
+      "depth_median_m": 7.056000232696533
+    },
+    {
+      "frame_id": "1591043065903450",
+      "n_px": 48,
+      "road_only": true,
+      "height_median_m": 0.7869638070318853,
+      "height_p25_m": 0.7830908120145099,
+      "height_p75_m": 1.2970506206153103,
+      "depth_median_m": 8.95300006866455
+    },
+    {
+      "frame_id": "1112966985014802",
+      "n_px": 428,
+      "road_only": true,
+      "height_median_m": 0.5068126172867908,
+      "height_p25_m": 0.2803842915847322,
+      "height_p75_m": 1.7990364932838856,
+      "depth_median_m": 7.381999969482422
+    },
+    {
+      "frame_id": "2366348720838280",
+      "n_px": 312,
+      "road_only": true,
+      "height_median_m": 0.2948971094971412,
+      "height_p25_m": 0.2918030126881113,
+      "height_p75_m": 2.086801074218725,
+      "depth_median_m": 8.517999649047852
+    },
+    {
+      "frame_id": "1572977703746490",
+      "n_px": 0,
+      "road_only": true,
+      "height_median_m": null,
+      "height_p25_m": null,
+      "height_p75_m": null,
+      "depth_median_m": 6.189000129699707
+    },
+    {
+      "frame_id": "1579563780527774",
+      "n_px": 2021,
+      "road_only": true,
+      "height_median_m": 1.6151847883399681,
+      "height_p25_m": 0.2551729550338764,
+      "height_p75_m": 1.8634163750534833,
+      "depth_median_m": 8.864999771118164
+    },
+    {
+      "frame_id": "1077445214894446",
+      "n_px": 4773,
+      "road_only": true,
+      "height_median_m": 1.0870511482283585,
+      "height_p25_m": 0.551029008740369,
+      "height_p75_m": 1.852320508020008,
+      "depth_median_m": 6.203999996185303
+    },
+    {
+      "frame_id": "1714471442944128",
+      "n_px": 35327,
+      "road_only": true,
+      "height_median_m": 1.106312828692519,
+      "height_p25_m": 0.5472010294705597,
+      "height_p75_m": 1.722068722051246,
+      "depth_median_m": 10.213500022888184
+    },
+    {
+      "frame_id": "1347449930528506",
+      "n_px": 14618,
+      "road_only": true,
+      "height_median_m": 1.33491462727463,
+      "height_p25_m": 0.5794737707225314,
+      "height_p75_m": 1.892416950005709,
+      "depth_median_m": 8.62399959564209
+    },
+    {
+      "frame_id": "1413652087402340",
+      "n_px": 8776,
+      "road_only": true,
+      "height_median_m": 1.4005492224394576,
+      "height_p25_m": 0.8275191850871789,
+      "height_p75_m": 1.988668439717021,
+      "depth_median_m": 4.736999988555908
+    },
+    {
+      "frame_id": "921953573931750",
+      "n_px": 5939,
+      "road_only": true,
+      "height_median_m": 1.2647524918034325,
+      "height_p25_m": 0.5152303967349017,
+      "height_p75_m": 1.964165506055664,
+      "depth_median_m": 4.906000137329102
+    },
+    {
+      "frame_id": "1403478994512518",
+      "n_px": 0,
+      "road_only": true,
+      "height_median_m": null,
+      "height_p25_m": null,
+      "height_p75_m": null,
+      "depth_median_m": 3.555000066757202
+    },
+    {
+      "frame_id": "1794731371773449",
+      "n_px": 102,
+      "road_only": true,
+      "height_median_m": 0.5172677889640814,
+      "height_p25_m": 0.2884632325963465,
+      "height_p75_m": 1.8458396413577642,
+      "depth_median_m": 2.7690000534057617
+    },
+    {
+      "frame_id": "3059374137740657",
+      "n_px": 0,
+      "road_only": true,
+      "height_median_m": null,
+      "height_p25_m": null,
+      "height_p75_m": null,
+      "depth_median_m": 3.821000099182129
+    },
+    {
+      "frame_id": "1613002776844852",
+      "n_px": 4344,
+      "road_only": true,
+      "height_median_m": 1.1816296975688285,
+      "height_p25_m": 0.499829040174287,
+      "height_p75_m": 2.005434795253317,
+      "depth_median_m": 8.628000259399414
+    },
+    {
+      "frame_id": "981836188268787",
+      "n_px": 4311,
+      "road_only": true,
+      "height_median_m": 1.1527457888512895,
+      "height_p25_m": 0.5103747744133855,
+      "height_p75_m": 1.8752102537409394,
+      "depth_median_m": 6.888000011444092
+    },
+    {
+      "frame_id": "1093658489977921",
+      "n_px": 3732,
+      "road_only": true,
+      "height_median_m": 1.138211208719881,
+      "height_p25_m": 0.4998315667804498,
+      "height_p75_m": 1.8049060977846214,
+      "depth_median_m": 5.215000152587891
+    },
+    {
+      "frame_id": "1619687222851775",
+      "n_px": 8394,
+      "road_only": true,
+      "height_median_m": 1.1004627475425344,
+      "height_p25_m": 0.4679055959853693,
+      "height_p75_m": 1.8127158421243474,
+      "depth_median_m": 5.330999851226807
+    },
+    {
+      "frame_id": "1391865393135267",
+      "n_px": 4773,
+      "road_only": true,
+      "height_median_m": 1.2369696303143012,
+      "height_p25_m": 0.6363777206281757,
+      "height_p75_m": 2.0743137184693157,
+      "depth_median_m": 5.1519999504089355
+    },
+    {
+      "frame_id": "1316675827064189",
+      "n_px": 50,
+      "road_only": true,
+      "height_median_m": 0.557399294122702,
+      "height_p25_m": 0.3085270347555475,
+      "height_p75_m": 2.2076739169331656,
+      "depth_median_m": 5.848999977111816
+    },
+    {
+      "frame_id": "28263711263284815",
+      "n_px": 32610,
+      "road_only": true,
+      "height_median_m": 1.0545701950227406,
+      "height_p25_m": 0.5284074927787334,
+      "height_p75_m": 1.617831687018577,
+      "depth_median_m": 8.967000007629395
+    },
+    {
+      "frame_id": "3489296377898570",
+      "n_px": 5783,
+      "road_only": true,
+      "height_median_m": 1.116370019935347,
+      "height_p25_m": 0.3271588713480209,
+      "height_p75_m": 1.6654713821710043,
+      "depth_median_m": 9.470999717712402
+    },
+    {
+      "frame_id": "1131727186478749",
+      "n_px": 1289,
+      "road_only": true,
+      "height_median_m": 1.3771715849731667,
+      "height_p25_m": 0.18467938267854814,
+      "height_p75_m": 1.5718340756001965,
+      "depth_median_m": 7.363999843597412
+    },
+    {
+      "frame_id": "1599642875223994",
+      "n_px": 0,
+      "road_only": true,
+      "height_median_m": null,
+      "height_p25_m": null,
+      "height_p75_m": null,
+      "depth_median_m": 8.451000213623047
+    },
+    {
+      "frame_id": "1073713638614184",
+      "n_px": 2007,
+      "road_only": true,
+      "height_median_m": 1.1059650343138847,
+      "height_p25_m": 0.34275035452188174,
+      "height_p75_m": 1.924159579875764,
+      "depth_median_m": 4.340000152587891
+    },
+    {
+      "frame_id": "1120440463974740",
+      "n_px": 73,
+      "road_only": true,
+      "height_median_m": 0.30012858088574607,
+      "height_p25_m": 0.2989136842737724,
+      "height_p75_m": 2.1484604097555526,
+      "depth_median_m": 5.546999931335449
+    },
+    {
+      "frame_id": "1396740292671110",
+      "n_px": 3155,
+      "road_only": true,
+      "height_median_m": 1.1972280864882445,
+      "height_p25_m": 0.3255192110538031,
+      "height_p75_m": 1.884663698131991,
+      "depth_median_m": 4.755000114440918
+    },
+    {
+      "frame_id": "1100290906086001",
+      "n_px": 41158,
+      "road_only": true,
+      "height_median_m": 1.1563212425377363,
+      "height_p25_m": 0.5672289742471193,
+      "height_p75_m": 1.7742969104808382,
+      "depth_median_m": 9.71500015258789
+    },
+    {
+      "frame_id": "1436906631667845",
+      "n_px": 17252,
+      "road_only": true,
+      "height_median_m": 1.148067233090039,
+      "height_p25_m": 0.5539786602748054,
+      "height_p75_m": 1.7264853800062159,
+      "depth_median_m": 6.359000205993652
+    },
+    {
+      "frame_id": "1609692443937868",
+      "n_px": 12334,
+      "road_only": true,
+      "height_median_m": 1.048905014382946,
+      "height_p25_m": 0.5407208032607067,
+      "height_p75_m": 1.7115304063929222,
+      "depth_median_m": 7.454999923706055
+    },
+    {
+      "frame_id": "2140812226473784",
+      "n_px": 17278,
+      "road_only": true,
+      "height_median_m": 1.0337821273270782,
+      "height_p25_m": 0.5354969041958866,
+      "height_p75_m": 1.5995229750845197,
+      "depth_median_m": 6.302000045776367
+    },
+    {
+      "frame_id": "1770134364187132",
+      "n_px": 23701,
+      "road_only": true,
+      "height_median_m": 1.1044717696095923,
+      "height_p25_m": 0.5508243672840373,
+      "height_p75_m": 1.7151910827420014,
+      "depth_median_m": 8.057000160217285
+    },
+    {
+      "frame_id": "3960386027436480",
+      "n_px": 2628,
+      "road_only": true,
+      "height_median_m": 1.0336129995227443,
+      "height_p25_m": 0.2951426279342362,
+      "height_p75_m": 1.83506022283374,
+      "depth_median_m": 7.3460001945495605
+    },
+    {
+      "frame_id": "1799341664552833",
+      "n_px": 4488,
+      "road_only": true,
+      "height_median_m": 1.1611296485731055,
+      "height_p25_m": 0.5016065795625209,
+      "height_p75_m": 1.8546792688490015,
+      "depth_median_m": 7.638000011444092
+    },
+    {
+      "frame_id": "1388036546256933",
+      "n_px": 3463,
+      "road_only": true,
+      "height_median_m": 1.0828600296611541,
+      "height_p25_m": 0.46530066751257015,
+      "height_p75_m": 1.6996108031930917,
+      "depth_median_m": 7.821000099182129
+    },
+    {
+      "frame_id": "1392556546281046",
+      "n_px": 210,
+      "road_only": true,
+      "height_median_m": 0.9789321166526046,
+      "height_p25_m": 0.3077560032534213,
+      "height_p75_m": 1.9687712576810177,
+      "depth_median_m": 6.425000190734863
+    },
+    {
+      "frame_id": "1400716081531820",
+      "n_px": 14,
+      "road_only": true,
+      "height_median_m": 1.2543162208614194,
+      "height_p25_m": 0.3077970295018991,
+      "height_p75_m": 2.2007282620166704,
+      "depth_median_m": 3.6679999828338623
+    },
+    {
+      "frame_id": "1892217645152325",
+      "n_px": 8238,
+      "road_only": true,
+      "height_median_m": 1.0615218924492744,
+      "height_p25_m": 0.5351890675465593,
+      "height_p75_m": 1.6547648452074497,
+      "depth_median_m": 7.171999931335449
+    },
+    {
+      "frame_id": "845278345272909",
+      "n_px": 7884,
+      "road_only": true,
+      "height_median_m": 1.080419705289516,
+      "height_p25_m": 0.5382586475104041,
+      "height_p75_m": 1.740413040996288,
+      "depth_median_m": 5.763000011444092
+    },
+    {
+      "frame_id": "2612096309208434",
+      "n_px": 18606,
+      "road_only": true,
+      "height_median_m": 1.0676503524297556,
+      "height_p25_m": 0.5571589501653781,
+      "height_p75_m": 1.63817306375499,
+      "depth_median_m": 8.3100004196167
+    },
+    {
+      "frame_id": "1645304160505212",
+      "n_px": 15979,
+      "road_only": true,
+      "height_median_m": 1.0202460302643108,
+      "height_p25_m": 0.5198287951947738,
+      "height_p75_m": 1.554416165785927,
+      "depth_median_m": 7.242000102996826
+    },
+    {
+      "frame_id": "1368742985247867",
+      "n_px": 44767,
+      "road_only": true,
+      "height_median_m": 1.1329072517086165,
+      "height_p25_m": 0.5603120078988215,
+      "height_p75_m": 1.7300555040564776,
+      "depth_median_m": 10.006999969482422
+    },
+    {
+      "frame_id": "1094966510141854",
+      "n_px": 18013,
+      "road_only": true,
+      "height_median_m": 1.0257303643920823,
+      "height_p25_m": 0.5287504201332686,
+      "height_p75_m": 1.566266137995332,
+      "depth_median_m": 6.482999801635742
+    },
+    {
+      "frame_id": "1576088213452988",
+      "n_px": 3369,
+      "road_only": true,
+      "height_median_m": 0.9951032496145097,
+      "height_p25_m": 0.5253603671952671,
+      "height_p75_m": 1.7347718626112258,
+      "depth_median_m": 7.001999855041504
+    },
+    {
+      "frame_id": "2326419104828349",
+      "n_px": 24588,
+      "road_only": true,
+      "height_median_m": 1.115674490198715,
+      "height_p25_m": 0.5284334983303443,
+      "height_p75_m": 1.7141989289042994,
+      "depth_median_m": 8.29699993133545
+    },
+    {
+      "frame_id": "1611154070401669",
+      "n_px": 1715,
+      "road_only": true,
+      "height_median_m": 0.9917974287994353,
+      "height_p25_m": 0.5077304239725583,
+      "height_p75_m": 1.6637324383963992,
+      "depth_median_m": 5.5929999351501465
+    },
+    {
+      "frame_id": "2044825309733264",
+      "n_px": 110,
+      "road_only": true,
+      "height_median_m": 0.8995357171091185,
+      "height_p25_m": 0.2865652710447003,
+      "height_p75_m": 1.824809046551807,
+      "depth_median_m": 5.215000152587891
+    },
+    {
+      "frame_id": "1353979803178810",
+      "n_px": 20581,
+      "road_only": true,
+      "height_median_m": 1.01440777292492,
+      "height_p25_m": 0.5011556674817126,
+      "height_p75_m": 1.5600526689937757,
+      "depth_median_m": 5.961999893188477
+    },
+    {
+      "frame_id": "1112299907902984",
+      "n_px": 774,
+      "road_only": true,
+      "height_median_m": 0.965554834775957,
+      "height_p25_m": 0.5076579711370609,
+      "height_p75_m": 1.6803078441810673,
+      "depth_median_m": 5.644000053405762
+    },
+    {
+      "frame_id": "1099992155940572",
+      "n_px": 381,
+      "road_only": true,
+      "height_median_m": 0.9302596758491238,
+      "height_p25_m": 0.2906749276777107,
+      "height_p75_m": 1.920167561639987,
+      "depth_median_m": 5.47599983215332
+    },
+    {
+      "frame_id": "2090069028562856",
+      "n_px": 6289,
+      "road_only": true,
+      "height_median_m": 1.0661668214345326,
+      "height_p25_m": 0.5427701314075766,
+      "height_p75_m": 1.773000994512828,
+      "depth_median_m": 8.572999954223633
+    },
+    {
+      "frame_id": "28071381109150220",
+      "n_px": 20238,
+      "road_only": true,
+      "height_median_m": 1.0730002909452399,
+      "height_p25_m": 0.5577125307456432,
+      "height_p75_m": 1.6533527188174009,
+      "depth_median_m": 6.179999828338623
+    },
+    {
+      "frame_id": "1120045207649869",
+      "n_px": 7371,
+      "road_only": true,
+      "height_median_m": 1.0690437952815863,
+      "height_p25_m": 0.5389150265382135,
+      "height_p75_m": 1.7531431293296174,
+      "depth_median_m": 8.038999557495117
+    },
+    {
+      "frame_id": "2176435617086201",
+      "n_px": 15385,
+      "road_only": true,
+      "height_median_m": 1.1082426674034351,
+      "height_p25_m": 0.5413419857078179,
+      "height_p75_m": 1.6387768004565026,
+      "depth_median_m": 7.870999813079834
+    },
+    {
+      "frame_id": "1476656934564153",
+      "n_px": 12513,
+      "road_only": true,
+      "height_median_m": 1.0775999932182092,
+      "height_p25_m": 0.5263172619433212,
+      "height_p75_m": 1.6880796282952828,
+      "depth_median_m": 6.889999866485596
+    },
+    {
+      "frame_id": "1555312799214362",
+      "n_px": 22914,
+      "road_only": true,
+      "height_median_m": 1.0342906514371075,
+      "height_p25_m": 0.4995097513528852,
+      "height_p75_m": 1.582993682860238,
+      "depth_median_m": 6.0970001220703125
+    },
+    {
+      "frame_id": "1626801685484071",
+      "n_px": 19085,
+      "road_only": true,
+      "height_median_m": 1.0276536528544624,
+      "height_p25_m": 0.49520998947436,
+      "height_p75_m": 1.5902984915519374,
+      "depth_median_m": 6.8379998207092285
+    },
+    {
+      "frame_id": "1613966733737828",
+      "n_px": 5590,
+      "road_only": true,
+      "height_median_m": 0.9269597347462651,
+      "height_p25_m": 0.4699109058212066,
+      "height_p75_m": 1.5610102794815295,
+      "depth_median_m": 5.002999782562256
+    },
+    {
+      "frame_id": "1597169132134158",
+      "n_px": 1240,
+      "road_only": true,
+      "height_median_m": 0.9514241938539196,
+      "height_p25_m": 0.2979758338277793,
+      "height_p75_m": 1.9168882810614363,
+      "depth_median_m": 5.718999862670898
+    },
+    {
+      "frame_id": "1402659124563537",
+      "n_px": 820,
+      "road_only": true,
+      "height_median_m": 0.979107967796059,
+      "height_p25_m": 0.3053643896751629,
+      "height_p75_m": 1.9577421213185136,
+      "depth_median_m": 5.918000221252441
+    },
+    {
+      "frame_id": "1791234278691271",
+      "n_px": 4905,
+      "road_only": true,
+      "height_median_m": 1.0105814096341568,
+      "height_p25_m": 0.5141071590966735,
+      "height_p75_m": 1.6795614657006124,
+      "depth_median_m": 6.670000076293945
+    },
+    {
+      "frame_id": "1405846657542303",
+      "n_px": 18366,
+      "road_only": true,
+      "height_median_m": 1.018499847850293,
+      "height_p25_m": 0.513553268232251,
+      "height_p75_m": 1.564883361239458,
+      "depth_median_m": 7.489999771118164
+    },
+    {
+      "frame_id": "1998492840812168",
+      "n_px": 24401,
+      "road_only": true,
+      "height_median_m": 0.9658334501511693,
+      "height_p25_m": 0.48988735971517855,
+      "height_p75_m": 1.4680831262692533,
+      "depth_median_m": 8.121999740600586
+    },
+    {
+      "frame_id": "1805068834011537",
+      "n_px": 28672,
+      "road_only": true,
+      "height_median_m": 1.0370896379151135,
+      "height_p25_m": 0.5244608569476147,
+      "height_p75_m": 1.5847936914655885,
+      "depth_median_m": 8.3100004196167
+    },
+    {
+      "frame_id": "1577342996632443",
+      "n_px": 29634,
+      "road_only": true,
+      "height_median_m": 1.0772268734519146,
+      "height_p25_m": 0.5342197611310582,
+      "height_p75_m": 1.6541231701447416,
+      "depth_median_m": 8.798999786376953
+    },
+    {
+      "frame_id": "1627218468984037",
+      "n_px": 45211,
+      "road_only": true,
+      "height_median_m": 1.1413298769397948,
+      "height_p25_m": 0.5608974493826342,
+      "height_p75_m": 1.7447465067960288,
+      "depth_median_m": 10.687000274658203
+    },
+    {
+      "frame_id": "2978326649172208",
+      "n_px": 21299,
+      "road_only": true,
+      "height_median_m": 1.0738010177677302,
+      "height_p25_m": 0.4958736913057814,
+      "height_p75_m": 1.6343806379225219,
+      "depth_median_m": 4.215000152587891
+    },
+    {
+      "frame_id": "3754424991393145",
+      "n_px": 22911,
+      "road_only": true,
+      "height_median_m": 1.0620636901752605,
+      "height_p25_m": 0.4792010498079975,
+      "height_p75_m": 1.5772193748137606,
+      "depth_median_m": 9.153499603271484
+    },
+    {
+      "frame_id": "1260741202845756",
+      "n_px": 17457,
+      "road_only": true,
+      "height_median_m": 0.9789800807425661,
+      "height_p25_m": 0.47437958168278044,
+      "height_p75_m": 1.5459402441631824,
+      "depth_median_m": 8.755000114440918
+    },
+    {
+      "frame_id": "1556200629076514",
+      "n_px": 21779,
+      "road_only": true,
+      "height_median_m": 1.0544937627181106,
+      "height_p25_m": 0.4922746549011575,
+      "height_p75_m": 1.598975712282006,
+      "depth_median_m": 8.769000053405762
+    },
+    {
+      "frame_id": "1058757126920400",
+      "n_px": 5765,
+      "road_only": true,
+      "height_median_m": 1.0129475227722828,
+      "height_p25_m": 0.40058828105284566,
+      "height_p75_m": 1.668245162280126,
+      "depth_median_m": 9.005000114440918
+    },
+    {
+      "frame_id": "1100362855725571",
+      "n_px": 29068,
+      "road_only": true,
+      "height_median_m": 1.1006649874062657,
+      "height_p25_m": 0.5376359693749743,
+      "height_p75_m": 1.6677769943507719,
+      "depth_median_m": 8.883999824523926
+    },
+    {
+      "frame_id": "1041328292272541",
+      "n_px": 3528,
+      "road_only": true,
+      "height_median_m": 1.0099990182053584,
+      "height_p25_m": 0.30511732279978715,
+      "height_p75_m": 1.6439242267660394,
+      "depth_median_m": 8.734000205993652
+    },
+    {
+      "frame_id": "1978181079545268",
+      "n_px": 40316,
+      "road_only": true,
+      "height_median_m": 1.100930215436912,
+      "height_p25_m": 0.539002408287542,
+      "height_p75_m": 1.66607539654651,
+      "depth_median_m": 8.98900032043457
+    },
+    {
+      "frame_id": "1624858092548608",
+      "n_px": 1170,
+      "road_only": true,
+      "height_median_m": 0.9852763103832165,
+      "height_p25_m": 0.3074321028249305,
+      "height_p75_m": 1.933932601764766,
+      "depth_median_m": 8.392000198364258
+    },
+    {
+      "frame_id": "1132747332749947",
+      "n_px": 20584,
+      "road_only": true,
+      "height_median_m": 1.059525003548871,
+      "height_p25_m": 0.5137145769186401,
+      "height_p75_m": 1.651161319775393,
+      "depth_median_m": 8.458999633789062
+    },
+    {
+      "frame_id": "1999264247459733",
+      "n_px": 569,
+      "road_only": true,
+      "height_median_m": 0.5406835668242238,
+      "height_p25_m": 0.2979454755338489,
+      "height_p75_m": 1.9238177806374144,
+      "depth_median_m": 8.208999633789062
+    },
+    {
+      "frame_id": "1069879799117962",
+      "n_px": 645,
+      "road_only": true,
+      "height_median_m": 0.9796463969220195,
+      "height_p25_m": 0.30879662784011397,
+      "height_p75_m": 1.9710461378194177,
+      "depth_median_m": 8.491999626159668
+    },
+    {
+      "frame_id": "946071411273849",
+      "n_px": 233,
+      "road_only": true,
+      "height_median_m": 0.5569870414250809,
+      "height_p25_m": 0.30653088528928946,
+      "height_p75_m": 2.179032185401978,
+      "depth_median_m": 7.921000003814697
+    },
+    {
+      "frame_id": "28630049443257593",
+      "n_px": 3563,
+      "road_only": true,
+      "height_median_m": 0.9372434854340331,
+      "height_p25_m": 0.37386531713062665,
+      "height_p75_m": 1.448964689660678,
+      "depth_median_m": 7.671999931335449
+    },
+    {
+      "frame_id": "2325916388183213",
+      "n_px": 3345,
+      "road_only": true,
+      "height_median_m": 0.9976984597079086,
+      "height_p25_m": 0.520823860485929,
+      "height_p75_m": 1.763149101660123,
+      "depth_median_m": 7.736999988555908
+    },
+    {
+      "frame_id": "1975241993146792",
+      "n_px": 16034,
+      "road_only": true,
+      "height_median_m": 1.0189063512901444,
+      "height_p25_m": 0.5333376861427227,
+      "height_p75_m": 1.640882636691744,
+      "depth_median_m": 8.067000389099121
+    },
+    {
+      "frame_id": "2266652857522078",
+      "n_px": 19586,
+      "road_only": true,
+      "height_median_m": 0.9674324340235054,
+      "height_p25_m": 0.48752433791626304,
+      "height_p75_m": 1.4629950321371163,
+      "depth_median_m": 7.802000045776367
+    },
+    {
+      "frame_id": "2664235027388592",
+      "n_px": 16519,
+      "road_only": true,
+      "height_median_m": 0.9935160719610137,
+      "height_p25_m": 0.5085943270516239,
+      "height_p75_m": 1.5662392809378052,
+      "depth_median_m": 9.547500610351562
+    },
+    {
+      "frame_id": "2298332014341910",
+      "n_px": 42971,
+      "road_only": true,
+      "height_median_m": 1.1592183186422382,
+      "height_p25_m": 0.5686468401192589,
+      "height_p75_m": 1.7919948264240317,
+      "depth_median_m": 10.619999885559082
+    },
+    {
+      "frame_id": "2664985677254720",
+      "n_px": 20353,
+      "road_only": true,
+      "height_median_m": 1.1394091895158094,
+      "height_p25_m": 0.5503952797456189,
+      "height_p75_m": 1.7582213502530324,
+      "depth_median_m": 7.288000106811523
+    },
+    {
+      "frame_id": "2190862265201212",
+      "n_px": 23920,
+      "road_only": true,
+      "height_median_m": 1.111420193043112,
+      "height_p25_m": 0.5516038641080078,
+      "height_p75_m": 1.7065523529901343,
+      "depth_median_m": 8.135000228881836
+    },
+    {
+      "frame_id": "1803778274142674",
+      "n_px": 14499,
+      "road_only": true,
+      "height_median_m": 1.081666056314452,
+      "height_p25_m": 0.5491908439544583,
+      "height_p75_m": 1.7561068099539976,
+      "depth_median_m": 7.678999900817871
+    },
+    {
+      "frame_id": "1595260398958253",
+      "n_px": 24894,
+      "road_only": true,
+      "height_median_m": 1.096601185538343,
+      "height_p25_m": 0.5702599635767254,
+      "height_p75_m": 1.696888299954994,
+      "depth_median_m": 7.151000022888184
+    },
+    {
+      "frame_id": "1618478246297464",
+      "n_px": 27687,
+      "road_only": true,
+      "height_median_m": 1.0933945797295985,
+      "height_p25_m": 0.5349974065290631,
+      "height_p75_m": 1.7206538276136576,
+      "depth_median_m": 6.860000133514404
+    },
+    {
+      "frame_id": "1411397654284692",
+      "n_px": 1016,
+      "road_only": true,
+      "height_median_m": 0.9689357464758289,
+      "height_p25_m": 0.5172442533875833,
+      "height_p75_m": 1.3598889316914908,
+      "depth_median_m": 3.757999897003174
+    },
+    {
+      "frame_id": "2199725277275110",
+      "n_px": 0,
+      "road_only": true,
+      "height_median_m": null,
+      "height_p25_m": null,
+      "height_p75_m": null,
+      "depth_median_m": 3.736999988555908
+    },
+    {
+      "frame_id": "1630029038733543",
+      "n_px": 0,
+      "road_only": true,
+      "height_median_m": null,
+      "height_p25_m": null,
+      "height_p75_m": null,
+      "depth_median_m": 3.6610000133514404
+    },
+    {
+      "frame_id": "1029541690071867",
+      "n_px": 1445,
+      "road_only": true,
+      "height_median_m": 1.0283510644899931,
+      "height_p25_m": 0.5382580562517378,
+      "height_p75_m": 1.767156062232184,
+      "depth_median_m": 4.0929999351501465
+    },
+    {
+      "frame_id": "1110169474745368",
+      "n_px": 7407,
+      "road_only": true,
+      "height_median_m": 1.1503676840028778,
+      "height_p25_m": 0.5421159633459163,
+      "height_p75_m": 1.7379768634561947,
+      "depth_median_m": 3.385999917984009
+    },
+    {
+      "frame_id": "2143531059567041",
+      "n_px": 0,
+      "road_only": true,
+      "height_median_m": null,
+      "height_p25_m": null,
+      "height_p75_m": null,
+      "depth_median_m": 6.290499687194824
+    },
+    {
+      "frame_id": "1885191899114432",
+      "n_px": 0,
+      "road_only": true,
+      "height_median_m": null,
+      "height_p25_m": null,
+      "height_p75_m": null,
+      "depth_median_m": 6.033999919891357
+    },
+    {
+      "frame_id": "1566349148627059",
+      "n_px": 0,
+      "road_only": true,
+      "height_median_m": null,
+      "height_p25_m": null,
+      "height_p75_m": null,
+      "depth_median_m": 5.991000175476074
+    },
+    {
+      "frame_id": "2343542236381893",
+      "n_px": 0,
+      "road_only": true,
+      "height_median_m": null,
+      "height_p25_m": null,
+      "height_p75_m": null,
+      "depth_median_m": 6.315000057220459
+    },
+    {
+      "frame_id": "1843956966766764",
+      "n_px": 3391,
+      "road_only": true,
+      "height_median_m": 0.9060088611037573,
+      "height_p25_m": 0.2776280392206666,
+      "height_p75_m": 1.6979609143770573,
+      "depth_median_m": 7.453999996185303
+    },
+    {
+      "frame_id": "1378668397810037",
+      "n_px": 0,
+      "road_only": true,
+      "height_median_m": null,
+      "height_p25_m": null,
+      "height_p75_m": null,
+      "depth_median_m": 6.4079999923706055
+    },
+    {
+      "frame_id": "1640881657746457",
+      "n_px": 0,
+      "road_only": true,
+      "height_median_m": null,
+      "height_p25_m": null,
+      "height_p75_m": null,
+      "depth_median_m": 5.36299991607666
+    },
+    {
+      "frame_id": "1329442135766852",
+      "n_px": 197,
+      "road_only": true,
+      "height_median_m": 0.9078594083931669,
+      "height_p25_m": 0.2843888412286434,
+      "height_p75_m": 1.8261355647198347,
+      "depth_median_m": 4.979000091552734
+    },
+    {
+      "frame_id": "1877539553208523",
+      "n_px": 3509,
+      "road_only": true,
+      "height_median_m": 0.9485448395639123,
+      "height_p25_m": 0.2769716901810599,
+      "height_p75_m": 1.7095198602161248,
+      "depth_median_m": 6.125999927520752
+    },
+    {
+      "frame_id": "971140639343305",
+      "n_px": 366,
+      "road_only": true,
+      "height_median_m": 0.8908653885289419,
+      "height_p25_m": 0.28331760447879306,
+      "height_p75_m": 1.801586438393204,
+      "depth_median_m": 5.355999946594238
+    },
+    {
+      "frame_id": "1426839858986128",
+      "n_px": 0,
+      "road_only": true,
+      "height_median_m": null,
+      "height_p25_m": null,
+      "height_p75_m": null,
+      "depth_median_m": 6.168000221252441
+    },
+    {
+      "frame_id": "1419645030041727",
+      "n_px": 0,
+      "road_only": true,
+      "height_median_m": null,
+      "height_p25_m": null,
+      "height_p75_m": null,
+      "depth_median_m": 5.39900016784668
+    },
+    {
+      "frame_id": "4510807879135648",
+      "n_px": 0,
+      "road_only": true,
+      "height_median_m": null,
+      "height_p25_m": null,
+      "height_p75_m": null,
+      "depth_median_m": 5.3420000076293945
+    },
+    {
+      "frame_id": "929538789876463",
+      "n_px": 34587,
+      "road_only": true,
+      "height_median_m": 1.0760821839713595,
+      "height_p25_m": 0.5388568874762243,
+      "height_p75_m": 1.6491054941181091,
+      "depth_median_m": 8.61299991607666
+    },
+    {
+      "frame_id": "1736493034133252",
+      "n_px": 12322,
+      "road_only": true,
+      "height_median_m": 0.9940344690750152,
+      "height_p25_m": 0.5155799063685284,
+      "height_p75_m": 1.6466022754326748,
+      "depth_median_m": 9.406999588012695
+    },
+    {
+      "frame_id": "2001244650439529",
+      "n_px": 4596,
+      "road_only": true,
+      "height_median_m": 1.0444928637826094,
+      "height_p25_m": 0.5213385348199308,
+      "height_p75_m": 1.753587547626379,
+      "depth_median_m": 7.993000030517578
+    },
+    {
+      "frame_id": "2042982259659935",
+      "n_px": 9346,
+      "road_only": true,
+      "height_median_m": 1.0455856044990999,
+      "height_p25_m": 0.5306640463246548,
+      "height_p75_m": 1.7359671054410901,
+      "depth_median_m": 9.01200008392334
+    },
+    {
+      "frame_id": "1414668144105202",
+      "n_px": 5334,
+      "road_only": true,
+      "height_median_m": 0.98452566830692,
+      "height_p25_m": 0.49786459797893545,
+      "height_p75_m": 1.6520079460575903,
+      "depth_median_m": 7.318999767303467
+    },
+    {
+      "frame_id": "1618985639622967",
+      "n_px": 867,
+      "road_only": true,
+      "height_median_m": 1.0130498748085242,
+      "height_p25_m": 0.335598532081678,
+      "height_p75_m": 1.827741738571965,
+      "depth_median_m": 4.96999979019165
+    },
+    {
+      "frame_id": "1474764354670842",
+      "n_px": 1352,
+      "road_only": true,
+      "height_median_m": 0.4621962176890462,
+      "height_p25_m": 0.20666102667414946,
+      "height_p75_m": 0.6471280570360032,
+      "depth_median_m": 6.672999858856201
+    },
+    {
+      "frame_id": "1068392369135122",
+      "n_px": 134,
+      "road_only": true,
+      "height_median_m": 1.010719008650594,
+      "height_p25_m": 0.2797227411515437,
+      "height_p75_m": 1.983235328946709,
+      "depth_median_m": 5.136000156402588
+    },
+    {
+      "frame_id": "1564945198650080",
+      "n_px": 2110,
+      "road_only": true,
+      "height_median_m": 0.9469885329149453,
+      "height_p25_m": 0.28690348464351684,
+      "height_p75_m": 1.7450019875553096,
+      "depth_median_m": 6.798999786376953
+    },
+    {
+      "frame_id": "4615440378688443",
+      "n_px": 2808,
+      "road_only": true,
+      "height_median_m": 1.0116937055873692,
+      "height_p25_m": 0.5114037155011016,
+      "height_p75_m": 1.687850975999969,
+      "depth_median_m": 5.236999988555908
+    },
+    {
+      "frame_id": "2475590072940447",
+      "n_px": 2221,
+      "road_only": true,
+      "height_median_m": 0.9030038259545341,
+      "height_p25_m": 0.2819238417642063,
+      "height_p75_m": 1.734150855022689,
+      "depth_median_m": 7.5320000648498535
+    },
+    {
+      "frame_id": "1396114019377954",
+      "n_px": 2178,
+      "road_only": true,
+      "height_median_m": 1.0158063663670225,
+      "height_p25_m": 0.5394464172588921,
+      "height_p75_m": 1.7410212312738964,
+      "depth_median_m": 5.458000183105469
+    },
+    {
+      "frame_id": "2297705431003261",
+      "n_px": 0,
+      "road_only": true,
+      "height_median_m": null,
+      "height_p25_m": null,
+      "height_p75_m": null,
+      "depth_median_m": 1.8339999914169312
+    },
+    {
+      "frame_id": "3578370962341082",
+      "n_px": 0,
+      "road_only": true,
+      "height_median_m": null,
+      "height_p25_m": null,
+      "height_p75_m": null,
+      "depth_median_m": 3.6089999675750732
+    }
+  ]
+}
