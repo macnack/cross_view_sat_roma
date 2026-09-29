@@ -41,10 +41,12 @@ def per_rank_batch(global_batch: int, world: int) -> int:
     return global_batch // world
 
 
-# the per-step statistics of train_lift_splat.step() that are logged; n-weighted means (like validate's avg), plain
-# means over the ranks that have a finite value, and sums
-STAT_WMEAN = ("ce", "acc", "cell_err", "pose_nll", "pose_err")
-STAT_MEAN = ("vce_m", "vce_pose_m", "fine_epe_px", "fine_epe_in_px")
+# the per-step statistics of train_lift_splat.step() that are logged, combined over the ranks as the single-GPU step
+# would have computed them on the global batch: the token-level means (CE, top-1, argmax cell error; `n` = tokens)
+# weighted by n, the per-sample means (pose NLL / error, VCE, fine EPE; equal sample counts per rank) as plain means
+# over the ranks with a finite value, the counts summed
+STAT_WMEAN = ("ce", "acc", "cell_err")
+STAT_MEAN = ("pose_nll", "pose_err", "vce_m", "vce_pose_m", "fine_epe_px", "fine_epe_in_px")
 STAT_SUM = ("n", "fine_skipped")
 
 
@@ -139,7 +141,7 @@ class Dist:
         Gradients become the mean over ranks (a parameter whose grad is None on every rank stays None, as it would
         on one GPU; one missing on some ranks only counts as zero there). Returns (bad_any, st_global): the step is
         skipped on EVERY rank when any rank's loss was non-finite, and st_global holds the logged statistics of the
-        global batch (n-weighted means of the heat-map terms, means of the per-batch metre terms, summed counts), so
+        global batch (n-weighted token means, plain means of the per-sample terms, summed counts; STAT_*), so
         the non-finite guard and the CSV see the same values on all ranks. World 1: returns the inputs unchanged."""
         if not self.on:
             return bool(bad), st
