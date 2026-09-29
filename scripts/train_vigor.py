@@ -33,6 +33,15 @@ refined warp / fine loss is non-finite trains the coarse terms only (counted), a
 gradient is non-finite does not update (counted), and more than cfg.train.refine_max_nonfinite such steps in a row
 stop the run with an error. A validation with any non-finite logged value is never saved as `_best.pt`;
 `_last_finite.pt` is the last checkpoint whose validation was fully finite.
+
+Long runs (2026-09-29, PanoRoMa 100 epochs; bevloc.model.trainrun): --epochs E sets steps = E x (len(train) // batch)
+and validates every epoch; --save-every-epochs K adds `vigor_<tag>_ep{e:03d}.pt` (same lean layout as `_best.pt`:
+the query module = projection head, and the decoder; the frozen DINOv3 encoder lives in the matcher and is never
+saved - asserted at start-up). After every validation `vigor_<tag>_resume.pt` (weights + AdamW state + RNG +
+counters, written atomically) is refreshed; --resume auto continues from it (same sample order: the training order
+is a permutation seeded by (seed, epoch)), so SLURM requeues and 7-day segments chained with afterany continue
+instead of restarting. --profile N times N steps (data wait / host-to-device / compute, peak memory, GPU util, a
+per-phase breakdown) and exits: `make eagle-probe`. --pin-memory, --prefetch, --tf32 (default off) tune throughput.
 """
 from __future__ import annotations
 
@@ -358,7 +367,7 @@ def main():
                   + f"  ({time.time() - t0:.0f}s, epoch {k / spe:.2f})", flush=True)
         if k % a.val_every == 0 or k == a.steps:
             v = validate(query, matcher, va_loader, cfg, L.min_patch_valid, a.local_radius, device=dev,
-                         max_batches=max(1, a.val_samples // a.batch), certainty_weight=0.01,
+                         max_batches=max(1, -(-a.val_samples // a.batch)), certainty_weight=0.01,
                          pose_nll_weight=a.pose_nll_weight, vce_weight=vce_w, vce_opts=vce_opts,
                          refine_weight=refine_w, refine_opts=refine_opts)
             with log.open("a") as f:
