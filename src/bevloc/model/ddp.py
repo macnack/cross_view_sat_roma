@@ -6,7 +6,8 @@ torchrun (no WORLD_SIZE in the environment) `Dist` is the single-process no-op a
 --batch is ALWAYS the global (optimizer) batch B; each of the W ranks draws b = B / W samples per step, so the
 optimisation (steps per epoch = len(train) // B, lr, epochs) is that of a single-GPU run at batch B. The loss terms
 are means over per-rank counts (matchable tokens, samples); `Dist.global_loss` reweights each rank's terms by
-n_rank * W / n_global before backward, so the rank-mean gradient equals the single-GPU gradient of the union batch
+n_rank / n_global before backward (each rank backpropagates its share of the global loss; the gradients are
+summed), so the gradient equals the single-GPU gradient of the union batch
 (tests/test_ddp.py: the real training step, uneven token counts, 2 gloo processes vs one process, ~5e-6 relative).
 
 Why the gradient average is done here and not by torch.nn.parallel.DistributedDataParallel: DDP only reduces
@@ -148,15 +149,21 @@ class Dist:
     # ---- the training step ---------------------------------------------------------------------------------------
 
     def global_loss(self, loss, parts):
-        """The loss each rank backpropagates so that the MEAN of the ranks' gradients (reduce_step) equals the
-        gradient of the single-GPU loss on the union batch.
+        """Rank r's SHARE of the single-GPU loss on the union batch: the ranks' shares sum to that loss, so the SUM
+        of the ranks' gradients (reduce_step(average=False)) is the single-GPU gradient.
 
         Every term of step() is a mean over a per-rank count n_r (matchable tokens for CE / hinge, all tokens for
         the certainty BCE, samples with the GT inside the crop for the pose NLL, samples kept by the VCE, tokens of
         the fine loss); the single-GPU term on the union is sum_r(n_r * mean_r) / N with N = sum_r n_r. One small
-        all-reduce of the counts before backward, then rank r's term is scaled by n_r * W / N (0 when N = 0), so
-        (1 / W) sum_r grad(rank r's loss) = grad(single-GPU loss). A fine loss skipped (non-finite) on any rank is
-        dropped on every rank, as the single-GPU step drops it for the whole batch. World 1: `loss` unchanged."""
+        all-reduce of the counts before backward, then rank r's term is scaled by n_r / N (0 when N = 0). A fine loss
+        skipped (non-finite) on any rank is dropped on every rank, as the single-GPU step drops it for the batch.
+
+        Why the share (and a sum) rather than n_r * W / N (and a mean), which is the same in exact arithmetic: the
+        Sat-RoMa decoder runs under float16 autocast on CUDA and training has no GradScaler, so its backward flushes
+        small gradients to zero. With the share, every per-token upstream gradient (e.g. (p - y) / N of the CE) is
+        the value the single-GPU step backpropagates, so the float16 rounding / underflow is the single-GPU one, and
+        the gradient matches it to float noise (Eagle, 2026-09-29: rel. L2 1e-3 vs 0.42 with the W-times larger
+        per-rank losses). World 1: `loss` unchanged."""
         if not self.on:
             return loss
         extra = set(parts) - set(PART_KEYS) - {"fine_skipped"}
@@ -172,15 +179,16 @@ class Dist:
             if k not in parts or (skip_fine and k in FINE_PARTS):
                 continue
             term, n = parts[k]
-            f = float(n) * self.world / N if N > 0 else 0.0
+            f = float(n) / N if N > 0 else 0.0
             out = term * f if out is None else out + term * f
         return out if out is not None else loss * 0.0
 
 
-    def reduce_step(self, params, bad: bool, st: dict):
+    def reduce_step(self, params, bad: bool, st: dict, average: bool = True):
         """After a (possibly skipped) backward on every rank: ONE all-reduce of [grads | bad | stats].
 
-        Gradients become the mean over ranks (a parameter whose grad is None on every rank stays None, as it would
+        Gradients become the mean over ranks (average=True, DDP's convention: each rank backpropagated its own mean
+        loss), or their sum (average=False: each rank backpropagated its share of the global loss, global_loss) (a parameter whose grad is None on every rank stays None, as it would
         on one GPU; one missing on some ranks only counts as zero there). Returns (bad_any, st_global): the step is
         skipped on EVERY rank when any rank's loss was non-finite, and st_global holds the logged statistics of the
         global batch (count-weighted means, summed counts; STAT_*), so
@@ -217,7 +225,7 @@ class Dist:
             o = 0
             for i, (p, s) in enumerate(zip(params, sizes)):
                 if tail[i].item() > 0:
-                    g = (buf[o:o + s] / self.world).view_as(p).to(p.dtype)
+                    g = (buf[o:o + s] / self.world if average else buf[o:o + s]).view_as(p).to(p.dtype)
                     if p.grad is None:
                         p.grad = g
                     else:

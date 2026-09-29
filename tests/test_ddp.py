@@ -171,7 +171,7 @@ def test_a_step_skipped_on_one_rank_is_skipped_on_all():
     assert [r["bad"] for r in res] == [True, True]
 
 
-# ---- loss normalisation: the rank-mean gradient of the real training step = the single-process union gradient -------
+# ---- loss normalisation: the summed rank gradients of the real training step = the single-process union gradient ---
 
 def _step_setup(B=4):
     """The erp_depth training step of tests/test_vce.py (small real decoder, projection head) on B samples whose
@@ -233,7 +233,7 @@ def _step_worker(rank, world, port, out, mode):
         # "exact": reweighted to the global normalisers; "per_rank_mean": each rank's own means (before the fix)
         loss_r = D.global_loss(loss, parts) if mode == "exact" else loss
         loss_r.backward()
-        bad, st_g = D.reduce_step(params, False, st)
+        bad, st_g = D.reduce_step(params, False, st, average=mode != "exact")
         out[rank] = dict(grads=[None if p.grad is None else p.grad.clone() for p in params], st=st_g, n=st["n"],
                          parts_sum_err=float((s_parts - loss).detach().abs()), bad=bad)
     finally:

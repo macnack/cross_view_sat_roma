@@ -53,9 +53,10 @@ Multi-GPU (bevloc.model.ddp; `make eagle-submit-ddp`, slurm/run_ddp.sbatch): `to
 scripts/train_vigor.py ... --batch B`. --batch is ALWAYS the global optimizer batch: each rank draws B / W samples
 (printed as "global batch B = W ranks x b per rank"), so steps per epoch, lr and epochs are those of one GPU at batch
 B. The epoch permutation is sharded (rank r: positions r::W); every loss term (a mean over matchable tokens, tokens or
-samples) is reweighted by its rank's share of the GLOBAL count (one small all-reduce before backward,
-bevloc.model.ddp.global_loss), so the gradients of the trainable head + decoder averaged over the ranks with one
-all-reduce per step ARE the single-GPU gradient of the global batch (the frozen encoder is a plain module on every
+samples) is normalised by the GLOBAL count (one small all-reduce before backward, bevloc.model.ddp.global_loss:
+each rank backpropagates its share of the global-batch loss, so the float16 decoder backward sees the single-GPU
+gradient values), and the gradients of the trainable head + decoder summed over the ranks with one all-reduce per
+step ARE the single-GPU gradient of the global batch (the frozen encoder is a plain module on every
 rank; the VCE draws differ per rank, as any two runs' draws do). A step skipped on
 one rank (non-finite loss) is skipped on all, and the logged training statistics are those of the global batch. Rank
 0 alone validates (the same --val-samples frames; --val-batch, default min(B, 32)), writes the CSV, config snapshot and
@@ -365,7 +366,7 @@ def main():
                     raise RuntimeError(f"step() loss terms {sorted(parts)} sum to {float(s_parts)} != loss "
                                        f"{float(loss)}: a term is missing from parts (DDP normalisation)")
                 parts_checked.append(True)
-            # rescaled to the global batch's normalisers: the rank-mean gradient = the single-GPU union gradient
+            # this rank's share of the global-batch loss (global counts); the summed gradients = the single-GPU one
             loss = D.global_loss(loss, parts)
         bad = not bool(torch.isfinite(loss.detach()))
         tick("forward")
@@ -374,7 +375,7 @@ def main():
             if not bad:
                 loss.backward()
             tick("backward")
-            bad, st = D.reduce_step(opt_params, bad, st)
+            bad, st = D.reduce_step(opt_params, bad, st, average=False)   # global_loss: shares, summed
             tick("allreduce")
             if not bad:
                 if ref_params:                         # on the averaged gradient: the same decision on every rank
