@@ -16,3 +16,4 @@ experiments/**/*.tif
 .claude/worktrees/
 experiments/**/sweep_cache/
 experiments/**/cert_cache/
+wandb/
