@@ -1,6 +1,6 @@
 """Camera height implied by the UniK3D depth maps on VIGOR, by the same rule as the Poznań check
 (scripts/unik3d_depth_poznan.py): pixels whose ray looks cfg.poznan.height_band_deg below the horizon give an implied
-camera height -z of their 3-D point. VIGOR panoramas are gravity-levelled Google Street View images (R = identity);
+camera height -z of their 3-D point. VIGOR panoramas are gravity-levelled Google Street View images (a level camera);
 the driving direction is not known and there are no semantic maps, so every azimuth is used and the Poznań numbers are
 recomputed the same way (all azimuths, no road mask) next to it, so the two ratios compare like for like.
 
@@ -53,7 +53,9 @@ def main():
     cfg = C.load(a.config)
     band = tuple(cfg.poznan.height_band_deg)
     rng = random.Random(a.seed)
-    R = np.eye(3)                                            # levelled panorama, azimuth-agnostic check
+    # levelled camera facing north: world ENU -> camera (x right = east, y down = -up, z forward = north); the
+    # heading does not matter because every azimuth is used
+    R = np.array([[1.0, 0.0, 0.0], [0.0, 0.0, -1.0], [0.0, 1.0, 0.0]])
     res = {"band_deg": list(band), "azimuth": "all (az_deg = 180)", "road_mask": False}
     allv = []
     for city in ("Chicago", "NewYork", "SanFrancisco", "Seattle"):
