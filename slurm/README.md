@@ -142,6 +142,55 @@ fine run's later segments `--resume auto` wins over `--ckpt` (the warm start is 
 file). `_last.pt`, `_best.pt`, `_ep*.pt` all live in `checkpoints/` of the repo, whatever `--out` is; `--out` only
 holds the CSV log and `config.yaml` (+ a per-tag `config_<tag>.yaml`, since both runs share the folder).
 
+## Multi-GPU: 4 x H100 on one node (DDP, 2026-09-29)
+
+`make eagle-submit-ddp JOB= CMD= SBATCH_ARGS=` (slurm/run_ddp.sbatch: proxima, `--gpus-per-node=h100:4`, 64 CPUs,
+480 GB, 7 days, `torchrun --standalone --nproc_per_node 4` inside the same container) runs a DDP-aware script;
+`make eagle-probe-ddp PROBE_RUNS=... PROBE_ARGS=...` (slurm/probe_ddp.sbatch, 30 min) runs short probes. Only
+`scripts/train_vigor.py` is DDP-aware (`bevloc.model.ddp`); without torchrun it runs exactly as before.
+
+- `--batch` is the GLOBAL batch; each of the 4 ranks draws batch / 4 (printed: `DDP: global batch 32 = 4 ranks x 8
+  per rank`). Steps per epoch, lr and epochs are those of one GPU at that batch: global 32 = the reviewed plan
+  (1,315 steps per epoch, 131,500 for 100 epochs); global 128 = 32,800 steps (another optimisation, not the plan).
+- The epoch permutation is sharded (rank r takes positions r::4); every loss term is normalised by the GLOBAL token /
+  sample count (review 2026-09-29: `Dist.global_loss`, one small all-reduce before backward; each rank backpropagates
+  its share of the global-batch loss, so the float16 decoder backward sees the single-GPU gradient values) and the
+  gradients of the head + decoder are summed by one all-reduce per step: the single-GPU gradient of the global batch
+  (measured: rel. L2 1e-3 on Eagle, the float noise of two 1-GPU runs; experiments/13_panoroma_long/PROFILE.md) (the frozen encoder is a plain module on each rank), a non-finite step on one rank is skipped on
+  all, rank 0 validates (the same 400 frames, `--val-batch` default min(batch, 32)) and writes the CSV, the config
+  snapshot and every checkpoint (same keys as single-GPU ones). The resume file also stores the world size, the
+  per-rank batch and all ranks' RNG; a resume with another GPU count is refused. A single-GPU resume file cannot be
+  continued under DDP (refused) and vice versa.
+- H100 switches (default off = every earlier run): `--tf32`, `--encoder-dtype bfloat16` (the frozen encoder under
+  bfloat16 autocast, outputs back to float32; validation unchanged within noise), `--compile encoder`. Measured, with
+  accuracy checks and the DDP-vs-1-GPU loss comparison: experiments/13_panoroma_long/PROFILE.md ("4 x H100").
+
+| 4 x H100, global 32 | Samples/s | 100 epochs coarse | fine |
+|---|---|---|---|
+| float32 | 29.6 | ~41 h | ~41 h |
+| `--tf32` | 45.8 | ~27 h | ~27 h |
+| `--tf32 --encoder-dtype bfloat16 --compile encoder` (recommended) | 92.2 (fine 86.7) | ~14 h | ~15 h |
+
+PanoRoMa 100-epoch runs (recommended setting; the fine run starts when the coarse job exits 0):
+
+```bash
+make eagle-submit-ddp JOB=pano_coarse_e100 SBATCH_ARGS="--time=2-00:00:00" CMD="scripts/train_vigor.py \
+  --config configs/vigor_cell0125.yaml --query erp_depth --head --pose-nll-weight 0.5 --split samearea \
+  --val-frac 0.2 --val-samples 400 --batch 32 --epochs 100 --save-every-epochs 10 --resume auto \
+  --workers 8 --pin-memory --tf32 --encoder-dtype bfloat16 --compile encoder \
+  --tag samearea_4city_erp_depth_cell0125_e100 --out experiments/13_panoroma_long"
+make eagle-submit-ddp JOB=pano_fine_e100 SBATCH_ARGS="--time=2-00:00:00 --dependency=afterok:<coarse job id>" \
+  CMD="scripts/train_vigor.py --config configs/vigor_cell00625_fine.yaml \
+  --ckpt checkpoints/vigor_samearea_4city_erp_depth_cell0125_e100_last.pt --query erp_depth --head \
+  --pose-nll-weight 0.5 --split samearea --val-frac 0.2 --val-samples 400 --batch 32 --epochs 100 \
+  --save-every-epochs 10 --resume auto --workers 8 --pin-memory --tf32 --encoder-dtype bfloat16 --compile encoder \
+  --tag samearea_4city_fine00625_erp_depth_e100 --out experiments/13_panoroma_long"
+```
+
+Precision of the earlier runs instead: drop `--tf32 --encoder-dtype bfloat16 --compile encoder` (float32, ~41 h per
+run) or keep only `--tf32` (~27 h); use the default 7-day `--time` then. A segment that times out or crashes continues
+with the same command (`--resume auto`); resubmit it with the same GPU count.
+
 ## Older files
 
 `train_fusion.sbatch`, `cross_view_sat_roma.def` and `build_container.sh` are the earlier

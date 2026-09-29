@@ -176,7 +176,7 @@ def fine_certainty_target(warp_in, gt, ok, cell_norm, cells=0.5):
 
 
 def fine_loss(warp, cert_logit, warp_in, gt, ok, tok_valid, cell_norm, stride=16, alpha=0.5, c=1e-4,
-              cert_cells=0.5, certainty_weight=0.01):
+              cert_cells=0.5, certainty_weight=0.01, parts=None):
     """RoMa's fine-stage objective at one stride.
 
     warp (B, 2, h, w): refined warp (normalised reference coords; W_in detached, see `RefinerTap`);
@@ -185,7 +185,8 @@ def fine_loss(warp, cert_logit, warp_in, gt, ok, tok_valid, cell_norm, stride=16
     tok_valid (B, h, w): valid query tokens (the certainty BCE is taken over these only).
     Regression: generalised Charbonnier (alpha, s = c * stride, RoMa's code units: normalised coordinates, c = 1e-4)
     of the end-point error over `ok`. Certainty: BCE toward `fine_certainty_target`. Returns (loss, stats).
-    Everything in float32; the Charbonnier is evaluated on the squared error (no sqrt: smooth at 0)."""
+    Everything in float32; the Charbonnier is evaluated on the squared error (no sqrt: smooth at 0).
+    parts: optional dict, filled with "fine_reg" / "fine_cert" -> (weighted term, count of the tokens it averages)."""
     sq = ((warp.float() - gt.float()) ** 2).sum(1)                     # (B, h, w)
     epe = sq.detach().sqrt()
     s = float(c) * float(stride)
@@ -204,6 +205,10 @@ def fine_loss(warp, cert_logit, warp_in, gt, ok, tok_valid, cell_norm, stride=16
     else:
         bce = warp.sum() * 0.0
     loss = reg + float(certainty_weight) * bce
+    if parts is not None:
+        parts["fine_reg"] = (reg, int(ok.sum()))
+        parts["fine_cert"] = (float(certainty_weight) * bce,
+                              int(tok_valid.sum()) if (bool(tok_valid.any()) and certainty_weight) else 0)
     return loss, dict(fine_reg=float(reg.detach()), fine_cert=float(bce.detach()), fine_epe=st_epe,
                       fine_epe_in=st_epe_in, fine_epe_med=st_med, fine_epe_in_med=st_med_in,
                       fine_cert_pos=float(tgt[tok_valid].float().mean()) if bool(tok_valid.any()) else float("nan"),

@@ -1,0 +1,178 @@
+[probe-ddp] host=gpu81 date=2026-09-29T18:36:27+02:00 cpus=64 git=3861d2a train_vigor: single-node multi-GPU data parallelism (torchrun; --batch = global batch; sharded EpochSampler; one all-reduce of grads + skip flags + stats; rank-0 validation/checkpoints; per-rank RNG in resume), --encoder-dtype / --compile / --check-encoder switches, run_ddp/probe_ddp sbatch + make targets, tests
+0, NVIDIA H100, 95830 MiB, 595.71.05
+1, NVIDIA H100, 95830 MiB, 595.71.05
+2, NVIDIA H100, 95830 MiB, 595.71.05
+3, NVIDIA H100, 95830 MiB, 595.71.05
+[probe-ddp] torch 2.13.0+cu130 cuda 13.0 nccl (2, 29, 7) timm 1.0.28
+[probe-ddp] nproc=1 args=--ckpt checkpoints/vigor_samearea_4city_erp_depth_cell0125_last.pt --check-encoder --encoder-dtype bfloat16 --val-samples 200 --val-batch 16 --tag chk --out /mnt/storage_6/project_data/pl1269-01/krupka_maciej/probe_ddp/experiments/chk 2026-09-29T18:36:51+02:00
+pose NLL weight 0.5  refine weight 0.0
+train 42087 (['NewYork', 'Seattle', 'SanFrancisco', 'Chicago'])  val 200 of 10522 held out from the train list (val_frac 0.2)  mode erp_depth  batch 4
+depth: dropped 0 train / 0 val labels without a depth file -> train 42087  val 200
+VCE weight 1.0  {'mode': 'sample', 'n_samples': 1024, 'grid_m': 5.0, 'points': 10, 'use_certainty': True}
+10521 steps per epoch (batch 4, drop_last)  total 3000 steps = 0.29 epochs  validation every 500 steps  workers 8 prefetch 2 pin_memory True
+Using Dinov3 as Sat Encoder, model: vit_large_patch16_dinov3.sat493m
+encoder autocast bfloat16  compile none  attention: encoder {'EvaAttention.fused_attn=True': 24, 'sdpa_flash_enabled': True, 'sdpa_mem_efficient_enabled': True} decoder {'sdpa_flash_enabled': True, 'sdpa_mem_efficient_enabled': True}
+query erp_depth: 2.23 M trainable parameters (lr 0.0002)
+checkpoint contents: query 2.23 M tensors (9 MiB)  decoder 66.71 M tensors (254 MiB)  | optimised 68.94 M params | frozen encoder 303.1 M NOT saved
+check float32: {'ce': 3.5411393560265476, 'top1': 0.126556376037802, 'top5': 0.4372398829972538, 'cell_err_m': 4.75178875461117, 'pose_nll': 2.939627129135833, 'pose_err_m': 3.618579534095395, 'vce_m': 3.1752737852243276, 'vce_pose_m': 3.166463008293739, 'fine_epe_px': nan, 'fine_epe_in_px': nan, 'fine_skipped': 0, 'n': 231628, 'pose_m': 3.618579534095395, 'sec': 27.994354963302612}
+check bfloat16: {'ce': 3.5403419790081925, 'top1': 0.1266599899773188, 'top5': 0.43773637433404355, 'cell_err_m': 4.756099204010665, 'pose_nll': 2.939609492706405, 'pose_err_m': 3.507629906945712, 'vce_m': 3.1733394402724047, 'vce_pose_m': 3.164094668168288, 'fine_epe_px': nan, 'fine_epe_in_px': nan, 'fine_skipped': 0, 'n': 231628, 'pose_m': 3.507629906945712, 'sec': 8.608392000198364}
+CHECK {"encoder_dtype": "bfloat16", "ckpt": "checkpoints/vigor_samearea_4city_erp_depth_cell0125_last.pt", "val_samples": 200, "token_diff": {"ref": {"max_abs": 28.0557861328125, "mean_abs": 0.1449921578168869, "ref_mean_abs": 15.554057121276855, "rel_mean": 0.00932182278484106, "cos_mean": 0.9999801516532898, "cos_min": 0.997944712638855, "shape": [16, 1024, 56, 56]}, "pano": {"max_abs": 98.3787841796875, "mean_abs": 0.1611645668745041, "ref_mean_abs": 14.90011978149414, "rel_mean": 0.010816327296197414, "cos_mean": 0.9999843239784241, "cos_min": 0.9933985471725464, "shape": [16, 1024, 28, 56]}}, "tf32": false, "float32": {"ce": 3.5411393560265476, "top1": 0.126556376037802, "top5": 0.4372398829972538, "cell_err_m": 4.75178875461117, "pose_nll": 2.939627129135833, "pose_err_m": 3.618579534095395, "vce_m": 3.1752737852243276, "vce_pose_m": 3.166463008293739, "fine_epe_px": NaN, "fine_epe_in_px": NaN, "fine_skipped": 0, "n": 231628, "pose_m": 3.618579534095395, "sec": 27.994354963302612}, "bfloat16": {"ce": 3.5403419790081925, "top1": 0.1266599899773188, "top5": 0.43773637433404355, "cell_err_m": 4.756099204010665, "pose_nll": 2.939609492706405, "pose_err_m": 3.507629906945712, "vce_m": 3.1733394402724047, "vce_pose_m": 3.164094668168288, "fine_epe_px": NaN, "fine_epe_in_px": NaN, "fine_skipped": 0, "n": 231628, "pose_m": 3.507629906945712, "sec": 8.608392000198364}}
+[probe-ddp] exit=0 2026-09-29T18:39:18+02:00
+[probe-ddp] nproc=1 args=--ckpt checkpoints/vigor_samearea_4city_erp_depth_cell0125_last.pt --tf32 --check-encoder --encoder-dtype bfloat16 --val-samples 200 --val-batch 16 --tag chk --out /mnt/storage_6/project_data/pl1269-01/krupka_maciej/probe_ddp/experiments/chk 2026-09-29T18:39:18+02:00
+TF32 matmuls/convolutions ON (--tf32)
+pose NLL weight 0.5  refine weight 0.0
+train 42087 (['NewYork', 'Seattle', 'SanFrancisco', 'Chicago'])  val 200 of 10522 held out from the train list (val_frac 0.2)  mode erp_depth  batch 4
+depth: dropped 0 train / 0 val labels without a depth file -> train 42087  val 200
+VCE weight 1.0  {'mode': 'sample', 'n_samples': 1024, 'grid_m': 5.0, 'points': 10, 'use_certainty': True}
+10521 steps per epoch (batch 4, drop_last)  total 3000 steps = 0.29 epochs  validation every 500 steps  workers 8 prefetch 2 pin_memory True
+Using Dinov3 as Sat Encoder, model: vit_large_patch16_dinov3.sat493m
+encoder autocast bfloat16  compile none  attention: encoder {'EvaAttention.fused_attn=True': 24, 'sdpa_flash_enabled': True, 'sdpa_mem_efficient_enabled': True} decoder {'sdpa_flash_enabled': True, 'sdpa_mem_efficient_enabled': True}
+query erp_depth: 2.23 M trainable parameters (lr 0.0002)
+checkpoint contents: query 2.23 M tensors (9 MiB)  decoder 66.71 M tensors (254 MiB)  | optimised 68.94 M params | frozen encoder 303.1 M NOT saved
+check float32: {'ce': 3.5411615530764418, 'top1': 0.12639663682639937, 'top5': 0.43698085058504754, 'cell_err_m': 4.751946117569083, 'pose_nll': 2.9396818494554657, 'pose_err_m': 3.622484443071689, 'vce_m': 3.1748092357928934, 'vce_pose_m': 3.1660499572753906, 'fine_epe_px': nan, 'fine_epe_in_px': nan, 'fine_skipped': 0, 'n': 231628, 'pose_m': 3.622484443071689, 'sec': 17.091341018676758}
+check bfloat16: {'ce': 3.540417726364698, 'top1': 0.12674201850470704, 'top5': 0.43758958376556656, 'cell_err_m': 4.754617024112782, 'pose_nll': 2.9396977013810974, 'pose_err_m': 3.497154597397644, 'vce_m': 3.1725669640761156, 'vce_pose_m': 3.1633361669687123, 'fine_epe_px': nan, 'fine_epe_in_px': nan, 'fine_skipped': 0, 'n': 231628, 'pose_m': 3.497154597397644, 'sec': 8.506164073944092}
+CHECK {"encoder_dtype": "bfloat16", "ckpt": "checkpoints/vigor_samearea_4city_erp_depth_cell0125_last.pt", "val_samples": 200, "token_diff": {"ref": {"max_abs": 30.8758544921875, "mean_abs": 0.14514794945716858, "ref_mean_abs": 15.553818702697754, "rel_mean": 0.009331981651484966, "cos_mean": 0.9999799132347107, "cos_min": 0.9976608753204346, "shape": [16, 1024, 56, 56]}, "pano": {"max_abs": 98.061279296875, "mean_abs": 0.1611814796924591, "ref_mean_abs": 14.899802207946777, "rel_mean": 0.0108176926150918, "cos_mean": 0.9999843835830688, "cos_min": 0.9935072064399719, "shape": [16, 1024, 28, 56]}}, "tf32": true, "float32": {"ce": 3.5411615530764418, "top1": 0.12639663682639937, "top5": 0.43698085058504754, "cell_err_m": 4.751946117569083, "pose_nll": 2.9396818494554657, "pose_err_m": 3.622484443071689, "vce_m": 3.1748092357928934, "vce_pose_m": 3.1660499572753906, "fine_epe_px": NaN, "fine_epe_in_px": NaN, "fine_skipped": 0, "n": 231628, "pose_m": 3.622484443071689, "sec": 17.091341018676758}, "bfloat16": {"ce": 3.540417726364698, "top1": 0.12674201850470704, "top5": 0.43758958376556656, "cell_err_m": 4.754617024112782, "pose_nll": 2.9396977013810974, "pose_err_m": 3.497154597397644, "vce_m": 3.1725669640761156, "vce_pose_m": 3.1633361669687123, "fine_epe_px": NaN, "fine_epe_in_px": NaN, "fine_skipped": 0, "n": 231628, "pose_m": 3.497154597397644, "sec": 8.506164073944092}}
+[probe-ddp] exit=0 2026-09-29T18:41:13+02:00
+[probe-ddp] nproc=4 args=--query erp_depth --head --batch 32 --train-limit 128 --save-every-epochs 1 --resume auto --val-samples 32 --tag ddp_smoke --out /mnt/storage_6/project_data/pl1269-01/krupka_maciej/probe_ddp/experiments/smoke --epochs 2 2026-09-29T18:41:13+02:00
+DDP: global batch 32 = 4 ranks x 8 per rank (backend nccl, rank 0 on cuda:0)
+pose NLL weight 0.5  refine weight 0.0
+train 42087 (['NewYork', 'Seattle', 'SanFrancisco', 'Chicago'])  val 32 of 10522 held out from the train list (val_frac 0.2)  mode erp_depth  batch 32
+depth: dropped 0 train / 0 val labels without a depth file -> train 42087  val 32
+VCE weight 1.0  {'mode': 'sample', 'n_samples': 1024, 'grid_m': 5.0, 'points': 10, 'use_certainty': True}
+--train-limit: training on the first 128 labels only (smoke test)
+4 steps per epoch (global batch 32, drop_last)  total 8 steps = 2 epochs  validation every 4 steps  workers 8 prefetch 2 pin_memory True
+Using Dinov3 as Sat Encoder, model: vit_large_patch16_dinov3.sat493m
+encoder autocast float32  compile none  attention: encoder {'EvaAttention.fused_attn=True': 24, 'sdpa_flash_enabled': True, 'sdpa_mem_efficient_enabled': True} decoder {'sdpa_flash_enabled': True, 'sdpa_mem_efficient_enabled': True}
+no --ckpt: decoder = released Sat-RoMa checkpoint, query untrained
+query erp_depth: 2.23 M trainable parameters (lr 0.0002)
+checkpoint contents: query 2.23 M tensors (9 MiB)  decoder 66.71 M tensors (254 MiB)  | optimised 68.94 M params | frozen encoder 303.1 M NOT saved
+--resume auto: no /mnt/storage_6/project_data/pl1269-01/krupka_maciej/probe_ddp/checkpoints/vigor_ddp_smoke_resume.pt, starting fresh
+
+
+
+step 1 TRAIN  CE 8.011  poseNLL 7.601  top1 0.0%  arg 27.9 m  n 35801  VCE 20.56 m  procrustes 20.36 m  (6s, epoch 0.25)
+step 4 VAL    CE 6.799  poseNLL 6.671  top1 0.7%  heatmap-argmax (not a pose) 15.9 m  n 37778  VCE 14.03 m  procrustes 13.96 m
+  best -> /mnt/storage_6/project_data/pl1269-01/krupka_maciej/probe_ddp/checkpoints/vigor_ddp_smoke_best.pt
+  epoch 1 -> /mnt/storage_6/project_data/pl1269-01/krupka_maciej/probe_ddp/checkpoints/vigor_ddp_smoke_ep001.pt (263 MiB)
+step 8 VAL    CE 6.630  poseNLL 6.504  top1 0.9%  heatmap-argmax (not a pose) 13.9 m  n 37778  VCE 13.68 m  procrustes 13.66 m
+  best -> /mnt/storage_6/project_data/pl1269-01/krupka_maciej/probe_ddp/checkpoints/vigor_ddp_smoke_best.pt
+  epoch 2 -> /mnt/storage_6/project_data/pl1269-01/krupka_maciej/probe_ddp/checkpoints/vigor_ddp_smoke_ep002.pt (263 MiB)
+wrote /mnt/storage_6/project_data/pl1269-01/krupka_maciej/probe_ddp/checkpoints/vigor_ddp_smoke_best.pt (best, step 8), /mnt/storage_6/project_data/pl1269-01/krupka_maciej/probe_ddp/checkpoints/vigor_ddp_smoke_last_finite.pt (last finite validation) and /mnt/storage_6/project_data/pl1269-01/krupka_maciej/probe_ddp/checkpoints/vigor_ddp_smoke_last.pt (last, step 8, 263 MiB); resume state /mnt/storage_6/project_data/pl1269-01/krupka_maciej/probe_ddp/checkpoints/vigor_ddp_smoke_resume.pt; non-finite steps 0, no-update steps 0
+[probe-ddp] exit=0 2026-09-29T18:42:36+02:00
+[probe-ddp] nproc=4 args=--query erp_depth --head --batch 32 --train-limit 128 --save-every-epochs 1 --resume auto --val-samples 32 --tag ddp_smoke --out /mnt/storage_6/project_data/pl1269-01/krupka_maciej/probe_ddp/experiments/smoke --epochs 3 2026-09-29T18:42:36+02:00
+DDP: global batch 32 = 4 ranks x 8 per rank (backend nccl, rank 0 on cuda:0)
+pose NLL weight 0.5  refine weight 0.0
+train 42087 (['NewYork', 'Seattle', 'SanFrancisco', 'Chicago'])  val 32 of 10522 held out from the train list (val_frac 0.2)  mode erp_depth  batch 32
+depth: dropped 0 train / 0 val labels without a depth file -> train 42087  val 32
+VCE weight 1.0  {'mode': 'sample', 'n_samples': 1024, 'grid_m': 5.0, 'points': 10, 'use_certainty': True}
+--train-limit: training on the first 128 labels only (smoke test)
+4 steps per epoch (global batch 32, drop_last)  total 12 steps = 3 epochs  validation every 4 steps  workers 8 prefetch 2 pin_memory True
+Using Dinov3 as Sat Encoder, model: vit_large_patch16_dinov3.sat493m
+encoder autocast float32  compile none  attention: encoder {'EvaAttention.fused_attn=True': 24, 'sdpa_flash_enabled': True, 'sdpa_mem_efficient_enabled': True} decoder {'sdpa_flash_enabled': True, 'sdpa_mem_efficient_enabled': True}
+no --ckpt: decoder = released Sat-RoMa checkpoint, query untrained
+query erp_depth: 2.23 M trainable parameters (lr 0.0002)
+checkpoint contents: query 2.23 M tensors (9 MiB)  decoder 66.71 M tensors (254 MiB)  | optimised 68.94 M params | frozen encoder 303.1 M NOT saved
+--resume auto: resuming from /mnt/storage_6/project_data/pl1269-01/krupka_maciej/probe_ddp/checkpoints/vigor_ddp_smoke_resume.pt
+resumed /mnt/storage_6/project_data/pl1269-01/krupka_maciej/probe_ddp/checkpoints/vigor_ddp_smoke_resume.pt: step 8 (epoch 2.00), best 13.663 at step 8
+
+
+
+step 9 TRAIN  CE 6.723  poseNLL 6.609  top1 0.3%  arg 18.0 m  n 37424  VCE 14.05 m  procrustes 14.03 m  (36s, epoch 2.25)
+step 12 VAL    CE 6.234  poseNLL 6.037  top1 0.9%  heatmap-argmax (not a pose) 12.2 m  n 37778  VCE 12.60 m  procrustes 12.58 m
+  best -> /mnt/storage_6/project_data/pl1269-01/krupka_maciej/probe_ddp/checkpoints/vigor_ddp_smoke_best.pt
+  epoch 3 -> /mnt/storage_6/project_data/pl1269-01/krupka_maciej/probe_ddp/checkpoints/vigor_ddp_smoke_ep003.pt (263 MiB)
+wrote /mnt/storage_6/project_data/pl1269-01/krupka_maciej/probe_ddp/checkpoints/vigor_ddp_smoke_best.pt (best, step 12), /mnt/storage_6/project_data/pl1269-01/krupka_maciej/probe_ddp/checkpoints/vigor_ddp_smoke_last_finite.pt (last finite validation) and /mnt/storage_6/project_data/pl1269-01/krupka_maciej/probe_ddp/checkpoints/vigor_ddp_smoke_last.pt (last, step 12, 263 MiB); resume state /mnt/storage_6/project_data/pl1269-01/krupka_maciej/probe_ddp/checkpoints/vigor_ddp_smoke_resume.pt; non-finite steps 0, no-update steps 0
+[probe-ddp] exit=0 2026-09-29T18:43:47+02:00
+[probe-ddp] nproc=2 args=--query erp_depth --head --batch 32 --train-limit 128 --save-every-epochs 1 --resume auto --val-samples 32 --tag ddp_smoke --out /mnt/storage_6/project_data/pl1269-01/krupka_maciej/probe_ddp/experiments/smoke --epochs 4 2026-09-29T18:43:47+02:00
+DDP: global batch 32 = 2 ranks x 16 per rank (backend nccl, rank 0 on cuda:0)
+pose NLL weight 0.5  refine weight 0.0
+train 42087 (['NewYork', 'Seattle', 'SanFrancisco', 'Chicago'])  val 32 of 10522 held out from the train list (val_frac 0.2)  mode erp_depth  batch 32
+depth: dropped 0 train / 0 val labels without a depth file -> train 42087  val 32
+VCE weight 1.0  {'mode': 'sample', 'n_samples': 1024, 'grid_m': 5.0, 'points': 10, 'use_certainty': True}
+--train-limit: training on the first 128 labels only (smoke test)
+4 steps per epoch (global batch 32, drop_last)  total 16 steps = 4 epochs  validation every 4 steps  workers 8 prefetch 2 pin_memory True
+Using Dinov3 as Sat Encoder, model: vit_large_patch16_dinov3.sat493m
+encoder autocast float32  compile none  attention: encoder {'EvaAttention.fused_attn=True': 24, 'sdpa_flash_enabled': True, 'sdpa_mem_efficient_enabled': True} decoder {'sdpa_flash_enabled': True, 'sdpa_mem_efficient_enabled': True}
+no --ckpt: decoder = released Sat-RoMa checkpoint, query untrained
+query erp_depth: 2.23 M trainable parameters (lr 0.0002)
+checkpoint contents: query 2.23 M tensors (9 MiB)  decoder 66.71 M tensors (254 MiB)  | optimised 68.94 M params | frozen encoder 303.1 M NOT saved
+--resume auto: resuming from /mnt/storage_6/project_data/pl1269-01/krupka_maciej/probe_ddp/checkpoints/vigor_ddp_smoke_resume.pt
+resume refused: world size 4 != 2; per-rank batch 8 != 16 (a run resumes with the same number of GPUs and batch split: the per-rank sample shards and RNG streams depend on both)
+resume refused: world size 4 != 2; per-rank batch 8 != 16 (a run resumes with the same number of GPUs and batch split: the per-rank sample shards and RNG streams depend on both)
+[rank0]:[W929 18:44:59.742392616 ProcessGroupNCCL.cpp:1624] Warning: WARNING: destroy_process_group() was not called before program exit, which can leak resources. For more info, please see https://pytorch.org/docs/stable/distributed.html#shutdown (function operator())
+W0929 18:45:00.978000 571410 torch/distributed/elastic/multiprocessing/api.py:1028] Sending process 571451 closing signal SIGTERM
+E0929 18:45:01.010000 571410 torch/distributed/elastic/multiprocessing/api.py:1002] failed (exitcode: 1) local_rank: 0 (pid: 571450) of binary: /opt/venv/bin/python
+Traceback (most recent call last):
+  File "<frozen runpy>", line 198, in _run_module_as_main
+  File "<frozen runpy>", line 88, in _run_code
+  File "/opt/venv/lib/python3.12/site-packages/torch/distributed/run.py", line 1032, in <module>
+    main()
+  File "/opt/venv/lib/python3.12/site-packages/torch/distributed/elastic/multiprocessing/errors/__init__.py", line 367, in wrapper
+    return f(*args, **kwargs)
+           ^^^^^^^^^^^^^^^^^^
+  File "/opt/venv/lib/python3.12/site-packages/torch/distributed/run.py", line 1028, in main
+    run(args)
+  File "/opt/venv/lib/python3.12/site-packages/torch/distributed/run.py", line 1019, in run
+    elastic_launch(
+  File "/opt/venv/lib/python3.12/site-packages/torch/distributed/launcher/api.py", line 194, in __call__
+    return launch_agent(
+           ^^^^^^^^^^^^^
+  File "/opt/venv/lib/python3.12/site-packages/torch/distributed/launcher/api.py", line 383, in launch_agent
+    raise ChildFailedError(
+torch.distributed.elastic.multiprocessing.errors.ChildFailedError: 
+scripts/train_vigor.py FAILED
+------------------------------------------------------------
+Failures:
+[1]:
+  time      : 2026-09-29_18:45:01
+  host      : gpu81
+  rank      : 1 (local_rank: 1)
+  exitcode  : 1 (pid: 571451) 
+  error_file: <N/A>
+  traceback : To enable traceback see: https://pytorch.org/docs/stable/elastic/errors.html
+------------------------------------------------------------
+Root Cause (first observed failure):
+[0]:
+  time      : 2026-09-29_18:45:00
+  host      : gpu81
+  rank      : 0 (local_rank: 0)
+  exitcode  : 1 (pid: 571450) 
+  error_file: <N/A>
+  traceback : To enable traceback see: https://pytorch.org/docs/stable/elastic/errors.html
+[probe-ddp] exit=1 2026-09-29T18:45:01+02:00
+[probe-ddp] nproc=4 args=--query erp_depth --head --batch 32 --steps 12 --val-every 1000 --val-samples 32 --out /mnt/storage_6/project_data/pl1269-01/krupka_maciej/probe_ddp/experiments/cmp --tag cmp_ddp 2026-09-29T18:45:01+02:00
+DDP: global batch 32 = 4 ranks x 8 per rank (backend nccl, rank 0 on cuda:0)
+pose NLL weight 0.5  refine weight 0.0
+train 42087 (['NewYork', 'Seattle', 'SanFrancisco', 'Chicago'])  val 32 of 10522 held out from the train list (val_frac 0.2)  mode erp_depth  batch 32
+depth: dropped 0 train / 0 val labels without a depth file -> train 42087  val 32
+VCE weight 1.0  {'mode': 'sample', 'n_samples': 1024, 'grid_m': 5.0, 'points': 10, 'use_certainty': True}
+1315 steps per epoch (global batch 32, drop_last)  total 12 steps = 0.01 epochs  validation every 1000 steps  workers 8 prefetch 2 pin_memory True
+Using Dinov3 as Sat Encoder, model: vit_large_patch16_dinov3.sat493m
+encoder autocast float32  compile none  attention: encoder {'EvaAttention.fused_attn=True': 24, 'sdpa_flash_enabled': True, 'sdpa_mem_efficient_enabled': True} decoder {'sdpa_flash_enabled': True, 'sdpa_mem_efficient_enabled': True}
+no --ckpt: decoder = released Sat-RoMa checkpoint, query untrained
+query erp_depth: 2.23 M trainable parameters (lr 0.0002)
+checkpoint contents: query 2.23 M tensors (9 MiB)  decoder 66.71 M tensors (254 MiB)  | optimised 68.94 M params | frozen encoder 303.1 M NOT saved
+step 1 TRAIN  CE 7.843  poseNLL 7.526  top1 0.1%  arg 26.8 m  n 37224  VCE 20.52 m  procrustes 20.42 m  (6s, epoch 0.00)
+
+
+step 12 VAL    CE 6.316  poseNLL 6.130  top1 0.7%  heatmap-argmax (not a pose) 13.2 m  n 37778  VCE 12.41 m  procrustes 12.34 m
+  best -> /mnt/storage_6/project_data/pl1269-01/krupka_maciej/probe_ddp/checkpoints/vigor_cmp_ddp_best.pt
+wrote /mnt/storage_6/project_data/pl1269-01/krupka_maciej/probe_ddp/checkpoints/vigor_cmp_ddp_best.pt (best, step 12), /mnt/storage_6/project_data/pl1269-01/krupka_maciej/probe_ddp/checkpoints/vigor_cmp_ddp_last_finite.pt (last finite validation) and /mnt/storage_6/project_data/pl1269-01/krupka_maciej/probe_ddp/checkpoints/vigor_cmp_ddp_last.pt (last, step 12, 263 MiB); resume state /mnt/storage_6/project_data/pl1269-01/krupka_maciej/probe_ddp/checkpoints/vigor_cmp_ddp_resume.pt; non-finite steps 0, no-update steps 0
+[probe-ddp] exit=0 2026-09-29T18:46:20+02:00
+[probe-ddp] nproc=1 args=--query erp_depth --head --batch 32 --steps 12 --val-every 1000 --val-samples 32 --out /mnt/storage_6/project_data/pl1269-01/krupka_maciej/probe_ddp/experiments/cmp --tag cmp_single 2026-09-29T18:46:20+02:00
+pose NLL weight 0.5  refine weight 0.0
+train 42087 (['NewYork', 'Seattle', 'SanFrancisco', 'Chicago'])  val 32 of 10522 held out from the train list (val_frac 0.2)  mode erp_depth  batch 32
+depth: dropped 0 train / 0 val labels without a depth file -> train 42087  val 32
+VCE weight 1.0  {'mode': 'sample', 'n_samples': 1024, 'grid_m': 5.0, 'points': 10, 'use_certainty': True}
+1315 steps per epoch (batch 32, drop_last)  total 12 steps = 0.01 epochs  validation every 1000 steps  workers 8 prefetch 2 pin_memory True
+Using Dinov3 as Sat Encoder, model: vit_large_patch16_dinov3.sat493m
+encoder autocast float32  compile none  attention: encoder {'EvaAttention.fused_attn=True': 24, 'sdpa_flash_enabled': True, 'sdpa_mem_efficient_enabled': True} decoder {'sdpa_flash_enabled': True, 'sdpa_mem_efficient_enabled': True}
+no --ckpt: decoder = released Sat-RoMa checkpoint, query untrained
+query erp_depth: 2.23 M trainable parameters (lr 0.0002)
+checkpoint contents: query 2.23 M tensors (9 MiB)  decoder 66.71 M tensors (254 MiB)  | optimised 68.94 M params | frozen encoder 303.1 M NOT saved
+step 1 TRAIN  CE 7.843  poseNLL 7.515  top1 0.1%  arg 26.8 m  n 37224  VCE 20.64 m  procrustes 20.53 m  (15s, epoch 0.00)
+step 12 VAL    CE 6.194  poseNLL 6.011  top1 0.8%  heatmap-argmax (not a pose) 12.6 m  n 37778  VCE 12.24 m  procrustes 12.20 m
+  best -> /mnt/storage_6/project_data/pl1269-01/krupka_maciej/probe_ddp/checkpoints/vigor_cmp_single_best.pt
+wrote /mnt/storage_6/project_data/pl1269-01/krupka_maciej/probe_ddp/checkpoints/vigor_cmp_single_best.pt (best, step 12), /mnt/storage_6/project_data/pl1269-01/krupka_maciej/probe_ddp/checkpoints/vigor_cmp_single_last_finite.pt (last finite validation) and /mnt/storage_6/project_data/pl1269-01/krupka_maciej/probe_ddp/checkpoints/vigor_cmp_single_last.pt (last, step 12, 263 MiB); resume state /mnt/storage_6/project_data/pl1269-01/krupka_maciej/probe_ddp/checkpoints/vigor_cmp_single_resume.pt; non-finite steps 0, no-update steps 0
+[probe-ddp] exit=0 2026-09-29T18:48:36+02:00
+[probe-ddp] done date=2026-09-29T18:48:36+02:00

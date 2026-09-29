@@ -48,6 +48,21 @@ per draw; same distribution, other draws) and cuDNN nondeterminism. A run found 
 wait / host-to-device / compute, peak memory, GPU util, a per-phase breakdown) and exits without checkpoints (refused
 with --resume / --save-every-epochs): `make eagle-probe`. --pin-memory, --prefetch, --tf32 (default off; recorded in
 the checkpoints' train dict) tune throughput.
+
+Multi-GPU (bevloc.model.ddp; `make eagle-submit-ddp`, slurm/run_ddp.sbatch): `torchrun --standalone --nproc_per_node W
+scripts/train_vigor.py ... --batch B`. --batch is ALWAYS the global optimizer batch: each rank draws B / W samples
+(printed as "global batch B = W ranks x b per rank"), so steps per epoch, lr and epochs are those of one GPU at batch
+B. The epoch permutation is sharded (rank r: positions r::W); every loss term (a mean over matchable tokens, tokens or
+samples) is normalised by the GLOBAL count (one small all-reduce before backward, bevloc.model.ddp.global_loss:
+each rank backpropagates its share of the global-batch loss, so the float16 decoder backward sees the single-GPU
+gradient values), and the gradients of the trainable head + decoder summed over the ranks with one all-reduce per
+step ARE the single-GPU gradient of the global batch (the frozen encoder is a plain module on every
+rank; the VCE draws differ per rank, as any two runs' draws do). A step skipped on
+one rank (non-finite loss) is skipped on all, and the logged training statistics are those of the global batch. Rank
+0 alone validates (the same --val-samples frames; --val-batch, default min(B, 32)), writes the CSV, config snapshot and
+every checkpoint (bare state dicts, no `module.` prefix); the others wait. The resume file also stores the world size,
+the per-rank batch and every rank's RNG; resuming with another world size or split is refused. Without torchrun the
+script runs exactly as before.
 """
 from __future__ import annotations
 
@@ -67,6 +82,10 @@ from train_lift_splat import refine_options, step, validate  # noqa: E402
 
 from bevloc import config as C  # noqa: E402
 from bevloc.model import trainrun as R  # noqa: E402
+from bevloc.model.ddp import DDP_LOSS_NORM, Dist, assert_unwrapped, check_resume_world, per_rank_batch  # noqa: E402
+from bevloc.model.speed import (  # noqa: E402
+    COMPILE_CHOICES, ENCODER_DTYPES, attention_report, compile_modules, encoder_diff, set_encoder_dtype,
+)
 from bevloc.data.vigor import VigorPairs, collate_vigor, split_cities  # noqa: E402
 from bevloc.model.coarse import FeatureQueryMatcher, resolve_vce_weight, vce_options  # noqa: E402
 from bevloc.model.query import apply_query_cfg, build_query, load_query_state  # noqa: E402
@@ -105,8 +124,22 @@ def main():
                     help="allow TF32 for float32 matmuls (the frozen encoder runs in float32; default off = the "
                          "precision of every run so far; cuDNN convolutions already default to TF32 in PyTorch). "
                          "Recorded in the checkpoints' train dict")
+    ap.add_argument("--encoder-dtype", default="float32", choices=sorted(ENCODER_DTYPES),
+                    help="autocast dtype of the FROZEN encoder's forward (outputs cast back to float32; the decoder "
+                         "keeps its own float16 autocast); default float32 = every run so far (bevloc.model.speed)")
+    ap.add_argument("--compile", default="none", choices=COMPILE_CHOICES,
+                    help="in-place torch.compile (dynamic=False) of the frozen encoder / the decoder; state dict keys "
+                         "unchanged")
+    ap.add_argument("--check-encoder", action="store_true",
+                    help="accuracy check of --encoder-dtype: with --ckpt, validate the --val-samples frames with the "
+                         "float32 encoder and with --encoder-dtype, plus the token difference on one batch; prints one "
+                         "CHECK json line and exits (no training, no checkpoints)")
     ap.add_argument("--train-limit", type=int, default=0, help="smoke tests: keep only the first N training labels")
-    ap.add_argument("--batch", type=int, default=4)
+    ap.add_argument("--batch", type=int, default=4,
+                    help="GLOBAL batch (samples per optimizer step); under torchrun each of the W ranks draws batch / W")
+    ap.add_argument("--val-batch", type=int, default=None,
+                    help="validation batch (rank 0 alone validates); default --batch on one GPU, min(--batch, 32) "
+                         "under torchrun")
     ap.add_argument("--workers", type=int, default=0, help="DataLoader workers (the IPM picture is built on the CPU per sample)")
     ap.add_argument("--prefetch", type=int, default=2, help="DataLoader prefetch_factor (batches per worker; needs workers > 0)")
     ap.add_argument("--pin-memory", action="store_true", help="DataLoader pin_memory + non-blocking host-to-device copies")
@@ -133,9 +166,18 @@ def main():
     if a.profile and (a.resume or a.save_every_epochs):
         raise SystemExit("--profile is a throughput probe (exits after the timed steps, writes no checkpoint): "
                          "refusing it together with --resume / --save-every-epochs (a real run's flags)")
+    D = Dist.from_env()                            # world 1 (no torchrun): a no-op, the script runs as before
+    b_rank = per_rank_batch(a.batch, D.world)
+    if not D.main:                                 # one log: ranks 1..W-1 print nothing (errors still reach stderr)
+        sys.stdout = open(os.devnull, "w")
+    if D.on:
+        print(f"DDP: global batch {a.batch} = {D.world} ranks x {b_rank} per rank "
+              f"(backend {torch.distributed.get_backend()}, rank 0 on {D.device()})", flush=True)
+    if a.val_batch is None:
+        a.val_batch = a.batch if not D.on else min(a.batch, 32)
     cfg = C.load(a.config)
     L = cfg.lift
-    dev = "cuda" if torch.cuda.is_available() else "cpu"
+    dev = D.device() if D.on else ("cuda" if torch.cuda.is_available() else "cpu")
     if a.tf32:                                     # off by default: every run so far used full float32 matmuls
         torch.backends.cuda.matmul.allow_tf32 = True
         torch.backends.cudnn.allow_tf32 = True     # already PyTorch's default; set explicitly for the record
@@ -203,15 +245,17 @@ def main():
         tr.labels = tr.labels[:a.train_limit]
         print(f"--train-limit: training on the first {len(tr)} labels only (smoke test)", flush=True)
     # epoch-seeded order (seed, epoch): a resumed run continues the same permutation mid-epoch (bevloc.model.trainrun)
-    sampler = R.EpochSampler(len(tr), seed=cfg.train.seed)
+    # DDP: rank r takes positions r::W of the same permutation (truncated to whole global batches)
+    sampler = (R.EpochSampler(len(tr), seed=cfg.train.seed, rank=D.rank, world=D.world, global_batch=a.batch)
+               if D.on else R.EpochSampler(len(tr), seed=cfg.train.seed))
     # the loader's own generator (worker base seeds): starting an epoch's iterator must not consume the global RNG,
-    # or a resumed run's global stream (VCE draws) would drift from the uninterrupted one
-    g_loader = torch.Generator().manual_seed(int(cfg.train.seed))
+    # or a resumed run's global stream (VCE draws) would drift from the uninterrupted one. DDP: rank r > 0 seed + r
+    g_loader = torch.Generator().manual_seed(int(cfg.train.seed) + D.rank)
     wkw = dict(prefetch_factor=a.prefetch) if a.workers > 0 else {}
-    tr_loader = DataLoader(tr, batch_size=a.batch, sampler=sampler, num_workers=a.workers, collate_fn=collate_vigor,
+    tr_loader = DataLoader(tr, batch_size=b_rank, sampler=sampler, num_workers=a.workers, collate_fn=collate_vigor,
                            drop_last=True, persistent_workers=a.workers > 0, pin_memory=a.pin_memory, generator=g_loader,
                            **wkw)
-    va_loader = DataLoader(va, batch_size=a.batch, shuffle=False, num_workers=a.workers, collate_fn=collate_vigor,
+    va_loader = DataLoader(va, batch_size=a.val_batch, shuffle=False, num_workers=a.workers, collate_fn=collate_vigor,
                            pin_memory=a.pin_memory, **wkw)
     spe = R.steps_per_epoch(len(tr), a.batch)
     if a.epochs > 0:
@@ -222,12 +266,20 @@ def main():
                       lr_decoder=float(cfg.train.lr_decoder), tf32=bool(a.tf32),
                       matmul_tf32=bool(torch.backends.cuda.matmul.allow_tf32),
                       cudnn_tf32=bool(torch.backends.cudnn.allow_tf32))
-    print(f"{spe} steps per epoch (batch {a.batch}, drop_last)  total {a.steps} steps"
+    if D.on:                                       # single-GPU checkpoints keep their train dict unchanged
+        train_meta.update(world_size=D.world, batch_per_rank=b_rank, val_batch=a.val_batch, loss_norm=DDP_LOSS_NORM)
+    print(f"{spe} steps per epoch ({'global ' if D.on else ''}batch {a.batch}, drop_last)  total {a.steps} steps"
           + (f" = {a.epochs} epochs" if a.epochs else f" = {a.steps / spe:.2f} epochs")
           + f"  validation every {a.val_every} steps  workers {a.workers} prefetch {a.prefetch if a.workers else '-'} "
             f"pin_memory {a.pin_memory}", flush=True)
 
     matcher = FeatureQueryMatcher(cfg.matcher.checkpoint, dev, train_decoder=True)
+    if a.encoder_dtype != "float32" or a.check_encoder:
+        set_encoder_dtype(matcher.model.encoder, a.encoder_dtype)
+    print(f"encoder autocast {a.encoder_dtype}  compile {a.compile}  attention: encoder "
+          f"{attention_report(matcher.model.encoder)} decoder {attention_report(matcher.model.decoder)}", flush=True)
+    if a.encoder_dtype != "float32" or a.compile != "none":   # single-GPU default runs keep their train dict unchanged
+        train_meta.update(encoder_dtype=a.encoder_dtype, compile=a.compile)
     n_ref = set_refiner_trainable(matcher.model.decoder, refine_w > 0)
     if refine_w:
         print(f"conv refiner unfrozen: {n_ref / 1e6:.2f} M parameters (fine loss weight {refine_w})", flush=True)
@@ -254,6 +306,14 @@ def main():
     dec = [p for p in matcher.model.decoder.parameters() if p.requires_grad]
     groups.append({"params": dec, "lr": cfg.train.lr_decoder})
     opt = torch.optim.AdamW(groups, weight_decay=cfg.train.weight_decay)
+    opt_params = [p for g in opt.param_groups for p in g["params"]]
+    if D.on:
+        # rank 0's trainable weights on every rank (as DDP does at construction; they are equal already), then one
+        # RNG stream per rank (rank 0 keeps the single-GPU seed) so ranks > 0 draw their own VCE samples
+        D.broadcast_params([query, matcher.model.decoder])
+        if D.rank:
+            torch.manual_seed(cfg.train.seed + D.rank)
+            np.random.seed(cfg.train.seed + D.rank)
     out = Path(a.out)
     out.mkdir(parents=True, exist_ok=True)
     ckpt_dir = C.REPO / "checkpoints"
@@ -275,6 +335,7 @@ def main():
 
     sd0 = ckpt_state(0, None)
     R.assert_no_frozen_encoder(sd0, matcher.model.encoder)
+    assert_unwrapped(sd0)
     rep = R.param_groups_report({"query": sd0["query"], "decoder": sd0["decoder"]})
     n_enc = sum(p.numel() for p in matcher.model.encoder.parameters())
     n_opt = sum(p.numel() for g in opt.param_groups for p in g["params"])
@@ -287,15 +348,41 @@ def main():
     def to_dev(b):
         return {kk: (x.to(dev, non_blocking=a.pin_memory) if torch.is_tensor(x) else x) for kk, x in b.items()}
 
+    parts_checked = []
+
     def train_step(batch, tick=lambda name: None):
         """One optimizer step; returns (loss, stats, bad, g_ok) as the main loop needs them. tick(name) is called
-        after the forward, backward and optimizer phases (the --profile breakdown synchronises there)."""
+        after the forward, backward and optimizer phases (the --profile breakdown synchronises there).
+        DDP: backward on every rank with a finite loss, then one all-reduce averages the gradients and ORs the
+        non-finite flags (a step skipped on one rank is skipped on all) and returns the global-batch statistics."""
         opt.zero_grad(set_to_none=True)
+        parts = {} if D.on else None
         loss, st = step(query, matcher, batch, cfg, L.min_patch_valid, a.local_radius,
-                        a.neighbour_radius, a.neighbour_weight, **step_kw)
+                        a.neighbour_radius, a.neighbour_weight, parts=parts, **step_kw)
+        if D.on:
+            if not parts_checked:                      # once: the terms must add up to the loss step() returns
+                s_parts = sum(t.detach() for t, _ in parts.values() if t is not None)
+                if not torch.allclose(s_parts, loss.detach(), rtol=1e-4, atol=1e-5, equal_nan=True):
+                    raise RuntimeError(f"step() loss terms {sorted(parts)} sum to {float(s_parts)} != loss "
+                                       f"{float(loss)}: a term is missing from parts (DDP normalisation)")
+                parts_checked.append(True)
+            # this rank's share of the global-batch loss (global counts); the summed gradients = the single-GPU one
+            loss = D.global_loss(loss, parts)
         bad = not bool(torch.isfinite(loss.detach()))
         tick("forward")
         g_ok = True
+        if D.on:
+            if not bad:
+                loss.backward()
+            tick("backward")
+            bad, st = D.reduce_step(opt_params, bad, st, average=False)   # global_loss: shares, summed
+            tick("allreduce")
+            if not bad:
+                if ref_params:                         # on the averaged gradient: the same decision on every rank
+                    _, g_ok = clip_refiner_grads(ref_params, grad_clip)
+                opt.step()
+                tick("optimizer")
+            return loss, st, bad, g_ok
         if not bad:
             loss.backward()
             tick("backward")
@@ -305,8 +392,17 @@ def main():
             tick("optimizer")
         return loss, st, bad, g_ok
 
+    if a.check_encoder:
+        run_check_encoder(a, query, matcher, va, va_loader, cfg, L, dev, to_dev, dict(
+            pose_nll_weight=a.pose_nll_weight, vce_weight=vce_w, vce_opts=vce_opts, refine_weight=refine_w,
+            refine_opts=refine_opts), D)
+        D.close()
+        return
+    if a.compile != "none":                        # after the checkpoint-content checks: keys are unchanged anyway
+        print(f"torch.compile: {compile_modules(matcher, a.compile)}", flush=True)
     if a.profile:
-        run_profile(a, tr, tr_loader, sampler, dev, to_dev, train_step, matcher)
+        run_profile(a, tr, tr_loader, sampler, dev, to_dev, train_step, matcher, D=D, b_rank=b_rank)
+        D.close()
         return
 
     # ---- resume ----
@@ -322,21 +418,37 @@ def main():
     if rp is not None:
         cnt = R.load_resume(rp, query, matcher.model.decoder, opt, loader_gen=g_loader)
         R.check_resume(cnt, a.batch, spe, len(tr), a.tag)
+        check_resume_world(cnt, D.world, b_rank)
+        if D.on:                                   # this rank's own RNG streams (rank 0's are the file's "rng")
+            rr = torch.load(rp, map_location="cpu", weights_only=False).get("rng_ranks")
+            if rr is None or len(rr) != D.world:
+                raise SystemExit(f"resume refused: {rp} has no per-rank RNG states for {D.world} ranks")
+            R.set_rng_state(rr[D.rank])
+            g_loader.set_state(rr[D.rank]["loader"])
         k0, best, best_step = int(cnt["step"]), float(cnt["best"]), cnt["best_step"]
         n_skip_step, guard.total, elapsed0 = int(cnt["n_skip_step"]), int(cnt["guard_total"]), float(cnt["elapsed"])
         v = cnt.get("val")
         if bool(cnt.get("tf32", False)) != bool(a.tf32):
             print(f"WARNING: resume file trained with tf32={cnt.get('tf32', False)}, this segment --tf32={a.tf32}",
                   flush=True)
+        for key, now, dflt in (("encoder_dtype", a.encoder_dtype, "float32"), ("compile", a.compile, "none")):
+            if cnt.get(key, dflt) != now:              # the precision of the frozen encoder changes mid-run
+                print(f"WARNING: resume file trained with {key}={cnt.get(key, dflt)}, this segment {now}", flush=True)
+        if D.on and cnt.get("loss_norm") != DDP_LOSS_NORM:
+            raise SystemExit(f"resume refused: {rp} was written by a DDP run without the global-count loss "
+                             f"normalisation ({cnt.get('loss_norm')!r} != {DDP_LOSS_NORM!r}); continuing it would "
+                             "change the objective mid-run")
         print(f"resumed {rp}: step {k0} (epoch {k0 / spe:.2f}), best {best:.3f} at step {best_step}", flush=True)
         if k0 >= a.steps:
             # finished: make sure `_last.pt` exists and is whole (a kill between the final resume save and the
             # `_last.pt` write would otherwise leave a chained fine run without its --ckpt), then exit 0 (afterok)
             last_path = ckpt_path.with_name(f"vigor_{a.tag}_last.pt")
-            R.atomic_save(ckpt_state(k0, v), last_path)
+            D.save(ckpt_state(k0, v), last_path)
             print(f"already at step {k0} >= {a.steps}: nothing to do (rewrote {last_path})", flush=True)
+            D.barrier()
+            D.close()
             return
-        n_drop = R.truncate_log(log, k0)
+        n_drop = R.truncate_log(log, k0) if D.main else 0
         if n_drop:
             print(f"{log}: dropped {n_drop} rows after step {k0} (re-run by this segment)", flush=True)
     else:
@@ -344,23 +456,41 @@ def main():
                     val_frac=a.val_frac, val_samples=a.val_samples, query_mode=mode,
                     vce_weight=vce_w, no_depth=n_no_depth, pose_nll_weight=a.pose_nll_weight,
                     refine_weight=refine_w, epochs=a.epochs, steps=a.steps, batch=a.batch, tf32=a.tf32)
-        p_snap = C.snapshot(cfg, out, snap)
-        # several runs may share --out (the coarse and fine long runs do) and overwrite config.yaml: keep a per-tag copy
-        (out / f"config_{a.tag}.yaml").write_text(Path(p_snap).read_text())
-    if rp is None or not log.is_file():
+        if D.on:
+            snap.update(world_size=D.world, batch_per_rank=b_rank, val_batch=a.val_batch, loss_norm=DDP_LOSS_NORM)
+        if a.encoder_dtype != "float32" or a.compile != "none":
+            snap.update(encoder_dtype=a.encoder_dtype, compile=a.compile)
+        if D.main:
+            p_snap = C.snapshot(cfg, out, snap)
+            # several runs may share --out (the coarse and fine long runs do) and overwrite config.yaml: keep a per-tag copy
+            (out / f"config_{a.tag}.yaml").write_text(Path(p_snap).read_text())
+    if D.main and (rp is None or not log.is_file()):
         log.write_text("step,split,ce,top1,cell_err_m,pose_nll,pose_err_m,n,sec,vce_m,vce_pose_m,fine_epe_px,"
                        "fine_epe_in_px,fine_skipped\n")
 
     def save_resume(k, v):
-        R.atomic_save(R.make_resume(ckpt_state(k, v), opt, loader_gen=g_loader, counters=dict(
-            step=k, best=best, best_step=best_step, n_skip_step=n_skip_step, guard_total=guard.total,
-            elapsed=time.time() - t0, batch=a.batch, steps_per_epoch=spe, n_train=len(tr), tag=a.tag,
-            tf32=bool(a.tf32), val=v)), res_path)
+        cnt = dict(step=k, best=best, best_step=best_step, n_skip_step=n_skip_step, guard_total=guard.total,
+                   elapsed=time.time() - t0, batch=a.batch, steps_per_epoch=spe, n_train=len(tr), tag=a.tag,
+                   tf32=bool(a.tf32), val=v)
+        if a.encoder_dtype != "float32" or a.compile != "none":   # single-GPU default files keep their keys
+            cnt.update(encoder_dtype=a.encoder_dtype, compile=a.compile)
+        if not D.on:
+            R.atomic_save(R.make_resume(ckpt_state(k, v), opt, loader_gen=g_loader, counters=cnt), res_path)
+            return
+        # every rank's RNG (collective: all ranks call this), written by rank 0 with the world size and split
+        mine = R.rng_state()
+        mine["loader"] = g_loader.get_state()
+        rngs = D.gather_object(mine)
+        cnt.update(world_size=D.world, batch_per_rank=b_rank, loss_norm=DDP_LOSS_NORM)
+        if D.main:
+            D.save(dict(R.make_resume(ckpt_state(k, v), opt, loader_gen=g_loader, counters=cnt), rng_ranks=rngs),
+                   res_path)
+        D.barrier()
 
     def batches(k_start):
         e, skip = divmod(k_start, spe)
         while True:
-            sampler.set_epoch(e, skip * a.batch)           # the rest of epoch e in its seeded order
+            sampler.set_epoch(e, skip * a.batch)           # the rest of epoch e in its seeded order (DDP: all shards)
             for b in tr_loader:
                 yield b
             e, skip = e + 1, 0
@@ -379,6 +509,11 @@ def main():
             bad = True
         bad = bad or bool(st.get("fine_skipped", 0))
         guard.update(bad, k)                           # raises after refine_max_nonfinite bad steps in a row
+        e_save = R.is_epoch_save(k, spe, a.save_every_epochs) if a.epochs else 0
+        if not D.main:                                 # DDP: rank 0 logs, validates and saves; the others wait
+            if k % a.val_every == 0 or k == a.steps or e_save:
+                save_resume(k, None)                   # the RNG gather + barrier (waits for rank 0's validation)
+            continue
         with log.open("a") as f:
             f.write(f"{k},train,{st['ce']:.4f},{st['acc']:.4f},{st['cell_err'] * m_per_cell:.2f},"
                     f"{st['pose_nll']:.4f},{st['pose_err'] * m_per_cell:.2f},{st['n']},{time.time() - t0:.1f},"
@@ -391,10 +526,9 @@ def main():
                   + (f"  fine EPE {st['fine_epe_px']:.2f} px (input {st['fine_epe_in_px']:.2f})"
                      f"  non-finite steps {guard.total}" if refine_w else "")
                   + f"  ({time.time() - t0:.0f}s, epoch {k / spe:.2f})", flush=True)
-        e_save = R.is_epoch_save(k, spe, a.save_every_epochs) if a.epochs else 0
         if k % a.val_every == 0 or k == a.steps or e_save:          # an epoch save always validates first
             v = validate(query, matcher, va_loader, cfg, L.min_patch_valid, a.local_radius, device=dev,
-                         max_batches=max(1, -(-a.val_samples // a.batch)), certainty_weight=0.01,
+                         max_batches=max(1, -(-a.val_samples // a.val_batch)), certainty_weight=0.01,
                          pose_nll_weight=a.pose_nll_weight, vce_weight=vce_w, vce_opts=vce_opts,
                          refine_weight=refine_w, refine_opts=refine_opts)
             with log.open("a") as f:
@@ -415,41 +549,73 @@ def main():
                 print(f"  WARNING step {k}: validation not finite ({ {kk: v.get(kk) for kk in val_keys} }, "
                       f"fine batches skipped {v.get('fine_skipped', 0)}): not a checkpoint candidate", flush=True)
             else:
-                R.atomic_save(ckpt_state(k, v), last_finite_path)
+                D.save(ckpt_state(k, v), last_finite_path)
             if is_best:
                 best, best_step = score, k
-                R.atomic_save(ckpt_state(k, v), ckpt_path)
+                D.save(ckpt_state(k, v), ckpt_path)
                 print(f"  best -> {ckpt_path}", flush=True)
             if e_save:
                 p_ep = R.epoch_ckpt_path(ckpt_dir, a.tag, e_save)
-                R.atomic_save(ckpt_state(k, v), p_ep)
+                D.save(ckpt_state(k, v), p_ep)
                 print(f"  epoch {e_save} -> {p_ep} ({p_ep.stat().st_size / 2 ** 20:.0f} MiB)", flush=True)
             save_resume(k, v)
             query.train()
     last_path = ckpt_path.with_name(f"vigor_{a.tag}_last.pt")   # a late (multimodal) checkpoint stays evaluable
-    R.atomic_save(ckpt_state(a.steps, v if a.steps else None), last_path)
+    D.save(ckpt_state(a.steps, v if a.steps else None), last_path)
+    D.barrier()
+    D.close()
     print(f"wrote {ckpt_path} (best, step {best_step}), {last_finite_path} (last finite validation) and {last_path} "
           f"(last, step {a.steps}, {last_path.stat().st_size / 2 ** 20:.0f} MiB); resume state {res_path}; "
           f"non-finite steps {guard.total}, no-update steps {n_skip_step}", flush=True)
 
 
-def run_profile(a, tr, tr_loader, sampler, dev, to_dev, train_step, matcher=None):
+def run_check_encoder(a, query, matcher, va, va_loader, cfg, L, dev, to_dev, vkw, D):
+    """--check-encoder: float32 vs --encoder-dtype on the frozen encoder. One CHECK json line with the token
+    difference on the first validation batch (reference and panorama) and the validation metrics both ways."""
+    import json
+    if not D.main:
+        return
+    enc = matcher.model.encoder
+    b = to_dev(next(iter(va_loader)))
+    diff = dict(ref=encoder_diff(enc, b["ref"]), pano=encoder_diff(enc, b["erp"][:, 0]))
+    out = dict(encoder_dtype=a.encoder_dtype, ckpt=a.ckpt, val_samples=len(va), token_diff=diff, tf32=a.tf32)
+    m_per_cell = (cfg.grid.n * cfg.reference.scale / 56.0) * cfg.grid.cell_m
+    for name in ("float32", a.encoder_dtype):
+        enc._bevloc_amp_dtype = name
+        t = time.time()
+        v = validate(query, matcher, va_loader, cfg, L.min_patch_valid, a.local_radius, device=dev,
+                     max_batches=max(1, -(-a.val_samples // a.val_batch)), certainty_weight=0.01, **vkw)
+        v["pose_m"] = v["pose_err_m"] / (cfg.grid.cell_m * 16) * m_per_cell
+        v["sec"] = time.time() - t
+        out[name] = v
+        print(f"check {name}: {v}", flush=True)
+    print("CHECK " + json.dumps(out), flush=True)
+
+
+def run_profile(a, tr, tr_loader, sampler, dev, to_dev, train_step, matcher=None, D=None, b_rank=None):
     """--profile N: time --profile-warmup + N real training steps (no validation, no checkpoints) and print one
     PROFILE json line: peak CUDA memory, per-step data wait (blocked on next(loader)) / host-to-device / compute
-    (forward + backward + optimizer, synchronised), samples/s, nvidia-smi GPU utilisation, per-sample CPU cost."""
-    cuda = dev == "cuda"
+    (forward + backward + optimizer, synchronised), samples/s, nvidia-smi GPU utilisation, per-sample CPU cost.
+    Under torchrun: one PROFILE line per rank (its own batch b, its samples/s; compute includes the gradient
+    all-reduce and the wait for the slowest rank) and one aggregate line (global batch, node samples/s)."""
+    D = D or Dist()
+    b_rank = b_rank or a.batch
+    cuda = str(dev).startswith("cuda")
     sync = torch.cuda.synchronize if cuda else (lambda: None)
-    cost = R.sample_cost(tr, n=16)
+    cost = R.sample_cost(tr, n=16) if D.main else None
     print(f"per-sample CPU cost (main process, s): {cost}", flush=True)
     base = dict(workers=a.workers, prefetch=a.prefetch if a.workers else None, pin_memory=a.pin_memory,
-                cpus=len(os.sched_getaffinity(0)), config=a.config, sample_cost_s=cost)
+                cpus=len(os.sched_getaffinity(0)), config=a.config, sample_cost_s=cost,
+                encoder_dtype=a.encoder_dtype, compile=a.compile)
+    if D.on:
+        base.update(rank=D.rank, world_size=D.world, global_batch=a.batch)
     if cuda:
         torch.cuda.reset_peak_memory_stats()
-    total = torch.cuda.get_device_properties(0).total_memory if cuda else 0
+    total = torch.cuda.get_device_properties(torch.cuda.current_device()).total_memory if cuda else 0
     sampler.set_epoch(0)
     it = iter(tr_loader)
     t_data, t_h2d, t_comp = [], [], []
-    gu = R.GpuUtil()
+    gu = R.GpuUtil(index=D.local_rank if D.on else None)
     try:
         for k in range(a.profile_warmup + a.profile):
             if k == a.profile_warmup:
@@ -470,7 +636,7 @@ def run_profile(a, tr, tr_loader, sampler, dev, to_dev, train_step, matcher=None
             print(f"profile step {k + 1}: data {t1 - t:.3f}s h2d {t2 - t1:.3f}s compute {t3 - t2:.3f}s", flush=True)
     except torch.cuda.OutOfMemoryError as e:
         gu.__exit__(None, None, None)
-        R.print_profile(dict(batch=a.batch, oom=True, error=str(e).splitlines()[0][:200],
+        R.print_profile(dict(batch=b_rank, oom=True, error=str(e).splitlines()[0][:200],
                              peak_reserved_gib=torch.cuda.max_memory_reserved() / 1024 ** 3, **base))
         sys.exit(3)
     gu.__exit__(None, None, None)
@@ -504,9 +670,17 @@ def run_profile(a, tr, tr_loader, sampler, dev, to_dev, train_step, matcher=None
         bd["decoder_fwd_etc"] = bd["forward"] - bd["enc_ref"] - bd["enc_pano"]
         base.update(breakdown_s=bd, tf32=a.tf32,
                     shapes=dict(ref=list(batch["ref"].shape), erp=list(batch["erp"].shape)))
-    R.print_profile(R.profile_summary(
-        a.batch, t_data, t_h2d, t_comp, torch.cuda.max_memory_allocated() if cuda else 0,
-        torch.cuda.max_memory_reserved() if cuda else 0, total, util=gu.mean(), extra=dict(oom=False, **base)))
+    summ = R.profile_summary(
+        b_rank, t_data, t_h2d, t_comp, torch.cuda.max_memory_allocated() if cuda else 0,
+        torch.cuda.max_memory_reserved() if cuda else 0, total, util=gu.mean(), extra=dict(oom=False, **base))
+    if not D.on:
+        R.print_profile(summ)
+        return
+    rows = D.gather_object(summ)
+    if D.main:
+        for r in rows:
+            R.print_profile(r)
+        R.print_profile(R.aggregate_profiles(rows, a.batch))
 
 
 if __name__ == "__main__":
