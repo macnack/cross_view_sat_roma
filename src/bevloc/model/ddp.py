@@ -4,7 +4,10 @@ Launch: `torchrun --standalone --nproc_per_node W scripts/train_vigor.py ... --b
 torchrun (no WORLD_SIZE in the environment) `Dist` is the single-process no-op and the script is unchanged.
 
 --batch is ALWAYS the global (optimizer) batch B; each of the W ranks draws b = B / W samples per step, so the
-optimisation (steps per epoch = len(train) // B, lr, epochs) is that of a single-GPU run at batch B.
+optimisation (steps per epoch = len(train) // B, lr, epochs) is that of a single-GPU run at batch B. The loss terms
+are means over per-rank counts (matchable tokens, samples); `Dist.global_loss` reweights each rank's terms by
+n_rank * W / n_global before backward, so the rank-mean gradient equals the single-GPU gradient of the union batch
+(tests/test_ddp.py: the real training step, uneven token counts, 2 gloo processes vs one process, ~5e-6 relative).
 
 Why the gradient average is done here and not by torch.nn.parallel.DistributedDataParallel: DDP only reduces
 gradients of a forward that goes through its wrapper, and the trainable decoder is called from inside the matcher
@@ -42,12 +45,21 @@ def per_rank_batch(global_batch: int, world: int) -> int:
 
 
 # the per-step statistics of train_lift_splat.step() that are logged, combined over the ranks as the single-GPU step
-# would have computed them on the global batch: the token-level means (CE, top-1, argmax cell error; `n` = tokens)
-# weighted by n, the per-sample means (pose NLL / error, VCE, fine EPE; equal sample counts per rank) as plain means
-# over the ranks with a finite value, the counts summed
-STAT_WMEAN = ("ce", "acc", "cell_err")
-STAT_MEAN = ("pose_nll", "pose_err", "vce_m", "vce_pose_m", "fine_epe_px", "fine_epe_in_px")
-STAT_SUM = ("n", "fine_skipped")
+# would have computed them on the global batch: every mean weighted by the count it is a mean over (token means by
+# `n`, the pose NLL / error by `n_pose` samples, VCE by `n_vce` samples, fine EPE by `n_fine` tokens); a statistic
+# whose count is 0 on every rank (term off: the step logs a constant such as pose_nll 0.0) falls back to the plain
+# mean over the ranks with a finite value. Counts are summed; fine_skipped is 1 when any rank skipped.
+STAT_WMEAN = (("ce", "n"), ("acc", "n"), ("cell_err", "n"), ("pose_nll", "n_pose"), ("pose_err", "n_pose"),
+              ("vce_m", "n_vce"), ("vce_pose_m", "n_vce"), ("fine_epe_px", "n_fine"), ("fine_epe_in_px", "n_fine"))
+STAT_SUM = ("n", "n_pose", "n_vce", "n_fine", "fine_skipped")
+
+# every loss term of train_lift_splat.step(parts=...) (name -> (weighted term, count it is a mean over)); a term
+# missing from this list is refused by global_loss, so a new loss cannot silently bypass the reweighting
+PART_KEYS = ("ce", "hinge", "cert", "pose_nll", "vce", "fine_reg", "fine_cert")
+FINE_PARTS = ("fine_reg", "fine_cert")
+# recorded in a DDP run's train dict and resume counters: the loss terms are normalised by the GLOBAL counts
+# (global_loss); a DDP resume file without it (per-rank means, before review 2026-09-29) is refused
+DDP_LOSS_NORM = "global_counts"
 
 
 class Dist:
@@ -135,13 +147,43 @@ class Dist:
 
     # ---- the training step ---------------------------------------------------------------------------------------
 
+    def global_loss(self, loss, parts):
+        """The loss each rank backpropagates so that the MEAN of the ranks' gradients (reduce_step) equals the
+        gradient of the single-GPU loss on the union batch.
+
+        Every term of step() is a mean over a per-rank count n_r (matchable tokens for CE / hinge, all tokens for
+        the certainty BCE, samples with the GT inside the crop for the pose NLL, samples kept by the VCE, tokens of
+        the fine loss); the single-GPU term on the union is sum_r(n_r * mean_r) / N with N = sum_r n_r. One small
+        all-reduce of the counts before backward, then rank r's term is scaled by n_r * W / N (0 when N = 0), so
+        (1 / W) sum_r grad(rank r's loss) = grad(single-GPU loss). A fine loss skipped (non-finite) on any rank is
+        dropped on every rank, as the single-GPU step drops it for the whole batch. World 1: `loss` unchanged."""
+        if not self.on:
+            return loss
+        extra = set(parts) - set(PART_KEYS) - {"fine_skipped"}
+        if extra:
+            raise KeyError(f"loss terms {sorted(extra)} are not in bevloc.model.ddp.PART_KEYS (no reweighting)")
+        cnt = [float(parts[k][1]) if k in parts else 0.0 for k in PART_KEYS] + [1.0 if "fine_skipped" in parts else 0.0]
+        t = torch.tensor(cnt, dtype=torch.float64, device=self._comm_device())
+        torch.distributed.all_reduce(t)
+        tot = t.cpu().tolist()
+        skip_fine = tot[-1] > 0
+        out = None
+        for k, N in zip(PART_KEYS, tot):
+            if k not in parts or (skip_fine and k in FINE_PARTS):
+                continue
+            term, n = parts[k]
+            f = float(n) * self.world / N if N > 0 else 0.0
+            out = term * f if out is None else out + term * f
+        return out if out is not None else loss * 0.0
+
+
     def reduce_step(self, params, bad: bool, st: dict):
         """After a (possibly skipped) backward on every rank: ONE all-reduce of [grads | bad | stats].
 
         Gradients become the mean over ranks (a parameter whose grad is None on every rank stays None, as it would
         on one GPU; one missing on some ranks only counts as zero there). Returns (bad_any, st_global): the step is
         skipped on EVERY rank when any rank's loss was non-finite, and st_global holds the logged statistics of the
-        global batch (n-weighted token means, plain means of the per-sample terms, summed counts; STAT_*), so
+        global batch (count-weighted means, summed counts; STAT_*), so
         the non-finite guard and the CSV see the same values on all ranks. World 1: returns the inputs unchanged."""
         if not self.on:
             return bool(bad), st
@@ -151,15 +193,11 @@ class Dist:
         n_g = sum(sizes)
         n_p = len(params)
         stats = []
-        n_loc = float(st.get("n", 0) or 0)
-        for k in STAT_WMEAN:
+        for k, c in STAT_WMEAN:
             v = float(st.get(k, float("nan")))
-            ok = math.isfinite(v) and n_loc > 0
-            stats += [v * n_loc if ok else 0.0, n_loc if ok else 0.0]
-        for k in STAT_MEAN:
-            v = float(st.get(k, float("nan")))
+            w = float(st.get(c, 0) or 0)
             ok = math.isfinite(v)
-            stats += [v if ok else 0.0, 1.0 if ok else 0.0]
+            stats += [v * w if ok and w > 0 else 0.0, w if ok and w > 0 else 0.0, v if ok else 0.0, 1.0 if ok else 0.0]
         for k in STAT_SUM:
             stats.append(float(st.get(k, 0) or 0))
         buf = torch.zeros(n_g + n_p + 1 + len(stats), dtype=torch.float32, device=dev)
@@ -190,15 +228,14 @@ class Dist:
         r = tail[n_p + 1:].tolist()
         out = dict(st)
         j = 0
-        for k in STAT_WMEAN:
-            out[k] = r[j] / r[j + 1] if r[j + 1] > 0 else float("nan")
-            j += 2
-        for k in STAT_MEAN:
-            out[k] = r[j] / r[j + 1] if r[j + 1] > 0 else float("nan")
-            j += 2
+        for k, _ in STAT_WMEAN:
+            sw, w, sv, m = r[j:j + 4]
+            out[k] = sw / w if w > 0 else (sv / m if m > 0 else float("nan"))
+            j += 4
         for k in STAT_SUM:
             out[k] = int(round(r[j]))
             j += 1
+        out["fine_skipped"] = min(out["fine_skipped"], 1)
         return bad_any, out
 
 

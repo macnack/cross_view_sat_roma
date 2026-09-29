@@ -52,8 +52,11 @@ the checkpoints' train dict) tune throughput.
 Multi-GPU (bevloc.model.ddp; `make eagle-submit-ddp`, slurm/run_ddp.sbatch): `torchrun --standalone --nproc_per_node W
 scripts/train_vigor.py ... --batch B`. --batch is ALWAYS the global optimizer batch: each rank draws B / W samples
 (printed as "global batch B = W ranks x b per rank"), so steps per epoch, lr and epochs are those of one GPU at batch
-B. The epoch permutation is sharded (rank r: positions r::W), gradients of the trainable head + decoder are averaged
-over the ranks with one all-reduce per step (the frozen encoder is a plain module on every rank), a step skipped on
+B. The epoch permutation is sharded (rank r: positions r::W); every loss term (a mean over matchable tokens, tokens or
+samples) is reweighted by its rank's share of the GLOBAL count (one small all-reduce before backward,
+bevloc.model.ddp.global_loss), so the gradients of the trainable head + decoder averaged over the ranks with one
+all-reduce per step ARE the single-GPU gradient of the global batch (the frozen encoder is a plain module on every
+rank; the VCE draws differ per rank, as any two runs' draws do). A step skipped on
 one rank (non-finite loss) is skipped on all, and the logged training statistics are those of the global batch. Rank
 0 alone validates (the same --val-samples frames; --val-batch, default min(B, 32)), writes the CSV, config snapshot and
 every checkpoint (bare state dicts, no `module.` prefix); the others wait. The resume file also stores the world size,
@@ -78,7 +81,7 @@ from train_lift_splat import refine_options, step, validate  # noqa: E402
 
 from bevloc import config as C  # noqa: E402
 from bevloc.model import trainrun as R  # noqa: E402
-from bevloc.model.ddp import Dist, assert_unwrapped, check_resume_world, per_rank_batch  # noqa: E402
+from bevloc.model.ddp import DDP_LOSS_NORM, Dist, assert_unwrapped, check_resume_world, per_rank_batch  # noqa: E402
 from bevloc.model.speed import (  # noqa: E402
     COMPILE_CHOICES, ENCODER_DTYPES, attention_report, compile_modules, encoder_diff, set_encoder_dtype,
 )
@@ -263,7 +266,7 @@ def main():
                       matmul_tf32=bool(torch.backends.cuda.matmul.allow_tf32),
                       cudnn_tf32=bool(torch.backends.cudnn.allow_tf32))
     if D.on:                                       # single-GPU checkpoints keep their train dict unchanged
-        train_meta.update(world_size=D.world, batch_per_rank=b_rank, val_batch=a.val_batch)
+        train_meta.update(world_size=D.world, batch_per_rank=b_rank, val_batch=a.val_batch, loss_norm=DDP_LOSS_NORM)
     print(f"{spe} steps per epoch ({'global ' if D.on else ''}batch {a.batch}, drop_last)  total {a.steps} steps"
           + (f" = {a.epochs} epochs" if a.epochs else f" = {a.steps / spe:.2f} epochs")
           + f"  validation every {a.val_every} steps  workers {a.workers} prefetch {a.prefetch if a.workers else '-'} "
@@ -344,14 +347,26 @@ def main():
     def to_dev(b):
         return {kk: (x.to(dev, non_blocking=a.pin_memory) if torch.is_tensor(x) else x) for kk, x in b.items()}
 
+    parts_checked = []
+
     def train_step(batch, tick=lambda name: None):
         """One optimizer step; returns (loss, stats, bad, g_ok) as the main loop needs them. tick(name) is called
         after the forward, backward and optimizer phases (the --profile breakdown synchronises there).
         DDP: backward on every rank with a finite loss, then one all-reduce averages the gradients and ORs the
         non-finite flags (a step skipped on one rank is skipped on all) and returns the global-batch statistics."""
         opt.zero_grad(set_to_none=True)
+        parts = {} if D.on else None
         loss, st = step(query, matcher, batch, cfg, L.min_patch_valid, a.local_radius,
-                        a.neighbour_radius, a.neighbour_weight, **step_kw)
+                        a.neighbour_radius, a.neighbour_weight, parts=parts, **step_kw)
+        if D.on:
+            if not parts_checked:                      # once: the terms must add up to the loss step() returns
+                s_parts = sum(t.detach() for t, _ in parts.values() if t is not None)
+                if not torch.allclose(s_parts, loss.detach(), rtol=1e-4, atol=1e-5, equal_nan=True):
+                    raise RuntimeError(f"step() loss terms {sorted(parts)} sum to {float(s_parts)} != loss "
+                                       f"{float(loss)}: a term is missing from parts (DDP normalisation)")
+                parts_checked.append(True)
+            # rescaled to the global batch's normalisers: the rank-mean gradient = the single-GPU union gradient
+            loss = D.global_loss(loss, parts)
         bad = not bool(torch.isfinite(loss.detach()))
         tick("forward")
         g_ok = True
@@ -415,6 +430,13 @@ def main():
         if bool(cnt.get("tf32", False)) != bool(a.tf32):
             print(f"WARNING: resume file trained with tf32={cnt.get('tf32', False)}, this segment --tf32={a.tf32}",
                   flush=True)
+        for key, now, dflt in (("encoder_dtype", a.encoder_dtype, "float32"), ("compile", a.compile, "none")):
+            if cnt.get(key, dflt) != now:              # the precision of the frozen encoder changes mid-run
+                print(f"WARNING: resume file trained with {key}={cnt.get(key, dflt)}, this segment {now}", flush=True)
+        if D.on and cnt.get("loss_norm") != DDP_LOSS_NORM:
+            raise SystemExit(f"resume refused: {rp} was written by a DDP run without the global-count loss "
+                             f"normalisation ({cnt.get('loss_norm')!r} != {DDP_LOSS_NORM!r}); continuing it would "
+                             "change the objective mid-run")
         print(f"resumed {rp}: step {k0} (epoch {k0 / spe:.2f}), best {best:.3f} at step {best_step}", flush=True)
         if k0 >= a.steps:
             # finished: make sure `_last.pt` exists and is whole (a kill between the final resume save and the
@@ -434,7 +456,9 @@ def main():
                     vce_weight=vce_w, no_depth=n_no_depth, pose_nll_weight=a.pose_nll_weight,
                     refine_weight=refine_w, epochs=a.epochs, steps=a.steps, batch=a.batch, tf32=a.tf32)
         if D.on:
-            snap.update(world_size=D.world, batch_per_rank=b_rank, val_batch=a.val_batch)
+            snap.update(world_size=D.world, batch_per_rank=b_rank, val_batch=a.val_batch, loss_norm=DDP_LOSS_NORM)
+        if a.encoder_dtype != "float32" or a.compile != "none":
+            snap.update(encoder_dtype=a.encoder_dtype, compile=a.compile)
         if D.main:
             p_snap = C.snapshot(cfg, out, snap)
             # several runs may share --out (the coarse and fine long runs do) and overwrite config.yaml: keep a per-tag copy
@@ -447,6 +471,8 @@ def main():
         cnt = dict(step=k, best=best, best_step=best_step, n_skip_step=n_skip_step, guard_total=guard.total,
                    elapsed=time.time() - t0, batch=a.batch, steps_per_epoch=spe, n_train=len(tr), tag=a.tag,
                    tf32=bool(a.tf32), val=v)
+        if a.encoder_dtype != "float32" or a.compile != "none":   # single-GPU default files keep their keys
+            cnt.update(encoder_dtype=a.encoder_dtype, compile=a.compile)
         if not D.on:
             R.atomic_save(R.make_resume(ckpt_state(k, v), opt, loader_gen=g_loader, counters=cnt), res_path)
             return
@@ -454,7 +480,7 @@ def main():
         mine = R.rng_state()
         mine["loader"] = g_loader.get_state()
         rngs = D.gather_object(mine)
-        cnt.update(world_size=D.world, batch_per_rank=b_rank)
+        cnt.update(world_size=D.world, batch_per_rank=b_rank, loss_norm=DDP_LOSS_NORM)
         if D.main:
             D.save(dict(R.make_resume(ckpt_state(k, v), opt, loader_gen=g_loader, counters=cnt), rng_ranks=rngs),
                    res_path)

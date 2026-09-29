@@ -55,6 +55,19 @@ def compile_modules(matcher, which: str = "none"):
     """In-place torch.compile (dynamic=False) of matcher.model.encoder and / or matcher.model.decoder."""
     if which not in COMPILE_CHOICES:
         raise ValueError(f"--compile {which!r} not in {COMPILE_CHOICES}")
+    if which != "none":
+        # dynamic=False specialises every input shape: training (per-rank batch; reference + panorama = 2 graphs),
+        # validation (--val-batch and the last partial batch: 4 more) = 6 of dynamo's default 8 per function. Room
+        # for a few more, and an error instead of the silent fall-back to eager when the limit is still hit
+        # (a compile error itself already raises: suppress_errors is off by default)
+        cfg = torch._dynamo.config
+        for lim, fail in (("recompile_limit", "fail_on_recompile_limit_hit"),
+                          ("cache_size_limit", "fail_on_cache_limit_hit")):
+            if hasattr(cfg, lim):
+                setattr(cfg, lim, max(int(getattr(cfg, lim)), 16))
+                if hasattr(cfg, fail):
+                    setattr(cfg, fail, True)
+                break
     done = []
     if which in ("encoder", "both"):
         matcher.model.encoder.compile(dynamic=False)

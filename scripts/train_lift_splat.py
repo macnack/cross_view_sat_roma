@@ -41,7 +41,7 @@ def refine_options(cfg):
 FINE_KEYS = ("fine_epe_px", "fine_epe_in_px", "fine_epe_med_px", "fine_epe_in_med_px", "fine_reg", "fine_cert")
 
 
-def refine_step_loss(out16, tap, H, use, tok_valid, query_xy, ref_size, cells, certainty_weight, opts):
+def refine_step_loss(out16, tap, H, use, tok_valid, query_xy, ref_size, cells, certainty_weight, opts, parts=None):
     """RoMa's fine loss on the decoder's stride-16 conv refiner (its only refiner; bevloc.model.refine).
 
     The refiner ran on detached inputs (`RefinerTap(detach_inputs=True)`), so its loss trains the refiner only.
@@ -63,21 +63,27 @@ def refine_step_loss(out16, tap, H, use, tok_valid, query_xy, ref_size, cells, c
     if not (bool(torch.isfinite(warp).all()) and bool(torch.isfinite(cert).all())):
         return None, skipped
     opts = {k: v for k, v in opts.items() if k != "precision"}
+    fparts = {} if parts is not None else None
     loss, st = fine_loss(warp, cert, tap.warp_in.detach().float(), gt, use, tok_valid, cell_norm=2.0 / cells,
-                         stride=16, certainty_weight=certainty_weight, **opts)
+                         stride=16, certainty_weight=certainty_weight, parts=fparts, **opts)
     if not bool(torch.isfinite(loss)):
         return None, skipped
+    if parts is not None:
+        parts.update(fparts)
     st["fine_skipped"] = 0
     return loss, st
 
 
 def step(query, matcher, batch, cfg, min_patch, local_radius, neighbour_radius, neighbour_weight,
          certainty_weight=0.01, pose_nll_weight=0.0, vce_weight=0.0, vce_opts=None, generator=None,
-         refine_weight=0.0, refine_opts=None):
+         refine_weight=0.0, refine_opts=None, parts=None):
     """vce_weight > 0 adds Loc²'s VCE pose loss (bevloc.model.coarse.vce_pose_loss) on the placed query points;
     needs a query with `placement` (erp, erp_depth). vce_opts: its keyword arguments (coarse.vce_options).
     refine_weight > 0 adds RoMa's fine loss on the decoder's conv refiner (`refine_step_loss`; refine_opts =
-    `refine_options(cfg)`); the caller unfreezes the refiner (`set_refiner_trainable`)."""
+    `refine_options(cfg)`); the caller unfreezes the refiner (`set_refiner_trainable`).
+    parts: optional dict, filled with every loss term as name -> (weighted term, the count it is a mean over), so
+    loss == sum of the terms (bevloc.model.ddp.global_loss reweights them to the global batch's normalisers);
+    "fine_skipped" -> (None, 1) marks a skipped fine loss. The counts also land in the stats (n_pose, n_vce)."""
     ref = batch["ref"]
     f_q, patch_frac = query(batch, matcher)          # lift | ipm | hybrid | erp | erp_depth, see bevloc.model.query
     # scale_factor = sqrt(query px area) / 560: 0.4 for the 224 px BEV queries, 1.13 for a 448x896 ERP grid
@@ -108,10 +114,11 @@ def step(query, matcher, batch, cfg, min_patch, local_radius, neighbour_radius, 
         use[neg] = False
     loss, st = roma_coarse_loss(gm, idx, use, gm_certainty=cert, certainty_weight=certainty_weight,
                                 local_radius=local_radius, neighbour_radius=neighbour_radius,
-                                neighbour_weight=neighbour_weight)
+                                neighbour_weight=neighbour_weight, parts=parts)
     st = dict(st)
     st["pose_nll"] = 0.0
     st["pose_err"] = float("nan")
+    st["n_pose"] = 0
     if pose_nll_weight and (neg is None or not bool(neg.all())):
         pnll, pst = pose_heatmap_nll(
             gm, batch["H"], matchable=use, gm_certainty=cert,
@@ -120,8 +127,12 @@ def step(query, matcher, batch, cfg, min_patch, local_radius, neighbour_radius, 
         loss = loss + float(pose_nll_weight) * pnll
         st["pose_nll"] = pst["pose_nll"]
         st["pose_err"] = pst["pose_err"]
+        st["n_pose"] = pst["n"]
+        if parts is not None:
+            parts["pose_nll"] = (float(pose_nll_weight) * pnll, pst["n_norm"])
     st["vce_m"] = float("nan")
     st["vce_pose_m"] = float("nan")
+    st["n_vce"] = 0
     if vce_weight:
         if placed is None:
             raise ValueError("vce_weight > 0 needs a query with placed tokens (erp, erp_depth)")
@@ -134,18 +145,28 @@ def step(query, matcher, batch, cfg, min_patch, local_radius, neighbour_radius, 
         loss = loss + float(vce_weight) * vloss
         st["vce_m"] = vst["vce_m"]
         st["vce_pose_m"] = vst["vce_pose_m"]
+        st["n_vce"] = vst["n_vce"]
+        if parts is not None:
+            parts["vce"] = (float(vce_weight) * vloss, vst["n_vce"])
     for k in FINE_KEYS:
         st[k] = float("nan")
     st["fine_skipped"] = 0
+    st["n_fine"] = 0
     if refine_weight:
         tok_valid = patch_frac >= min_patch
         if placed is not None:
             tok_valid = tok_valid & placed[1]
+        rparts = {} if parts is not None else None
         rloss, rst = refine_step_loss(out[16], tap, batch["H"], use, tok_valid, query_xy, ref_size, cells,
-                                      certainty_weight, refine_opts or {})
+                                      certainty_weight, refine_opts or {}, parts=rparts)
         st["fine_skipped"] = rst["fine_skipped"]
+        st["n_fine"] = int(rst.get("fine_n", 0))
         if rloss is not None:
             loss = loss + float(refine_weight) * rloss
+            if parts is not None:
+                parts.update({kk: (float(refine_weight) * t, c) for kk, (t, c) in rparts.items()})
+        elif parts is not None:
+            parts["fine_skipped"] = (None, 1)
         px = ref_size / 2.0                                          # normalised -> reference px
         st.update(fine_epe_px=rst["fine_epe"] * px, fine_epe_in_px=rst["fine_epe_in"] * px,
                   fine_epe_med_px=rst["fine_epe_med"] * px, fine_epe_in_med_px=rst["fine_epe_in_med"] * px,

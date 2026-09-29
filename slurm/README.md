@@ -152,7 +152,9 @@ holds the CSV log and `config.yaml` (+ a per-tag `config_<tag>.yaml`, since both
 - `--batch` is the GLOBAL batch; each of the 4 ranks draws batch / 4 (printed: `DDP: global batch 32 = 4 ranks x 8
   per rank`). Steps per epoch, lr and epochs are those of one GPU at that batch: global 32 = the reviewed plan
   (1,315 steps per epoch, 131,500 for 100 epochs); global 128 = 32,800 steps (another optimisation, not the plan).
-- The epoch permutation is sharded (rank r takes positions r::4), gradients of the head + decoder are averaged by one
+- The epoch permutation is sharded (rank r takes positions r::4); every loss term is reweighted by the rank's share
+  of the GLOBAL token / sample count (review 2026-09-29: `Dist.global_loss`, one small all-reduce before backward), so
+  the averaged gradient IS the single-GPU gradient of the global batch; gradients of the head + decoder are averaged by one
   all-reduce per step (the frozen encoder is a plain module on each rank), a non-finite step on one rank is skipped on
   all, rank 0 validates (the same 400 frames, `--val-batch` default min(batch, 32)) and writes the CSV, the config
   snapshot and every checkpoint (same keys as single-GPU ones). The resume file also stores the world size, the

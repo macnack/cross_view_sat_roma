@@ -131,10 +131,6 @@ def pose_heatmap_nll(gm_cls, H, matchable=None, gm_certainty=None, local_radius=
     k = int(round(K2 ** 0.5))
     if k * k != K2:
         raise ValueError(f"gm_cls channels {K2} not a square")
-    if matchable is not None and not bool(matchable.any()):
-        z = gm_cls.sum() * 0.0
-        return z, dict(pose_nll=0.0, pose_err=float("nan"), n=0)
-    heat = vote_heatmap(gm_cls, gm_certainty, matchable).reshape(B, K2)   # log-probs, constant shift vs raw votes
     # GT vehicle centre (query image centre) → reference cell
     centre = torch.tensor([query_size / 2 - 0.5, query_size / 2 - 0.5, 1.0],
                           device=H.device, dtype=H.dtype)
@@ -144,9 +140,15 @@ def pose_heatmap_nll(gm_cls, H, matchable=None, gm_certainty=None, local_radius=
     col = torch.floor((xy[:, 0] + 0.5) / s).long()
     row = torch.floor((xy[:, 1] + 0.5) / s).long()
     inside = (col >= 0) & (col < k) & (row >= 0) & (row < k)
+    if matchable is not None and not bool(matchable.any()):
+        # n_norm: the samples a larger batch holding this one would average over (their uniform heat-map has zero
+        # gradient); the data-parallel normaliser (bevloc.model.ddp.global_loss) needs them
+        z = gm_cls.sum() * 0.0
+        return z, dict(pose_nll=0.0, pose_err=float("nan"), n=0, n_norm=int(inside.sum()))
+    heat = vote_heatmap(gm_cls, gm_certainty, matchable).reshape(B, K2)   # log-probs, constant shift vs raw votes
     if not bool(inside.any()):
         z = gm_cls.sum() * 0.0
-        return z, dict(pose_nll=0.0, pose_err=float("nan"), n=0)
+        return z, dict(pose_nll=0.0, pose_err=float("nan"), n=0, n_norm=0)
     tgt = (row.clamp(0, k - 1) * k + col.clamp(0, k - 1))
     pred = window_logits(heat, tgt, local_radius) if local_radius else heat
     # Only supervise frames whose GT centre lands on the crop
@@ -157,11 +159,11 @@ def pose_heatmap_nll(gm_cls, H, matchable=None, gm_certainty=None, local_radius=
         err = torch.hypot((am // k - tgt // k).float(), (am % k - tgt % k).float())
         pose_err = float(err[inside].mean()) if bool(inside.any()) else float("nan")
         n = int(inside.sum())
-    return nll, dict(pose_nll=float(nll.detach()), pose_err=pose_err, n=n)
+    return nll, dict(pose_nll=float(nll.detach()), pose_err=pose_err, n=n, n_norm=n)
 
 
 def roma_coarse_loss(gm_cls, idx, matchable, gm_certainty=None, certainty_weight=0.01,
-                     local_radius=0, neighbour_radius=0, neighbour_weight=0.1, patch_weight=None):
+                     local_radius=0, neighbour_radius=0, neighbour_weight=0.1, patch_weight=None, parts=None):
     """Sat-RoMa scale-16 objective: classify the reference cell, and say if the patch is matchable.
 
     RoMa's coarse loss is a categorical over reference cells, taken only where the
@@ -169,6 +171,9 @@ def roma_coarse_loss(gm_cls, idx, matchable, gm_certainty=None, certainty_weight
     head trained on that same mask. It is not a cosine between descriptors.
     `certainty_weight` is their `ce_weight` (default 0.01): classification dominates.
     `matchable`: (B, h, w) bool. `gm_certainty`: (B, 1, h, w) or (B, h, w) logits.
+    parts: optional dict, filled with name -> (weighted term, normaliser count) such that loss = sum of the terms and
+    each term is a mean over `count` items (data-parallel reweighting, bevloc.model.ddp.global_loss): "ce" and
+    "hinge" over the matchable tokens (the hinge's neighbour count per token is constant), "cert" over all tokens.
     """
     logits = gm_cls.permute(0, 2, 3, 1)[matchable].float()
     tgt = idx[matchable]
@@ -199,6 +204,13 @@ def roma_coarse_loss(gm_cls, idx, matchable, gm_certainty=None, certainty_weight
         c = gm_certainty[:, 0] if gm_certainty.ndim == 4 else gm_certainty
         cert = F.binary_cross_entropy_with_logits(c.float(), matchable.float())
     loss = ce + certainty_weight * cert + neighbour_weight * hinge
+    if parts is not None:
+        if patch_weight is not None and n:
+            raise ValueError("parts: the patch-weighted CE has no count normaliser")
+        parts["ce"] = (ce, n)
+        parts["hinge"] = (neighbour_weight * hinge, n if neighbour_radius else 0)
+        parts["cert"] = (certainty_weight * cert, int(matchable.numel()) if (gm_certainty is not None
+                                                                              and certainty_weight) else 0)
     return loss, dict(
         ce=float(ce.detach()), cert=float(cert.detach()), acc=acc, cell_err=cell_err, top5=top5, n=n)
 

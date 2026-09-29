@@ -171,6 +171,111 @@ def test_a_step_skipped_on_one_rank_is_skipped_on_all():
     assert [r["bad"] for r in res] == [True, True]
 
 
+# ---- loss normalisation: the rank-mean gradient of the real training step = the single-process union gradient -------
+
+def _step_setup(B=4):
+    """The erp_depth training step of tests/test_vce.py (small real decoder, projection head) on B samples whose
+    matchable-token counts, depths and GT offsets differ per sample (reference partly black = unmatchable cells)."""
+    import sys
+    from bevloc import config as C
+    from bevloc.data.vigor import R_NORTH
+    from bevloc.model.coarse import vce_options
+    from bevloc.model.query import build_query
+    for d in ("scripts", "tests"):
+        if str(C.REPO / d) not in sys.path:
+            sys.path.insert(0, str(C.REPO / d))
+    from test_vce import REF, _TinyMatcher
+    cfg = C.load(str(C.REPO / "configs/default.yaml"))
+    cfg.lift.query_mode = "erp_depth"
+    cfg.erp_depth.head = True
+    cfg.erp_depth.head_dim = 32
+    cfg.erp_depth.vce_mode = "expect"                  # deterministic VCE (the "sample" draw differs per process)
+    torch.manual_seed(0)
+    q = build_query(cfg, "erp_depth")
+    mt = _TinyMatcher().eval()                         # as FeatureQueryMatcher: the matcher stays in eval mode
+    # A well-conditioned GP solve (K_yy + sigma I; the released 0.1 on a random decoder is ill-conditioned in float32
+    # and amplifies 1e-7 rounding differences of the upstream gradient to ~1e-3 of the pos_conv / proj gradients,
+    # between ANY two batch compositions, one process included): isolates the normalisation, which is what is tested
+    mt.model.decoder.gps["16"].sigma_noise = 3000.0
+    g = torch.Generator().manual_seed(5)
+    dep = torch.rand(B, 28, 56, generator=g) * 25.0 + 5.0
+    dep[:, :8] = 60.0
+    H = torch.eye(3).repeat(B, 1, 1)
+    H[:, 0, 2] = 336.0 + torch.tensor([0.0, 60.0, -90.0, 150.0])[:B]
+    H[:, 1, 2] = 330.0 + torch.tensor([0.0, -40.0, 70.0, 120.0])[:B]
+    ref = torch.rand(B, 3, REF, REF, generator=g)
+    for i, frac in enumerate((0.0, 0.3, 0.6, 0.85)[:B]):   # 0 %, 30 %, 60 %, 85 % of the reference black
+        ref[i, :, :int(frac * REF)] = 0.0
+    batch = dict(erp=torch.rand(B, 1, 3, 448, 896, generator=g),
+                 R_w2c=torch.from_numpy(R_NORTH.copy())[None, None].repeat(B, 1, 1, 1),
+                 depth=dep.repeat_interleave(16, 1).repeat_interleave(16, 2)[:, None], ref=ref, H=H,
+                 negative=torch.zeros(B, dtype=torch.bool))
+    params = [p for p in list(q.parameters()) + list(mt.model.decoder.parameters()) if p.requires_grad]
+    kw = dict(certainty_weight=0.01, pose_nll_weight=0.5, vce_weight=1.0, vce_opts=vce_options(cfg))
+    return cfg, q, mt, batch, params, kw
+
+
+def _run_step(q, mt, batch, cfg, kw, parts=None):
+    from train_lift_splat import step
+    return step(q, mt, batch, cfg, 0.05, 0, 4, 0.5, parts=parts, **kw)
+
+
+def _step_worker(rank, world, port, out, mode):
+    os.environ.update(MASTER_ADDR="127.0.0.1", MASTER_PORT=str(port))
+    D = Dist(rank, world, backend="gloo")
+    try:
+        cfg, q, mt, batch, params, kw = _step_setup()
+        b = batch["erp"].shape[0] // world
+        mine = {k: v[rank * b:(rank + 1) * b] for k, v in batch.items()}
+        parts = {}
+        loss, st = _run_step(q, mt, mine, cfg, kw, parts)
+        s_parts = sum(t for t, _ in parts.values() if t is not None)
+        # "exact": reweighted to the global normalisers; "per_rank_mean": each rank's own means (before the fix)
+        loss_r = D.global_loss(loss, parts) if mode == "exact" else loss
+        loss_r.backward()
+        bad, st_g = D.reduce_step(params, False, st)
+        out[rank] = dict(grads=[None if p.grad is None else p.grad.clone() for p in params], st=st_g, n=st["n"],
+                         parts_sum_err=float((s_parts - loss).detach().abs()), bad=bad)
+    finally:
+        D.close()
+
+
+def test_rank_mean_gradient_of_the_training_step_equals_the_single_process_union_gradient():
+    import torch.multiprocessing as mp
+    world = 2
+    res = {}
+    for mode in ("exact", "per_rank_mean"):
+        out = mp.Manager().dict()
+        mp.start_processes(_step_worker, args=(world, _free_port(), out, mode), nprocs=world, start_method="spawn")
+        res[mode] = [out[r] for r in range(world)]
+    cfg, q, mt, batch, params, kw = _step_setup()
+    loss, st = _run_step(q, mt, batch, cfg, kw)                  # one process, the union batch
+    loss.backward()
+    ref = [p.grad for p in params]
+    ex = res["exact"]
+    assert ex[0]["n"] != ex[1]["n"] and min(r["n"] for r in ex) > 0   # uneven matchable-token counts
+    assert all(r["parts_sum_err"] < 1e-5 and r["bad"] is False for r in ex)
+    assert all((a is None) == (g is None) for a, g in zip(ex[0]["grads"], ref))
+    scale = max(float(g.abs().max()) for g in ref if g is not None)
+    err = max(float((a - g).abs().max()) for a, g in zip(ex[0]["grads"], ref) if g is not None)
+    assert err <= 2e-5 * scale, (err, scale)                  # float32 (GP solve included): ~5e-6 relative
+    assert all(torch.equal(a, b) for a, b in zip(ex[0]["grads"], ex[1]["grads"]) if a is not None)
+    naive = max(float((a - g).abs().max()) for a, g in zip(res["per_rank_mean"][0]["grads"], ref) if g is not None)
+    print(f"DDP-vs-union max grad error {err:.2e} (scale {scale:.3f}); per-rank means instead: {naive:.2e}")
+    assert naive > 100 * max(err, 1e-9), (naive, err)             # the test is sensitive to the normalisation
+    sg = ex[0]["st"]                                            # the logged statistics are the union's
+    for k in ("ce", "acc", "cell_err", "pose_nll", "pose_err", "vce_m", "vce_pose_m"):
+        assert sg[k] == pytest.approx(st[k], rel=1e-4, abs=1e-5), k
+    assert sg["n"] == st["n"] and sg["n_pose"] == st["n_pose"] and sg["n_vce"] == st["n_vce"]
+
+
+def test_global_loss_is_the_identity_on_one_process_and_refuses_unknown_terms():
+    x = torch.tensor(2.5)
+    assert Dist().global_loss(x, {"ce": (x, 3)}) is x
+    with pytest.raises(KeyError):
+        Dist(0, 2, init=False).global_loss(x, {"new_term": (x, 1)})
+
+
 # ---- rank-0-only files, checkpoint keys, resume refusal --------------------------------------------------------
 
 def test_only_rank_zero_writes(tmp_path):
