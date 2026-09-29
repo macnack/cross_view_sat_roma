@@ -70,6 +70,52 @@ def se2_ego_to_map(en: tuple[float, float], up_bearing_deg: float,
     return (float(en2[0]), float(en2[1])), float(yaw2)
 
 
+HEADINGS = ("prior", "gt")
+
+
+def wrap180(a):
+    """Angle(s) in degrees wrapped to [-180, 180)."""
+    return (np.asarray(a, float) + 180.0) % 360.0 - 180.0
+
+
+def heading_setup(entry: dict, heading: str = "prior", ref_up: str = "crop"):
+    """How a panorama method sees one manifest entry's orientation (the Poznań three-way protocol).
+
+    Returns (beta, assumed, rho) in degrees:
+      beta     bearing of the reference's image-up: the entry's crop_up_bearing_deg ("crop", what FG² / Loc² /
+               the IPM row get) or 0 ("north", VIGOR-like north-up reference);
+      assumed  the vehicle heading the method is told: crop_up_bearing_deg under heading "prior" (the manifest's
+               noisy prior, U(-10, 10) deg off the proxy heading), up_bearing_deg under "gt" (the proxy heading
+               itself, which is what the reported FG² / Loc² "native" rows used: their panorama was rolled by
+               crop_rot_deg, so its centre looked exactly along the crop's up, i.e. orientation was known);
+      rho      the relative bearing (clockwise from the panorama's centre column, = vehicle forward) that is rolled
+               to the image centre so that the believed reference-up direction faces forward: beta - assumed.
+    The true residual rotation the matcher must recover is up_bearing_deg - assumed: -crop_rot_deg under
+    "prior", 0 under "gt"."""
+    if heading not in HEADINGS:
+        raise ValueError(f"heading must be one of {HEADINGS}, got {heading!r}")
+    if ref_up not in ("crop", "north"):
+        raise ValueError(f"ref_up must be 'crop' or 'north', got {ref_up!r}")
+    crop_up = float(entry["crop_up_bearing_deg"])
+    beta = crop_up if ref_up == "crop" else 0.0
+    assumed = crop_up if heading == "prior" else float(entry["up_bearing_deg"])
+    return beta, assumed, float(wrap180(beta - assumed))
+
+
+def roll_shift(rho_deg: float, width: int):
+    """Integer column shift (np.roll / torch.roll along the width) that brings the relative bearing rho_deg
+    (clockwise from the centre column) to the centre of a `width` px panorama, and the bearing it actually
+    brings there (rho quantised to whole pixels): (shift, rho_eff_deg). new[u] = old[u - shift]."""
+    shift = int(round(-float(rho_deg) / 360.0 * int(width)))
+    return shift, float(wrap180(-shift * 360.0 / int(width)))
+
+
+def vehicle_yaw(virtual_yaw_deg: float, rho_deg: float) -> float:
+    """Heading of the vehicle (its panorama's centre column) from the estimated heading of the rolled panorama's
+    centre column: the roll moved the column at relative bearing rho to the centre."""
+    return float((float(virtual_yaw_deg) - float(rho_deg)) % 360.0)
+
+
 def se2_map_error(pred_en, pred_yaw_deg, gt_en, gt_yaw_deg):
     """Position (m) and absolute yaw (°) errors in the map frame."""
     pe = float(np.linalg.norm(np.asarray(pred_en, float) - np.asarray(gt_en, float)))
@@ -146,6 +192,52 @@ def write_manifest(frames: list[ManifestFrame], path: Path, meta: dict):
 
 def load_manifest(path: Path) -> dict:
     return json.loads(Path(path).read_text())
+
+
+def resolve_panorama(path) -> Path:
+    """A manifest's panorama path on this machine: relative paths are taken from the repo root (the committed
+    manifests), absolute ones as they are, and an absolute path from another checkout (the first manifest stored
+    /home/.../data/mapillary/...) falls back to this repo's data/mapillary/<the same tail>."""
+    from bevloc import config as C
+    p = Path(path)
+    if not p.is_absolute():
+        return C.REPO / p
+    if p.is_file():
+        return p
+    parts = p.parts
+    for k in range(len(parts) - 1):
+        if parts[k] == "data" and parts[k + 1] == "mapillary":
+            return C.REPO.joinpath(*parts[k:])
+    return p
+
+
+def depth_png_for(panorama, root=None) -> Path:
+    """Loc²'s depth layout transposed to a Mapillary sequence: <seq>/images/<id>.jpg ->
+    <seq>/unik3d_depth/<id>.png (uint16 millimetres along the ray, like <City>/unik3d_depth/ for VIGOR).
+    root (default $POZNAN_DEPTH_DIR): put the tree <seq name>/unik3d_depth/ under that directory instead (a
+    checkout whose data/mapillary is a read-only link)."""
+    import os
+    p = Path(panorama)
+    root = root or os.environ.get("POZNAN_DEPTH_DIR")
+    base = Path(root) / p.parent.parent.name if root else p.parent.parent
+    return base / "unik3d_depth" / (p.stem + ".png")
+
+
+def select_entries(man: dict, years=None, n_frames: int = 0):
+    """Manifest entries of `years` (None = all), restricted to the first `n_frames` unique frame ids in manifest
+    order (0 = all) with every year of each kept id: the smoke subset of scripts/eval_{fg2,loc2}.py."""
+    ys = None if not years else {int(y) for y in years}
+    rows = [f for f in man["frames"] if ys is None or int(f["year"]) in ys]
+    if not n_frames:
+        return rows
+    keep, order = set(), []
+    for f in rows:
+        if f["frame_id"] not in keep:
+            if len(keep) >= n_frames:
+                break
+            keep.add(f["frame_id"])
+            order.append(f["frame_id"])
+    return [f for f in rows if f["frame_id"] in keep]
 
 
 def frame_pose_proxy(fr: dict) -> tuple[tuple[float, float], float]:

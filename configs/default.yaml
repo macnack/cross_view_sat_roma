@@ -244,6 +244,30 @@ reference:
   max_offset_frac: 0.30
   max_rot_deg: 55.0
 
+poznan:                           # Poznań three-way comparison (decision 2026-09-29): Loc², FG², PanoRoMa on one manifest
+  manifest: experiments/06_fg2_bevsplat/manifest.json   # the 200 held-out IcRzj frames; the IPM / FG² / Loc² rows used its 2025 + 2024 entries
+  years: [2025, 2024]
+  heading: prior                  # prior = the panorama is oriented by the manifest's noisy heading (crop_up, U(-10, 10) deg off the
+                                  # proxy): the method must recover the residual rotation, as the IPM row does. gt = oriented by the
+                                  # proxy heading itself, which is what the reported FG² / Loc² "native" rows did (bevloc.baselines.common.heading_setup)
+  ego_mask_deg: 20.0              # UniK3D depth: camera rows steeper than this below the horizon are the Fixtor car body -> invalid (= ipm.max_depression_deg)
+  depth_model: unik3d-vitl        # scripts/unik3d_depth_poznan.py: the model and settings of Loc²'s VIGOR preprocessing
+  depth_resolution_level: 9
+  depth_size: [2048, 1024]        # the panorama is resized to the VIGOR panorama size before UniK3D; PNG at this size
+  height_band_deg: [-20.0, -8.0]  # camera-height sanity check: ground points seen between these elevations (below the car body limit)
+  height_azimuth_deg: 30.0        # ... within this many degrees of straight ahead or straight behind (the road)
+  panoroma:                       # scripts/eval_panoroma_poznan.py (make panoroma-poznan)
+    coarse_config: configs/vigor_cell0125.yaml
+    coarse_ckpt: checkpoints/vigor_samearea_4city_erp_depth_cell0125_last.pt
+    fine_config: configs/vigor_cell00625_fine.yaml
+    fine_ckpt: checkpoints/vigor_samearea_4city_fine00625_erp_depth_last.pt
+    solver: se2
+    fine_gate_m: 6.0
+    ref_up: north                 # north = north-up reference, panorama rolled so the prior's north faces forward (VIGOR's geometry);
+                                  # crop = the baselines' crop orientation (reference up = crop_up), no roll under heading prior
+    coarse_extent_m: null         # null = orthophoto over the whole 112 m canvas; e.g. 71 = a VIGOR-tile-sized square, black outside
+    base_size: [2048, 1024]       # the panorama is resampled to the VIGOR panorama size (and rolled there) before the erp_depth resize
+
 pf:                               # scripts/track_route.py (task 03, Task 5): SE(2) particle filter
   n: 512
   init_sigma_xy: 10.0             # m, initial spread around the first proxy pose

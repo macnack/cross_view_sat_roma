@@ -1,0 +1,148 @@
+{
+  "status": "ok",
+  "manifest": "experiments/06_fg2_bevsplat/manifest.json",
+  "device": "cuda",
+  "ransac": true,
+  "depth": "flat_ground",
+  "camera_height_m": 1.65,
+  "max_depth": 35.0,
+  "note": "Loc\u00b2 Fixtor: flat-ground depth proxy (UniK3D not available); method-native 714\u00d71428 / 630\u00b2 / 71 m; RANSAC Procrustes per README",
+  "checkpoints": {
+    "oracle": {
+      "checkpoint": "checkpoints/baselines/loc2/vigor/samearea/known_ori/model.pt",
+      "sha256": "c7753a0fc68cbc58048691d89588d7943ca3431b831fce085f85eb5d77e7a34d",
+      "area": "samearea",
+      "orientation": "known_ori",
+      "native": {
+        "ground_image_size": [
+          714,
+          1428
+        ],
+        "satellite_image_size": [
+          630,
+          630
+        ],
+        "grid_size_h": 71.0,
+        "sat_bev_res": 41,
+        "num_samples_matches": 1024,
+        "max_depth": 35.0,
+        "camera_height_m": 1.65,
+        "dino_downfactor": 14
+      },
+      "depth": "flat_ground",
+      "loc2_commit": "2bdb09a586c39cce162606008317ea693126ad06",
+      "license": "see third_party/Loc2/LICENSE"
+    },
+    "native": {
+      "checkpoint": "checkpoints/baselines/loc2/vigor/samearea/known_ori/model.pt",
+      "sha256": "c7753a0fc68cbc58048691d89588d7943ca3431b831fce085f85eb5d77e7a34d",
+      "area": "samearea",
+      "orientation": "known_ori",
+      "native": {
+        "ground_image_size": [
+          714,
+          1428
+        ],
+        "satellite_image_size": [
+          630,
+          630
+        ],
+        "grid_size_h": 71.0,
+        "sat_bev_res": 41,
+        "num_samples_matches": 1024,
+        "max_depth": 35.0,
+        "camera_height_m": 1.65,
+        "dino_downfactor": 14
+      },
+      "depth": "flat_ground",
+      "loc2_commit": "2bdb09a586c39cce162606008317ea693126ad06",
+      "license": "see third_party/Loc2/LICENSE"
+    }
+  },
+  "oracle": {
+    "overall": {
+      "n": 400,
+      "n_ok": 400,
+      "median_m": 3.8867392722940526,
+      "mean_m": 6.738870136439448,
+      "median_deg": 0.0,
+      "mean_deg": 0.0,
+      "recall": {
+        "recall@1m": 0.06,
+        "recall@5m": 0.625,
+        "recall@10m": 0.835
+      }
+    },
+    "by_year": {
+      "2024": {
+        "n": 200,
+        "n_ok": 200,
+        "median_m": 3.6276568006054397,
+        "mean_m": 6.660294911594963,
+        "median_deg": 0.0,
+        "mean_deg": 0.0,
+        "recall": {
+          "recall@1m": 0.06,
+          "recall@5m": 0.655,
+          "recall@10m": 0.835
+        }
+      },
+      "2025": {
+        "n": 200,
+        "n_ok": 200,
+        "median_m": 4.163148863115346,
+        "mean_m": 6.817445361283931,
+        "median_deg": 0.0,
+        "mean_deg": 0.0,
+        "recall": {
+          "recall@1m": 0.06,
+          "recall@5m": 0.595,
+          "recall@10m": 0.835
+        }
+      }
+    }
+  },
+  "native": {
+    "overall": {
+      "n": 400,
+      "n_ok": 400,
+      "median_m": 4.034700205726359,
+      "mean_m": 6.768149184404234,
+      "median_deg": 5.745512083828345,
+      "mean_deg": 6.242385205177152,
+      "recall": {
+        "recall@1m": 0.0625,
+        "recall@5m": 0.6225,
+        "recall@10m": 0.8325
+      }
+    },
+    "by_year": {
+      "2024": {
+        "n": 200,
+        "n_ok": 200,
+        "median_m": 3.672378960286907,
+        "mean_m": 6.678917422547248,
+        "median_deg": 5.712898964599816,
+        "mean_deg": 6.045667964974496,
+        "recall": {
+          "recall@1m": 0.055,
+          "recall@5m": 0.645,
+          "recall@10m": 0.835
+        }
+      },
+      "2025": {
+        "n": 200,
+        "n_ok": 200,
+        "median_m": 4.214416849192718,
+        "mean_m": 6.857380946261219,
+        "median_deg": 5.802212088683092,
+        "mean_deg": 6.43910244537981,
+        "recall": {
+          "recall@1m": 0.07,
+          "recall@5m": 0.6,
+          "recall@10m": 0.83
+        }
+      }
+    }
+  }
+}

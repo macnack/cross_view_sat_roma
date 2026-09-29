@@ -8,7 +8,7 @@ FRAMES  ?= 0 1000 1600 2000
 REF     ?= 200
 RUN      = PYTHONPATH=src:.pydeps $(PY)
 
-.PHONY: wayback-fetch wayback-calib eagle-fetch-wayback fg2-vigor eagle-watch vigor-viz loc2-depth loc2-vigor vigor-report loftr-fine vigor-certainty vigor-sweep vigor-cert-cache vigor-cert-head
+.PHONY: poznan-depth loc2-smoke loc2-eval panoroma-poznan poznan-three-way wayback-fetch wayback-calib eagle-fetch-wayback fg2-vigor eagle-watch vigor-viz loc2-depth loc2-vigor vigor-report loftr-fine vigor-certainty vigor-sweep vigor-cert-cache vigor-cert-head
 .PHONY: help deps test fetch stats mask lens viewer oxts odometry bevs mosaic smoke h1 targets overfit train calib all roma-viz mapillary mapillary-scan mapillary-sample ipm-smoke lift-overfit lift-splat lift-eval lift-splat-years lift-aug-viz lift-layers-viz lift-splat-aug lift-splat-pose-nll lift-splat-seq baselines-manifest fg2-smoke fg2-eval fg2-train bevsplat-smoke bevsplat-eval bevsplat-train baselines-report
 help:
 	@grep -E '^[a-z0-9_-]+:.*##' $(MAKEFILE_LIST) | sed -E 's/:.*## /\t/' | expand -t 12
@@ -296,13 +296,35 @@ track-route: ## particle filter along ROUTE with CKPT's heatmap as observation (
 baselines-manifest: ## immutable ≥200-frame Fixtor held-out manifest (2025+2024)
 	$(RUN) scripts/build_baseline_manifest.py --out experiments/06_fg2_bevsplat/manifest.json --n 200
 
-fg2-smoke: ## FG² 20-frame smoke on the shared manifest (oracle + native heading)
-	$(RUN) scripts/eval_fg2.py --manifest experiments/06_fg2_bevsplat/manifest.json \
-		--out experiments/06_fg2_bevsplat/fg2_zero --n 20 --smoke
+# --- Poznań three-way comparison (decision 2026-09-29): Loc², FG², PanoRoMa on one manifest, one scorer ---
+# Defaults from configs/default.yaml `poznan:` (manifest, years 2025/2024, heading prior); outputs under
+# experiments/12_poznan_three_way/. HEADING=prior|gt, DEPTH=unik3d|flat, PZ_ARGS= extra flags (e.g. "--n 20").
+HEADING ?= prior
+DEPTH   ?= unik3d
+PZ_MANIFEST = $(if $(MANIFEST),--manifest $(MANIFEST),)
 
-fg2-eval: ## FG² zero-shot on the full held-out manifest
-	$(RUN) scripts/eval_fg2.py --manifest experiments/06_fg2_bevsplat/manifest.json \
-		--out experiments/06_fg2_bevsplat/fg2_zero
+poznan-depth: ## UniK3D metric depth (Loc²'s PNG layout, <seq>/unik3d_depth/<id>.png) for every panorama of MANIFEST + camera-height check (GPU); DEPTH_ARGS="--limit 20 | --check-only"
+	$(RUN) scripts/unik3d_depth_poznan.py --config $(CONFIG) $(PZ_MANIFEST) $(DEPTH_ARGS)
+
+fg2-smoke: ## FG² zero-shot, 20 frame ids x the years (HEADING=)
+	$(RUN) scripts/eval_fg2.py --config $(CONFIG) $(PZ_MANIFEST) --heading $(HEADING) --smoke \
+		--out experiments/12_poznan_three_way/smoke/fg2_$(HEADING) $(PZ_ARGS)
+
+fg2-eval: ## FG² zero-shot on the manifest (HEADING=prior|gt) -> experiments/12_poznan_three_way/fg2_<heading>
+	$(RUN) scripts/eval_fg2.py --config $(CONFIG) $(PZ_MANIFEST) --heading $(HEADING) $(PZ_ARGS)
+
+loc2-smoke: ## Loc² zero-shot, 20 frame ids x the years (DEPTH=unik3d|flat, HEADING=)
+	$(RUN) scripts/eval_loc2.py --config $(CONFIG) $(PZ_MANIFEST) --heading $(HEADING) --depth $(DEPTH) --smoke \
+		--out experiments/12_poznan_three_way/smoke/loc2_$(DEPTH)_$(HEADING) $(PZ_ARGS)
+
+loc2-eval: ## Loc² zero-shot on the manifest (DEPTH=unik3d|flat, HEADING=prior|gt) -> experiments/12_poznan_three_way/loc2_<depth>_<heading>
+	$(RUN) scripts/eval_loc2.py --config $(CONFIG) $(PZ_MANIFEST) --heading $(HEADING) --depth $(DEPTH) $(PZ_ARGS)
+
+panoroma-poznan: ## PanoRoMa (coarse + second pass, cfg.poznan.panoroma) on the manifest (HEADING=, PZ_ARGS="--ref-up crop | --limit 20 | --sanity 0")
+	$(RUN) scripts/eval_panoroma_poznan.py --config $(CONFIG) $(PZ_MANIFEST) --heading $(HEADING) $(PZ_ARGS)
+
+poznan-three-way: ## experiments/12_poznan_three_way/REPORT.md (+ three_way.json/csv, cdf.png) from every run there + the IPM row
+	$(RUN) scripts/report_poznan_three_way.py --config $(CONFIG)
 
 fg2-train: ## FG² minimal fine-tune (frozen DINO, 2000 updates); SEED=0/1/2
 	$(RUN) scripts/train_fg2.py --manifest experiments/06_fg2_bevsplat/manifest.json \

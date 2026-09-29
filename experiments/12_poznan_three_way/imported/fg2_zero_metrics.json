@@ -1,0 +1,143 @@
+{
+  "status": "ok",
+  "manifest": "experiments/06_fg2_bevsplat/manifest.json",
+  "device": "cuda",
+  "modes": {
+    "oracle": {
+      "checkpoint": {
+        "checkpoint": "checkpoints/baselines/fg2/VIGOR/samearea/known_ori/model.pt",
+        "sha256": "7822a4de30d0c35403865c96f645f7da5daf6615f3e67c11e73331e2655f325e",
+        "area": "samearea",
+        "orientation": "known_ori",
+        "first_run": null,
+        "native": {
+          "ground_image_size": [
+            714,
+            1428
+          ],
+          "satellite_image_size": [
+            630,
+            630
+          ],
+          "grid_size_h": 71.0,
+          "grid_size_v": 20.0,
+          "grd_bev_res": 41,
+          "grd_height_res": 11,
+          "sat_bev_res": 41,
+          "num_samples_matches": 1024
+        },
+        "license": "GPL-3.0 (third_party/FG2/LICENSE)"
+      },
+      "overall": {
+        "n": 400,
+        "n_ok": 400,
+        "median_m": 4.2314216950951025,
+        "mean_m": 5.609401178312476,
+        "median_deg": 0.0,
+        "mean_deg": 0.0,
+        "recall": {
+          "recall@1m": 0.07,
+          "recall@5m": 0.5875,
+          "recall@10m": 0.8425
+        }
+      },
+      "by_year": {
+        "2024": {
+          "n": 200,
+          "n_ok": 200,
+          "median_m": 3.8760233450848043,
+          "mean_m": 5.610849561387263,
+          "median_deg": 0.0,
+          "mean_deg": 0.0,
+          "recall": {
+            "recall@1m": 0.075,
+            "recall@5m": 0.6,
+            "recall@10m": 0.84
+          }
+        },
+        "2025": {
+          "n": 200,
+          "n_ok": 200,
+          "median_m": 4.407130914925181,
+          "mean_m": 5.607952795237688,
+          "median_deg": 0.0,
+          "mean_deg": 0.0,
+          "recall": {
+            "recall@1m": 0.065,
+            "recall@5m": 0.575,
+            "recall@10m": 0.845
+          }
+        }
+      }
+    },
+    "native": {
+      "checkpoint": {
+        "checkpoint": "checkpoints/baselines/fg2/VIGOR/samearea/known_ori/model.pt",
+        "sha256": "7822a4de30d0c35403865c96f645f7da5daf6615f3e67c11e73331e2655f325e",
+        "area": "samearea",
+        "orientation": "known_ori",
+        "first_run": null,
+        "native": {
+          "ground_image_size": [
+            714,
+            1428
+          ],
+          "satellite_image_size": [
+            630,
+            630
+          ],
+          "grid_size_h": 71.0,
+          "grid_size_v": 20.0,
+          "grd_bev_res": 41,
+          "grd_height_res": 11,
+          "sat_bev_res": 41,
+          "num_samples_matches": 1024
+        },
+        "license": "GPL-3.0 (third_party/FG2/LICENSE)"
+      },
+      "overall": {
+        "n": 400,
+        "n_ok": 400,
+        "median_m": 4.243053210922433,
+        "mean_m": 5.573619771594326,
+        "median_deg": 6.126744600243242,
+        "mean_deg": 6.420843654078523,
+        "recall": {
+          "recall@1m": 0.0725,
+          "recall@5m": 0.5925,
+          "recall@10m": 0.8525
+        }
+      },
+      "by_year": {
+        "2024": {
+          "n": 200,
+          "n_ok": 200,
+          "median_m": 3.9533572296233386,
+          "mean_m": 5.588939667122787,
+          "median_deg": 6.0426488055875325,
+          "mean_deg": 6.379430856205281,
+          "recall": {
+            "recall@1m": 0.075,
+            "recall@5m": 0.605,
+            "recall@10m": 0.845
+          }
+        },
+        "2025": {
+          "n": 200,
+          "n_ok": 200,
+          "median_m": 4.350964602066833,
+          "mean_m": 5.558299876065865,
+          "median_deg": 6.219533735203157,
+          "mean_deg": 6.462256451951767,
+          "recall": {
+            "recall@1m": 0.07,
+            "recall@5m": 0.58,
+            "recall@10m": 0.86
+          }
+        }
+      }
+    }
+  },
+  "n_frames": 400,
+  "csv": "experiments/06_fg2_bevsplat/fg2_zero/frames.csv"
+}
