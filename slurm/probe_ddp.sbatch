@@ -1,6 +1,7 @@
 #!/bin/bash
 # Short multi-GPU probes of scripts/train_vigor.py on one proxima node (4 H100): runs every entry of PROBE_RUNS
-# (separated by ';', each "NPROC args...": NPROC processes via torchrun, or a plain single-GPU python when NPROC=1),
+# (separated by ';', each "NPROC args...": NPROC processes via torchrun, a plain single-GPU python when NPROC=1, or
+# "py script.py args" = that script alone),
 # with PROBE_ARGS prepended to every entry's args, one after the other. A --profile entry prints PROFILE json lines
 # (one per rank + one aggregate); a --check-encoder entry prints one CHECK json line.
 #   make eagle-probe-ddp PROBE_ARGS="--config ... --tag probe --out /tmp/probe" \
@@ -36,7 +37,9 @@ IFS=';' read -ra RUNS <<< "${PROBE_RUNS:?PROBE_RUNS is required}"
 for run in "${RUNS[@]}"; do
   read -r n args <<< "$run"
   echo "[probe-ddp] nproc=$n args=$args $(date -Is)"
-  if [ "$n" = 1 ]; then
+  if [ "$n" = py ]; then                                  # a helper script (e.g. a checkpoint key check), no PROBE_ARGS
+    singularity exec --nv --bind /mnt/storage_5,/mnt/storage_6 "$SIF" python $args
+  elif [ "$n" = 1 ]; then
     CUDA_VISIBLE_DEVICES=0 singularity exec --nv --bind /mnt/storage_5,/mnt/storage_6 "$SIF" \
       python scripts/train_vigor.py ${PROBE_ARGS:-} $args
   else
