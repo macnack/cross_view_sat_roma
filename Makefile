@@ -278,6 +278,9 @@ eagle-submit-ddp: ## submit CMD="scripts/train_vigor.py ... --batch <GLOBAL>" JO
 # Default for training on Eagle (decisions 2026-09-29): one full proxima node, 4x H100, H100 precision settings.
 H100_TRAIN_FLAGS ?= --workers 8 --pin-memory --tf32 --encoder-dtype bfloat16 --decoder-dtype bfloat16 --compile encoder
 
+wandb-sync: ## from the laptop: stream an Eagle training CSV into W&B (laptop's own W&B login, ~/.netrc as in sat_roma); TAG= JOBID= [OUT=experiments/13_panoroma_long]
+	$(RUN) scripts/wandb_sync_csv.py --tag $(TAG) $(if $(JOBID),--jobid $(JOBID),) --out $(if $(OUT),$(OUT),experiments/13_panoroma_long)
+
 eagle-train: ## on Eagle, THE default way to train: 4x H100 node (eagle-submit-ddp) + H100_TRAIN_FLAGS; TRAIN_ARGS="--config ... --batch 32 --epochs ... --tag ..." JOB= SBATCH_ARGS= (single GPU only for smoke tests: eagle-submit)
 	$(MAKE) eagle-submit-ddp JOB=$(JOB) SBATCH_ARGS="$(SBATCH_ARGS)" CMD="scripts/train_vigor.py $(TRAIN_ARGS) $(H100_TRAIN_FLAGS)"
 
