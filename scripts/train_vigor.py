@@ -86,6 +86,9 @@ def main():
                          "line (peak memory, data-wait vs compute, samples/s, GPU util, per-sample CPU cost), no "
                          "validation, no checkpoints; exit code 3 on CUDA OOM")
     ap.add_argument("--profile-warmup", type=int, default=3)
+    ap.add_argument("--tf32", action="store_true",
+                    help="allow TF32 for float32 matmuls/convs (the frozen encoder runs in float32; default off = "
+                         "the precision of every run so far)")
     ap.add_argument("--train-limit", type=int, default=0, help="smoke tests: keep only the first N training labels")
     ap.add_argument("--batch", type=int, default=4)
     ap.add_argument("--workers", type=int, default=0, help="DataLoader workers (the IPM picture is built on the CPU per sample)")
@@ -114,6 +117,10 @@ def main():
     cfg = C.load(a.config)
     L = cfg.lift
     dev = "cuda" if torch.cuda.is_available() else "cpu"
+    if a.tf32:                                     # off by default: every run so far used full float32 matmuls
+        torch.backends.cuda.matmul.allow_tf32 = True
+        torch.backends.cudnn.allow_tf32 = True
+        print("TF32 matmuls/convolutions ON (--tf32)", flush=True)
     torch.manual_seed(cfg.train.seed)
     np.random.seed(cfg.train.seed)
     state = torch.load(a.ckpt, map_location=dev, weights_only=False) if a.ckpt else None
@@ -272,7 +279,7 @@ def main():
         return loss, st, bad, g_ok
 
     if a.profile:
-        run_profile(a, tr, tr_loader, sampler, dev, to_dev, train_step)
+        run_profile(a, tr, tr_loader, sampler, dev, to_dev, train_step, matcher)
         return
 
     # ---- resume ----
@@ -387,7 +394,7 @@ def main():
           f"non-finite steps {guard.total}, no-update steps {n_skip_step}", flush=True)
 
 
-def run_profile(a, tr, tr_loader, sampler, dev, to_dev, train_step):
+def run_profile(a, tr, tr_loader, sampler, dev, to_dev, train_step, matcher=None):
     """--profile N: time --profile-warmup + N real training steps (no validation, no checkpoints) and print one
     PROFILE json line: peak CUDA memory, per-step data wait (blocked on next(loader)) / host-to-device / compute
     (forward + backward + optimizer, synchronised), samples/s, nvidia-smi GPU utilisation, per-sample CPU cost."""
@@ -428,6 +435,19 @@ def run_profile(a, tr, tr_loader, sampler, dev, to_dev, train_step):
                              peak_reserved_gib=torch.cuda.max_memory_reserved() / 1024 ** 3, **base))
         sys.exit(3)
     gu.__exit__(None, None, None)
+    enc_s = None
+    if matcher is not None and a.profile:          # share of the step spent in the frozen encoder (no grad)
+        with torch.no_grad():
+            ts = []
+            for _ in range(3):
+                sync()
+                t = time.perf_counter()
+                matcher.reference_features(batch["ref"])
+                matcher.model.encoder(batch["erp"][:, 0])
+                sync()
+                ts.append(time.perf_counter() - t)
+        enc_s = float(np.median(ts))
+        base.update(encoder_s=enc_s, tf32=a.tf32)
     R.print_profile(R.profile_summary(
         a.batch, t_data, t_h2d, t_comp, torch.cuda.max_memory_allocated() if cuda else 0,
         torch.cuda.max_memory_reserved() if cuda else 0, total, util=gu.mean(), extra=dict(oom=False, **base)))
