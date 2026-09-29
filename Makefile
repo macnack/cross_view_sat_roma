@@ -8,7 +8,7 @@ FRAMES  ?= 0 1000 1600 2000
 REF     ?= 200
 RUN      = PYTHONPATH=src:.pydeps $(PY)
 
-.PHONY: poznan-depth loc2-smoke loc2-eval panoroma-poznan poznan-three-way wayback-fetch wayback-calib eagle-fetch-wayback fg2-vigor eagle-watch vigor-viz loc2-depth loc2-vigor vigor-report loftr-fine vigor-certainty vigor-sweep vigor-cert-cache vigor-cert-head
+.PHONY: poznan-depth loc2-smoke loc2-eval panoroma-poznan poznan-three-way wayback-fetch wayback-calib eagle-fetch-wayback fg2-vigor eagle-watch eagle-probe vigor-viz loc2-depth loc2-vigor vigor-report loftr-fine vigor-certainty vigor-sweep vigor-cert-cache vigor-cert-head
 .PHONY: help deps test fetch stats mask lens viewer oxts odometry bevs mosaic smoke h1 targets overfit train calib all roma-viz mapillary mapillary-scan mapillary-sample ipm-smoke lift-overfit lift-splat lift-eval lift-splat-years lift-aug-viz lift-layers-viz lift-splat-aug lift-splat-pose-nll lift-splat-seq baselines-manifest fg2-smoke fg2-eval fg2-train bevsplat-smoke bevsplat-eval bevsplat-train baselines-report
 help:
 	@grep -E '^[a-z0-9_-]+:.*##' $(MAKEFILE_LIST) | sed -E 's/:.*## /\t/' | expand -t 12
@@ -266,6 +266,10 @@ eagle-submit: ## submit CMD="scripts/x.py ..." JOB=name as one H100 job (run on 
 	@# CMD goes through the environment, NOT --export=ALL,CMD=...: sbatch splits --export on commas,
 	@# which silently truncated "--years 2025,2024,2021 ..." and "--seq-dists 0,2,5" (2026-09-23).
 	CMD="$(CMD)" sbatch --job-name=$(JOB) --export=ALL $(SBATCH_ARGS) slurm/run.sbatch
+
+eagle-probe: ## on Eagle: short H100 job timing train_vigor.py --profile over PROBE_BATCHES / PROBE_WORKERS / PROBE_PREFETCH / PROBE_PIN (0|1) with PROBE_ARGS (config, query, split, ...); stops at the first OOM; `grep PROFILE` the log
+	mkdir -p slurm/logs
+	PROBE_BATCHES="$(PROBE_BATCHES)" PROBE_WORKERS="$(PROBE_WORKERS)" PROBE_PREFETCH="$(PROBE_PREFETCH)" PROBE_PIN="$(PROBE_PIN)" PROBE_STEPS="$(PROBE_STEPS)" PROBE_ARGS="$(PROBE_ARGS)" sbatch --job-name=$(if $(JOB),$(JOB),probe) --export=ALL $(SBATCH_ARGS) slurm/probe_vigor.sbatch
 
 ipm-train: ## camera-only RGB-IPM query (frozen encoder, decoder fine-tune) with the Lift-Splat recipe; task 03 Task 2
 	$(RUN) scripts/train_lift_splat.py --config $(CONFIG) --query ipm --out experiments/05_lift_splat/fixtor_ipm \

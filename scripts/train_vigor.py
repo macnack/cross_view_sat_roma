@@ -51,6 +51,7 @@ sys.path.insert(0, str(Path(__file__).resolve().parent))
 from train_lift_splat import refine_options, step, validate  # noqa: E402
 
 from bevloc import config as C  # noqa: E402
+from bevloc.model import trainrun as R  # noqa: E402
 from bevloc.data.vigor import VigorPairs, collate_vigor, split_cities  # noqa: E402
 from bevloc.model.coarse import FeatureQueryMatcher, resolve_vce_weight, vce_options  # noqa: E402
 from bevloc.model.query import apply_query_cfg, build_query, load_query_state  # noqa: E402
@@ -71,9 +72,26 @@ def main():
     ap.add_argument("--cities", nargs="*", default=None)
     ap.add_argument("--val-cities", nargs="*", default=None, help="default = the training cities (same-area) or the split's test cities")
     ap.add_argument("--steps", type=int, default=3000)
+    ap.add_argument("--epochs", type=int, default=0,
+                    help="> 0 overrides --steps: steps = epochs x (len(train) // batch) (drop_last); validation "
+                         "every epoch unless --val-every is given")
+    ap.add_argument("--save-every-epochs", type=int, default=0,
+                    help="with --epochs: also save checkpoints/vigor_<tag>_ep{e:03d}.pt every K epochs (lean: the "
+                         "trainable weights only, same layout as _best.pt)")
+    ap.add_argument("--resume", default=None,
+                    help="path to a vigor_<tag>_resume.pt (decoder, head, optimizer, step, RNG, best) to continue from; "
+                         "'auto' = checkpoints/vigor_<tag>_resume.pt if it exists, else start fresh (chained jobs)")
+    ap.add_argument("--profile", type=int, default=0,
+                    help="probe: run this many timed training steps (after --profile-warmup), print one PROFILE json "
+                         "line (peak memory, data-wait vs compute, samples/s, GPU util, per-sample CPU cost), no "
+                         "validation, no checkpoints; exit code 3 on CUDA OOM")
+    ap.add_argument("--profile-warmup", type=int, default=3)
+    ap.add_argument("--train-limit", type=int, default=0, help="smoke tests: keep only the first N training labels")
     ap.add_argument("--batch", type=int, default=4)
     ap.add_argument("--workers", type=int, default=0, help="DataLoader workers (the IPM picture is built on the CPU per sample)")
-    ap.add_argument("--val-every", type=int, default=500)
+    ap.add_argument("--prefetch", type=int, default=2, help="DataLoader prefetch_factor (batches per worker; needs workers > 0)")
+    ap.add_argument("--pin-memory", action="store_true", help="DataLoader pin_memory + non-blocking host-to-device copies")
+    ap.add_argument("--val-every", type=int, default=None, help="default 500 steps, or one epoch with --epochs")
     ap.add_argument("--val-samples", type=int, default=200)
     ap.add_argument("--val-frac", type=float, default=0.2,
                     help="hold out this fraction of the TRAINING labels for validation (seed 0); 0 = draw from the test labels")
@@ -155,9 +173,30 @@ def main():
         if not len(tr) or not len(va):
             raise SystemExit("no depth files: run `make loc2-depth SPLIT=... CITIES=... TRAIN=1` first")
     print(f"VCE weight {vce_w}  {vce_opts if vce_w else ''}", flush=True)
-    tr_loader = DataLoader(tr, batch_size=a.batch, shuffle=True, num_workers=a.workers, collate_fn=collate_vigor,
-                           drop_last=True, persistent_workers=a.workers > 0)
-    va_loader = DataLoader(va, batch_size=a.batch, shuffle=False, num_workers=a.workers, collate_fn=collate_vigor)
+    if a.train_limit:                               # smoke tests of the epoch / resume logic only
+        tr.labels = tr.labels[:a.train_limit]
+        print(f"--train-limit: training on the first {len(tr)} labels only (smoke test)", flush=True)
+    # epoch-seeded order (seed, epoch): a resumed run continues the same permutation mid-epoch (bevloc.model.trainrun)
+    sampler = R.EpochSampler(len(tr), seed=cfg.train.seed)
+    # the loader's own generator (worker base seeds): starting an epoch's iterator must not consume the global RNG,
+    # or a resumed run's global stream (VCE draws) would drift from the uninterrupted one
+    g_loader = torch.Generator().manual_seed(int(cfg.train.seed))
+    wkw = dict(prefetch_factor=a.prefetch) if a.workers > 0 else {}
+    tr_loader = DataLoader(tr, batch_size=a.batch, sampler=sampler, num_workers=a.workers, collate_fn=collate_vigor,
+                           drop_last=True, persistent_workers=a.workers > 0, pin_memory=a.pin_memory, generator=g_loader,
+                           **wkw)
+    va_loader = DataLoader(va, batch_size=a.batch, shuffle=False, num_workers=a.workers, collate_fn=collate_vigor,
+                           pin_memory=a.pin_memory, **wkw)
+    spe = R.steps_per_epoch(len(tr), a.batch)
+    if a.epochs > 0:
+        a.steps = R.epoch_steps(len(tr), a.batch, a.epochs)
+    if a.val_every is None:
+        a.val_every = spe if a.epochs > 0 else 500
+    train_meta.update(steps=a.steps, epochs=a.epochs or None, steps_per_epoch=spe, lr_decoder=float(cfg.train.lr_decoder))
+    print(f"{spe} steps per epoch (batch {a.batch}, drop_last)  total {a.steps} steps"
+          + (f" = {a.epochs} epochs" if a.epochs else f" = {a.steps / spe:.2f} epochs")
+          + f"  validation every {a.val_every} steps  workers {a.workers} prefetch {a.prefetch if a.workers else '-'} "
+            f"pin_memory {a.pin_memory}", flush=True)
 
     matcher = FeatureQueryMatcher(cfg.matcher.checkpoint, dev, train_decoder=True)
     n_ref = set_refiner_trainable(matcher.model.decoder, refine_w > 0)
@@ -187,56 +226,111 @@ def main():
     opt = torch.optim.AdamW(groups, weight_decay=cfg.train.weight_decay)
     out = Path(a.out)
     out.mkdir(parents=True, exist_ok=True)
-    C.snapshot(cfg, out, dict(tag=a.tag, ckpt=a.ckpt, split=a.split, train_cities=tr_cities, val_cities=va_cities,
-                              val_frac=a.val_frac, val_samples=a.val_samples, query_mode=mode,
-                              vce_weight=vce_w, no_depth=n_no_depth, pose_nll_weight=a.pose_nll_weight,
-                              refine_weight=refine_w))
-    ckpt_path = C.REPO / "checkpoints" / f"vigor_{a.tag}_best.pt"
-    ckpt_path.parent.mkdir(parents=True, exist_ok=True)
+    ckpt_dir = C.REPO / "checkpoints"
+    ckpt_dir.mkdir(parents=True, exist_ok=True)
+    ckpt_path = ckpt_dir / f"vigor_{a.tag}_best.pt"
     log = out / f"train_{a.tag}.csv"
-    log.write_text("step,split,ce,top1,cell_err_m,pose_nll,pose_err_m,n,sec,vce_m,vce_pose_m,fine_epe_px,fine_epe_in_px,"
-                   "fine_skipped\n")
     val_keys = (["ce", "top1"] + (["pose_nll", "pose_err_m"] if a.pose_nll_weight else [])
                 + (["vce_m", "vce_pose_m"] if vce_w else []) + (["fine_epe_px", "fine_epe_in_px"] if refine_w else []))
     ref_params = refiner_parameters(matcher.model.decoder) if refine_w else []
     last_finite_path = ckpt_path.with_name(f"vigor_{a.tag}_last_finite.pt")
 
     def ckpt_state(k, v):
+        # lean: the query module (projection head; the frozen encoder lives in the matcher, not here) and the decoder
         return {"query": query.state_dict(), "mode": mode,
                 "erp_depth": vars(cfg.erp_depth) if mode == "erp_depth" else None,
                 "train": train_meta,
                 "decoder": decoder_state(matcher.model.decoder, include_refiner=keep_refiner),
-                "step": k, "val": v}
+                "step": k, "epoch": k / spe, "val": v}
 
-    def forever():
-        while True:
-            for b in tr_loader:
-                yield b
-    it = forever()
-    m_per_cell = (cfg.grid.n * cfg.reference.scale / 56.0) * cfg.grid.cell_m
-    query.train()
-    best, best_step, t0 = float("inf"), None, time.time()
-    v = None
-    n_skip_step = 0
-    for k in range(1, a.steps + 1):
-        batch = {kk: (v.to(dev) if torch.is_tensor(v) else v) for kk, v in next(it).items()}
+    sd0 = ckpt_state(0, None)
+    R.assert_no_frozen_encoder(sd0, matcher.model.encoder)
+    rep = R.param_groups_report({"query": sd0["query"], "decoder": sd0["decoder"]})
+    n_enc = sum(p.numel() for p in matcher.model.encoder.parameters())
+    n_opt = sum(p.numel() for g in opt.param_groups for p in g["params"])
+    print("checkpoint contents: " + "  ".join(f"{g} {n / 1e6:.2f} M tensors ({b / 2 ** 20:.0f} MiB)"
+                                              for g, (n, b) in rep.items())
+          + f"  | optimised {n_opt / 1e6:.2f} M params | frozen encoder {n_enc / 1e6:.1f} M NOT saved", flush=True)
+    step_kw = dict(certainty_weight=0.01, pose_nll_weight=a.pose_nll_weight, vce_weight=vce_w, vce_opts=vce_opts,
+                   refine_weight=refine_w, refine_opts=refine_opts)
+
+    def to_dev(b):
+        return {kk: (x.to(dev, non_blocking=a.pin_memory) if torch.is_tensor(x) else x) for kk, x in b.items()}
+
+    def train_step(batch):
+        """One optimizer step; returns (loss, stats, bad) as the main loop needs them."""
         opt.zero_grad(set_to_none=True)
         loss, st = step(query, matcher, batch, cfg, L.min_patch_valid, a.local_radius,
-                        a.neighbour_radius, a.neighbour_weight, certainty_weight=0.01,
-                        pose_nll_weight=a.pose_nll_weight, vce_weight=vce_w, vce_opts=vce_opts,
-                        refine_weight=refine_w, refine_opts=refine_opts)
+                        a.neighbour_radius, a.neighbour_weight, **step_kw)
         bad = not bool(torch.isfinite(loss.detach()))
-        if bad:                                        # no update at all from a non-finite total loss
-            n_skip_step += 1
-            print(f"step {k}: non-finite loss, no update ({n_skip_step} so far)", flush=True)
-        else:
+        g_ok = True
+        if not bad:
             loss.backward()
             if ref_params:
                 _, g_ok = clip_refiner_grads(ref_params, grad_clip)
-                if not g_ok:
-                    print(f"step {k}: non-finite refiner gradient, refiner not updated", flush=True)
-                bad = not g_ok
             opt.step()
+        return loss, st, bad, g_ok
+
+    if a.profile:
+        run_profile(a, tr, tr_loader, sampler, dev, to_dev, train_step)
+        return
+
+    # ---- resume ----
+    res_path = R.resume_path(ckpt_dir, a.tag)
+    rp = None
+    if a.resume == "auto":
+        rp = res_path if res_path.is_file() else None
+        print(f"--resume auto: {'resuming from ' + str(rp) if rp else 'no ' + str(res_path) + ', starting fresh'}",
+              flush=True)
+    elif a.resume:
+        rp = Path(a.resume)
+    k0, best, best_step, n_skip_step, elapsed0, v = 0, float("inf"), None, 0, 0.0, None
+    if rp is not None:
+        cnt = R.load_resume(rp, query, matcher.model.decoder, opt, loader_gen=g_loader)
+        if int(cnt["batch"]) != a.batch or int(cnt["steps_per_epoch"]) != spe:
+            raise SystemExit(f"{rp}: batch {cnt['batch']} / {cnt['steps_per_epoch']} steps per epoch, this run "
+                             f"{a.batch} / {spe}: resume needs the same batch and training set")
+        k0, best, best_step = int(cnt["step"]), float(cnt["best"]), cnt["best_step"]
+        n_skip_step, guard.total, elapsed0 = int(cnt["n_skip_step"]), int(cnt["guard_total"]), float(cnt["elapsed"])
+        v = cnt.get("val")
+        print(f"resumed {rp}: step {k0} (epoch {k0 / spe:.2f}), best {best:.3f} at step {best_step}", flush=True)
+        if k0 >= a.steps:
+            print(f"already at step {k0} >= {a.steps}: nothing to do", flush=True)
+            return
+    else:
+        C.snapshot(cfg, out, dict(tag=a.tag, ckpt=a.ckpt, split=a.split, train_cities=tr_cities, val_cities=va_cities,
+                                  val_frac=a.val_frac, val_samples=a.val_samples, query_mode=mode,
+                                  vce_weight=vce_w, no_depth=n_no_depth, pose_nll_weight=a.pose_nll_weight,
+                                  refine_weight=refine_w, epochs=a.epochs, steps=a.steps, batch=a.batch))
+    if rp is None or not log.is_file():
+        log.write_text("step,split,ce,top1,cell_err_m,pose_nll,pose_err_m,n,sec,vce_m,vce_pose_m,fine_epe_px,"
+                       "fine_epe_in_px,fine_skipped\n")
+
+    def save_resume(k, v):
+        R.atomic_save(R.make_resume(ckpt_state(k, v), opt, loader_gen=g_loader, counters=dict(
+            step=k, best=best, best_step=best_step, n_skip_step=n_skip_step, guard_total=guard.total,
+            elapsed=time.time() - t0, batch=a.batch, steps_per_epoch=spe, tag=a.tag, val=v)), res_path)
+
+    def batches(k_start):
+        e, skip = divmod(k_start, spe)
+        while True:
+            sampler.set_epoch(e, skip * a.batch)           # the rest of epoch e in its seeded order
+            for b in tr_loader:
+                yield b
+            e, skip = e + 1, 0
+    it = batches(k0)
+    m_per_cell = (cfg.grid.n * cfg.reference.scale / 56.0) * cfg.grid.cell_m
+    query.train()
+    t0 = time.time() - elapsed0
+    for k in range(k0 + 1, a.steps + 1):
+        batch = to_dev(next(it))
+        loss, st, bad, g_ok = train_step(batch)
+        if bad:                                        # no update at all from a non-finite total loss
+            n_skip_step += 1
+            print(f"step {k}: non-finite loss, no update ({n_skip_step} so far)", flush=True)
+        elif not g_ok:
+            print(f"step {k}: non-finite refiner gradient, refiner not updated", flush=True)
+            bad = True
         bad = bad or bool(st.get("fine_skipped", 0))
         guard.update(bad, k)                           # raises after refine_max_nonfinite bad steps in a row
         with log.open("a") as f:
@@ -244,13 +338,13 @@ def main():
                     f"{st['pose_nll']:.4f},{st['pose_err'] * m_per_cell:.2f},{st['n']},{time.time() - t0:.1f},"
                     f"{st['vce_m']:.3f},{st['vce_pose_m']:.3f},{st['fine_epe_px']:.3f},{st['fine_epe_in_px']:.3f},"
                     f"{st.get('fine_skipped', 0)}\n")
-        if k == 1 or k % 25 == 0:
+        if k == k0 + 1 or k % 25 == 0:
             print(f"step {k} TRAIN  CE {st['ce']:.3f}  poseNLL {st['pose_nll']:.3f}  top1 {st['acc']:.1%}  "
                   f"arg {st['cell_err'] * m_per_cell:.1f} m  n {st['n']}"
                   + (f"  VCE {st['vce_m']:.2f} m  procrustes {st['vce_pose_m']:.2f} m" if vce_w else "")
                   + (f"  fine EPE {st['fine_epe_px']:.2f} px (input {st['fine_epe_in_px']:.2f})"
                      f"  non-finite steps {guard.total}" if refine_w else "")
-                  + f"  ({time.time() - t0:.0f}s)", flush=True)
+                  + f"  ({time.time() - t0:.0f}s, epoch {k / spe:.2f})", flush=True)
         if k % a.val_every == 0 or k == a.steps:
             v = validate(query, matcher, va_loader, cfg, L.min_patch_valid, a.local_radius, device=dev,
                          max_batches=max(1, a.val_samples // a.batch), certainty_weight=0.01,
@@ -279,11 +373,64 @@ def main():
                 best, best_step = score, k
                 torch.save(ckpt_state(k, v), ckpt_path)
                 print(f"  best -> {ckpt_path}", flush=True)
+            e_save = R.is_epoch_save(k, spe, a.save_every_epochs) if a.epochs else 0
+            if e_save:
+                p_ep = R.epoch_ckpt_path(ckpt_dir, a.tag, e_save)
+                torch.save(ckpt_state(k, v), p_ep)
+                print(f"  epoch {e_save} -> {p_ep} ({p_ep.stat().st_size / 2 ** 20:.0f} MiB)", flush=True)
+            save_resume(k, v)
             query.train()
     last_path = ckpt_path.with_name(f"vigor_{a.tag}_last.pt")   # a late (multimodal) checkpoint stays evaluable
     torch.save(ckpt_state(a.steps, v if a.steps else None), last_path)
     print(f"wrote {ckpt_path} (best, step {best_step}), {last_finite_path} (last finite validation) and {last_path} "
-          f"(last, step {a.steps}); non-finite steps {guard.total}, no-update steps {n_skip_step}", flush=True)
+          f"(last, step {a.steps}, {last_path.stat().st_size / 2 ** 20:.0f} MiB); resume state {res_path}; "
+          f"non-finite steps {guard.total}, no-update steps {n_skip_step}", flush=True)
+
+
+def run_profile(a, tr, tr_loader, sampler, dev, to_dev, train_step):
+    """--profile N: time --profile-warmup + N real training steps (no validation, no checkpoints) and print one
+    PROFILE json line: peak CUDA memory, per-step data wait (blocked on next(loader)) / host-to-device / compute
+    (forward + backward + optimizer, synchronised), samples/s, nvidia-smi GPU utilisation, per-sample CPU cost."""
+    cuda = dev == "cuda"
+    sync = torch.cuda.synchronize if cuda else (lambda: None)
+    cost = R.sample_cost(tr, n=16)
+    print(f"per-sample CPU cost (main process, s): {cost}", flush=True)
+    base = dict(workers=a.workers, prefetch=a.prefetch if a.workers else None, pin_memory=a.pin_memory,
+                cpus=len(os.sched_getaffinity(0)), config=a.config, sample_cost_s=cost)
+    if cuda:
+        torch.cuda.reset_peak_memory_stats()
+    total = torch.cuda.get_device_properties(0).total_memory if cuda else 0
+    sampler.set_epoch(0)
+    it = iter(tr_loader)
+    t_data, t_h2d, t_comp = [], [], []
+    gu = R.GpuUtil()
+    try:
+        for k in range(a.profile_warmup + a.profile):
+            if k == a.profile_warmup:
+                gu.__enter__()
+            t = time.perf_counter()
+            b = next(it)
+            t1 = time.perf_counter()
+            batch = to_dev(b)
+            sync()
+            t2 = time.perf_counter()
+            train_step(batch)
+            sync()
+            t3 = time.perf_counter()
+            if k >= a.profile_warmup:
+                t_data.append(t1 - t)
+                t_h2d.append(t2 - t1)
+                t_comp.append(t3 - t2)
+            print(f"profile step {k + 1}: data {t1 - t:.3f}s h2d {t2 - t1:.3f}s compute {t3 - t2:.3f}s", flush=True)
+    except torch.cuda.OutOfMemoryError as e:
+        gu.__exit__(None, None, None)
+        R.print_profile(dict(batch=a.batch, oom=True, error=str(e).splitlines()[0][:200],
+                             peak_reserved_gib=torch.cuda.max_memory_reserved() / 1024 ** 3, **base))
+        sys.exit(3)
+    gu.__exit__(None, None, None)
+    R.print_profile(R.profile_summary(
+        a.batch, t_data, t_h2d, t_comp, torch.cuda.max_memory_allocated() if cuda else 0,
+        torch.cuda.max_memory_reserved() if cuda else 0, total, util=gu.mean(), extra=dict(oom=False, **base)))
 
 
 if __name__ == "__main__":
