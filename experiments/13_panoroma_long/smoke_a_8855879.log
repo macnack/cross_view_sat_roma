@@ -1,0 +1,21 @@
+[run] host=gpu17 date=2026-09-29T17:48:18+02:00 CMD=scripts/train_vigor.py --config configs/vigor_cell0125.yaml --query erp_depth --head --pose-nll-weight 0.5 --split samearea --val-samples 16 --val-frac 0.2 --batch 8 --workers 8 --train-limit 64 --save-every-epochs 1 --tag smoke_resume --out /mnt/storage_6/project_data/pl1269-01/krupka_maciej/probe_panoroma/experiments/smoke --resume auto --epochs 2
+pose NLL weight 0.5  refine weight 0.0
+train 42087 (['NewYork', 'Seattle', 'SanFrancisco', 'Chicago'])  val 16 of 10522 held out from the train list (val_frac 0.2)  mode erp_depth  batch 8
+depth: dropped 0 train / 0 val labels without a depth file -> train 42087  val 16
+VCE weight 1.0  {'mode': 'sample', 'n_samples': 1024, 'grid_m': 5.0, 'points': 10, 'use_certainty': True}
+--train-limit: training on the first 64 labels only (smoke test)
+8 steps per epoch (batch 8, drop_last)  total 16 steps = 2 epochs  validation every 8 steps  workers 8 prefetch 2 pin_memory False
+Using Dinov3 as Sat Encoder, model: vit_large_patch16_dinov3.sat493m
+no --ckpt: decoder = released Sat-RoMa checkpoint, query untrained
+query erp_depth: 2.23 M trainable parameters (lr 0.0002)
+checkpoint contents: query 2.23 M tensors (9 MiB)  decoder 66.71 M tensors (254 MiB)  | optimised 68.94 M params | frozen encoder 303.1 M NOT saved
+--resume auto: no /mnt/storage_6/project_data/pl1269-01/krupka_maciej/probe_panoroma/checkpoints/vigor_smoke_resume_resume.pt, starting fresh
+step 1 TRAIN  CE 7.618  poseNLL 7.334  top1 0.3%  arg 23.1 m  n 9264  VCE 19.37 m  procrustes 19.25 m  (6s, epoch 0.12)
+step 8 VAL    CE 6.626  poseNLL 6.490  top1 0.4%  heatmap-argmax (not a pose) 14.9 m  n 19013  VCE 13.87 m  procrustes 13.68 m
+  best -> /mnt/storage_6/project_data/pl1269-01/krupka_maciej/probe_panoroma/checkpoints/vigor_smoke_resume_best.pt
+  epoch 1 -> /mnt/storage_6/project_data/pl1269-01/krupka_maciej/probe_panoroma/checkpoints/vigor_smoke_resume_ep001.pt (263 MiB)
+step 16 VAL    CE 6.426  poseNLL 6.285  top1 0.6%  heatmap-argmax (not a pose) 14.6 m  n 19013  VCE 13.67 m  procrustes 13.63 m
+  best -> /mnt/storage_6/project_data/pl1269-01/krupka_maciej/probe_panoroma/checkpoints/vigor_smoke_resume_best.pt
+  epoch 2 -> /mnt/storage_6/project_data/pl1269-01/krupka_maciej/probe_panoroma/checkpoints/vigor_smoke_resume_ep002.pt (263 MiB)
+wrote /mnt/storage_6/project_data/pl1269-01/krupka_maciej/probe_panoroma/checkpoints/vigor_smoke_resume_best.pt (best, step 16), /mnt/storage_6/project_data/pl1269-01/krupka_maciej/probe_panoroma/checkpoints/vigor_smoke_resume_last_finite.pt (last finite validation) and /mnt/storage_6/project_data/pl1269-01/krupka_maciej/probe_panoroma/checkpoints/vigor_smoke_resume_last.pt (last, step 16, 263 MiB); resume state /mnt/storage_6/project_data/pl1269-01/krupka_maciej/probe_panoroma/checkpoints/vigor_smoke_resume_resume.pt; non-finite steps 0, no-update steps 0
+[run] exit=0 date=2026-09-29T17:50:24+02:00

@@ -114,6 +114,34 @@ real quota. The NFS project_data on `storage_6` passed a 500 MB write test and h
 - `eval_pose.py` on the 400-entry validation manifest (200 frames × 2 years): about 4 min per checkpoint.
 - Job start-up (container, encoder load): about 40 s.
 
+## Long runs: probe, epochs, resume (2026-09-29, PanoRoMa 100 epochs)
+
+`make eagle-probe` (slurm/probe_vigor.sbatch, 32 CPUs, 30 min) runs `train_vigor.py --profile N` over
+`PROBE_BATCHES` x `PROBE_WORKERS` x `PROBE_PREFETCH` x `PROBE_PIN`; `grep PROFILE` the log. Measured on one H100
+(coarse erp_depth + head, cell 0.125; raw lines in experiments/13_panoroma_long/*.jsonl):
+
+- GPU-bound at every batch: 7.8-8.1 samples/s from batch 16 up (float32), 13.7 with `--tf32`. Batch 48 leaves 10 %
+  memory headroom, 64 OOMs; batch 32 = 54 GiB reserved (42 % headroom).
+- Batch 32 step (3.96 s, float32): frozen DINOv3 on the 896 px reference 2.47 s, on the panorama 1.0 s (together
+  88 %), decoder + head forward ~0.3 s, backward 0.22 s, AdamW 4 ms.
+- Data: `--pin-memory` takes the data wait from 0.077 s (2 %) to 0.0003 s; 2 workers already keep up at float32.
+  Per-sample CPU cost ~45-55 ms (depth PNG 19 ms, panorama JPEG 9 ms, reference 5 ms, float conversion the rest).
+
+`--epochs E --save-every-epochs K --resume auto` makes a run resumable: `checkpoints/vigor_<tag>_resume.pt` (790 MiB:
+weights + AdamW + RNG) is refreshed after every validation (= every epoch), `_ep{e:03d}.pt` are lean (263 MiB: head +
+decoder, no encoder). A job that hits the 7-day `proxima` MaxTime is continued by the next job in an `afterany` chain
+running the same command; a job that finds the run finished exits at once. Verified with smoke_a/smoke_b (2 + 1
+epochs, experiments/13_panoroma_long/smoke_*.log).
+
+Chaining (review 2026-09-29): `run.sbatch` requests 8 CPUs; pass `--cpus-per-task=16` in SBATCH_ARGS for 8 workers
+(the probe had 32; 2 workers already kept up). `afterany` continues a segment that hit the time limit OR crashed
+(a crash that repeats crashes the next segment too); the fine run waits with `afterok` on the coarse chain's LAST
+segment, so it starts only if that segment exits 0 (finished, or found finished). A coarse run that needs more than
+two segments times out the second one and the fine job never starts (DependencyNeverSatisfied): resubmit it. On the
+fine run's later segments `--resume auto` wins over `--ckpt` (the warm start is loaded, then overwritten by the resume
+file). `_last.pt`, `_best.pt`, `_ep*.pt` all live in `checkpoints/` of the repo, whatever `--out` is; `--out` only
+holds the CSV log and `config.yaml` (+ a per-tag `config_<tag>.yaml`, since both runs share the folder).
+
 ## Older files
 
 `train_fusion.sbatch`, `cross_view_sat_roma.def` and `build_container.sh` are the earlier
