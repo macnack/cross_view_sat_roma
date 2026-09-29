@@ -8,8 +8,9 @@ Per entry (all conventions of the reported rows, unchanged):
     computed_rotation forward equals computed_compass_angle to 1e-3 deg) resized to the method's 714 x 1428 and rolled
     so that the relative bearing rho = beta - assumed sits at the centre (`common.heading_setup`, `common.roll_shift`);
   * reference: the Poznań orthophoto rendered at the manifest's crop centre and crop_up bearing, 630 px over 71 m;
-  * pose: Procrustes t (metres on the method's metric grid) -> map EN, exactly as the reported rows decoded it
-    (FG²: t = (image-up, image-left); Loc²: t = (image-down, image-right); both audited on Fixtor in task 02);
+  * pose: Procrustes (R, t) (metres on the method's metric grid) -> map EN (`camera_in_sat`): Loc² p = t, FG²
+    p = -R^T t. The reported FG² row decoded p = -t, which is exact only for R = I (its aligned panorama); the
+    audited task-02 axes (FG² t = (image-up, image-left), Loc² t = (image-down, image-right)) are that R = I case;
   * heading: the Procrustes R gives the rotation of the ROLLED panorama's centre column relative to the crop's up;
     the vehicle heading is that minus rho (`common.vehicle_yaw`). The reported rows compared the rolled column's
     heading with the vehicle's, so their heading errors (~5.7 deg median) were |crop_rot| (the manifest noise), not
@@ -69,28 +70,42 @@ def render_sat(ortho, crop_centre_en, crop_up_bearing_deg, size: int = 630):
     return torch.from_numpy(np.ascontiguousarray(rgb)).permute(2, 0, 1).float().div(255.0), o, valid
 
 
+def camera_in_sat(t_m, R, method: str) -> np.ndarray:
+    """The camera position p (metres, sat metric-grid axes (image-down, image-right), origin = crop centre) from
+    either method's Procrustes (R, t). Both grids share those axes (create_metric_grid 'ij'; the ground grid is the
+    rolled camera's (backward, right)), but the solvers run in opposite directions:
+      FG²  weighted_procrustes_2d(X_sat, Y_grd):              grd = R sat + t   ->  p = -R^T t
+      Loc² weighted_procrustes_2d_with_scale(Y_grd, X_sat):  sat = s R grd + t ->  p = t
+    (checked with both third-party solvers on synthetic correspondences, tests/test_poznan_three_way.py). The task-02
+    decoding p = -t for FG² is the R = I case: right for the reported rows (panorama aligned with the crop), off by
+    ~|p| * |yaw| (up to ~5 m at 10 deg and 30 m) once the residual rotation is left to the method (heading prior)."""
+    t = np.asarray(t_m, float).reshape(-1)[:2]
+    if method == "fg2":
+        return -np.asarray(R, float).T @ t
+    if method == "loc2":
+        return t
+    raise ValueError(method)
+
+
 def decode_pose(t_m, R, crop_centre_en, crop_up_bearing_deg, method: str, yaw_sign: float):
     """(t, R) of either method -> map EN and the heading of the rolled panorama's centre column (deg cw from grid
-    north). t axes: FG² (image-up, image-left), Loc² (image-down, image-right) — the task-02 audit. The heading is
+    north). Position: `camera_in_sat` (sat axes image-down / image-right on the crop at crop_up). The heading is
     crop_up + yaw_sign * atan2(R[1,0], R[0,0]); yaw_sign is FG2_YAW_SIGN / LOC2_YAW_SIGN (module constants)."""
-    t = np.asarray(t_m, float).reshape(-1)
     b = np.radians(float(crop_up_bearing_deg))
     up = np.array([np.sin(b), np.cos(b)])
     right = np.array([np.cos(b), -np.sin(b)])
-    c = np.asarray(crop_centre_en, float)
-    if method == "fg2":
-        en = c + t[0] * up - t[1] * right
-    elif method == "loc2":
-        en = c - t[0] * up + t[1] * right
-    else:
-        raise ValueError(method)
+    p = camera_in_sat(t_m, R, method)
+    en = np.asarray(crop_centre_en, float) - p[0] * up + p[1] * right
     R = np.asarray(R, float)
     yaw_r = float(np.degrees(np.arctan2(R[1, 0], R[0, 0])))
     return (float(en[0]), float(en[1])), float((float(crop_up_bearing_deg) + yaw_sign * yaw_r) % 360.0)
 
 
 # The sign of the Procrustes rotation relative to a clockwise (bearing) rotation of the panorama's centre column.
-# Settled on the Fixtor smoke (20 frame ids x 2025/2024) with heading "prior", where the rolled column looks
+# From the code: FG²'s VIGOR dataloader builds R_gt = rot(yaw) with yaw = the rolled centre column's bearing (cw) and
+# its solver maps sat -> ground, so atan2(R10, R00) = +bearing; Loc²'s dataloader negates that yaw (R_gt = rot(-yaw))
+# and its solver maps ground -> sat (R = FG²'s R^T), so atan2 = -bearing (tests: third-party solvers on synthetic
+# correspondences). Also seen on the Fixtor smoke (20 frame ids x 2025/2024) with heading "prior", where the rolled column looks
 # crop_rot_deg anticlockwise of the crop's up (true virtual heading = crop_up - crop_rot): over the frames with a
 # position error < 10 m, Loc²'s atan2(R10, R00) follows +crop_rot (Theil-Sen slope 1.16, Spearman 0.82, n 31) and
 # FG²'s follows -crop_rot (slope -1.11, Spearman -0.85, n 29); the opposite signs give heading errors of 8.6 / 6.9 deg

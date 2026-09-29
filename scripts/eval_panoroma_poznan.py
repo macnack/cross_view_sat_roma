@@ -146,7 +146,8 @@ def main():
     ap.add_argument("--fine-ckpt", default=None)
     ap.add_argument("--solver", default=None)
     ap.add_argument("--fine-gate", type=float, default=None)
-    ap.add_argument("--limit", type=int, default=0, help="first N unique frame ids (0 = all)")
+    ap.add_argument("--limit", "--n", dest="limit", type=int, default=0,
+                    help="first N unique frame ids (0 = all); --n as in eval_fg2.py / eval_loc2.py")
     ap.add_argument("--sanity", type=int, default=None, help="write the sanity image of entry INDEX and stop")
     ap.add_argument("--out", default=None, help="default experiments/12_poznan_three_way/panoroma_<heading>_<ref_up>")
     ap.add_argument("--tag", default="")
@@ -202,6 +203,12 @@ def main():
 
     index = {(str(e["frame_id"]), str(int(e["year"]))): k for k, e in enumerate(ds.labels)}
     out_rows, max_check = [], 0.0
+    scored = {(r["id"], r["city"]) for r in rows}
+    for key, k in index.items():            # `score` skips an entry whose sample raised: a miss here, as for FG² / Loc²
+        if key not in scored:
+            for name, *_ in ROWS:
+                out_rows.append(ME.failed_row(ds.labels[k], name, "sample failed (skipped by score)",
+                                              heading=a.heading, ref_up=a.ref_up))
     for r in rows:
         e = ds.labels[index[(r["id"], r["city"])]]
         beta = ds.geometry(index[(r["id"], r["city"])])[0]

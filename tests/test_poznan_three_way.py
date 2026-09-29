@@ -228,3 +228,89 @@ def test_manifest_helpers(tmp_path, monkeypatch):
     assert depth_png_for(Path("/d/Fixtor/S/images/7.jpg")) == Path("/d/Fixtor/S/unik3d_depth/7.png")
     monkeypatch.setenv("POZNAN_DEPTH_DIR", str(tmp_path))
     assert depth_png_for(Path("/d/Fixtor/S/images/7.jpg")) == tmp_path / "S" / "unik3d_depth" / "7.png"
+
+
+# --- FG² / Loc² adapters against each method's own conventions (review 2026-09-29) --------------------------------
+def _kabsch(A, B):
+    """Unweighted 2-D Procrustes in the third-party form (H = A_c^T B_c, R = V diag(1, det) U^T, t = B_mean -
+    A_mean R^T): b = R a + t."""
+    Am, Bm = A.mean(0), B.mean(0)
+    U, _S, Vt = np.linalg.svd((A - Am).T @ (B - Bm))
+    Z = np.diag([1.0, np.sign(np.linalg.det(U @ Vt))])
+    R = Vt.T @ Z @ U.T
+    return R, Bm - Am @ R.T
+
+
+def _third_party_solvers():
+    """FG²'s weighted_procrustes_2d and Loc²'s weighted_procrustes_2d_with_scale from third_party/, or None."""
+    import importlib.util
+    import sys
+    from bevloc.baselines import fg2 as fg2_wrap
+    from bevloc.baselines import loc2 as loc2_wrap
+    f, l_ = fg2_wrap.FG2_ROOT / "utils" / "utils.py", loc2_wrap.LOC2_ROOT / "models" / "utils.py"
+    if not (f.is_file() and l_.is_file()):
+        return None
+    out = []
+    for name, p in (("_review_fg2_utils", f), ("_review_loc2_utils", l_)):
+        spec = importlib.util.spec_from_file_location(name, p)
+        m = importlib.util.module_from_spec(spec)
+        sys.path.insert(0, str(p.parent.parent))
+        try:
+            spec.loader.exec_module(m)
+        except Exception:                                   # noqa: BLE001 — optional cross-check only
+            return None
+        finally:
+            sys.path.pop(0)
+        out.append(m)
+    return out[0].weighted_procrustes_2d, out[1].weighted_procrustes_2d_with_scale
+
+
+def _planted_pair(e, heading, W=1428, seed=0):
+    """Synthetic correspondences for manifest entry e under a heading protocol, in both methods' metric frames:
+    sat points S (image-down, image-right metres from the crop centre, crop rendered at beta) and the same points in
+    the rolled camera's ground grid G (backward, right). Returns (S, G, beta, rho_eff)."""
+    beta, _assumed, rho = heading_setup(e, heading, "crop")
+    _shift, rho_eff = roll_shift(rho, W)
+    b = np.radians(beta)
+    up, right = np.array([np.sin(b), np.cos(b)]), np.array([np.cos(b), -np.sin(b)])
+    d = np.asarray(e["en"]) - np.asarray(e["crop_centre_en"])
+    p = np.array([-(d @ up), d @ right])                    # camera in sat (down, right)
+    psi = np.radians(e["up_bearing_deg"] + rho_eff - beta)  # rolled centre column, cw of the crop's up
+    M = np.array([[np.cos(psi), -np.sin(psi)], [np.sin(psi), np.cos(psi)]])   # sat -> ground (down, right)
+    S = np.random.default_rng(seed).uniform(-30.0, 30.0, (300, 2))
+    return S, (S - p) @ M.T, beta, rho_eff
+
+
+@pytest.mark.parametrize("heading", ["prior", "gt"])
+@pytest.mark.parametrize("crop_rot,off", [(7.0, (3.0, -12.0)), (-9.5, (-21.0, 18.0)), (4.0, (15.0, 20.0))])
+def test_fixtor_adapters_recover_planted_pose(heading, crop_rot, off):
+    """A planted pose (crop offset up to 28 m, crop rotation up to 9.5 deg) through each method's own solver
+    direction -> fixtor.decode_pose -> vehicle_yaw gives back the proxy position and heading. Fails for a wrong yaw
+    sign (error 2 |crop_rot| under prior) and for FG²'s p = -t decoding (error ~|p| |crop_rot|)."""
+    e = entry(up=81.4, crop_rot=crop_rot, off=off)
+    S, G, beta, rho_eff = _planted_pair(e, heading)
+    tp = _third_party_solvers()
+    for method, sign in (("fg2", fx.FG2_YAW_SIGN), ("loc2", fx.LOC2_YAW_SIGN)):
+        sols = [(*(_kabsch(S, G) if method == "fg2" else _kabsch(G, S)), 1e-6)]
+        if tp is not None:
+            St, Gt = torch.tensor(S[None], dtype=torch.float32), torch.tensor(G[None], dtype=torch.float32)
+            w = torch.ones(1, len(S))
+            if method == "fg2":
+                R, t, _ok = tp[0](St, Gt, w=w, use_weights=True, use_mask=True)
+            else:
+                R, t, _s, _ok = tp[1](Gt, St, w=w, use_weights=True, use_mask=True)
+            sols.append((R[0].double().numpy(), t[0, 0].double().numpy(), 2e-3))          # float32 solvers
+        for R, t, tol in sols:
+            en, vyaw = fx.decode_pose(t, R, e["crop_centre_en"], beta, method, sign)
+            np.testing.assert_allclose(en, e["en"], rtol=0, atol=tol)
+            assert wrap180(vehicle_yaw(vyaw, rho_eff) - e["up_bearing_deg"]) == pytest.approx(0.0, abs=tol)
+    # the wrong conventions fail on this pose (prior: a real rotation is left to the solver)
+    if heading == "prior":
+        _R, t = _kabsch(S, G)
+        en_old, _ = fx.decode_pose(t, np.eye(2), e["crop_centre_en"], beta, "fg2", 1.0)   # task-02: p = -t
+        assert np.linalg.norm(np.asarray(en_old) - np.asarray(e["en"])) > 0.5
+        for method, sign in (("fg2", -fx.FG2_YAW_SIGN), ("loc2", -fx.LOC2_YAW_SIGN)):
+            R, t = _kabsch(S, G) if method == "fg2" else _kabsch(G, S)
+            _en, vyaw = fx.decode_pose(t, R, e["crop_centre_en"], beta, method, sign)
+            assert abs(wrap180(vehicle_yaw(vyaw, rho_eff) - e["up_bearing_deg"])) == pytest.approx(2 * abs(crop_rot),
+                                                                                                    abs=1e-6)

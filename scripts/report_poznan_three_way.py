@@ -104,7 +104,10 @@ def main():
               "Written by `make poznan-three-way` (scripts/report_poznan_three_way.py). Manifest "
               f"`{cfg.poznan.manifest}`, years {years}: 200 held-out frames of route IcRzj × 2 orthophoto years; "
               "reference = the manifest's crop (224 m at 0.25 m/px for IPM; each method's native extent) centred "
-              "within ±22 m of the position proxy, zero-shot everywhere. Error = distance to the Mapillary pose "
+              "within ±22 m of the position proxy. FG², Loc² and PanoRoMa are zero-shot (VIGOR-trained); the IPM row's "
+              "checkpoint was trained on four other Poznań Fixtor routes and selected on this route (IcRzj = "
+              "bevloc.data.mapillary.VAL_SEQS), so it is not zero-shot and the manifest is its dev set "
+              "(manifest_test.json, route irAsB, is the untouched one). Error = distance to the Mapillary pose "
               "proxy (not survey GT). Median with 95 % bootstrap interval, mean capped at 1 km, recalls over all "
               "entries (failures count as misses), heading error median over the entries with a pose.", "",
               "Heading protocols: **prior** = the panorama is oriented by the manifest's noisy heading (crop_up, "

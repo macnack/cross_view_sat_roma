@@ -82,3 +82,11 @@ Implied camera height from road points [-20.0, -8.0]° below the horizon, ±30.0
 ## Error CDF
 
 ![CDF](cdf.png)
+
+## Review note (2026-09-29)
+
+The FG² rows above were decoded with p = −t (the task-02 decoding). FG²'s solver maps sat → ground (grd = R sat + t),
+so the camera is at p = −Rᵀt; −t is exact only for R = I. `bevloc.baselines.fixtor.camera_in_sat` now uses −Rᵀt
+(checked with FG²'s and Loc²'s own solvers on planted poses, tests/test_poznan_three_way.py). Re-decoding these
+smoke rows exactly from their stored pred / yaw_r: FG² prior median 2.91 → 2.76 m (R@10 0.72 → 0.75), FG² gt
+3.10 → 2.75 m (R@10 0.75 → 0.78); the transposed alternative is worse (3.62 / 3.35 m). Loc² (p = t) is unaffected.
