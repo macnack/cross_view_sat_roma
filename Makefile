@@ -275,6 +275,12 @@ eagle-submit-ddp: ## submit CMD="scripts/train_vigor.py ... --batch <GLOBAL>" JO
 	mkdir -p slurm/logs
 	CMD="$(CMD)" NPROC="$(if $(NPROC),$(NPROC),4)" sbatch --job-name=$(JOB) --export=ALL $(SBATCH_ARGS) slurm/run_ddp.sbatch
 
+# Default for training on Eagle (decisions 2026-09-29): one full proxima node, 4x H100, H100 precision settings.
+H100_TRAIN_FLAGS ?= --workers 8 --pin-memory --tf32 --encoder-dtype bfloat16 --decoder-dtype bfloat16 --compile encoder
+
+eagle-train: ## on Eagle, THE default way to train: 4x H100 node (eagle-submit-ddp) + H100_TRAIN_FLAGS; TRAIN_ARGS="--config ... --batch 32 --epochs ... --tag ..." JOB= SBATCH_ARGS= (single GPU only for smoke tests: eagle-submit)
+	$(MAKE) eagle-submit-ddp JOB=$(JOB) SBATCH_ARGS="$(SBATCH_ARGS)" CMD="scripts/train_vigor.py $(TRAIN_ARGS) $(H100_TRAIN_FLAGS)"
+
 eagle-probe-ddp: ## on Eagle: short 4-H100 job running each ';'-separated PROBE_RUNS entry ("NPROC args", NPROC=1 = plain python on one GPU) with PROBE_ARGS; `grep -E 'PROFILE|CHECK'` the log
 	mkdir -p slurm/logs
 	PROBE_RUNS="$(PROBE_RUNS)" PROBE_ARGS="$(PROBE_ARGS)" sbatch --job-name=$(if $(JOB),$(JOB),probe-ddp) --export=ALL $(SBATCH_ARGS) slurm/probe_ddp.sbatch
