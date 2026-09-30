@@ -162,8 +162,26 @@ def pose_heatmap_nll(gm_cls, H, matchable=None, gm_certainty=None, local_radius=
     return nll, dict(pose_nll=float(nll.detach()), pose_err=pose_err, n=n, n_norm=n)
 
 
+def smoothed_cross_entropy(logits, tgt, eps, support=None):
+    """Per-row label-smoothed cross-entropy: (1 - eps) * (-log p[tgt]) + eps * mean over the support of (-log p[j]).
+
+    logits (N, K2), tgt (N,), support (N, K2) bool = the classes the eps mass is spread over (None = all K2 classes,
+    which is exactly F.cross_entropy(..., label_smoothing=eps)). The target is always kept in the support. Returns
+    (per-row loss (N,), per-row plain NLL (N,))."""
+    logp = F.log_softmax(logits.float(), dim=-1)
+    nll = -logp.gather(1, tgt[:, None])[:, 0]
+    if support is None:
+        smooth = -logp.mean(-1)
+    else:
+        sup = support.clone()
+        sup[torch.arange(sup.shape[0], device=sup.device), tgt] = True
+        smooth = -(logp * sup).sum(-1) / sup.sum(-1)
+    return (1.0 - eps) * nll + eps * smooth, nll
+
+
 def roma_coarse_loss(gm_cls, idx, matchable, gm_certainty=None, certainty_weight=0.01,
-                     local_radius=0, neighbour_radius=0, neighbour_weight=0.1, patch_weight=None, parts=None):
+                     local_radius=0, neighbour_radius=0, neighbour_weight=0.1, patch_weight=None, parts=None,
+                     label_smoothing=0.0, smooth_support=None):
     """Sat-RoMa scale-16 objective: classify the reference cell, and say if the patch is matchable.
 
     RoMa's coarse loss is a categorical over reference cells, taken only where the
@@ -174,17 +192,34 @@ def roma_coarse_loss(gm_cls, idx, matchable, gm_certainty=None, certainty_weight
     parts: optional dict, filled with name -> (weighted term, normaliser count) such that loss = sum of the terms and
     each term is a mean over `count` items (data-parallel reweighting, bevloc.model.ddp.global_loss): "ce" and
     "hinge" over the matchable tokens (the hinge's neighbour count per token is constant), "cert" over all tokens.
+    label_smoothing eps > 0 (2026-09-30, regularisation): the cell CE becomes `smoothed_cross_entropy` with the eps
+    mass spread over `smooth_support` (B, K2) bool = the sample's valid reference cells (None = all cells); still a
+    mean over the matchable tokens (same "ce" count). The logged "ce" stays the PLAIN cross-entropy, so training and
+    validation curves remain comparable with unsmoothed runs. Not with local_radius (the window's -1e4 logits would
+    receive smoothing mass) or patch_weight. The neighbour hinge is not smoothed (a bounded margin, not a likelihood).
     """
     logits = gm_cls.permute(0, 2, 3, 1)[matchable].float()
     tgt = idx[matchable]
     hinge = gm_cls.new_zeros(())
+    ce_plain = None
     if tgt.numel() == 0:
         ce = gm_cls.sum() * 0.0
         acc = cell_err = top5 = float("nan")
         n = 0
     else:
         pred = window_logits(logits, tgt, local_radius) if local_radius else logits
-        if patch_weight is None:
+        if label_smoothing:
+            if local_radius or patch_weight is not None:
+                raise ValueError("label_smoothing is implemented for the full-map CE only (no local_radius / patch_weight)")
+            sup = None
+            if smooth_support is not None:
+                B, _, h, w = gm_cls.shape
+                bidx = torch.arange(B, device=gm_cls.device)[:, None, None].expand(B, h, w)[matchable]
+                sup = smooth_support.reshape(B, -1).bool()[bidx]
+            per, nll = smoothed_cross_entropy(pred, tgt, float(label_smoothing), sup)
+            ce = per.mean()
+            ce_plain = float(nll.detach().mean())
+        elif patch_weight is None:
             ce = F.cross_entropy(pred, tgt)
         else:
             w = patch_weight[matchable].float()
@@ -211,8 +246,11 @@ def roma_coarse_loss(gm_cls, idx, matchable, gm_certainty=None, certainty_weight
         parts["hinge"] = (neighbour_weight * hinge, n if neighbour_radius else 0)
         parts["cert"] = (certainty_weight * cert, int(matchable.numel()) if (gm_certainty is not None
                                                                               and certainty_weight) else 0)
-    return loss, dict(
-        ce=float(ce.detach()), cert=float(cert.detach()), acc=acc, cell_err=cell_err, top5=top5, n=n)
+    st = dict(ce=float(ce.detach()), cert=float(cert.detach()), acc=acc, cell_err=cell_err, top5=top5, n=n)
+    if label_smoothing:
+        st["ce_smooth"] = st["ce"]
+        st["ce"] = ce_plain if n else float("nan")
+    return loss, st
 
 
 def coarse_loss(gm_cls, idx, use):

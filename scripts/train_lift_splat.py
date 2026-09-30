@@ -13,6 +13,7 @@ from pathlib import Path
 
 import numpy as np
 import torch
+import torch.nn.functional as F
 from torch.utils.data import DataLoader
 
 from bevloc import config as C
@@ -76,16 +77,21 @@ def refine_step_loss(out16, tap, H, use, tok_valid, query_xy, ref_size, cells, c
 
 def step(query, matcher, batch, cfg, min_patch, local_radius, neighbour_radius, neighbour_weight,
          certainty_weight=0.01, pose_nll_weight=0.0, vce_weight=0.0, vce_opts=None, generator=None,
-         refine_weight=0.0, refine_opts=None, parts=None):
+         refine_weight=0.0, refine_opts=None, parts=None, label_smoothing=0.0, feat_dropout=0.0):
     """vce_weight > 0 adds Loc²'s VCE pose loss (bevloc.model.coarse.vce_pose_loss) on the placed query points;
     needs a query with `placement` (erp, erp_depth). vce_opts: its keyword arguments (coarse.vce_options).
     refine_weight > 0 adds RoMa's fine loss on the decoder's conv refiner (`refine_step_loss`; refine_opts =
     `refine_options(cfg)`); the caller unfreezes the refiner (`set_refiner_trainable`).
     parts: optional dict, filled with every loss term as name -> (weighted term, the count it is a mean over), so
     loss == sum of the terms (bevloc.model.ddp.global_loss reweights them to the global batch's normalisers);
-    "fine_skipped" -> (None, 1) marks a skipped fine loss. The counts also land in the stats (n_pose, n_vce)."""
+    "fine_skipped" -> (None, 1) marks a skipped fine loss. The counts also land in the stats (n_pose, n_vce).
+    Regularisation (2026-09-30; both 0 = off, the code path of every earlier run; `validate` never passes them):
+    label_smoothing eps smooths the coarse cell CE over the sample's valid reference cells (coarse.roma_coarse_loss);
+    feat_dropout p applies element-wise dropout to the query features f_q before the decoder (training only)."""
     ref = batch["ref"]
     f_q, patch_frac = query(batch, matcher)          # lift | ipm | hybrid | erp | erp_depth, see bevloc.model.query
+    if feat_dropout:
+        f_q = F.dropout(f_q, p=float(feat_dropout), training=True)
     # scale_factor = sqrt(query px area) / 560: 0.4 for the 224 px BEV queries, 1.13 for a 448x896 ERP grid
     sf = float(((f_q.shape[-2] * 16) * (f_q.shape[-1] * 16)) ** 0.5 / 560.0)
     tap = (RefinerTap(matcher.model.decoder, detach_inputs=True,
@@ -114,7 +120,9 @@ def step(query, matcher, batch, cfg, min_patch, local_radius, neighbour_radius, 
         use[neg] = False
     loss, st = roma_coarse_loss(gm, idx, use, gm_certainty=cert, certainty_weight=certainty_weight,
                                 local_radius=local_radius, neighbour_radius=neighbour_radius,
-                                neighbour_weight=neighbour_weight, parts=parts)
+                                neighbour_weight=neighbour_weight, parts=parts,
+                                **(dict(label_smoothing=float(label_smoothing), smooth_support=rv)
+                                   if label_smoothing else {}))
     st = dict(st)
     st["pose_nll"] = 0.0
     st["pose_err"] = float("nan")

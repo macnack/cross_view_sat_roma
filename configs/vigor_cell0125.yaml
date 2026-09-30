@@ -81,6 +81,22 @@ train:                             # scripts/train_fusion.py
   refine_precision: float32         # refiner autocast dtype in training (and at eval for a trained refiner); float16 went NaN (26 Sep)
   refine_grad_clip: 1.0            # max gradient norm of the refiner parameters (<= 0: off)
   refine_max_nonfinite: 20         # this many non-finite fine-stage steps in a row stop the run with an error (<= 0: never)
+  # regularisation (2026-09-30, scripts/train_vigor.py; every default = off = earlier runs; CLI flags of the same name win)
+  label_smoothing: 0.0             # coarse cell CE eps, spread over the sample's valid reference cells (hinge / NLL / VCE unsmoothed)
+  weight_decay_decoder: null       # AdamW decay on decoder WEIGHTS only (biases, norms, 1-D: 0); null = weight_decay on everything (as before)
+  weight_decay_head: null          # same for the query module (erp_depth projection head)
+  feat_dropout: 0.0                # dropout on the query features before the decoder (training only)
+  select_by: pose                  # _best.pt: pose = validation VCE pose error (heat-map pose without VCE) | loss = validation cell CE
+  aug_photometric: 0.0             # probability of colour jitter (+ blur) per image, panorama and reference independently (bevloc.data.augment)
+  aug_brightness: 0.2              # factors uniform in [1 - a, 1 + a]
+  aug_contrast: 0.2
+  aug_saturation: 0.2
+  aug_hue_deg: 5.0                 # hue shift uniform in +-this
+  aug_blur_p: 0.2                  # Gaussian blur (sigma uniform 0.1..aug_blur_sigma px) after the jitter, with this probability
+  aug_blur_sigma: 1.0
+  aug_geometric: []                # label-consistent pair transforms: rot90 | rot (full circle) | flip | shift (window configs: rot90, flip)
+  aug_rot_deg: 0.0                 # small-angle rotation uniform in +-this (ERP-column quantised), alone or on top of rot90
+  aug_shift_max_m: null            # translation cap per axis (null = keep the tile fully on the canvas, nothing more)
 
 lift:                              # camera-only spherical Lift-Splat (scripts/train_lift_splat.py)
   erp_size: [896, 448]             # width, height; 2:1 keeps the panorama geometry for sat493m

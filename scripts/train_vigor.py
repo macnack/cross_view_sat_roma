@@ -72,6 +72,16 @@ one rank (non-finite loss) is skipped on all, and the logged training statistics
 every checkpoint (bare state dicts, no `module.` prefix); the others wait. The resume file also stores the world size,
 the per-rank batch and every rank's RNG; resuming with another world size or split is refused. Without torchrun the
 script runs exactly as before.
+
+Regularisation (2026-09-30, experiments/14_regularisation; every option off by default = every earlier run, bit for
+bit; each flag falls back to cfg.train.<same name>): --label-smoothing eps (coarse cell CE only, eps spread over the
+sample's valid reference cells; the logged / validated CE stays the plain one), --weight-decay-decoder w /
+--weight-decay-head w (AdamW decoupled decay on weights only, biases / norm weights / 1-D tensors 0; unset = the one
+cfg.train.weight_decay on every tensor, as before; bevloc.model.regularise), --feat-dropout p (dropout on the query
+features before the decoder, training only), --aug-photometric p and --aug-geometric rot90,rot,flip,shift
+[--aug-rot-deg D] (label-consistent pair augmentation in the DataLoader workers, bevloc.data.augment; training set
+only), --select-by pose|loss (`_best.pt` rule; pose = the rule above). The settings are recorded as "reg" in the
+checkpoints' train dict, the config snapshot and the resume counters; a resume with other settings is refused.
 """
 from __future__ import annotations
 
@@ -96,7 +106,9 @@ from bevloc.model.speed import (  # noqa: E402
     COMPILE_CHOICES, DECODER_DTYPE_DEFAULT, DECODER_DTYPES, ENCODER_DTYPES, attention_report, compile_modules,
     encoder_diff, precision_mismatch, precision_record, set_decoder_dtype, set_encoder_dtype,
 )
+from bevloc.data import augment as AUG  # noqa: E402
 from bevloc.data.vigor import VigorPairs, collate_vigor, split_cities  # noqa: E402
+from bevloc.model import regularise as REG  # noqa: E402
 from bevloc.model.coarse import FeatureQueryMatcher, resolve_vce_weight, vce_options  # noqa: E402
 from bevloc.model.query import apply_query_cfg, build_query, load_query_state  # noqa: E402
 from bevloc.model.refine import (  # noqa: E402
@@ -181,6 +193,28 @@ def main():
                     help="RoMa fine loss on the decoder's conv refiner (default cfg.train.refine_weight, 0 = off: "
                          "refiner frozen and not saved)")
     ap.add_argument("--local-radius", type=int, default=0, help="CE window in cells (0 = full 56x56 map: the tile IS the search area)")
+    # regularisation (2026-09-30; every default = off = the behaviour of every earlier run; None = cfg.train.<key>)
+    ap.add_argument("--label-smoothing", type=float, default=None,
+                    help="eps of the coarse cell CE, spread over the sample's valid reference cells (cfg.train."
+                         "label_smoothing, default 0); the hinge / heat-map NLL / VCE terms are not smoothed")
+    ap.add_argument("--weight-decay-decoder", type=float, default=None,
+                    help="AdamW decoupled decay on the decoder's weights only (biases / norm weights / 1-D tensors: 0); "
+                         "default = cfg.train.weight_decay_decoder, unset = the single cfg.train.weight_decay on everything")
+    ap.add_argument("--weight-decay-head", type=float, default=None,
+                    help="same for the query module (erp_depth projection head)")
+    ap.add_argument("--feat-dropout", type=float, default=None,
+                    help="element-wise dropout on the query features before the decoder, training only (default 0)")
+    ap.add_argument("--select-by", default=None, choices=REG.SELECT_RULES,
+                    help="_best.pt rule: pose (default, as before: validation VCE pose error with VCE on, else the "
+                         "heat-map pose error) | loss (validation cell CE)")
+    ap.add_argument("--aug-photometric", type=float, default=None,
+                    help="probability of colour jitter (+ optional blur) per image, panorama and reference "
+                         "independently (bevloc.data.augment; magnitudes cfg.train.aug_*; default 0)")
+    ap.add_argument("--aug-geometric", default=None,
+                    help="comma list of label-consistent pair transforms: rot90 | rot (full circle) | flip | shift, "
+                         "or 'none' (default cfg.train.aug_geometric = none); bevloc.data.augment")
+    ap.add_argument("--aug-rot-deg", type=float, default=None,
+                    help="small-angle rotation uniform in +-D degrees (ERP-column quantised), alone or on top of rot90")
     ap.add_argument("--tag", required=True)
     ap.add_argument("--out", default="experiments/09_vigor")
     a = ap.parse_args()
@@ -265,6 +299,14 @@ def main():
         if not len(tr) or not len(va):
             raise SystemExit("no depth files: run `make loc2-depth SPLIT=... CITIES=... TRAIN=1` first")
     print(f"VCE weight {vce_w}  {vce_opts if vce_w else ''}", flush=True)
+    reg = REG.resolve(cfg, a)
+    aug = AUG.from_config(cfg, a.aug_photometric, a.aug_geometric, a.aug_rot_deg)
+    tr.set_aug(aug)                                 # training only: the validation copy never augments
+    va.aug = None
+    reg["aug"] = aug.record() if aug is not None else None
+    train_meta["reg"] = reg
+    print("regularisation: " + ", ".join(f"{k} {v}" for k, v in reg.items() if k != "aug")
+          + f", aug {reg['aug'] if aug is not None else 'off'}", flush=True)
     if a.train_limit:                               # smoke tests of the epoch / resume logic only
         tr.labels = tr.labels[:a.train_limit]
         print(f"--train-limit: training on the first {len(tr)} labels only (smoke test)", flush=True)
@@ -326,12 +368,13 @@ def main():
     if qp:
         E = getattr(cfg, "erp_depth", None)
         lr_q = float(getattr(E, "lr_head", L.lr_lift)) if mode == "erp_depth" and E is not None else L.lr_lift
-        groups.append({"params": qp, "lr": lr_q})
+        # weight_decay_head None: one group, the optimiser-wide decay (as before); else weights w / biases+norms 0
+        groups += REG.module_groups(query, lr_q, reg["weight_decay_head"], "head")
         train_meta.update(lr_query=float(lr_q))
         print(f"query {mode}: {sum(p.numel() for p in qp) / 1e6:.2f} M trainable parameters (lr {lr_q})", flush=True)
-    dec = [p for p in matcher.model.decoder.parameters() if p.requires_grad]
-    groups.append({"params": dec, "lr": cfg.train.lr_decoder})
+    groups += REG.module_groups(matcher.model.decoder, cfg.train.lr_decoder, reg["weight_decay_decoder"], "decoder")
     opt = torch.optim.AdamW(groups, weight_decay=cfg.train.weight_decay)
+    print(f"AdamW groups: {REG.groups_report(opt)}", flush=True)
     opt_params = [p for g in opt.param_groups for p in g["params"]]
     if D.on:
         # rank 0's trainable weights on every rank (as DDP does at construction; they are equal already), then one
@@ -370,6 +413,10 @@ def main():
           + f"  | optimised {n_opt / 1e6:.2f} M params | frozen encoder {n_enc / 1e6:.1f} M NOT saved", flush=True)
     step_kw = dict(certainty_weight=0.01, pose_nll_weight=a.pose_nll_weight, vce_weight=vce_w, vce_opts=vce_opts,
                    refine_weight=refine_w, refine_opts=refine_opts)
+    if reg["label_smoothing"]:                     # training steps only; validate() scores the plain objective
+        step_kw["label_smoothing"] = reg["label_smoothing"]
+    if reg["feat_dropout"]:
+        step_kw["feat_dropout"] = reg["feat_dropout"]
 
     def to_dev(b):
         return {kk: (x.to(dev, non_blocking=a.pin_memory) if torch.is_tensor(x) else x) for kk, x in b.items()}
@@ -442,6 +489,14 @@ def main():
         rp = Path(a.resume)
     k0, best, best_step, n_skip_step, elapsed0, v = 0, float("inf"), None, 0, 0.0, None
     if rp is not None:
+        # before loading anything: other regularisation settings = another objective, optimiser group layout or
+        # _best.pt score (an old file without the record counts as all defaults)
+        pre = torch.load(rp, map_location="cpu", weights_only=False, mmap=True).get("counters", {})
+        bad_reg = REG.mismatch(pre.get("reg"), reg)
+        if bad_reg:
+            raise SystemExit(f"resume refused: {rp} was trained with other regularisation settings: "
+                             + "; ".join(bad_reg))
+        del pre
         cnt = R.load_resume(rp, query, matcher.model.decoder, opt, loader_gen=g_loader)
         R.check_resume(cnt, a.batch, spe, len(tr), a.tag)
         check_resume_world(cnt, D.world, b_rank)
@@ -481,7 +536,7 @@ def main():
         snap = dict(tag=a.tag, ckpt=a.ckpt, split=a.split, train_cities=tr_cities, val_cities=va_cities,
                     val_frac=a.val_frac, val_samples=a.val_samples, query_mode=mode,
                     vce_weight=vce_w, no_depth=n_no_depth, pose_nll_weight=a.pose_nll_weight,
-                    refine_weight=refine_w, epochs=a.epochs, steps=a.steps, batch=a.batch, tf32=a.tf32, **prec)
+                    refine_weight=refine_w, epochs=a.epochs, steps=a.steps, batch=a.batch, reg=reg, tf32=a.tf32, **prec)
         if D.on:
             snap.update(world_size=D.world, batch_per_rank=b_rank, val_batch=a.val_batch, loss_norm=DDP_LOSS_NORM)
         if D.main:
@@ -495,7 +550,7 @@ def main():
     def save_resume(k, v):
         cnt = dict(step=k, best=best, best_step=best_step, n_skip_step=n_skip_step, guard_total=guard.total,
                    elapsed=time.time() - t0, batch=a.batch, steps_per_epoch=spe, n_train=len(tr), tag=a.tag,
-                   tf32=bool(a.tf32), val=v, **prec)
+                   tf32=bool(a.tf32), reg=reg, val=v, **prec)
         if not D.on:
             R.atomic_save(R.make_resume(ckpt_state(k, v), opt, loader_gen=g_loader, counters=cnt), res_path)
             return
@@ -570,7 +625,7 @@ def main():
                   + (f"  VCE {v['vce_m']:.2f} m  procrustes {v['vce_pose_m']:.2f} m" if vce_w else "")
                   + (f"  fine EPE {v['fine_epe_px']:.2f} px (input {v['fine_epe_in_px']:.2f})" if refine_w else ""),
                   flush=True)
-            score = v["vce_pose_m"] if vce_w and v["vce_pose_m"] == v["vce_pose_m"] else pose_m
+            score = REG.select_score(reg["select_by"], v, pose_m, bool(vce_w))
             finite, is_best = best_candidate(v, score, best, val_keys)
             if not finite:
                 print(f"  WARNING step {k}: validation not finite ({ {kk: v.get(kk) for kk in val_keys} }, "

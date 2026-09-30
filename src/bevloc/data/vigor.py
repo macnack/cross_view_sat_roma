@@ -51,6 +51,7 @@ import torch
 from torch.utils.data import Dataset
 
 from bevloc.bev.ipm_sphere import ipm_erp
+from bevloc.data import augment as AUG
 from bevloc.data.wayback import SOURCE_RE, source_dir
 
 CITIES = ("NewYork", "Seattle", "SanFrancisco", "Chicago")
@@ -210,6 +211,7 @@ class VigorPairs(Dataset):
         self.ref_window_m = None if w is None else float(w)
         self.ref_jitter_m = float(getattr(V, "ref_jitter_m", 0.0) or 0.0)
         self.jitter_seed = None if train else int(seed)
+        self.aug = None             # training augmentation (bevloc.data.augment.PairAug); None = off, nothing drawn
         self.labels = read_labels(self.root, cities or split_cities(split, train), split, train)
         if stride > 1:
             self.labels = self.labels[::stride]
@@ -314,6 +316,19 @@ class VigorPairs(Dataset):
     def __getitem__(self, i):
         return self.item(i)
 
+    def set_aug(self, aug):
+        """Training augmentation (bevloc.data.augment.PairAug, or None = off). Refuses the transforms that are not
+        label-clean for this dataset's reference (window mode) or query mode (ipm)."""
+        if aug is not None:
+            aug.check_window(self.ref_window_m is not None, self._query_mode())
+        self.aug = aug
+        return self
+
+    def _augment(self, out, footprint=None):
+        if self.aug is None:
+            return out
+        return AUG.apply(out, self.aug, int(self.cfg.grid.n), float(self.cfg.grid.cell_m), footprint)
+
     def item(self, i, ref_centre_en=None):
         """Sample i. ref_centre_en (east, north metres from the tile centre): the reference is the window centred
         there (the second pass passes the coarse pose). None = the configured reference: the whole tile, or, with
@@ -323,7 +338,7 @@ class VigorPairs(Dataset):
             return self._window_item(i, lab, ref_centre_en)
         g = self.cfg.grid
         n = int(g.n)
-        canvas, _, c, _ = self.reference(lab["city"], lab["sat"])
+        canvas, _, c, (w0, h0) = self.reference(lab["city"], lab["sat"])
         s, res = self.label_scale(lab["city"])                   # the labels are in VIGOR tile px, whatever the file
         pano = cv2.imread(str(self.root / lab["city"] / "panorama" / lab["pano"]), cv2.IMREAD_COLOR)
         if pano is None:
@@ -345,7 +360,15 @@ class VigorPairs(Dataset):
             en=torch.tensor([self.col_sign * lab["dx"] * res, -self.row_sign * lab["dy"] * res], dtype=torch.float64),
             ref_centre_en=torch.zeros(2, dtype=torch.float64),
         )
-        return self._query_part(out, lab, pano)
+        out = self._query_part(out, lab, pano)
+        if self.aug is None:
+            return out
+        S = canvas.shape[0]                                      # the tile's footprint on the canvas (px edges)
+        s_px = CITY_RES[lab["city"]] * 640.0 / w0 / float(g.cell_m)
+        nw, nh = max(1, int(round(w0 * s_px))), max(1, int(round(h0 * s_px)))
+        x0, y0 = (S - nw) // 2, (S - nh) // 2
+        fp = (max(0, x0) - 0.5, max(0, y0) - 0.5, min(S, x0 + nw) - 0.5, min(S, y0 + nh) - 0.5)
+        return self._augment(out, fp)
 
     def _window_item(self, i, lab, ref_centre_en):
         g = self.cfg.grid
@@ -375,7 +398,7 @@ class VigorPairs(Dataset):
             en=torch.from_numpy(en),
             ref_centre_en=torch.from_numpy(centre),
         )
-        return self._query_part(out, lab, pano)
+        return self._augment(self._query_part(out, lab, pano))
 
     def ref_canvas(self, i, source=None, ref_centre_en=None):
         """The reference tensor (3, S, S) of sample i from `source` (None = ref_source), built by `item`'s rule for
