@@ -212,7 +212,7 @@ vigor-train: ## fine-tune CKPT on VIGOR (SPLIT=samearea|crossarea, CITIES="Chica
 vigor-viz: ## overlay sheet of the worst (PICK=worst) or a spread (PICK=spread) of N frames of EVAL_JSON, re-matched with CKPT; TAG=
 	$(RUN) scripts/viz_vigor.py --config $(CONFIG) --ckpt $(CKPT) --eval-json $(EVAL_JSON) --tag $(TAG) --n $(if $(N),$(N),20) --pick $(if $(PICK),$(PICK),worst)
 
-vigor-aug-viz: ## sheet of one VIGOR sample unaugmented + N augmented draws (placed tokens through the label H on the canvas): SPLIT=, CITIES=, INDEX=, N=, CONFIG=configs/vigor_cell0125.yaml, AUG_ARGS="--aug-geometric rot90,flip,shift --aug-rot-deg 10 --aug-photometric 1" -> experiments/14_regularisation/aug_<city>_<index>.jpg
+vigor-aug-viz: ## sheet of one VIGOR sample unaugmented + N augmented draws (placed tokens through the label H on the canvas): SPLIT=, CITIES=, INDEX=, N=, CONFIG= (the training config, e.g. configs/vigor_cell0125.yaml), AUG_ARGS="--aug-geometric rot90,flip,shift --aug-rot-deg 10 --aug-photometric 1" -> experiments/14_regularisation/aug_<city>_<index>.jpg
 	$(RUN) scripts/viz_vigor_aug.py --config $(CONFIG) --split $(SPLIT) $(if $(CITIES),--cities $(CITIES),) --index $(if $(INDEX),$(INDEX),0) --n $(if $(N),$(N),5) $(AUG_ARGS)
 
 vigor-report: ## experiments/09_vigor/REPORT.md: one table per split from every eval json there + IDEAS.md (the ideas/jobs ledger)

@@ -9,7 +9,8 @@ each: brightness, contrast and saturation factors drawn uniformly in [1 - a, 1 +
 then with probability ``blur_p`` a Gaussian blur of sigma uniform in [0.1, blur_sigma] px. The query image is the ERP
 (or the IPM picture for query mode "ipm", only where it is valid). On the reference the black canvas (= no data, which
 `ref_cell_validity` reads) stays exactly black: jitter and blur are applied, then every pixel that was black is black
-again.
+again, and every pixel that had data and was clipped to black (dark shadows under contrast > 1) is set to 1/255, so
+the no-data mask is exactly the one before the jitter.
 
 Geometric (`PairAug.geometric`, a subset of rot90 / rot / flip / shift, plus `rot_deg`), all label-consistent. The
 known-orientation convention (bevloc.data.vigor): canvas up = north = the ERP's centre column, azimuth alpha clockwise
@@ -173,7 +174,11 @@ def photometric(out, rng, a: PairAug):
     if rng.random() < a.photometric:
         ref = _chw_to_hwc(out["ref"])
         data = ref.sum(-1) > 0                                   # the black canvas stays exactly black
-        out["ref"] = _hwc_to_chw(colour_jitter(ref, rng, a, keep=data), out["ref"])
+        j = colour_jitter(ref, rng, a, keep=data)
+        # ... and no data pixel becomes black: contrast > 1 / brightness < 1 clip dark shadows to (0, 0, 0), which
+        # ref_cell_validity (and the matcher) would read as NO DATA (review 2026-09-30: up to ~10 % of a shadow area)
+        j[data & (j.sum(-1) <= 0)] = 1.0 / 255.0
+        out["ref"] = _hwc_to_chw(j, out["ref"])
     return out
 
 
