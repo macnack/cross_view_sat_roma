@@ -129,3 +129,8 @@
 # --- PanoRoMa 100 epochs, 4x H100, bf16 encoder+decoder, TF32, compiled encoder ---
 8859503 pano_coarse_e100 ^(train |DDP|resumed|step [0-9]* VAL|wrote|saved|Traceback|.*Error|error:|Killed|OOM|\[run\] exit)
 8859504 pano_fine_e100   ^(train |DDP|resumed|step [0-9]* VAL|wrote|saved|Traceback|.*Error|error:|Killed|OOM|\[run\] exit)
+# --- regularisation ablation, 30 epochs, clone cvsr_reg (logs in that clone) ---
+8868815 reg_A ^(DDP|step [0-9]* VAL|Traceback|.*Error|\[run\] exit)
+8868816 reg_B ^(DDP|step [0-9]* VAL|Traceback|.*Error|\[run\] exit)
+8868817 reg_C ^(DDP|step [0-9]* VAL|Traceback|.*Error|\[run\] exit)
+8868818 reg_D ^(DDP|step [0-9]* VAL|Traceback|.*Error|\[run\] exit)
