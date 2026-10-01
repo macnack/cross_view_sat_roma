@@ -17,7 +17,7 @@ from pathlib import Path
 import numpy as np
 
 from bevloc import config as C
-from bevloc.data.vigor import read_depth_png
+from bevloc.data.vigor import DEPTH_DIR, read_depth_png
 
 import importlib.util
 
@@ -46,7 +46,7 @@ def main():
     ap = C.add_args(argparse.ArgumentParser(description=__doc__))
     ap.add_argument("--root", default=os.environ.get("VIGOR_DIR", "data/vigor"))
     ap.add_argument("--per-city", type=int, default=300)
-    ap.add_argument("--poznan-glob", default="data/mapillary/Fixtor/*/unik3d_depth/*.png")
+    ap.add_argument("--poznan-glob", default=f"data/mapillary/Fixtor/*/{DEPTH_DIR}/*.png")
     ap.add_argument("--seed", type=int, default=0)
     ap.add_argument("--out", default="experiments/12_poznan_three_way/depth_check")
     a = ap.parse_args()
@@ -59,7 +59,7 @@ def main():
     res = {"band_deg": list(band), "azimuth": "all (az_deg = 180)", "road_mask": False}
     allv = []
     for city in ("Chicago", "NewYork", "SanFrancisco", "Seattle"):
-        files = sorted((Path(a.root) / city / "unik3d_depth").glob("*.png"))
+        files = sorted((Path(a.root) / city / DEPTH_DIR).glob("*.png"))
         pick = rng.sample(files, min(a.per_city, len(files))) if files else []
         hs = per_image(pick, band, 180.0, R)
         res[city] = summary(hs) if hs.size else None

@@ -30,7 +30,7 @@ VIGOR-tile-sized square) are black, like the off-tile border of VIGOR's canvas.
 
 Panorama: resampled (INTER_AREA) to base_size = 2048 x 1024 (VIGOR's panorama size), rolled there by whole pixels
 (rho quantised to 360 / 2048 deg; the exact rho is used everywhere), then resized to the erp_depth ERP size as
-VigorPairs does. Depth: the UniK3D PNG (<seq>/unik3d_depth/<id>.png, scripts/unik3d_depth_poznan.py, stored at
+VigorPairs does. Depth: the UniK3D PNG (<seq>/<DEPTH_DIR>/<id>.png, DEPTH_DIR = unik3d_depth_v2, scripts/unik3d_depth_poznan.py, stored at
 2048 x 1024) rolled by the same shift, nearest-resized to the ERP size; rows looking more than ego_mask_deg below the
 camera's horizon (the car body) get depth 0 = invalid (depth_query drops non-positive depth).
 """
@@ -171,10 +171,16 @@ class ManifestPanoPairs(Dataset):
     def depth_path(self, i) -> Path:
         return depth_png_for(self.pano_path(i))
 
-    def keep_with_depth(self):
-        """Drop entries without a depth PNG; returns the number dropped."""
+    def keep_with_depth(self, max_drop_frac: float = 0.0):
+        """Drop entries without a depth PNG; returns the number dropped. Raises RuntimeError when more than
+        ``max_drop_frac`` would be dropped (default 0), see bevloc.data.vigor.check_depth_coverage."""
+        from bevloc.data.vigor import check_depth_coverage
         before = len(self.labels)
-        self.labels = [e for e in self.labels if depth_png_for(resolve_panorama(e["panorama"])).is_file()]
+        paths = [depth_png_for(resolve_panorama(e["panorama"])) for e in self.labels]
+        keep = [p.is_file() for p in paths]
+        check_depth_coverage(before, [p for p, k in zip(paths, keep) if not k], "PoznanPano", max_drop_frac,
+                             "make poznan-depth MANIFEST=... first")
+        self.labels = [e for e, k in zip(self.labels, keep) if k]
         return before - len(self.labels)
 
     def frame_meta(self, i) -> dict:

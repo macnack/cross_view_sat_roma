@@ -27,7 +27,8 @@ from torch.utils.data import DataLoader, Subset, default_collate  # noqa: E402
 
 from bevloc import config as C  # noqa: E402
 from bevloc.baselines import loc2 as loc2_wrap  # noqa: E402
-from bevloc.data.vigor import CITY_RES, VigorPairs, find_label_root, split_cities  # noqa: E402
+from bevloc.data.vigor import (CITY_RES, DEPTH_DIR, VigorPairs, check_depth_coverage, find_label_root,  # noqa: E402
+                               split_cities)
 from bevloc.eval.report import summarise_pose  # noqa: E402
 
 
@@ -96,6 +97,11 @@ def main():
         def _get_city_list(self):
             return self._cities
 
+        def _resolve_depth_path(self, ground_path):
+            # Loc² hardcodes <City>/unik3d_depth/; read the versioned folder our writer fills (bevloc.data.vigor.DEPTH_DIR)
+            g = Path(ground_path)
+            return str(loc2_wrap.depth_png_path(g.parent.parent.parent, g.parent.parent.name, g.name))
+
     root = Path(a.root)
     ds = CityDataset(cities, root=str(root), label_root=str(find_label_root(root)), split=a.split, train=False,
                      random_orientation=0)
@@ -103,9 +109,14 @@ def main():
     by_name = {os.path.basename(p): i for i, p in enumerate(ds.grd_list)}
     idx = [by_name[lab["pano"]] for lab in ours.labels]
     names = [lab["pano"] for lab in ours.labels]
-    missing = [n for lab in ours.labels for n in [lab["pano"]] if not loc2_wrap.depth_png_path(root, lab["city"], n).is_file()]
-    print(f"{len(idx)} samples, split {a.split}, cities {cities}, batch {batch}, max depth {max_depth} m, "
-          f"{len(missing)} without a depth file (skipped)", flush=True)
+    missing = [loc2_wrap.depth_png_path(root, lab["city"], lab["pano"]) for lab in ours.labels]
+    missing = [p for p in missing if not p.is_file()]
+    # every panorama of the draw must have depth: Loc²'s dataloader turns a missing file into a None sample, which
+    # would silently shrink the row (and shift the pano names below); fail instead
+    check_depth_coverage(len(idx), missing, "eval_loc2_vigor", 0.0,
+                         f"make loc2-depth SPLIT={a.split} LIMIT={a.limit} CITIES=... first")
+    print(f"{len(idx)} samples, split {a.split}, cities {cities}, batch {batch}, max depth {max_depth} m, depth from "
+          f"{DEPTH_DIR}/", flush=True)
     loader = DataLoader(Subset(ds, idx), batch_size=batch, shuffle=False, num_workers=a.workers, collate_fn=safe_collate)
 
     model, meta = loc2_wrap.load_matcher(dev, area=a.split, orientation="known_ori")
@@ -119,9 +130,13 @@ def main():
     with torch.no_grad():
         for data in loader:
             if data is None:
-                continue
+                raise RuntimeError(f"Loc² dataloader dropped the whole batch starting at {names[done]} (see its "
+                                   "[Warning] lines above)")
             grd, depth, sat, tgt, _Rgt, city, resolution = data
             B = grd.shape[0]
+            if B != min(batch, len(idx) - done):          # a None sample (unreadable file) would misalign names
+                raise RuntimeError(f"Loc² dataloader dropped {min(batch, len(idx) - done) - B} sample(s) of the batch "
+                                   f"starting at {names[done]} (see its [Warning] lines above)")
             grd, depth, sat, tgt = grd.to(dev), depth.to(dev), sat.to(dev), tgt.to(dev)
             sat_grid = torch.cat([city_grid[c] for c in city], 0)
             t0 = time.time()
@@ -160,7 +175,7 @@ def main():
                     row[f"{k}_m"] = float(torch.norm(t[b] - gt_m, dim=-1).item()) if ok else None
                 rows.append(row)
             done += B
-            if (done // batch) % 10 == 0 or done >= len(idx) - len(missing):
+            if (done // batch) % 10 == 0 or done >= len(idx):
                 msg = "  ".join(f"{k} median so far {np.median([r[f'{k}_m'] for r in rows if r[f'{k}_m'] is not None]):.1f} m"
                                 for k in res)
                 print(f"  {done} done  {msg}", flush=True)
@@ -178,7 +193,7 @@ def main():
     path = out / f"eval_loc2_{a.tag}_{a.split}.json"
     path.write_text(json.dumps(dict(meta=dict(method="Loc2", checkpoint=meta, split=a.split, cities=cities, n=len(rows),
                                               limit=a.limit, seed=a.seed, orientation="known_ori", max_depth_m=max_depth,
-                                              skipped_no_depth=len(missing), city_res=CITY_RES,
+                                              skipped_no_depth=0, depth_dir=DEPTH_DIR, city_res=CITY_RES,
                                               sec_per_sample=dict(model=t_model / max(1, len(rows)),
                                                                   **{k: v / max(1, len(rows)) for k, v in t_solve.items()})),
                                     frames=rows, summary=summary), indent=2))

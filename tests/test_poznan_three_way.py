@@ -225,9 +225,10 @@ def test_manifest_helpers(tmp_path, monkeypatch):
     p = resolve_panorama("/elsewhere/checkout/data/mapillary/Fixtor/S/images/7.jpg")
     assert p.parts[-6:] == ("data", "mapillary", "Fixtor", "S", "images", "7.jpg")
     monkeypatch.delenv("POZNAN_DEPTH_DIR", raising=False)
-    assert depth_png_for(Path("/d/Fixtor/S/images/7.jpg")) == Path("/d/Fixtor/S/unik3d_depth/7.png")
+    from bevloc.data.vigor import DEPTH_DIR
+    assert depth_png_for(Path("/d/Fixtor/S/images/7.jpg")) == Path("/d/Fixtor/S") / DEPTH_DIR / "7.png"
     monkeypatch.setenv("POZNAN_DEPTH_DIR", str(tmp_path))
-    assert depth_png_for(Path("/d/Fixtor/S/images/7.jpg")) == tmp_path / "S" / "unik3d_depth" / "7.png"
+    assert depth_png_for(Path("/d/Fixtor/S/images/7.jpg")) == tmp_path / "S" / DEPTH_DIR / "7.png"
 
 
 # --- FG² / Loc² adapters against each method's own conventions (review 2026-09-29) --------------------------------

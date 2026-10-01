@@ -6,7 +6,7 @@ from the main checkout; Poznań three-way comparison, decision 2026-09-29).
   make loc2-smoke DEPTH=unik3d                 # 20 frame ids x the years
 
 --depth flat | unik3d: the 1.65 m flat-ground ray proxy of the reported row, or UniK3D depth
-(scripts/unik3d_depth_poznan.py; <seq>/unik3d_depth/<id>.png) with the car body (rows steeper than
+(scripts/unik3d_depth_poznan.py; <seq>/unik3d_depth_v2/<id>.png) with the car body (rows steeper than
 cfg.poznan.ego_mask_deg below the horizon) masked. The depth is rolled with the panorama. --heading prior|gt:
 common.heading_setup. Solver: Loc²'s RANSAC Procrustes (the reported row), --no-ransac for plain Procrustes.
 """

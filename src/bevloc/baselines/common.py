@@ -213,14 +213,15 @@ def resolve_panorama(path) -> Path:
 
 def depth_png_for(panorama, root=None) -> Path:
     """Loc²'s depth layout transposed to a Mapillary sequence: <seq>/images/<id>.jpg ->
-    <seq>/unik3d_depth/<id>.png (uint16 millimetres along the ray, like <City>/unik3d_depth/ for VIGOR).
-    root (default $POZNAN_DEPTH_DIR): put the tree <seq name>/unik3d_depth/ under that directory instead (a
-    checkout whose data/mapillary is a read-only link)."""
+    <seq>/<DEPTH_DIR>/<id>.png (uint16 millimetres along the ray, like <City>/<DEPTH_DIR>/ for VIGOR; DEPTH_DIR =
+    bevloc.data.vigor.DEPTH_DIR, unik3d_depth_v2). root (default $POZNAN_DEPTH_DIR): put the tree
+    <seq name>/<DEPTH_DIR>/ under that directory instead (a checkout whose data/mapillary is a read-only link)."""
     import os
+    from bevloc.data.vigor import DEPTH_DIR
     p = Path(panorama)
     root = root or os.environ.get("POZNAN_DEPTH_DIR")
     base = Path(root) / p.parent.parent.name if root else p.parent.parent
-    return base / "unik3d_depth" / (p.stem + ".png")
+    return base / DEPTH_DIR / (p.stem + ".png")
 
 
 def select_entries(man: dict, years=None, n_frames: int = 0):

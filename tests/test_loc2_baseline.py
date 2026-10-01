@@ -8,9 +8,11 @@ from bevloc.baselines import loc2 as loc2_wrap
 
 
 def test_depth_png_path_matches_loc2_dataloader():
-    # Loc² dataloader: ground path with 'panorama' -> 'unik3d_depth', extension -> .png
+    # Loc² dataloader: ground path with 'panorama' -> 'unik3d_depth', extension -> .png; ours reads the versioned
+    # folder (bevloc.data.vigor.DEPTH_DIR, unik3d_depth_v2), eval_loc2_vigor.py points Loc²'s dataloader at it
+    from bevloc.data.vigor import DEPTH_DIR
     p = loc2_wrap.depth_png_path("/data/vigor", "Chicago", "panorama_id_001.jpg")
-    assert p == Path("/data/vigor/Chicago/unik3d_depth/panorama_id_001.png")
+    assert p == Path("/data/vigor/Chicago") / DEPTH_DIR / "panorama_id_001.png"
 
 
 @pytest.mark.skipif(not (loc2_wrap.CKPT_ROOT / "samearea" / "known_ori" / "model.pt").is_file()

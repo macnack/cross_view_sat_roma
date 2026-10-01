@@ -29,7 +29,8 @@ centres at integer coordinates, tile centre at ((w0 - 1) / 2, (h0 - 1) / 2)); wh
 ref_window_m, is black, and H stays the exact BEV px -> window px map (tests/test_vigor_window.py). The whole-tile
 path (ref_window_m None, no centre passed) is unchanged, bit for bit.
 
-Depth (query mode ``erp_depth``, task 04): UniK3D metric depth in Loc²'s layout, ``<root>/<City>/unik3d_depth/<stem>.png``
+Depth (query mode ``erp_depth``, task 04): UniK3D metric depth in Loc²'s layout, ``<root>/<City>/<DEPTH_DIR>/<stem>.png``
+(DEPTH_DIR = unik3d_depth_v2; the v1 folder unik3d_depth has row stripes, see DEPTH_DIR)
 (uint16 millimetres along the ray, clipped at 65 m; scripts/loc2_depth_vigor.py). The sample carries it as ``depth``
 (1, h, w) metres at the ERP size (nearest resampling); panoramas without a file are dropped by `keep_with_depth`.
 
@@ -43,6 +44,7 @@ cross-source union of scripts/eval_vigor.py --ref-sources); `missing_refs` lists
 """
 from __future__ import annotations
 
+import os
 from pathlib import Path
 
 import cv2
@@ -60,6 +62,11 @@ TILE_PX = 640                # the VIGOR tile: 640 px at CITY_RES m/px; the labe
 CITY_RES = {"NewYork": 0.113248, "Seattle": 0.100817, "SanFrancisco": 0.118141, "Chicago": 0.111262}
 # world ENU -> camera for a north-aligned panorama: camera x = east, y = down, z = north (forward)
 R_NORTH = np.array([[1.0, 0.0, 0.0], [0.0, 0.0, -1.0], [0.0, 1.0, 0.0]], np.float32)
+# Folder of the UniK3D depth PNGs next to <City>/panorama (and <seq>/images for Poznań, baselines.common.depth_png_for).
+# "unik3d_depth" (v1, written before 2026-10-01) is corrupt for all but the first few panoramas of every generating
+# process: the cached Spherical camera was mutated in place by UniK3D.infer (see bevloc.baselines.loc2.infer_distance),
+# which leaves image-independent row stripes. v2 = one fresh camera per panorama. $BEVLOC_DEPTH_DIR overrides.
+DEPTH_DIR = os.environ.get("BEVLOC_DEPTH_DIR", "unik3d_depth_v2")
 
 
 def canvas_to_en(uv, centre_en, cell_m, size):
@@ -145,9 +152,41 @@ def read_labels(root, cities, split, train):
     return out
 
 
-def depth_png_path(root, city: str, pano: str) -> Path:
-    """Loc²'s depth layout (same as bevloc.baselines.loc2.depth_png_path, kept here so the reader needs no baseline import)."""
-    return Path(root) / city / "unik3d_depth" / (Path(pano).stem + ".png")
+def depth_png_path(root, city: str, pano: str, depth_dir: str | None = None) -> Path:
+    """Loc²'s depth layout, <root>/<City>/<DEPTH_DIR>/<stem>.png (same as bevloc.baselines.loc2.depth_png_path, kept
+    here so the reader needs no baseline import). Loc²'s own dataloader hardcodes "unik3d_depth"; ours is versioned."""
+    return Path(root) / city / (depth_dir or DEPTH_DIR) / (Path(pano).stem + ".png")
+
+
+def depth_stripe_score(depth) -> float:
+    """Median |second difference along the rows| (metres) of the lower 40 % of an ERP depth map (H, W): the ground
+    (or a car roof), where depth varies smoothly with the row. Measured on fresh-camera UniK3D maps (2026-10-01,
+    60 VIGOR panoramas of the 4 cities + 29 Mapillary 360 panoramas incl. 8 Fixtor ones with the car-roof band):
+    0.0002-0.00065 m (0.001 m after the 1 mm PNG quantisation). The mutated-camera bug (v1) gives 0.002 / 0.008 /
+    0.03 / 0.12 m on its 5th-8th call and 1-3.7 m once the camera has collapsed (call ~10 on). `STRIPE_MAX_M` is
+    the bound the writers check: 0.005 m, 8x the largest good score; it catches the collapsed camera, not the first
+    few decaying calls (the fresh camera per call, bevloc.baselines.loc2.infer_distance, is what prevents those)."""
+    d = np.asarray(depth, np.float64)
+    lo = d[int(0.6 * d.shape[0]):]
+    return float(np.median(np.abs(lo[2:] - 2.0 * lo[1:-1] + lo[:-2])))
+
+
+STRIPE_MAX_M = 0.005
+
+
+def check_depth_coverage(n_before: int, missing: list, what: str, max_drop_frac: float = 0.0,
+                         hint: str = "make loc2-depth / make poznan-depth first"):
+    """Raise RuntimeError when more than ``max_drop_frac`` of ``n_before`` samples have no depth file (``missing``:
+    their expected paths). Evaluation passes 0 (a row scored on fewer frames is not comparable); training a small
+    tolerance (panoramas the writers rejected, listed in <depth dir>/rejects_*.json)."""
+    if not missing:
+        return
+    frac = len(missing) / max(1, n_before)
+    msg = (f"{what}: {len(missing)} of {n_before} samples ({100 * frac:.2f} %) have no depth file in {DEPTH_DIR}/, "
+           f"e.g. {missing[0]}")
+    if frac > max_drop_frac:
+        raise RuntimeError(f"{msg} (allowed {100 * max_drop_frac:.2f} %): {hint}")
+    print(f"WARNING {msg}: dropped (allowed {100 * max_drop_frac:.2f} %)", flush=True)
 
 
 def read_depth_png(path) -> np.ndarray:
@@ -227,10 +266,16 @@ class VigorPairs(Dataset):
         lab = self.labels[i]
         return depth_png_path(self.root, lab["city"], lab["pano"])
 
-    def keep_with_depth(self):
-        """Drop the labels whose panorama has no depth file; returns the number dropped."""
+    def keep_with_depth(self, max_drop_frac: float = 0.0):
+        """Drop the labels whose panorama has no depth file; returns the number dropped. Raises RuntimeError when
+        more than ``max_drop_frac`` of the labels would be dropped (default 0: evaluation never silently scores
+        fewer frames; training passes a small tolerance), see `check_depth_coverage`."""
         before = len(self.labels)
-        self.labels = [lab for lab in self.labels if depth_png_path(self.root, lab["city"], lab["pano"]).is_file()]
+        missing = [depth_png_path(self.root, lab["city"], lab["pano"]) for lab in self.labels]
+        keep = [p.is_file() for p in missing]
+        check_depth_coverage(before, [p for p, k in zip(missing, keep) if not k], "VigorPairs", max_drop_frac,
+                             "make loc2-depth SPLIT=... CITIES=... (TRAIN=1 for training labels) first")
+        self.labels = [lab for lab, k in zip(self.labels, keep) if k]
         return before - len(self.labels)
 
     def _query_mode(self):

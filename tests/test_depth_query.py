@@ -131,7 +131,10 @@ def test_placed_landmark_maps_through_H_to_its_reference_pixel(tmp_path):
     root = _vigor_layout(tmp_path, dy, dx, _png_mm(dep))
     cfg = _cfg()
     ds = VigorPairs(root, cfg, cities=[city], split="samearea", train=False)
-    assert ds.depth and ds.keep_with_depth() == 1 and len(ds) == 1
+    with pytest.raises(RuntimeError, match="1 of 2 samples"):    # evaluation default: no silent drop
+        ds.keep_with_depth()
+    assert len(ds) == 2
+    assert ds.depth and ds.keep_with_depth(max_drop_frac=0.5) == 1 and len(ds) == 1
     s = ds[0]
     assert s["depth"].shape == (1, 448, 896) and s["erp"].shape[-2:] == (448, 896)
     batch = collate_vigor([s])

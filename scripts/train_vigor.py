@@ -293,7 +293,8 @@ def main():
               f"jitter_seed {va.jitter_seed})", flush=True)
     n_no_depth = {}
     if tr.depth:                                    # after the split, so the held-out part is the same as without depth
-        n_no_depth = dict(train=tr.keep_with_depth(), val=va.keep_with_depth())
+        n_no_depth = dict(train=tr.keep_with_depth(max_drop_frac=0.01),    # tolerate the writers' few rejects
+                          val=va.keep_with_depth(max_drop_frac=0.01))
         print(f"depth: dropped {n_no_depth['train']} train / {n_no_depth['val']} val labels without a depth file "
               f"-> train {len(tr)}  val {len(va)}", flush=True)
         if not len(tr) or not len(va):

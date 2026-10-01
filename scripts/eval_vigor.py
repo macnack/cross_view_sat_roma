@@ -627,9 +627,7 @@ def run(a, make_fine=None):
     else:
         ds = VigorPairs(a.root, cfg, cities=cities, split=a.split, train=a.train_split, limit=a.limit,
                         stride=a.stride, row_sign=a.row_sign, height_m=a.height, ref_source=ref_primary)
-    n_no_depth = ds.keep_with_depth() if ds.depth else 0      # after the draw: a subset of the same samples
-    if ds.depth:
-        print(f"depth: {n_no_depth} panoramas of the draw have no depth file (skipped)", flush=True)
+    n_no_depth = ds.keep_with_depth() if ds.depth else 0      # after the draw; raises if any panorama has no depth
     if ref_primary != "vigor" or sources:
         check_ref_sources(ds, sources or [ref_primary])
         print(f"reference source(s): {sources or [ref_primary]}" + (" (union of modes)" if sources else ""), flush=True)
