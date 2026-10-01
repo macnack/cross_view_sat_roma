@@ -1,0 +1,117 @@
+{
+  "method": "Loc2",
+  "manifest": "experiments/06_fg2_bevsplat/manifest.json",
+  "years": [
+    2025,
+    2024
+  ],
+  "heading": "prior",
+  "depth": "unik3d",
+  "ego_mask_deg": 20.0,
+  "camera_height_m": null,
+  "ransac": true,
+  "n": 400,
+  "checkpoint": {
+    "checkpoint": "checkpoints/baselines/loc2/vigor/samearea/known_ori/model.pt",
+    "sha256": "c7753a0fc68cbc58048691d89588d7943ca3431b831fce085f85eb5d77e7a34d",
+    "area": "samearea",
+    "orientation": "known_ori",
+    "native": {
+      "ground_image_size": [
+        714,
+        1428
+      ],
+      "satellite_image_size": [
+        630,
+        630
+      ],
+      "sat_bev_res": 41,
+      "num_samples_matches": 1024,
+      "max_depth_m": 35.0,
+      "depth_png_max_m": 65.0,
+      "panorama_size": [
+        2048,
+        1024
+      ]
+    },
+    "license": "AGPL-3.0 (third_party/Loc2/LICENSE)"
+  },
+  "yaw_sign": -1.0,
+  "summary": {
+    "all": {
+      "n": 400,
+      "matched": 400,
+      "median_m": 3.3019595433704136,
+      "median_ci": [
+        3.0347290446590662,
+        3.749337505074485
+      ],
+      "recall@5m": 0.68,
+      "recall@5m_ci": [
+        0.63,
+        0.7225
+      ],
+      "recall@10m": 0.85,
+      "recall@10m_ci": [
+        0.815,
+        0.885
+      ],
+      "frac_gt_30m": 0.0325,
+      "recall@1m": 0.075,
+      "mean_capped_m": 6.130404974966573,
+      "median_deg": 1.8564843577478598,
+      "mean_deg": 2.760277630152284,
+      "n_heading": 400
+    },
+    "2024": {
+      "n": 200,
+      "matched": 200,
+      "median_m": 3.09810838185996,
+      "median_ci": [
+        2.8562446823286325,
+        3.6067876573369766
+      ],
+      "recall@5m": 0.685,
+      "recall@5m_ci": [
+        0.62,
+        0.75
+      ],
+      "recall@10m": 0.85,
+      "recall@10m_ci": [
+        0.8,
+        0.9
+      ],
+      "frac_gt_30m": 0.035,
+      "recall@1m": 0.065,
+      "mean_capped_m": 6.054090614996522,
+      "median_deg": 1.6545749087026707,
+      "mean_deg": 2.7754657411085475,
+      "n_heading": 200
+    },
+    "2025": {
+      "n": 200,
+      "matched": 200,
+      "median_m": 3.6054121175954483,
+      "median_ci": [
+        3.106896996701087,
+        4.052288037437014
+      ],
+      "recall@5m": 0.675,
+      "recall@5m_ci": [
+        0.61,
+        0.735
+      ],
+      "recall@10m": 0.85,
+      "recall@10m_ci": [
+        0.8,
+        0.895
+      ],
+      "frac_gt_30m": 0.03,
+      "recall@1m": 0.085,
+      "mean_capped_m": 6.2067193349366265,
+      "median_deg": 2.0318976735344734,
+      "mean_deg": 2.745089519196021,
+      "n_heading": 200
+    }
+  }
+}
