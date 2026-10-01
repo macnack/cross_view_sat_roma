@@ -134,3 +134,10 @@
 8868816 reg_B ^(DDP|step [0-9]* VAL|Traceback|.*Error|\[run\] exit)
 8868817 reg_C ^(DDP|step [0-9]* VAL|Traceback|.*Error|\[run\] exit)
 8868818 reg_D ^(DDP|step [0-9]* VAL|Traceback|.*Error|\[run\] exit)
+# --- depth v2 reruns (2026-10-01) ---
+8879587 depth_v2_height ^(VIGOR|Pozna|wrote|Traceback|.*Error)
+8879588 loc2v2_chicago ^([A-Za-z]+ +n +[0-9]+|wrote|Traceback|.*Error|\[run\] exit)
+8879589 loc2v2_all ^([A-Za-z]+ +n +[0-9]+|wrote|Traceback|.*Error|\[run\] exit)
+8879590 loc2v2_cross ^([A-Za-z]+ +n +[0-9]+|wrote|Traceback|.*Error|\[run\] exit)
+8879591 pz_loc2v2_prior ^(loc2|wrote|Traceback|.*Error|\[run\] exit)
+8879592 pz_loc2v2_gt ^(loc2|wrote|Traceback|.*Error|\[run\] exit)
