@@ -143,3 +143,7 @@
 8879592 pz_loc2v2_gt ^(loc2|wrote|Traceback|.*Error|\[run\] exit)
 8879593 v2_D_coarse ^(DDP|step [0-9]* VAL|Traceback|.*Error|\[run\] exit)
 8879594 v2_D_fine ^(DDP|step [0-9]* VAL|Traceback|.*Error|\[run\] exit)
+8881116 v2_plain_coarse ^(DDP|step [0-9]* VAL|Traceback|.*Error|\[run\] exit)
+8881117 v2_plain_fine ^(DDP|step [0-9]* VAL|Traceback|.*Error|\[run\] exit)
+8881118 v2_cross_coarse ^(DDP|step [0-9]* VAL|Traceback|.*Error|\[run\] exit)
+8881119 v2_cross_fine ^(DDP|step [0-9]* VAL|Traceback|.*Error|\[run\] exit)
