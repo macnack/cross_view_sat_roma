@@ -141,3 +141,5 @@
 8879590 loc2v2_cross ^([A-Za-z]+ +n +[0-9]+|wrote|Traceback|.*Error|\[run\] exit)
 8879591 pz_loc2v2_prior ^(loc2|wrote|Traceback|.*Error|\[run\] exit)
 8879592 pz_loc2v2_gt ^(loc2|wrote|Traceback|.*Error|\[run\] exit)
+8879593 v2_D_coarse ^(DDP|step [0-9]* VAL|Traceback|.*Error|\[run\] exit)
+8879594 v2_D_fine ^(DDP|step [0-9]* VAL|Traceback|.*Error|\[run\] exit)
