@@ -96,6 +96,11 @@ def main():
         def _get_city_list(self):
             return self._cities
 
+        def _resolve_depth_path(self, ground_path):
+            # Loc² hardcodes <City>/unik3d_depth/; read the versioned folder our writer fills (bevloc.data.vigor.DEPTH_DIR)
+            g = Path(ground_path)
+            return str(loc2_wrap.depth_png_path(g.parent.parent.parent, g.parent.parent.name, g.name))
+
     root = Path(a.root)
     ds = CityDataset(cities, root=str(root), label_root=str(find_label_root(root)), split=a.split, train=False,
                      random_orientation=0)

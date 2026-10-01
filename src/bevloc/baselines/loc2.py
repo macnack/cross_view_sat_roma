@@ -110,14 +110,30 @@ def load_unik3d(device, name="unik3d-vitl", resolution_level=9, interpolation_mo
 
 
 def spherical_camera(width: int, height: int):
-    """Loc²'s docs/equirectangular.json for a W x H panorama: full 360 x 180 degrees."""
+    """Loc²'s docs/equirectangular.json for a W x H panorama: full 360 x 180 degrees.
+
+    Single use: UniK3D.infer mutates the camera it is given (BatchCamera.from_camera shares its params, .to(device)
+    rebinds them to the device copy, crop / resize then scale fx..H in place by the resize factor), so a camera
+    reused across calls decays to W = H = 0 within ~40 panoramas and the depth map turns into image-independent row
+    stripes. Use `infer_distance`, which builds a fresh one per call."""
     ensure_loc2_on_path()
     from unik3d.utils.camera import Spherical  # noqa: WPS433
     return Spherical(params=torch.tensor([1.0, 1.0, 1.0, 1.0, float(width), float(height), math.pi, math.pi / 2]))
 
 
+def infer_distance(model, rgb):
+    """UniK3D metric distance along the ray (H, W) float32 numpy for one ERP panorama ``rgb`` (H, W, 3) uint8, as
+    third_party/Loc2/preprocess/infer_depth_vigor.py: full-sphere Spherical camera of the image size, normalize=True,
+    |points|. A new camera every call (see `spherical_camera`)."""
+    h, w = rgb.shape[:2]
+    with torch.no_grad():
+        out = model.infer(rgb=torch.from_numpy(rgb).permute(2, 0, 1), camera=spherical_camera(w, h), normalize=True,
+                          rays=None)
+    return out["points"][0].norm(dim=0).detach().float().cpu().numpy()
+
+
 def depth_png_path(root, city: str, pano: str) -> Path:
-    """Where Loc²'s dataloader looks for the depth of ``<root>/<city>/panorama/<pano>`` (one definition, shared
-    with the VigorPairs depth reader)."""
+    """Where our readers (VigorPairs, and Loc²'s dataloader through eval_loc2_vigor.py's override) find the depth of
+    ``<root>/<city>/panorama/<pano>``: ``<root>/<city>/<DEPTH_DIR>/<stem>.png`` (bevloc.data.vigor.DEPTH_DIR)."""
     from bevloc.data.vigor import depth_png_path as _p
     return _p(root, city, pano)

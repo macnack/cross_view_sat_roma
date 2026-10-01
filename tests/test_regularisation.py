@@ -15,7 +15,7 @@ import torch.nn.functional as F
 
 from bevloc import config as C
 from bevloc.data import augment as AUG
-from bevloc.data.vigor import CITY_RES, R_NORTH, VigorPairs, collate_vigor, pose_en
+from bevloc.data.vigor import CITY_RES, DEPTH_DIR, R_NORTH, VigorPairs, collate_vigor, pose_en
 from bevloc.model import regularise as REG
 from bevloc.model.coarse import roma_coarse_loss, smoothed_cross_entropy
 from bevloc.model.depth_query import depth_placement_metric_at, metric_to_bev_px
@@ -35,7 +35,7 @@ def _make_scene(tmp_path, city="Chicago"):
     res = CITY_RES[city]
     (tmp_path / city / "panorama").mkdir(parents=True)
     (tmp_path / city / "satellite").mkdir(parents=True)
-    (tmp_path / city / "unik3d_depth").mkdir(parents=True)
+    (tmp_path / city / DEPTH_DIR).mkdir(parents=True)
     c = (640 - 1) / 2.0
     cam = np.array([c - DX, c + DY])                                  # tile px (col_sign -1, row_sign +1)
     lm = cam + np.array([LM_EN[0], -LM_EN[1]]) / res
@@ -52,7 +52,7 @@ def _make_scene(tmp_path, city="Chicago"):
     cv2.imwrite(str(tmp_path / city / "panorama" / "p1,1.0,.png"), pano)
     dep = np.full((ERP_H, ERP_W), 60000, np.uint16)                  # 60 m = invalid (>= 35 m)
     dep[:, col - 1:col + 2] = int(round(float(np.hypot(*LM_EN)) * 1000))
-    cv2.imwrite(str(tmp_path / city / "unik3d_depth" / "p1,1.0,.png"), dep)
+    cv2.imwrite(str(tmp_path / city / DEPTH_DIR / "p1,1.0,.png"), dep)
     lab = tmp_path / "splits" / "VIGOR" / city
     lab.mkdir(parents=True)
     (lab / "satellite_list.txt").write_text("s1.png\n")

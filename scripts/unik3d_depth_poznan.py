@@ -1,5 +1,5 @@
 """UniK3D metric depth for every panorama of a Fixtor × Poznań manifest, in Loc²'s layout transposed to a Mapillary
-sequence (<seq>/unik3d_depth/<id>.png, uint16 millimetres along the ray, clipped at 65 m), plus the camera-height
+sequence (<seq>/<DEPTH_DIR>/<id>.png, DEPTH_DIR = unik3d_depth_v2 (bevloc.data.vigor; v1 had row stripes), uint16 millimetres along the ray, clipped at 65 m), plus the camera-height
 sanity check.
 
   make poznan-depth MANIFEST=experiments/06_fg2_bevsplat/manifest.json          # GPU (Eagle: ~1 s / panorama)
@@ -33,7 +33,7 @@ from bevloc import config as C
 from bevloc.baselines import loc2 as loc2_wrap
 from bevloc.baselines.common import depth_png_for, load_manifest, resolve_panorama, select_entries
 from bevloc.data.mapillary import rodrigues
-from bevloc.data.vigor import read_depth_png
+from bevloc.data.vigor import STRIPE_MAX_M, depth_stripe_score, read_depth_png
 
 
 def frame_meta(pano: Path, cache: dict) -> dict:
@@ -88,15 +88,15 @@ def main():
     if todo and not a.check_only:
         dev = torch.device("cuda" if torch.cuda.is_available() else "cpu")
         model = loc2_wrap.load_unik3d(dev, P.depth_model, int(P.depth_resolution_level))
-        cam = loc2_wrap.spherical_camera(W, H)
         max_mm = loc2_wrap.NATIVE["depth_png_max_m"] * 1000.0
         t0 = time.time()
         for k, pano in enumerate(todo, 1):
             img = cv2.cvtColor(cv2.imread(str(pano), cv2.IMREAD_COLOR), cv2.COLOR_BGR2RGB)
             img = cv2.resize(img, (W, H), interpolation=cv2.INTER_AREA)
-            with torch.no_grad():
-                o = model.infer(rgb=torch.from_numpy(img).permute(2, 0, 1), camera=cam, normalize=True, rays=None)
-            depth = o["points"][0].norm(dim=0).detach().cpu().numpy()
+            depth = loc2_wrap.infer_distance(model, img)          # fresh camera per panorama (v2, see DEPTH_DIR)
+            score = depth_stripe_score(depth)
+            if score > STRIPE_MAX_M:
+                raise RuntimeError(f"{pano}: row-stripe score {score:.3f} m > {STRIPE_MAX_M} (camera reuse bug?)")
             path = depth_png_for(pano)
             path.parent.mkdir(parents=True, exist_ok=True)
             Image.fromarray(np.clip(depth * 1000.0, 0.0, max_mm).astype(np.uint16)).save(path)

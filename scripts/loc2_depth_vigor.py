@@ -1,6 +1,8 @@
-"""UniK3D metric depth for VIGOR panoramas, in the layout Loc² reads (<City>/unik3d_depth/<stem>.png, uint16
-millimetres clipped at 65 m): the same model, spherical camera and post-processing as
-third_party/Loc2/preprocess/infer_depth_vigor.py, restricted to the panoramas a run needs.
+"""UniK3D metric depth for VIGOR panoramas, in the layout Loc² reads (<City>/<DEPTH_DIR>/<stem>.png, uint16
+millimetres clipped at 65 m; DEPTH_DIR = unik3d_depth_v2, bevloc.data.vigor): the same model, spherical camera and
+post-processing as third_party/Loc2/preprocess/infer_depth_vigor.py, restricted to the panoramas a run needs.
+v2: a fresh camera per panorama (the v1 folder unik3d_depth reused one camera, which UniK3D mutates in place, and
+has row stripes); each map is checked with depth_stripe_score before it is written.
 
   make loc2-depth SPLIT=samearea CITIES="Chicago" LIMIT=3000        # the panoramas of the eval draw (seed 0)
   make loc2-depth SPLIT=samearea CITIES="Chicago" TRAIN=1           # every training label of the split
@@ -22,7 +24,7 @@ from PIL import Image
 
 from bevloc import config as C
 from bevloc.baselines import loc2 as loc2_wrap
-from bevloc.data.vigor import read_labels, split_cities
+from bevloc.data.vigor import DEPTH_DIR, STRIPE_MAX_M, depth_stripe_score, read_labels, split_cities
 
 
 def draw(labels, limit, seed):
@@ -58,24 +60,20 @@ def main():
         if a.overwrite or not loc2_wrap.depth_png_path(a.root, *key).is_file():
             todo.append(key)
     print(f"{len(seen)} panoramas in the draw ({cities}, split {a.split}, {'train' if a.train else 'test'}), "
-          f"{len(todo)} without depth", flush=True)
+          f"{len(todo)} without depth in {DEPTH_DIR}/", flush=True)
     if not todo:
         print("done", flush=True)
         return
     dev = torch.device("cuda" if torch.cuda.is_available() else "cpu")
     model = loc2_wrap.load_unik3d(dev, a.name, a.resolution_level)
-    cams = {}
     t0 = time.time()
     max_mm = loc2_wrap.NATIVE["depth_png_max_m"] * 1000.0
     for k, (city, pano) in enumerate(todo, 1):
         img = np.array(Image.open(Path(a.root) / city / "panorama" / pano).convert("RGB"))
-        h, w = img.shape[:2]
-        if (w, h) not in cams:
-            cams[(w, h)] = loc2_wrap.spherical_camera(w, h)
-        rgb = torch.from_numpy(img).permute(2, 0, 1)
-        with torch.no_grad():
-            out = model.infer(rgb=rgb, camera=cams[(w, h)], normalize=True, rays=None)
-        depth = out["points"][0].norm(dim=0).detach().cpu().numpy()          # metres along the ray
+        depth = loc2_wrap.infer_distance(model, img)                         # metres along the ray, fresh camera
+        score = depth_stripe_score(depth)
+        if score > STRIPE_MAX_M:
+            raise RuntimeError(f"{city}/{pano}: row-stripe score {score:.3f} m > {STRIPE_MAX_M} (camera reuse bug?)")
         png = np.clip(depth * 1000.0, 0.0, max_mm).astype(np.uint16)
         path = loc2_wrap.depth_png_path(a.root, city, pano)
         path.parent.mkdir(parents=True, exist_ok=True)

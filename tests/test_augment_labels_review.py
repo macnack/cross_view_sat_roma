@@ -16,7 +16,7 @@ import torch
 
 from bevloc import config as C
 from bevloc.data import augment as AUG
-from bevloc.data.vigor import CITY_RES, VigorPairs, collate_vigor
+from bevloc.data.vigor import CITY_RES, DEPTH_DIR, VigorPairs, collate_vigor
 from bevloc.model.coarse import coarse_targets, ref_cell_validity
 from bevloc.model.depth_query import ErpDepthQuery
 
@@ -29,7 +29,7 @@ R_M = 1.6                             # disc radius on the ground
 
 def _scene(tmp_path, city="Chicago"):
     res = CITY_RES[city]
-    for d in ("panorama", "satellite", "unik3d_depth"):
+    for d in ("panorama", "satellite", DEPTH_DIR):
         (tmp_path / city / d).mkdir(parents=True)
     c = (640 - 1) / 2.0
     cam = np.array([c - DX, c + DY])                                 # dx > 0 = west (col_sign -1), dy > 0 = south
@@ -51,7 +51,7 @@ def _scene(tmp_path, city="Chicago"):
         dep[ERP_H // 2 - 16:ERP_H // 2 + 16, cols] = int(round(d * 1000))   # token rows 13, 14 (|elev| 3 deg)
     cv2.imwrite(str(tmp_path / city / "satellite" / "s1.png"), sat)
     cv2.imwrite(str(tmp_path / city / "panorama" / "p1,1.0,.png"), pano)
-    cv2.imwrite(str(tmp_path / city / "unik3d_depth" / "p1,1.0,.png"), dep)
+    cv2.imwrite(str(tmp_path / city / DEPTH_DIR / "p1,1.0,.png"), dep)
     lab = tmp_path / "splits" / "VIGOR" / city
     lab.mkdir(parents=True)
     (lab / "satellite_list.txt").write_text("s1.png\n")
