@@ -26,7 +26,7 @@ from PIL import Image
 
 from bevloc import config as C
 from bevloc.baselines import loc2 as loc2_wrap
-from bevloc.data.vigor import DEPTH_DIR, STRIPE_MAX_M, read_labels, split_cities
+from bevloc.data.vigor import DEPTH_DIR, STRIPE_MAX, read_labels, split_cities
 
 
 def draw(labels, limit, seed):
@@ -49,8 +49,8 @@ def main():
     ap.add_argument("--name", default="unik3d-vitl")
     ap.add_argument("--resolution-level", type=int, default=9)
     ap.add_argument("--overwrite", action="store_true")
-    ap.add_argument("--stripe-max", type=float, default=STRIPE_MAX_M,
-                    help="row-stripe guard (m); maps above it are not written but listed (rejects_*.json)")
+    ap.add_argument("--stripe-max", type=float, default=STRIPE_MAX,
+                    help="row-stripe guard (relative, bevloc.data.vigor.depth_stripe_score); maps above it are not written but listed (rejects_*.json)")
     a = ap.parse_args()
     cities = a.cities or split_cities(a.split, a.train)
     labels = draw(read_labels(a.root, cities, a.split, a.train), a.limit, a.seed)

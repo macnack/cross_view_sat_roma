@@ -158,20 +158,26 @@ def depth_png_path(root, city: str, pano: str, depth_dir: str | None = None) -> 
     return Path(root) / city / (depth_dir or DEPTH_DIR) / (Path(pano).stem + ".png")
 
 
-def depth_stripe_score(depth) -> float:
-    """Median |second difference along the rows| (metres) of the lower 40 % of an ERP depth map (H, W): the ground
-    (or a car roof), where depth varies smoothly with the row. Measured on fresh-camera UniK3D maps (2026-10-01,
-    60 VIGOR panoramas of the 4 cities + 29 Mapillary 360 panoramas incl. 8 Fixtor ones with the car-roof band):
-    0.0002-0.00065 m (0.001 m after the 1 mm PNG quantisation). The mutated-camera bug (v1) gives 0.002 / 0.008 /
-    0.03 / 0.12 m on its 5th-8th call and 1-3.7 m once the camera has collapsed (call ~10 on). `STRIPE_MAX_M` is
-    the bound the writers check: 0.005 m, 8x the largest good score; it catches the collapsed camera, not the first
-    few decaying calls (the fresh camera per call, bevloc.baselines.loc2.infer_distance, is what prevents those)."""
-    d = np.asarray(depth, np.float64)
+def depth_stripe_score(depth, clip_m: float = 65.0) -> float:
+    """Median relative |second difference along the rows|, |d[r+1] - 2 d[r] + d[r-1]| / d[r], of the lower 40 % of
+    an ERP depth map (H, W) clipped at ``clip_m`` (the PNG range): the ground (or a car roof), where depth varies
+    smoothly with the row. Dimensionless and scored on the clipped map, i.e. on what the PNG stores.
+
+    review2 (2026-10-01): the first version was the absolute second difference in metres of the unclipped map with a
+    0.005 m bound. That is scale dependent: panoramas whose lower half is far (VIGOR boat panoramas on the Chicago
+    river, 832 x 1664: 57-95 % of the pixels beyond 65 m, up to 1.8 km) scored 0.006-0.07 m and were rejected
+    although nothing is striped. Measured: fresh-camera maps 0.00008-0.00032 as float, 0.00023-0.00039 after the
+    1 mm PNG quantisation (48 VIGOR v2 PNGs of the 4 cities, 15 Poznań v2 PNGs, the 3 boat panoramas); v1 (reused
+    camera) PNGs 1.2-1.66. `STRIPE_MAX` = 0.002 is 5x the largest good score and ~600x below the collapsed camera;
+    like the old bound it does not catch the first few decaying calls of a reused camera (the fresh camera per
+    call, bevloc.baselines.loc2.infer_distance, is what prevents those)."""
+    d = np.minimum(np.asarray(depth, np.float64), clip_m)
     lo = d[int(0.6 * d.shape[0]):]
-    return float(np.median(np.abs(lo[2:] - 2.0 * lo[1:-1] + lo[:-2])))
+    dd = np.abs(lo[2:] - 2.0 * lo[1:-1] + lo[:-2]) / np.maximum(lo[1:-1], 0.1)
+    return float(np.median(dd))
 
 
-STRIPE_MAX_M = 0.005
+STRIPE_MAX = 0.002
 
 
 def check_depth_coverage(n_before: int, missing: list, what: str, max_drop_frac: float = 0.0,

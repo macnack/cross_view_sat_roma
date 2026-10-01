@@ -13,7 +13,7 @@ import pytest
 import torch
 
 from bevloc.baselines import loc2 as loc2_wrap
-from bevloc.data.vigor import (DEPTH_DIR, STRIPE_MAX_M, check_depth_coverage, depth_png_path, depth_stripe_score,
+from bevloc.data.vigor import (DEPTH_DIR, STRIPE_MAX, check_depth_coverage, depth_png_path, depth_stripe_score,
                                read_depth_png)
 
 needs_unik3d = pytest.mark.skipif(not (loc2_wrap.UNIK3D_ROOT / "unik3d" / "models").is_dir(),
@@ -55,7 +55,7 @@ def test_infer_distance_is_identical_across_calls():
         np.testing.assert_allclose(d, outs[0], atol=1e-6)
     # interior rows; 0.05: half-pixel offsets of the resampled grid (a mutated camera is off by O(1))
     np.testing.assert_allclose(outs[-1][2:-2], _expected(64, 128)[2:-2], atol=0.05)
-    assert depth_stripe_score(outs[-1]) < STRIPE_MAX_M
+    assert depth_stripe_score(outs[-1]) < STRIPE_MAX
 
 
 @needs_unik3d
@@ -80,6 +80,21 @@ def test_stripe_score_separates_flat_ground_from_row_alternation():
     assert depth_stripe_score(d) < 0.01
     striped = d * (1.0 + 0.8 * np.sin(np.arange(h) * 2 * math.pi * 232 / 512))[:, None]   # the v1 PNGs' period
     assert depth_stripe_score(striped) > 1.0
+
+
+def test_stripe_score_is_scale_free_and_scores_the_clipped_map():
+    """review2: far-field panoramas (VIGOR boat panoramas on the Chicago river, most of the lower half beyond 65 m)
+    must pass; the old absolute score on the unclipped map rejected them (0.006-0.07 m > 0.005 m)."""
+    h, w = 832, 1664
+    el = (np.arange(h) + 0.5 - h / 2) / h * math.pi
+    for cam_h in (1.6, 2.5, 20.0):                                  # the same flat ground seen from any height
+        far = np.repeat((cam_h / np.sin(np.clip(el, 1e-3, None)))[:, None], w, axis=1)   # up to km near the horizon
+        assert depth_stripe_score(far) < STRIPE_MAX, cam_h
+    rng = np.random.default_rng(0)
+    water = np.repeat((100.0 + 900.0 * rng.random(h))[:, None], w, axis=1)            # row noise, all beyond 65 m
+    assert depth_stripe_score(water) < STRIPE_MAX
+    striped = np.repeat((3.0 * (1.0 + 0.8 * (np.arange(h) % 2)))[:, None], w, axis=1)
+    assert depth_stripe_score(striped) > 100 * STRIPE_MAX
 
 
 @pytest.mark.skipif(bool(__import__("os").environ.get("BEVLOC_DEPTH_DIR")), reason="BEVLOC_DEPTH_DIR overrides")
@@ -147,3 +162,19 @@ def test_missing_depth_fails_loudly():
     check_depth_coverage(100, ["p"], "x", max_drop_frac=0.01)      # training: a few writer rejects
     with pytest.raises(RuntimeError, match="2 of 100"):
         check_depth_coverage(100, ["p", "q"], "x", max_drop_frac=0.01)
+
+
+def test_only_infer_distance_builds_unik3d_cameras():
+    """review2: the v1 bug lived in the scripts (a camera cached across panoramas), which the infer_distance tests
+    do not exercise. Every UniK3D call outside bevloc.baselines.loc2 must go through infer_distance."""
+    from pathlib import Path
+    repo = Path(loc2_wrap.__file__).resolve().parents[3]
+    offenders = []
+    for f in list((repo / "src").rglob("*.py")) + list((repo / "scripts").glob("*.py")):
+        if f.name == "loc2.py" and f.parent.name == "baselines":
+            continue
+        text = f.read_text()
+        for needle in ("spherical_camera(", "Spherical(", "camera=cam"):
+            if needle in text:
+                offenders.append(f"{f.relative_to(repo)}: {needle}")
+    assert not offenders, offenders

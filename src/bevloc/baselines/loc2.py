@@ -144,8 +144,8 @@ class DepthWriter:
     the same panorama cannot leave a torn file)."""
 
     def __init__(self, stripe_max=None, abort_after: int = 20):
-        from bevloc.data.vigor import STRIPE_MAX_M
-        self.stripe_max = STRIPE_MAX_M if stripe_max is None else float(stripe_max)
+        from bevloc.data.vigor import STRIPE_MAX
+        self.stripe_max = STRIPE_MAX if stripe_max is None else float(stripe_max)
         self.abort_after = int(abort_after)
         self.max_mm = NATIVE["depth_png_max_m"] * 1000.0
         self.n_written = 0
@@ -158,7 +158,7 @@ class DepthWriter:
         if not score <= self.stripe_max:                   # also catches NaN
             self.rejects.append((str(name), float(score)))
             self._in_a_row += 1
-            print(f"  REJECT {name}: row-stripe score {score:.3g} m > {self.stripe_max:.3g} m, not written", flush=True)
+            print(f"  REJECT {name}: row-stripe score {score:.3g} > {self.stripe_max:.3g}, not written", flush=True)
             if self._in_a_row >= self.abort_after:
                 raise RuntimeError(f"{self._in_a_row} striped depth maps in a row: camera reuse bug?")
             return False
@@ -178,15 +178,15 @@ class DepthWriter:
         none); returns the number of rejects."""
         print(f"depth maps written: {self.n_written}, rejected by the stripe guard: {len(self.rejects)}", flush=True)
         for name, score in self.rejects:
-            print(f"  rejected {name}  score {score:.3g} m", flush=True)
+            print(f"  rejected {name}  score {score:.3g}", flush=True)
         if rejects_json is not None and not self.rejects:
             Path(rejects_json).unlink(missing_ok=True)      # a stale list from an earlier run of the same draw
         if rejects_json is not None and self.rejects:
             import json  # noqa: WPS433
             rejects_json = Path(rejects_json)
             rejects_json.parent.mkdir(parents=True, exist_ok=True)
-            rejects_json.write_text(json.dumps(dict(stripe_max_m=self.stripe_max,
-                                                    rejects=[dict(name=n, score_m=s) for n, s in self.rejects]),
+            rejects_json.write_text(json.dumps(dict(stripe_max=self.stripe_max,
+                                                    rejects=[dict(name=n, score=s) for n, s in self.rejects]),
                                                indent=1))
             print(f"wrote {rejects_json} (rerun with --stripe-max <higher> to force these after looking at them)",
                   flush=True)

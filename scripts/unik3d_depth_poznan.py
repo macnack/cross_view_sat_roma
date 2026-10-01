@@ -33,7 +33,7 @@ from bevloc import config as C
 from bevloc.baselines import loc2 as loc2_wrap
 from bevloc.baselines.common import depth_png_for, load_manifest, resolve_panorama, select_entries
 from bevloc.data.mapillary import rodrigues
-from bevloc.data.vigor import DEPTH_DIR, STRIPE_MAX_M, read_depth_png
+from bevloc.data.vigor import DEPTH_DIR, STRIPE_MAX, read_depth_png
 
 
 def frame_meta(pano: Path, cache: dict) -> dict:
@@ -75,8 +75,8 @@ def main():
     ap.add_argument("--overwrite", action="store_true")
     ap.add_argument("--check-only", action="store_true", help="skip inference, only the height check")
     ap.add_argument("--out", default="experiments/12_poznan_three_way/depth_check")
-    ap.add_argument("--stripe-max", type=float, default=STRIPE_MAX_M,
-                    help="row-stripe guard (m); maps above it are not written but listed (<out>/rejects_*.json)")
+    ap.add_argument("--stripe-max", type=float, default=STRIPE_MAX,
+                    help="row-stripe guard (relative, bevloc.data.vigor.depth_stripe_score); maps above it are not written but listed (<out>/rejects_*.json)")
     a = ap.parse_args()
     cfg = C.load(a.config)
     P = cfg.poznan
