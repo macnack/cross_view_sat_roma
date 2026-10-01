@@ -362,7 +362,7 @@ def render_frame(b, path, out_w=2400):
     fig.suptitle(f"{city}  ·  {pano.split(',')[0]}  ·  coarse error {mt['coarse_m']:.2f} m  →  final error "
                  f"{mt['final_m']:.2f} m\n{mt['percentile']:.0f}th percentile of the final error over "
                  f"{mt['n_draw']} Chicago test panoramas  ·  inlier tokens {n_inl_tok} / {n_placed} placed (coarse), "
-                 f"{fine_txt} (fine)", fontsize=24, fontweight="bold", y=0.997)
+                 f"{fine_txt} (fine)", fontsize=22, fontweight="bold", y=0.997)
 
     # --- panorama -------------------------------------------------------------------------------------------------
     ax = fig.add_subplot(gs[0, :])
@@ -482,14 +482,14 @@ def render_frame(b, path, out_w=2400):
     plt.close(fig)
 
 
-def contact_sheet(paths, captions, out, width=2400, cols=2):
+def contact_sheet(paths, captions, out, width=2400, cols=5):
     tiles = []
     tw = width // cols
     for p, cap in zip(paths, captions):
         im = cv2.imread(str(p))
         im = cv2.resize(im, (tw - 12, int(im.shape[0] * (tw - 12) / im.shape[1])), interpolation=cv2.INTER_AREA)
         bar = np.full((56, im.shape[1], 3), 255, np.uint8)
-        cv2.putText(bar, cap, (10, 40), cv2.FONT_HERSHEY_SIMPLEX, 1.05, (0, 0, 0), 2, cv2.LINE_AA)
+        cv2.putText(bar, cap, (8, 38), cv2.FONT_HERSHEY_SIMPLEX, 0.95, (0, 0, 0), 2, cv2.LINE_AA)
         tiles.append(np.pad(np.vstack([bar, im]), ((6, 6), (6, 6), (0, 0)), constant_values=255))
     hmax = max(t.shape[0] for t in tiles)
     tiles = [np.pad(t, ((0, hmax - t.shape[0]), (0, 0), (0, 0)), constant_values=255) for t in tiles]
@@ -519,13 +519,15 @@ def render_diagram(b, path, out_w=2400):
     ego_e, ego_n = -xy_m[..., 0], xy_m[..., 1]
     en_ref = px_to_en(b["xy_ref"], (0.0, 0.0), cell, mt["S"])
     gt = b["en_gt"]
-    # the highlighted inlier token: 8-22 m away, right half of the panorama, the best agreeing mode
-    cand = [(float(e), int(t[0]), int(t[1]), k) for k, (t, e, ok) in
-            enumerate(zip(tok, b["mode_err_cells"], inl)) if ok and 8 < d_tok[t[1], t[0]] < 22 and 0.55 * w < t[0] < 0.9 * w]
+    # the highlighted inlier token
+    # rank: an agreeing mode (< 1.5 cells), then the farthest such token below the horizon (a long, visible ray)
+    cand = [(-(float(e) < 1.5), -float(d_tok[t[1], t[0]]), int(t[0]), int(t[1]), k)
+            for k, (t, e, ok) in enumerate(zip(tok, b["mode_err_cells"], inl))
+            if ok and 4 < d_tok[t[1], t[0]] < 15 and t[1] > 0.55 * h and 0.1 * w < t[0] < 0.9 * w]
     if not cand:
-        cand = [(float(e), int(t[0]), int(t[1]), k) for k, (t, e, ok) in enumerate(zip(tok, b["mode_err_cells"], inl))
+        cand = [(0, float(e), int(t[0]), int(t[1]), k) for k, (t, e, ok) in enumerate(zip(tok, b["mode_err_cells"], inl))
                 if ok]
-    _, hc, hr, hk = min(cand)
+    _, _, hc, hr, hk = min(cand)
     # an outlier token whose matched cell lies inside the zoom, far from where the pose puts it
     zoom = 18.0
     centre = gt
@@ -558,12 +560,12 @@ def render_diagram(b, path, out_w=2400):
     ax.add_patch(Rectangle((hc, hr), 1, 1, fill=False, ec=col, lw=4, zorder=10))
     ax.annotate(f"one token = a 16×16 px patch → one DINOv3 feature\n"
                 f"UniK3D depth along its ray: {d_tok[hr, hc]:.1f} m",
-                xy=(hc + 0.5, hr + 1), xytext=(hc - 12, h - 2), fontsize=20, color="white", fontweight="bold",
+                xy=(hc + 0.5, hr + 1), xytext=(0.50, 0.10), textcoords="axes fraction", fontsize=20, color="white", fontweight="bold",
                 path_effects=_halo(4), arrowprops=dict(arrowstyle="-|>", color="white", lw=3), zorder=11)
     if best_out is not None:
         _, oc, orow = best_out
         ax.add_patch(Rectangle((oc, orow), 1, 1, fill=False, ec="white", lw=3, ls="--", zorder=10))
-        ax.annotate("an outlier token", xy=(oc + 0.5, orow), xytext=(oc + 1, 1.5), fontsize=19, color="white",
+        ax.annotate("an outlier token", xy=(oc + 0.5, orow), xytext=(max(oc + 1, 15), 1.5), fontsize=19, color="white",
                     path_effects=_halo(4), arrowprops=dict(arrowstyle="-|>", color="white", lw=2.5), zorder=11)
     ax.text(0.3, 1.0, "dark = sky / too far: not placed", fontsize=18, color="white", path_effects=_halo(4), va="top")
     ax.axvline(w / 2, color="yellow", lw=2, ls="--")
@@ -724,8 +726,7 @@ def main():
             path = out / f"{k:02d}_p{int(round(p)):02d}_{safe_name(r['id'])}.jpg"
             render_frame(b, path)
             paths.append(path)
-            caps.append(f"{k}. p{p:.0f}  {r['id'].split('/', 1)[1].split(',')[0][:12]}  coarse "
-                        f"{b['meta']['coarse_m']:.2f} m -> final {b['meta']['final_m']:.2f} m")
+            caps.append(f"{k}. p{p:.0f}: {b['meta']['coarse_m']:.2f} -> {b['meta']['final_m']:.2f} m")
             print(f"wrote {path}", flush=True)
         if paths:
             contact_sheet(paths, caps, out / "contact_sheet.jpg")
