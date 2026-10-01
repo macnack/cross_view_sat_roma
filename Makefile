@@ -8,7 +8,7 @@ FRAMES  ?= 0 1000 1600 2000
 REF     ?= 200
 RUN      = PYTHONPATH=src:.pydeps $(PY)
 
-.PHONY: vigor-aug-viz poznan-depth loc2-smoke loc2-eval panoroma-poznan poznan-three-way wayback-fetch wayback-calib eagle-fetch-wayback fg2-vigor eagle-watch eagle-probe eagle-submit-ddp eagle-probe-ddp vigor-viz loc2-depth loc2-vigor vigor-report loftr-fine vigor-certainty vigor-sweep vigor-cert-cache vigor-cert-head
+.PHONY: panoroma-viz vigor-aug-viz poznan-depth loc2-smoke loc2-eval panoroma-poznan poznan-three-way wayback-fetch wayback-calib eagle-fetch-wayback fg2-vigor eagle-watch eagle-probe eagle-submit-ddp eagle-probe-ddp vigor-viz loc2-depth loc2-vigor vigor-report loftr-fine vigor-certainty vigor-sweep vigor-cert-cache vigor-cert-head
 .PHONY: help deps test fetch stats mask lens viewer oxts odometry bevs mosaic smoke h1 targets overfit train calib all roma-viz mapillary mapillary-scan mapillary-sample ipm-smoke lift-overfit lift-splat lift-eval lift-splat-years lift-aug-viz lift-layers-viz lift-splat-aug lift-splat-pose-nll lift-splat-seq baselines-manifest fg2-smoke fg2-eval fg2-train bevsplat-smoke bevsplat-eval bevsplat-train baselines-report
 help:
 	@grep -E '^[a-z0-9_-]+:.*##' $(MAKEFILE_LIST) | sed -E 's/:.*## /\t/' | expand -t 12
@@ -214,6 +214,10 @@ vigor-viz: ## overlay sheet of the worst (PICK=worst) or a spread (PICK=spread) 
 
 vigor-aug-viz: ## sheet of one VIGOR sample unaugmented + N augmented draws (placed tokens through the label H on the canvas): SPLIT=, CITIES=, INDEX=, N=, CONFIG= (the training config, e.g. configs/vigor_cell0125.yaml), AUG_ARGS="--aug-geometric rot90,flip,shift --aug-rot-deg 10 --aug-photometric 1" -> experiments/14_regularisation/aug_<city>_<index>.jpg
 	$(RUN) scripts/viz_vigor_aug.py --config $(CONFIG) --split $(SPLIT) $(if $(CITIES),--cities $(CITIES),) --index $(if $(INDEX),$(INDEX),0) --n $(if $(N),$(N),5) $(AUG_ARGS)
+
+PANO_EVAL_JSON ?= experiments/13_panoroma_long/eval_vigor_e100_full_chicago_twopass_se2_samearea.json
+panoroma-viz: ## PanoRoMa match figures of frames that work (scripts/viz_panoroma_matches.py): CKPT= FINE_CKPT= (default the e100 coarse/fine last), EVAL_JSON= (eval_vigor.py run of the same pair; picks frames), N=10, PICK=quantiles|ids (QUANTILES="5 15 25 35 45 50", IDS="Chicago/<pano> ..."), DIAGRAM_ID= (annotated explanation figure), STAGE=all|compute|render, OUT= (default experiments/13_panoroma_long/viz); CONFIG defaults to configs/vigor_cell0125.yaml
+	$(RUN) scripts/viz_panoroma_matches.py --config $(if $(filter configs/default.yaml,$(CONFIG)),configs/vigor_cell0125.yaml,$(CONFIG)) $(if $(CKPT),--ckpt $(CKPT),) $(if $(FINE_CKPT),--fine-ckpt $(FINE_CKPT),) --eval-json $(if $(EVAL_JSON),$(EVAL_JSON),$(PANO_EVAL_JSON)) --n $(if $(N),$(N),10) --pick $(if $(PICK),$(PICK),quantiles) $(if $(QUANTILES),--quantiles $(QUANTILES),) $(if $(IDS),--ids $(IDS),) $(if $(DIAGRAM_ID),--diagram-id "$(DIAGRAM_ID)",) --stage $(if $(STAGE),$(STAGE),all) $(if $(OUT),--out $(OUT),)
 
 vigor-report: ## experiments/09_vigor/REPORT.md: one table per split from every eval json there + IDEAS.md (the ideas/jobs ledger)
 	$(RUN) scripts/report_vigor.py --config $(CONFIG)
