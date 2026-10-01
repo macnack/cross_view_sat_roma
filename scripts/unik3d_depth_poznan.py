@@ -1,6 +1,7 @@
 """UniK3D metric depth for every panorama of a Fixtor × Poznań manifest, in Loc²'s layout transposed to a Mapillary
-sequence (<seq>/<DEPTH_DIR>/<id>.png, DEPTH_DIR = unik3d_depth_v2 (bevloc.data.vigor; v1 had row stripes), uint16 millimetres along the ray, clipped at 65 m), plus the camera-height
-sanity check.
+sequence (<seq>/<DEPTH_DIR>/<id>.png, DEPTH_DIR = unik3d_depth_v2 (bevloc.data.vigor; v1 had row stripes), uint16
+millimetres along the ray, clipped at 65 m), plus the camera-height sanity check. Stripe-guard rejects are listed at
+the end and in <out>/rejects_<DEPTH_DIR>_<manifest>.json (the job then exits non-zero; the rest is written).
 
   make poznan-depth MANIFEST=experiments/06_fg2_bevsplat/manifest.json          # GPU (Eagle: ~1 s / panorama)
   make poznan-depth MANIFEST=... DEPTH_ARGS="--check-only"                      # only the height check, from the PNGs
@@ -27,13 +28,12 @@ from pathlib import Path
 import cv2
 import numpy as np
 import torch
-from PIL import Image
 
 from bevloc import config as C
 from bevloc.baselines import loc2 as loc2_wrap
 from bevloc.baselines.common import depth_png_for, load_manifest, resolve_panorama, select_entries
 from bevloc.data.mapillary import rodrigues
-from bevloc.data.vigor import STRIPE_MAX_M, depth_stripe_score, read_depth_png
+from bevloc.data.vigor import DEPTH_DIR, STRIPE_MAX_M, read_depth_png
 
 
 def frame_meta(pano: Path, cache: dict) -> dict:
@@ -75,6 +75,8 @@ def main():
     ap.add_argument("--overwrite", action="store_true")
     ap.add_argument("--check-only", action="store_true", help="skip inference, only the height check")
     ap.add_argument("--out", default="experiments/12_poznan_three_way/depth_check")
+    ap.add_argument("--stripe-max", type=float, default=STRIPE_MAX_M,
+                    help="row-stripe guard (m); maps above it are not written but listed (<out>/rejects_*.json)")
     a = ap.parse_args()
     cfg = C.load(a.config)
     P = cfg.poznan
@@ -84,25 +86,22 @@ def main():
     panos = list(dict.fromkeys(resolve_panorama(e["panorama"]) for e in entries))
     W, H = (int(v) for v in P.depth_size)
     todo = [p for p in panos if a.overwrite or not depth_png_for(p).is_file()]
+    n_rejects = 0
     print(f"{len(panos)} panoramas in {manifest}, {len(todo)} without depth", flush=True)
     if todo and not a.check_only:
         dev = torch.device("cuda" if torch.cuda.is_available() else "cpu")
         model = loc2_wrap.load_unik3d(dev, P.depth_model, int(P.depth_resolution_level))
-        max_mm = loc2_wrap.NATIVE["depth_png_max_m"] * 1000.0
+        writer = loc2_wrap.DepthWriter(a.stripe_max)
         t0 = time.time()
         for k, pano in enumerate(todo, 1):
             img = cv2.cvtColor(cv2.imread(str(pano), cv2.IMREAD_COLOR), cv2.COLOR_BGR2RGB)
             img = cv2.resize(img, (W, H), interpolation=cv2.INTER_AREA)
             depth = loc2_wrap.infer_distance(model, img)          # fresh camera per panorama (v2, see DEPTH_DIR)
-            score = depth_stripe_score(depth)
-            if score > STRIPE_MAX_M:
-                raise RuntimeError(f"{pano}: row-stripe score {score:.3f} m > {STRIPE_MAX_M} (camera reuse bug?)")
-            path = depth_png_for(pano)
-            path.parent.mkdir(parents=True, exist_ok=True)
-            Image.fromarray(np.clip(depth * 1000.0, 0.0, max_mm).astype(np.uint16)).save(path)
+            writer.write(depth, depth_png_for(pano), str(pano))
             if k % 20 == 0 or k == len(todo) or k == 1:
                 print(f"  {k}/{len(todo)}  {(time.time() - t0) / k:.2f} s/img  {pano.stem} median {np.median(depth):.1f} m",
                       flush=True)
+        n_rejects = writer.finish(Path(a.out) / f"rejects_{DEPTH_DIR}_{Path(manifest).stem}.json")
 
     # --- camera-height sanity check ---
     cache, per = {}, []
@@ -141,6 +140,8 @@ def main():
               f"{summary['height_p90_m']:.2f}) over {hs.size} panoramas; flat proxy 1.65 m, ipm.height_m "
               f"{cfg.ipm.height_m} m", flush=True)
     print(f"wrote {out / 'height_check.json'}", flush=True)
+    if n_rejects:
+        raise SystemExit(f"{n_rejects} panoramas rejected by the stripe guard (listed above); every other map is written")
 
 
 if __name__ == "__main__":

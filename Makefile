@@ -334,7 +334,7 @@ PZ_MANIFEST = $(if $(MANIFEST),--manifest $(MANIFEST),)
 vigor-depth-height: ## camera height implied by UniK3D on VIGOR (300 panoramas per city) and on Poznań by the same rule (levelled, all azimuths, no road mask) -> experiments/12_poznan_three_way/depth_check/vigor_height_check.json
 	$(RUN) scripts/depth_height_check_vigor.py --config $(CONFIG)
 
-poznan-depth: ## UniK3D metric depth (Loc²'s PNG layout, <seq>/unik3d_depth/<id>.png) for every panorama of MANIFEST + camera-height check (GPU); DEPTH_ARGS="--limit 20 | --check-only"
+poznan-depth: ## UniK3D metric depth (Loc²'s PNG layout, <seq>/unik3d_depth_v2/<id>.png) for every panorama of MANIFEST + camera-height check (GPU); DEPTH_ARGS="--limit 20 | --check-only"
 	$(RUN) scripts/unik3d_depth_poznan.py --config $(CONFIG) $(PZ_MANIFEST) $(DEPTH_ARGS)
 
 fg2-smoke: ## FG² zero-shot, 20 frame ids x the years (HEADING=)

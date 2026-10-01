@@ -159,15 +159,34 @@ def depth_png_path(root, city: str, pano: str, depth_dir: str | None = None) -> 
 
 
 def depth_stripe_score(depth) -> float:
-    """Median |second difference along the rows| (metres) of the lower 40 % of an ERP depth map (H, W): the ground,
-    where depth varies smoothly with the row. About 0.001 m on a correct UniK3D map, 1.5-3.5 m on the row-alternating
-    maps of the mutated-camera bug (v1 PNGs); `STRIPE_MAX_M` is the bound the writers check."""
+    """Median |second difference along the rows| (metres) of the lower 40 % of an ERP depth map (H, W): the ground
+    (or a car roof), where depth varies smoothly with the row. Measured on fresh-camera UniK3D maps (2026-10-01,
+    60 VIGOR panoramas of the 4 cities + 29 Mapillary 360 panoramas incl. 8 Fixtor ones with the car-roof band):
+    0.0002-0.00065 m (0.001 m after the 1 mm PNG quantisation). The mutated-camera bug (v1) gives 0.002 / 0.008 /
+    0.03 / 0.12 m on its 5th-8th call and 1-3.7 m once the camera has collapsed (call ~10 on). `STRIPE_MAX_M` is
+    the bound the writers check: 0.005 m, 8x the largest good score; it catches the collapsed camera, not the first
+    few decaying calls (the fresh camera per call, bevloc.baselines.loc2.infer_distance, is what prevents those)."""
     d = np.asarray(depth, np.float64)
     lo = d[int(0.6 * d.shape[0]):]
     return float(np.median(np.abs(lo[2:] - 2.0 * lo[1:-1] + lo[:-2])))
 
 
-STRIPE_MAX_M = 0.1
+STRIPE_MAX_M = 0.005
+
+
+def check_depth_coverage(n_before: int, missing: list, what: str, max_drop_frac: float = 0.0,
+                         hint: str = "make loc2-depth / make poznan-depth first"):
+    """Raise RuntimeError when more than ``max_drop_frac`` of ``n_before`` samples have no depth file (``missing``:
+    their expected paths). Evaluation passes 0 (a row scored on fewer frames is not comparable); training a small
+    tolerance (panoramas the writers rejected, listed in <depth dir>/rejects_*.json)."""
+    if not missing:
+        return
+    frac = len(missing) / max(1, n_before)
+    msg = (f"{what}: {len(missing)} of {n_before} samples ({100 * frac:.2f} %) have no depth file in {DEPTH_DIR}/, "
+           f"e.g. {missing[0]}")
+    if frac > max_drop_frac:
+        raise RuntimeError(f"{msg} (allowed {100 * max_drop_frac:.2f} %): {hint}")
+    print(f"WARNING {msg}: dropped (allowed {100 * max_drop_frac:.2f} %)", flush=True)
 
 
 def read_depth_png(path) -> np.ndarray:
@@ -247,10 +266,16 @@ class VigorPairs(Dataset):
         lab = self.labels[i]
         return depth_png_path(self.root, lab["city"], lab["pano"])
 
-    def keep_with_depth(self):
-        """Drop the labels whose panorama has no depth file; returns the number dropped."""
+    def keep_with_depth(self, max_drop_frac: float = 0.0):
+        """Drop the labels whose panorama has no depth file; returns the number dropped. Raises RuntimeError when
+        more than ``max_drop_frac`` of the labels would be dropped (default 0: evaluation never silently scores
+        fewer frames; training passes a small tolerance), see `check_depth_coverage`."""
         before = len(self.labels)
-        self.labels = [lab for lab in self.labels if depth_png_path(self.root, lab["city"], lab["pano"]).is_file()]
+        missing = [depth_png_path(self.root, lab["city"], lab["pano"]) for lab in self.labels]
+        keep = [p.is_file() for p in missing]
+        check_depth_coverage(before, [p for p, k in zip(missing, keep) if not k], "VigorPairs", max_drop_frac,
+                             "make loc2-depth SPLIT=... CITIES=... (TRAIN=1 for training labels) first")
+        self.labels = [lab for lab, k in zip(self.labels, keep) if k]
         return before - len(self.labels)
 
     def _query_mode(self):
