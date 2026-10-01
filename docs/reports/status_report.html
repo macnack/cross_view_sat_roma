@@ -1,0 +1,688 @@
+<title>Sat-RoMa VIGOR Campaign</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Libre+Franklin:wght@600;700;800&family=Source+Sans+3:ital,wght@0,400;0,600;1,400&family=JetBrains+Mono:wght@400;600&display=swap">
+<style>
+/* Layout: single reading column (max 960px) of report sections; wide tables and the architecture drawing scroll inside their own boxes. Survey-sheet feel: cool slate ground, blueprint-blue accent, amber marks "ours". */
+:root {
+  --bg: #f5f7f9;
+  --surface: #ffffff;
+  --fg: #17212b;
+  --muted: #566573;
+  --line: #d5dde4;
+  --accent: #1f5f9e;
+  --ours: #b36b00;
+  --ours-bg: #fff4e0;
+  --good: #1d7a4a;
+  --bad: #a8323a;
+  --node: #eef3f8;
+  --node-ours: #fdf0da;
+  --s-ours: #c07000; --s-fg2: #2a74c4; --s-loc: #c2366b; --s-ref: #7d8a96;
+  --display: "Libre Franklin", "Helvetica Neue", Arial, sans-serif;
+  --body: "Source Sans 3", "Segoe UI", system-ui, sans-serif;
+  --mono: "JetBrains Mono", ui-monospace, "SFMono-Regular", Menlo, monospace;
+}
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme="light"]) {
+    --bg: #11171d; --surface: #182029; --fg: #e3e9ef; --muted: #9aa8b5; --line: #2c3845;
+    --accent: #7fb2e5; --ours: #f0b04a; --ours-bg: #2e2413; --good: #5fc48e; --bad: #ec7a82;
+    --node: #1d2833; --node-ours: #33280f; color-scheme: dark;
+    --s-ours: #c47f16; --s-fg2: #4d93dc; --s-loc: #e0668f; --s-ref: #8795a3;
+  }
+}
+:root[data-theme="dark"] {
+  --bg: #11171d; --surface: #182029; --fg: #e3e9ef; --muted: #9aa8b5; --line: #2c3845;
+  --accent: #7fb2e5; --ours: #f0b04a; --ours-bg: #2e2413; --good: #5fc48e; --bad: #ec7a82;
+  --node: #1d2833; --node-ours: #33280f; color-scheme: dark;
+  --s-ours: #c47f16; --s-fg2: #4d93dc; --s-loc: #e0668f; --s-ref: #8795a3;
+}
+body { background: var(--bg); color: var(--fg); font-family: var(--body); font-size: 16px; line-height: 1.55; }
+.wrap { max-width: 960px; margin: 0 auto; padding-inline: 20px; padding-block: 40px 72px; display: grid; gap: 44px; }
+header { display: grid; gap: 10px; }
+.eyebrow { font-family: var(--mono); font-size: 12px; letter-spacing: .08em; text-transform: uppercase; color: var(--accent); }
+h1 { font-family: var(--display); font-weight: 800; font-size: clamp(28px, 5vw, 40px); line-height: 1.1; margin: 0; text-wrap: balance; }
+h2 { font-family: var(--display); font-weight: 700; font-size: 24px; margin: 0; text-wrap: balance; }
+h3 { font-family: var(--display); font-weight: 600; font-size: 17px; margin: 0; }
+p { margin: 0; max-width: 68ch; }
+.lede { font-size: 18px; color: var(--muted); max-width: 70ch; }
+section { display: grid; gap: 16px; min-width: 0; }
+.meta { font-family: var(--mono); font-size: 12px; color: var(--muted); }
+.box { background: var(--surface); border: 1px solid var(--line); border-radius: 6px; }
+.scroll { overflow-x: auto; }
+table { border-collapse: collapse; width: 100%; font-size: 14.5px; font-variant-numeric: tabular-nums; }
+th, td { text-align: left; padding: 8px 12px; border-bottom: 1px solid var(--line); vertical-align: top; }
+th { font-family: var(--mono); font-size: 11.5px; letter-spacing: .05em; text-transform: uppercase; color: var(--muted); font-weight: 600; white-space: nowrap; }
+td.num, th.num { text-align: right; white-space: nowrap; }
+tr.ours td { background: var(--ours-bg); }
+tr.ours td:first-child { box-shadow: inset 3px 0 0 var(--ours); font-weight: 600; }
+tr:last-child td { border-bottom: 0; }
+.tag { display: inline-block; font-family: var(--mono); font-size: 11px; padding: 1px 7px; border-radius: 99px; border: 1px solid var(--line); color: var(--muted); white-space: nowrap; }
+.tag.good { color: var(--good); border-color: currentColor; }
+.tag.bad { color: var(--bad); border-color: currentColor; }
+.tag.ours { color: var(--ours); border-color: currentColor; }
+.grid2 { display: grid; grid-template-columns: repeat(auto-fit, minmax(260px, 1fr)); gap: 16px; }
+.card { padding: 16px 18px; display: grid; gap: 8px; align-content: start; min-width: 0; }
+.card p { font-size: 15px; }
+.kpis { display: grid; grid-template-columns: repeat(auto-fit, minmax(190px, 1fr)); gap: 12px; }
+.kpi { padding: 14px 16px; display: grid; gap: 2px; }
+.kpi .v { font-family: var(--display); font-weight: 800; font-size: 30px; font-variant-numeric: tabular-nums; }
+.kpi .v small { font-size: 15px; font-weight: 600; color: var(--muted); }
+.kpi .l { font-size: 13.5px; color: var(--muted); }
+ol.steps { margin: 0; padding-left: 22px; display: grid; gap: 10px; max-width: 72ch; }
+ol.steps li::marker { font-family: var(--mono); color: var(--accent); }
+ul.plain { margin: 0; padding-left: 20px; display: grid; gap: 6px; max-width: 72ch; }
+code { font-family: var(--mono); font-size: .88em; }
+.note { font-size: 14px; color: var(--muted); max-width: 72ch; }
+/* architecture drawing */
+svg.arch { display: block; min-width: 860px; width: 100%; height: auto; }
+.arch .n { fill: var(--node); stroke: var(--line); }
+.arch .n.o { fill: var(--node-ours); stroke: var(--ours); }
+.arch .n.f { fill: var(--surface); stroke: var(--muted); stroke-dasharray: 4 3; }
+.arch .t { fill: var(--fg); font-family: var(--body); font-size: 13px; }
+.arch .t.b { font-weight: 600; }
+.arch .s { fill: var(--muted); font-family: var(--mono); font-size: 10.5px; }
+.arch .h { fill: var(--accent); font-family: var(--mono); font-size: 11px; letter-spacing: .06em; }
+.arch .e { stroke: var(--muted); stroke-width: 1.4; fill: none; }
+.arch .e.o { stroke: var(--ours); }
+.arch .ah { fill: var(--muted); }
+.arch .ah.o { fill: var(--ours); }
+.legend { display: flex; flex-wrap: wrap; gap: 14px; font-size: 13.5px; color: var(--muted); }
+.legend span::before { content: ""; display: inline-block; width: 12px; height: 12px; border-radius: 2px; margin-right: 6px; vertical-align: -1px; border: 1px solid var(--line); background: var(--node); }
+.legend .lo::before { background: var(--node-ours); border-color: var(--ours); }
+.legend .lf::before { background: var(--surface); border: 1px dashed var(--muted); }
+a { color: var(--accent); }
+:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
+/* charts */
+.chart { padding: 14px 16px 10px; display: grid; gap: 8px; position: relative; min-width: 0; }
+.chart h3 { font-size: 15px; }
+.chart .sub { font-size: 13.5px; color: var(--muted); max-width: 72ch; }
+.chart svg { display: block; width: 100%; height: auto; overflow: visible; }
+.chart svg text { font-family: var(--body); fill: var(--fg); }
+.chart .tick { fill: var(--muted); font-size: 12px; font-variant-numeric: tabular-nums; }
+.chart .axl { fill: var(--muted); font-size: 12px; }
+.chart .grid { stroke: var(--line); stroke-width: 1; }
+.chart .base { stroke: var(--muted); stroke-width: 1; }
+.chart .lab { font-size: 12.5px; font-weight: 600; }
+.chart .rowlab { font-size: 13.5px; font-weight: 600; }
+.chart .rowsub { font-size: 11.5px; fill: var(--muted); }
+.chart .hit { fill: transparent; cursor: default; }
+.chart .conn { stroke: var(--line); stroke-width: 2; }
+.keys { display: flex; flex-wrap: wrap; gap: 6px 18px; font-size: 13px; color: var(--muted); }
+.keys i { display: inline-block; width: 10px; height: 10px; border-radius: 50%; margin-right: 6px; vertical-align: -1px; }
+.keys i.ln { width: 20px; height: 0; border-radius: 0; border-top: 2px solid; vertical-align: 3px; }
+.tip { position: absolute; pointer-events: none; background: var(--surface); border: 1px solid var(--line); border-radius: 5px; padding: 6px 9px; font-size: 12.5px; line-height: 1.4; box-shadow: 0 4px 14px rgb(0 0 0 / .12); max-width: 260px; z-index: 2; font-variant-numeric: tabular-nums; }
+.tip b { font-weight: 600; }
+details.data summary { cursor: pointer; font-size: 13px; color: var(--accent); }
+details.data table { font-size: 13px; margin-top: 6px; }
+figure.fig { margin: 0; display: grid; gap: 8px; }
+figure.fig img { display: block; width: 100%; height: auto; border: 1px solid var(--line); border-radius: 6px; background: #000; }
+figure.fig figcaption { font-size: 13.5px; color: var(--muted); max-width: 90ch; }
+figure.fig figcaption b { color: var(--fg); }
+@media (prefers-reduced-motion: no-preference) { .chart circle.dot { transition: r .12s; } }
+</style>
+
+<div class="wrap">
+
+<header>
+  <div class="eyebrow">cross_view_sat_roma · branch task03/eval-density-solver-pf · status 1 Oct 2026</div>
+  <h1>Camera-only cross-view localisation with the Sat-RoMa matcher: what we built and where it stands</h1>
+  <p class="lede">One ground panorama in, a metric position on the satellite tile out. This page collects the VIGOR benchmark campaign (24 Sep – 1 Oct): the method we settled on, now named <b>PanoRoMa</b>, how it differs from FG² and Loc², every result on identical sample draws, the 100-epoch training and regularisation runs, what did not work, and the decisions still open.</p>
+  <p class="meta">VIGOR, known orientation. All rows on shared seed-0 draws: 3000 Chicago same-area · 12000 all four cities · 6000 San Francisco + Chicago cross-area. Metric: position error in metres, median with 95 % bootstrap CI, mean, recall ≤ 5 m.</p>
+</header>
+
+<div style="border-left:4px solid var(--bad);background:var(--surface);padding:14px 18px;border-radius:0 6px 6px 0;font-size:15px"><b>Correction, 1 Oct:</b> a bug in our depth script corrupted almost every UniK3D depth map. Every PanoRoMa / Task 04 number on this page (including 1.05 m Chicago and all Poznań PanoRoMa rows) and our Loc² baseline rows used that depth, so they are <b>provisional</b>; the Loc² rows likely understate Loc². FG², the flat-ground (IPM) rows and the relative regularisation findings are not affected. Depth is being regenerated; baselines and PanoRoMa will be rerun and this page updated.</div>
+<section>
+  <h2>Headline</h2>
+  <div class="kpis">
+    <div class="box kpi"><div class="v">1.05 <small>m</small></div><div class="l">median, Chicago same-area. Level with FG² (1.06 m); Loc² 1.33 m</div></div>
+    <div class="box kpi"><div class="v">2.67 <small>m</small></div><div class="l">mean, Chicago. Below Loc² (2.93 m); FG² still 1.86 m</div></div>
+    <div class="box kpi"><div class="v">4.01 <small>m</small></div><div class="l">median on Poznań, zero-shot. FG² 4.15 m, Loc² 3.50 m</div></div>
+    <div class="box kpi"><div class="v">1.94 <small>m</small></div><div class="l">median, cross-area (unseen cities). Loc² 1.99 m, FG² 1.41 m</div></div>
+  </div>
+  <div class="box chart" id="c-split">
+    <h3>Median position error by split</h3>
+    <p class="sub">Lower is better. Same sample draws for all three methods; FG² and Loc² from their released checkpoints. All-cities FG² value is the published one.</p>
+    <div class="keys"><span><i style="background:var(--s-ours)"></i>Ours, two-pass</span><span><i style="background:var(--s-loc)"></i>Loc²</span><span><i style="background:var(--s-fg2)"></i>FG²</span></div>
+    <svg viewBox="0 0 760 210" role="img" aria-label="Median error: Chicago same-area FG2 1.06, ours 1.05, Loc2 1.33 m; all cities FG2 1.08, ours 1.51, Loc2 1.59 m; cross-area FG2 1.41, ours 1.94, Loc2 1.99 m."></svg>
+  </div>
+  <p><b>On the Chicago median PanoRoMa now matches FG²: 1.05 m (95 % CI 1.02–1.09) against 1.06 m</b>, with both decoders trained for 100 epochs. On all cities and cross-area the rows are still from the earlier, shorter training (level with Loc², 0.4–0.5 m behind FG²) and are being redone. Since the last version of this page two things moved the tail: training ten times longer on four H100s with the float16 bug fixed, and augmentation, which removed the overfitting (section 5). The Chicago mean fell from 3.33 m to 2.67 m, below Loc²'s 2.93 m, and Poznań zero-shot from 4.53 m to 4.01 m, level with FG². FG² is still clearly ahead on the tail (mean 1.86 m, 3 % of frames over 10 m against our 6 %). The all-cities and cross-area rows are from the earlier, shorter training and will be redone with the new decoders.</p>
+</section>
+
+<section>
+  <h2>0 · Where it started: Poznań streets</h2>
+  <p>The project's real setting is a car with one 360° camera on Poznań streets, matched against the city's public orthophotos (2024 and 2025). The method of record there is the flat-ground picture: every cell of a 56 m grid around the car takes its colour from the panorama pixel that sees that point of the road, the frozen satellite encoder reads that picture like an overhead image, and the Sat-RoMa decoder matches it to a 224 m orthophoto crop. VIGOR was taken up to find out why this plateaus and to compare with FG² and Loc² on their own benchmark.</p>
+  <figure class="fig">
+    <img src="img/ipm_stages.jpg" alt="One Poznań frame through every stage: panorama, flat-ground picture with the token grid, orthophoto crop, summed vote density, recovered pose." loading="lazy">
+    <figcaption><b>One Poznań frame through the method</b> (id 1805068834011537, 2025 map), produced by the evaluation code: panorama, flat-ground picture, orthophoto crop, summed decoder votes and the recovered pose, 2.3 m from Mapillary's GPS.</figcaption>
+  </figure>
+  <div class="box scroll">
+    <table>
+      <thead><tr><th>Poznań, 400 entries of a held-out route, noisy heading</th><th class="num">Median (95 % CI)</th><th class="num">≤ 5 m</th><th class="num">≤ 10 m</th><th class="num">&gt; 30 m</th><th class="num">Heading</th></tr></thead>
+      <tbody>
+        <tr><td>Loc², UniK3D depth, VIGOR weights (zero-shot)</td><td class="num">3.50 m (3.26–3.77)</td><td class="num">68 %</td><td class="num">85 %</td><td class="num">3 %</td><td class="num">2.0°</td></tr>
+        <tr><td>Loc², flat-ground depth guess (zero-shot)</td><td class="num">3.91 m (3.47–4.25)</td><td class="num">62 %</td><td class="num">83 %</td><td class="num">3 %</td><td class="num">2.3°</td></tr>
+        <tr><td>FG², VIGOR weights (zero-shot)</td><td class="num">4.15 m (3.82–4.56)</td><td class="num">58 %</td><td class="num">86 %</td><td class="num">0 %</td><td class="num">2.4°</td></tr>
+        <tr class="ours"><td>PanoRoMa regularised (D, 30 epochs), 71 m map (zero-shot)</td><td class="num">4.01 m (3.65–4.62)</td><td class="num">60 %</td><td class="num">82 %</td><td class="num">3 %</td><td class="num">4.5°</td></tr>
+        <tr><td>PanoRoMa, 100 epochs, 71 m map (zero-shot)</td><td class="num">4.37 m (3.86–4.90)</td><td class="num">55 %</td><td class="num">77 %</td><td class="num">4 %</td><td class="num">4.3°</td></tr>
+        <tr><td>PanoRoMa, 100 epochs coarse + 100-epoch second pass (zero-shot)</td><td class="num">4.55 m (3.83–5.10)</td><td class="num">54 %</td><td class="num">77 %</td><td class="num">5 %</td><td class="num">4.8°</td></tr>
+        <tr><td>PanoRoMa, earlier training, 71 m map (zero-shot)</td><td class="num">4.53 m (3.88–5.12)</td><td class="num">54 %</td><td class="num">76 %</td><td class="num">3 %</td><td class="num">4.2°</td></tr>
+        <tr><td>PanoRoMa two-pass, full 112 m map (zero-shot)</td><td class="num">4.75 m (4.03–5.39)</td><td class="num">53 %</td><td class="num">76 %</td><td class="num">4 %</td><td class="num">4.4°</td></tr>
+        <tr><td>IPM + Sat-RoMa, trained on Poznań and tuned on this route</td><td class="num">5.69 m (4.94–6.54)</td><td class="num">45 %</td><td class="num">71 %</td><td class="num">5 %</td><td class="num">2.6°</td></tr>
+        <tr><td>Lift-Splat, our earlier learned BEV (superseded)</td><td class="num">12.5 m</td><td class="num">17 %</td><td class="num">43 %</td><td class="num">11 %</td><td class="num">7.2°</td></tr>
+      </tbody>
+    </table>
+  </div>
+  <p class="note">Every method gets the same 400 entries, the same ±22 m position prior, and a panorama turned by the noisy (±10°) prior heading, so each has to recover the rest itself. Giving FG² and Loc² the true heading instead, as the first Poznań rows did, changes them by less than 0.2 m. Ground truth is Mapillary's GPS and compass, so differences of a few metres are within its uncertainty. Source: <code>experiments/12_poznan_three_way/</code> (REPORT.md, FINDINGS.md).</p>
+  <div class="grid2">
+    <div class="box card">
+      <h3>What the Poznań run shows</h3>
+      <p>PanoRoMa transfers: without any Poznań training it is better than our Poznań-trained flat-ground method, with fewer large misses. With augmentation it reaches 4.01 m, level with FG² and 0.5 m behind Loc² with the same depth maps; its heading error is still about twice Loc²'s. A VIGOR-sized 71 m map helps a little. The new 100-epoch second-pass decoder helps on VIGOR but not on Poznań (4.55 m against 4.37 m with the earlier one): it has specialised to VIGOR, which regularisation should address. A pose solver that also estimates scale gives the same 4.53 m, so the solver is not the cause.</p>
+    </div>
+    <div class="box card">
+      <h3>Depth scale, checked before changing it</h3>
+      <p>UniK3D depths imply a camera height of 1.21 m on VIGOR and 1.04 m on Poznań by the same rule, while the Poznań rig is about 1.65 m. UniK3D under-scales on both, and PanoRoMa was trained with that bias, so the consistent Poznań correction would be ×1.16, not ×1.6. The mismatch is about 14 %; no rescale is applied.</p>
+    </div>
+  </div>
+  <p class="note">Training budget is not like for like: PanoRoMa saw about 6 passes over VIGOR at batch 4, FG² 25 passes at batch 24, and Loc²'s code runs up to 100 passes at batch 80. A 100-pass PanoRoMa run is being prepared.</p>
+  <figure class="fig">
+    <img src="img/pair_worst.jpg" alt="Worst Poznań frame: the panorama, the flat-ground picture, each method's pose on the orthophoto, and our patch votes, most of which land on a look-alike road strip 90 m east." loading="lazy">
+    <figcaption><b>Worst Poznań frame, ours 89.5 m, FG² 5.0 m, Loc² 4.2 m.</b> The votes are not scattered: the left part of the footprint votes consistently for a look-alike strip of road about 90 m east, and RANSAC accepts it (59 % inliers). This is the confidently-wrong failure that section 7 shows no confidence score can catch.</figcaption>
+  </figure>
+</section>
+
+<section>
+  <h2>1 · Results against the state of the art</h2>
+  <p>FG² and Loc² were run from their released checkpoints at their native input sizes on exactly our draws (a pure-PyTorch shim replaces mmcv for FG²; Loc² uses the same UniK3D depth maps we use). Both reproduce their papers within 0.1 m.</p>
+  <div class="box scroll">
+    <table>
+      <thead><tr><th>Split · draw</th><th>Method</th><th class="num">Median (95 % CI)</th><th class="num">Mean</th><th class="num">≤ 5 m</th><th class="num">≤ 10 m</th></tr></thead>
+      <tbody>
+        <tr><td>Same-area · Chicago 3000</td><td>FG² (released)</td><td class="num">1.06 (1.02–1.10)</td><td class="num">1.86</td><td class="num">95 %</td><td class="num">97 %</td></tr>
+        <tr><td></td><td>Loc² (released)</td><td class="num">1.33 (1.29–1.37)</td><td class="num">2.93</td><td class="num">88 %</td><td class="num">93 %</td></tr>
+        <tr class="ours"><td></td><td><b>PanoRoMa, 100 epochs, coarse + 100-epoch second pass</b></td><td class="num"><b>1.05 (1.02–1.09)</b></td><td class="num">2.67</td><td class="num">89 %</td><td class="num">93 %</td></tr>
+        <tr class="ours"><td></td><td>PanoRoMa, regularised (D, 30 epochs) + earlier second pass</td><td class="num">1.22 (1.18–1.27)</td><td class="num">2.69</td><td class="num">88 %</td><td class="num">94 %</td></tr>
+        <tr class="ours"><td></td><td>PanoRoMa, 100 epochs + earlier second pass</td><td class="num">1.22 (1.17–1.27)</td><td class="num">2.89</td><td class="num">87 %</td><td class="num">93 %</td></tr>
+        <tr><td></td><td>PanoRoMa, 100 epochs, coarse pass only</td><td class="num">1.37 (1.33–1.41)</td><td class="num">2.91</td><td class="num">89 %</td><td class="num">93 %</td></tr>
+        <tr><td></td><td>Earlier two-pass (60k steps, float16)</td><td class="num">1.24 (1.19–1.29)</td><td class="num">3.33</td><td class="num">85 %</td><td class="num">91 %</td></tr>
+        <tr><td></td><td>Earlier coarse pass only</td><td class="num">1.77 (1.70–1.82)</td><td class="num">3.68</td><td class="num">84 %</td><td class="num">91 %</td></tr>
+        <tr><td></td><td>Ours, flat-ground picture query (earlier method of record)</td><td class="num">1.71 (1.64–1.79)</td><td class="num">4.55</td><td class="num">78 %</td><td class="num">86 %</td></tr>
+        <tr><td>Same-area · all cities 12000</td><td>FG² (published)</td><td class="num">1.08</td><td class="num">1.95</td><td class="num">—</td><td class="num">—</td></tr>
+        <tr><td></td><td>Loc² (released, our draw)</td><td class="num">1.59</td><td class="num">3.06</td><td class="num">—</td><td class="num">—</td></tr>
+        <tr class="ours"><td></td><td>Ours, two-pass (earlier training; 100-epoch row running)</td><td class="num">1.51 (1.48–1.54)</td><td class="num">3.33</td><td class="num">85 %</td><td class="num">92 %</td></tr>
+        <tr><td>Cross-area · SF + Chicago 6000</td><td>FG² (released)</td><td class="num">1.41</td><td class="num">—</td><td class="num">—</td><td class="num">—</td></tr>
+        <tr><td></td><td>Loc² (released)</td><td class="num">1.99</td><td class="num">—</td><td class="num">—</td><td class="num">—</td></tr>
+        <tr class="ours"><td></td><td>Ours, two-pass (trained on New York + Seattle)</td><td class="num">1.94 (1.88–1.98)</td><td class="num">3.82</td><td class="num">84 %</td><td class="num">91 %</td></tr>
+      </tbody>
+    </table>
+  </div>
+  <h3>Per city, ours, two-pass, all-cities draw</h3>
+  <div class="box scroll">
+    <table>
+      <thead><tr><th>City</th><th class="num">n</th><th class="num">Coarse median</th><th class="num">After fine pass</th><th class="num">Mean</th><th class="num">≤ 5 m</th></tr></thead>
+      <tbody>
+        <tr><td>San Francisco</td><td class="num">3198</td><td class="num">1.79</td><td class="num">1.20</td><td class="num">2.56</td><td class="num">90 %</td></tr>
+        <tr><td>Chicago</td><td class="num">2944</td><td class="num">1.79</td><td class="num">1.25</td><td class="num">3.32</td><td class="num">85 %</td></tr>
+        <tr><td>Seattle</td><td class="num">2718</td><td class="num">1.83</td><td class="num">1.35</td><td class="num">2.64</td><td class="num">90 %</td></tr>
+        <tr><td>New York</td><td class="num">3140</td><td class="num">3.11</td><td class="num">2.95</td><td class="num">4.72</td><td class="num">74 %</td></tr>
+      </tbody>
+    </table>
+  </div>
+  <div class="box chart" id="c-city">
+    <h3>What the second pass buys, per city</h3>
+    <p class="sub">Median error of the coarse pass (hollow) and after the fine pass (filled), four-city model, all-cities draw.</p>
+    <svg viewBox="0 0 760 200" role="img" aria-label="Coarse to fine median: San Francisco 1.79 to 1.20, Chicago 1.79 to 1.25, Seattle 1.83 to 1.35, New York 3.11 to 2.95 m."></svg>
+  </div>
+  <p class="note">New York is the weak city for every model we trained: tall facades smear into the query and the street grid repeats. There the fine pass gains only 0.16 m, because its misses are already wrong in the coarse pass.</p>
+</section>
+
+<section>
+  <h2>2 · Architecture of the method</h2>
+  <p>The matcher is our Sat-RoMa decoder. Instead of scoring a cosine similarity between features, it predicts, for every query token, a probability over all reference cells; the matches come out as a small set of modes per token and are resolved by multi-hypothesis RANSAC. The query uses Loc²'s geometry: panorama tokens placed on the ground by a monocular metric depth estimate.</p>
+  <div class="legend"><span>frozen or fixed</span><span class="lo">trained by us</span><span class="lf">optional / evaluation-time</span></div>
+  <div class="box scroll" style="padding:12px">
+    <svg class="arch" viewBox="0 0 900 560" role="img" aria-label="Architecture: panorama and satellite tile through a frozen DINOv3 encoder, depth placement, Sat-RoMa decoder, modes and RANSAC, then a second fine pass and a certainty score.">
+      <defs>
+        <marker id="a" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path class="ah" d="M0,0 L10,5 L0,10 z"/></marker>
+        <marker id="ao" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path class="ah o" d="M0,0 L10,5 L0,10 z"/></marker>
+      </defs>
+      <text class="h" x="20" y="22">QUERY · GROUND</text>
+      <text class="h" x="20" y="262">REFERENCE · SATELLITE</text>
+      <text class="h" x="600" y="22">COARSE PASS · 2 m CELLS</text>
+      <text class="h" x="600" y="352">FINE PASS · 1 m CELLS</text>
+
+      <rect class="n" x="20" y="36" width="150" height="58" rx="5"/>
+      <text class="t b" x="32" y="58">360° panorama</text>
+      <text class="s" x="32" y="76">equirectangular, known</text>
+      <text class="s" x="32" y="88">heading (VIGOR)</text>
+
+      <rect class="n" x="200" y="36" width="170" height="58" rx="5"/>
+      <text class="t b" x="212" y="58">DINOv3 sat493m</text>
+      <text class="s" x="212" y="76">frozen, 303 M params</text>
+      <text class="s" x="212" y="88">→ 56 × 28 tokens</text>
+
+      <rect class="n o" x="200" y="120" width="170" height="58" rx="5"/>
+      <text class="t b" x="212" y="142">Projection head</text>
+      <text class="s" x="212" y="160">2.2 M params, trained</text>
+      <text class="s" x="212" y="172">(without it: 4.3 m median)</text>
+
+      <rect class="n" x="20" y="120" width="150" height="58" rx="5"/>
+      <text class="t b" x="32" y="142">UniK3D depth</text>
+      <text class="s" x="32" y="160">metric depth per pixel,</text>
+      <text class="s" x="32" y="172">precomputed</text>
+
+      <rect class="n" x="200" y="196" width="170" height="46" rx="5"/>
+      <text class="t b" x="212" y="216">Place tokens on ground</text>
+      <text class="s" x="212" y="232">x = d sinθ cosφ, ≤ 35 m</text>
+
+      <rect class="n" x="20" y="276" width="150" height="58" rx="5"/>
+      <text class="t b" x="32" y="298">Satellite tile</text>
+      <text class="s" x="32" y="316">0.125 m/px on a</text>
+      <text class="s" x="32" y="328">112 m canvas (896 px)</text>
+
+      <rect class="n" x="200" y="276" width="170" height="58" rx="5"/>
+      <text class="t b" x="212" y="298">DINOv3 sat493m</text>
+      <text class="s" x="212" y="316">same frozen encoder</text>
+      <text class="s" x="212" y="328">→ 56 × 56 cells of 2 m</text>
+
+      <rect class="n o" x="400" y="150" width="170" height="110" rx="5"/>
+      <text class="t b" x="412" y="174">Sat-RoMa decoder</text>
+      <text class="s" x="412" y="194">66.7 M params, fine-tuned</text>
+      <text class="s" x="412" y="210">per token: categorical over</text>
+      <text class="s" x="412" y="222">3136 cells + certainty</text>
+      <text class="s" x="412" y="244">loss: RoMa CE + VCE pose</text>
+      <text class="s" x="412" y="256">+ 0.5 heat-map pose NLL</text>
+
+      <rect class="n" x="600" y="36" width="170" height="58" rx="5"/>
+      <text class="t b" x="612" y="58">Modes per token</text>
+      <text class="s" x="612" y="76">GMM on the categorical,</text>
+      <text class="s" x="612" y="88">threshold 0.008</text>
+
+      <rect class="n" x="600" y="116" width="170" height="58" rx="5"/>
+      <text class="t b" x="612" y="138">RANSAC, 3-DoF (se2)</text>
+      <text class="s" x="612" y="156">placed points ↔ modes,</text>
+      <text class="s" x="612" y="168">threshold 3 cells</text>
+
+      <rect class="n" x="600" y="196" width="170" height="46" rx="5"/>
+      <text class="t b" x="612" y="216">Coarse pose</text>
+      <text class="s" x="612" y="232">1.77 m median (Chicago)</text>
+
+      <rect class="n f" x="600" y="266" width="170" height="70" rx="5"/>
+      <text class="t b" x="612" y="288">Certainty</text>
+      <text class="s" x="612" y="306">19 vote-map statistics</text>
+      <text class="s" x="612" y="318">→ logistic P(err &lt; 5 m)</text>
+      <text class="s" x="612" y="330">AUROC 0.92 (Chicago)</text>
+
+      <rect class="n" x="600" y="366" width="170" height="58" rx="5"/>
+      <text class="t b" x="612" y="388">56 m window</text>
+      <text class="s" x="612" y="406">around coarse pose,</text>
+      <text class="s" x="612" y="418">0.0625 m/px</text>
+
+      <rect class="n o" x="400" y="366" width="170" height="70" rx="5"/>
+      <text class="t b" x="412" y="388">Fine decoder</text>
+      <text class="s" x="412" y="406">same architecture, trained</text>
+      <text class="s" x="412" y="418">on windows jittered ± 6 m;</text>
+      <text class="s" x="412" y="430">56 × 56 cells of 1 m</text>
+
+      <rect class="n" x="400" y="462" width="170" height="58" rx="5"/>
+      <text class="t b" x="412" y="484">RANSAC, se2</text>
+      <text class="s" x="412" y="502">gate: keep coarse pose if</text>
+      <text class="s" x="412" y="514">fine moves it &gt; 6 m</text>
+
+      <rect class="n o" x="600" y="462" width="170" height="58" rx="5"/>
+      <text class="t b" x="612" y="484">Final pose</text>
+      <text class="s" x="612" y="502">1.24 m Chicago · 1.51 m all</text>
+      <text class="s" x="612" y="514">1.94 m cross-area</text>
+
+      <path class="e" d="M170,65 H200" marker-end="url(#a)"/>
+      <path class="e o" d="M285,94 V120" marker-end="url(#ao)"/>
+      <path class="e" d="M95,178 V219 H200" marker-end="url(#a)"/>
+      <path class="e o" d="M285,178 V196" marker-end="url(#ao)"/>
+      <path class="e o" d="M370,219 H385 V190 H400" marker-end="url(#ao)"/>
+      <path class="e" d="M170,305 H200" marker-end="url(#a)"/>
+      <path class="e" d="M370,305 H385 V230 H400" marker-end="url(#a)"/>
+      <path class="e o" d="M570,190 H585 V65 H600" marker-end="url(#ao)"/>
+      <path class="e" d="M685,94 V116" marker-end="url(#a)"/>
+      <path class="e" d="M685,174 V196" marker-end="url(#a)"/>
+      <path class="e" d="M770,219 H800 V301 H770" marker-end="url(#a)"/>
+      <path class="e" d="M770,219 H820 V395 H770" marker-end="url(#a)"/>
+      <path class="e" d="M600,395 H570" marker-end="url(#a)"/>
+      <path class="e o" d="M485,436 V462" marker-end="url(#ao)"/>
+      <path class="e o" d="M570,491 H600" marker-end="url(#ao)"/>
+    </svg>
+  </div>
+  <ol class="steps">
+    <li><b>Encode both views with one frozen satellite-trained encoder.</b> DINOv3 <code>sat493m</code> (303 M parameters) sees the panorama and the satellite tile. It is never trained, so the whole trainable budget is the decoder and a light head.</li>
+    <li><b>Place panorama tokens on the ground by depth.</b> Each of the 56 × 28 panorama tokens gets a metric ground position from UniK3D depth along its viewing ray (Loc²'s geometry), and passes through a 2.2 M-parameter projection head. The head is necessary: without it the median is 4.3 m.</li>
+    <li><b>Match with the Sat-RoMa decoder.</b> For each placed token the decoder outputs a probability over the 56 × 56 reference cells (2 m each) plus a certainty. Training combines RoMa's coarse cross-entropy with Loc²'s pose loss (VCE, closed-form Procrustes) and a heat-map pose loss.</li>
+    <li><b>Solve the pose robustly.</b> Each token's distribution is reduced to its modes; RANSAC with a 3-DoF rigid model (se2) fits the pose over all token-mode pairs.</li>
+    <li><b>Refine with a second pass.</b> A 56 m window around the coarse pose is re-rendered at 0.0625 m/px and matched by a second decoder trained on jittered windows (1 m cells). This takes Chicago from 1.77 m to 1.24 m.</li>
+    <li><b>Report a calibrated confidence.</b> 19 statistics of the vote maps (mass near the pose, entropy, inlier ratio, …) feed a logistic model for P(error &lt; 5 m). At 90 % coverage it cuts gross misses from 9.1 % to 4.7 % on Chicago.</li>
+  </ol>
+</section>
+
+<section>
+  <h2>3 · What differs from FG² and Loc²</h2>
+  <div class="box scroll">
+    <table>
+      <thead><tr><th>Aspect</th><th>FG²</th><th>Loc²</th><th>Ours</th></tr></thead>
+      <tbody>
+        <tr><td>Where the ground view is matched</td><td>Ground features lifted to 3D points and matched to aerial features</td><td>Image-plane tokens placed on the ground by metric depth</td><td>Same as Loc² (depth-placed panorama tokens)</td></tr>
+        <tr><td>Matcher</td><td>Learned feature similarity with deformable attention</td><td>Cosine similarity between projected features</td><td><b>Sat-RoMa decoder</b>: a classifier over all reference cells per token, with a certainty</td></tr>
+        <tr><td>Hypotheses per token</td><td>One</td><td>One (soft correspondences)</td><td><b>Several modes</b>, resolved by RANSAC over all of them</td></tr>
+        <tr><td>Encoder</td><td>Trained feature extractor feeding the 3D lifting</td><td>Foundation-model features + a light trained projection head (§3.1)</td><td>Frozen DINOv3 satellite model for both views; only decoder + 2.2 M head trained</td></tr>
+        <tr><td>Resolution strategy</td><td>Single pass</td><td>Single pass</td><td><b>Two passes</b>: 2 m cells on 112 m, then 1 m cells on a 56 m window</td></tr>
+        <tr><td>Confidence output</td><td>None calibrated</td><td>Inlier count only</td><td><b>Calibrated P(error &lt; 5 m)</b> from vote-map statistics</td></tr>
+        <tr><td>Pose loss</td><td>Pose-supervised Procrustes</td><td>VCE (virtual-point) pose loss</td><td>Loc²'s VCE + RoMa's cross-entropy + heat-map pose loss</td></tr>
+      </tbody>
+    </table>
+  </div>
+  <p class="note">The reason for taking Loc²'s geometry: our own flat-ground (IPM) picture query plateaued at 2.9 m with 4 m cells no matter how much data we added, and Loc²'s ablation (Tab. 12) reports the same thing: matching a bird's-eye picture gives 8.2 m, matching depth-placed image tokens 1.75 m. The contribution we test is the matcher, not the geometry.</p>
+</section>
+
+<section>
+  <h2>4 · How we got here</h2>
+  <p>Chicago same-area median, 3000-sample draw, in the order the steps were taken. Each change is the only difference from the row above unless stated.</p>
+  <div class="box chart" id="c-prog">
+    <h3>Chicago error, step by step</h3>
+    <p class="sub">Median and mean position error after each change. FG² (1.06 m) and Loc² (1.33 m) medians on the same draw for reference.</p>
+    <div class="keys"><span><i class="ln" style="border-color:var(--s-ours)"></i>Ours, median</span><span><i class="ln" style="border-color:var(--s-ref);border-top-style:dashed"></i>Ours, mean</span><span><i class="ln" style="border-color:var(--s-loc);border-top-style:dotted"></i>Loc² median</span><span><i class="ln" style="border-color:var(--s-fg2);border-top-style:dotted"></i>FG² median</span></div>
+    <svg viewBox="0 0 960 330" role="img" aria-label="Median falls from 5.59 m zero-shot to 1.05 m; the mean from 10.07 to 2.67 m."></svg>
+  </div>
+  <div class="box scroll">
+    <table>
+      <thead><tr><th>Step</th><th class="num">Median</th><th class="num">Mean</th><th>What changed</th></tr></thead>
+      <tbody>
+        <tr><td>Zero-shot (Poznań-trained picture model)</td><td class="num">5.59</td><td class="num">10.07</td><td>No VIGOR training</td></tr>
+        <tr><td>Fine-tune on Chicago, 3k steps</td><td class="num">3.61</td><td class="num">6.35</td><td>Decoder fine-tuned on VIGOR</td></tr>
+        <tr><td>30k steps</td><td class="num">2.90</td><td class="num">5.45</td><td>Longer training; plateau (warm start, solver made no difference)</td></tr>
+        <tr><td>Four cities, 60k steps</td><td class="num">2.51</td><td class="num">4.95</td><td>FG²'s training data</td></tr>
+        <tr><td>2 m cells instead of 4 m</td><td class="num">1.89</td><td class="num">5.19</td><td>0.125 m/px so the tile fills the reference canvas: <b>largest single gain</b></td></tr>
+        <tr><td>Depth-placed panorama tokens (Task 04)</td><td class="num">1.76</td><td class="num">4.16</td><td>Loc² geometry + our decoder, Chicago only; lighter tail</td></tr>
+        <tr><td>Task 04, four cities</td><td class="num">1.77</td><td class="num">3.68</td><td>Same median, mean −0.5 m</td></tr>
+        <tr><td>Second pass (Chicago fine decoder)</td><td class="num">1.19</td><td class="num">3.24</td><td>1 m cells on a 56 m window around the coarse pose</td></tr>
+        <tr><td>Second pass, four-city fine decoder</td><td class="num">1.24</td><td class="num">3.33</td><td>One model for all cities</td></tr>
+        <tr><td>100 epochs on 4× H100, bf16 decoder</td><td class="num">1.22</td><td class="num">2.89</td><td>10× the training, float16 gradient bug fixed; coarse pass 1.77 → 1.37 m</td></tr>
+        <tr><td>Regularisation D (30 epochs)</td><td class="num">1.22</td><td class="num">2.69</td><td>Augmentation + label smoothing + weight decay: the tail drops below Loc²</td></tr>
+        <tr class="ours"><td>100-epoch second pass</td><td class="num">1.05</td><td class="num">2.67</td><td>Second decoder also trained 100 epochs in bf16: <b>level with FG²</b> on the median</td></tr>
+      </tbody>
+    </table>
+  </div>
+</section>
+
+<section>
+  <h2>5 · Training at scale and regularisation</h2>
+  <p>The earlier PanoRoMa decoder saw about 6 passes over VIGOR at batch 4; FG² trains 25 and Loc²'s code up to 100. We retrained it for 100 passes on one full Eagle node and found and fixed two problems on the way.</p>
+  <div class="grid2">
+    <div class="box card">
+      <h3>4× H100, 11.8× faster</h3>
+      <p>The frozen encoder took 88 % of every step. With 4 GPUs, TF32, the encoder in bf16 and compiled, one node trains at 92 samples/s against 7.8 on one GPU before, with accuracy unchanged on 200 held-out frames. 100 passes take about 13 h instead of 6 days. This is now the default training job (<code>make eagle-train</code>).</p>
+    </div>
+    <div class="box card">
+      <h3>A float16 bug in every earlier run</h3>
+      <p>The Sat-RoMa decoder trained in float16 with no loss scaling, so small gradients rounded to zero: the step-1 gradient was 53 % away from a float32 reference. Switching the decoder to bf16 brings it to 0.7 % at the same speed. Old checkpoints evaluate the same either way, so earlier results stand.</p>
+    </div>
+  </div>
+  <h3>100 epochs: overfitting, but localisation still improves</h3>
+  <div class="box scroll">
+    <table>
+      <thead><tr><th>Epoch</th><th class="num">Train top-1</th><th class="num">Val top-1</th><th class="num">Val cross-entropy</th><th class="num">VIGOR coarse median / mean</th><th class="num">Poznań two-pass</th></tr></thead>
+      <tbody>
+        <tr><td>earlier (60k steps)</td><td class="num">—</td><td class="num">12.0 %</td><td class="num">—</td><td class="num">1.77 / 3.68 m</td><td class="num">4.53 m</td></tr>
+        <tr><td>10</td><td class="num">18.4 %</td><td class="num">14.1 %</td><td class="num">3.43</td><td class="num">1.57 / 3.37 m</td><td class="num">5.13 m</td></tr>
+        <tr><td>40</td><td class="num">41.0 %</td><td class="num">16.5 %</td><td class="num">4.16</td><td class="num">1.54 / 3.35 m</td><td class="num">4.50 m</td></tr>
+        <tr><td>80</td><td class="num">51.2 %</td><td class="num">18.0 %</td><td class="num">5.07</td><td class="num">1.43 / 3.08 m</td><td class="num">4.45 m</td></tr>
+        <tr class="ours"><td>100</td><td class="num">54.5 %</td><td class="num">19.9 %</td><td class="num">5.40</td><td class="num">1.37 / 2.91 m</td><td class="num">4.37 m</td></tr>
+      </tbody>
+    </table>
+  </div>
+  <p class="note">Training accuracy runs far ahead of validation and validation cross-entropy rises from epoch 15: the model memorises training tiles and grows over-confident on frames it gets wrong. The pose it picks keeps improving anyway, because RANSAC uses where each token's probability peaks, not how sharp it is.</p>
+  <h3>Regularisation ablation, 30 epochs each, against the same run at epoch 30</h3>
+  <div class="box scroll">
+    <table>
+      <thead><tr><th>Run</th><th class="num">Train / val top-1</th><th class="num">Val pose</th><th class="num">VIGOR coarse median / mean</th><th class="num">VIGOR two-pass mean</th><th class="num">Poznań two-pass</th><th class="num">Poznań ≤ 10 m</th></tr></thead>
+      <tbody>
+        <tr><td>Baseline (epoch 30)</td><td class="num">33.9 / 16.5 %</td><td class="num">3.40 m</td><td class="num">1.50 / 3.19 m</td><td class="num">3.06 m</td><td class="num">4.59 m</td><td class="num">74 %</td></tr>
+        <tr><td>A: label smoothing 0.1</td><td class="num">33.1 / 16.2 %</td><td class="num">3.35 m</td><td class="num">1.48 / 3.18 m</td><td class="num">3.02 m</td><td class="num">4.26 m</td><td class="num">76 %</td></tr>
+        <tr><td>B: colour jitter + quarter turns ±10° + mirror</td><td class="num">18.6 / 16.5 %</td><td class="num">2.82 m</td><td class="num">1.52 / 2.96 m</td><td class="num">2.83 m</td><td class="num">4.33 m</td><td class="num">78 %</td></tr>
+        <tr><td>C: weight decay (decoder 0.3, head 0.05)</td><td class="num">32.8 / 15.7 %</td><td class="num">3.30 m</td><td class="num">1.54 / 3.32 m</td><td class="num">3.17 m</td><td class="num">4.51 m</td><td class="num">78 %</td></tr>
+        <tr class="ours"><td>D: A + B + C</td><td class="num">18.2 / 16.7 %</td><td class="num">2.79 m</td><td class="num">1.46 / 2.78 m</td><td class="num">2.69 m</td><td class="num">4.01 m</td><td class="num">82 %</td></tr>
+      </tbody>
+    </table>
+  </div>
+  <p class="note">Augmentation is what closes the train–validation gap (18 % against 17 %); smoothing and weight decay alone barely change it. Combined (D), every localisation number improves, most of all the tail and Poznań. D is now training for 100 epochs, followed by a regularised second-pass decoder. Augmentation keeps the label correct for every transform (tested with planted poses and checked visually on real tiles). Source: <code>experiments/13_panoroma_long/</code>, <code>experiments/14_regularisation/</code>.</p>
+</section>
+
+<section>
+  <h2>6 · Tried and rejected</h2>
+  <p>Each was run to completion on the same draws; none moved the median by more than its interval.</p>
+  <div class="box scroll">
+    <table>
+      <thead><tr><th>Idea</th><th>Result</th><th>Verdict</th></tr></thead>
+      <tbody>
+        <tr><td>Warm start from Poznań</td><td>2.90 m with or without</td><td><span class="tag bad">null</span></td></tr>
+        <tr><td>Solver choice (homography / 4-DoF / 3-DoF)</td><td>2.90 / 2.91 / 2.95 m</td><td><span class="tag bad">null</span></td></tr>
+        <tr><td>Sat-RoMa's conv refiner, frozen</td><td>+0.1 m on the picture, harmful on panorama tokens</td><td><span class="tag bad">null</span></td></tr>
+        <tr><td>Conv refiner, trained</td><td>1.74 → 1.72 m</td><td><span class="tag bad">marginal</span></td></tr>
+        <tr><td>Denser query tokens (112 × 56)</td><td>1.91 m vs 1.76 m</td><td><span class="tag bad">worse</span></td></tr>
+        <tr><td>LoFTR as the fine pass</td><td>7.6 m (2.2 m gated)</td><td><span class="tag bad">worse</span></td></tr>
+        <tr><td>No projection head</td><td>4.3 m</td><td><span class="tag bad">worse</span></td></tr>
+        <tr><td>Re-tuning the consensus (threshold, modes, solver) for our grids</td><td>Defaults already on the plateau, all three passes</td><td><span class="tag bad">null</span></td></tr>
+        <tr><td>Trained pose-correctness head (87 K params)</td><td>AUROC 0.919 vs logistic 0.918</td><td><span class="tag bad">null</span></td></tr>
+      </tbody>
+    </table>
+  </div>
+</section>
+
+<section>
+  <h2>7 · Confidence that means something</h2>
+  <div class="box chart" id="c-abst">
+    <h3>Gross misses left when the least confident frames are dropped</h3>
+    <p class="sub">Share of kept frames with error &gt; 10 m, as frames are kept in order of confidence. Chicago 3000 draw, four-city matcher. The oracle keeps frames in order of their true error.</p>
+    <div class="keys"><span><i class="ln" style="border-color:var(--s-ours)"></i>Logistic on vote-map statistics</span><span><i class="ln" style="border-color:var(--s-ref);border-top-style:dashed"></i>Inlier ratio alone</span><span><i class="ln" style="border-color:var(--muted);border-top-style:dotted"></i>Oracle</span></div>
+    <svg viewBox="0 0 760 300" role="img" aria-label="At 100 percent coverage 9.1 percent gross misses; at 90 percent the logistic leaves 4.7, inlier ratio 5.4, oracle 0; at 80 percent logistic 2.4, inlier 3.5."></svg>
+  </div>
+  <div class="grid2">
+    <div class="box card">
+      <h3>What works</h3>
+      <p>A logistic model on 19 vote-map statistics, fitted on 7000 held-out training frames. Chicago: AUROC 0.918 for error &lt; 5 m. Dropping the 10 % least confident frames lowers the share of misses over 10 m from 9.1 % to 4.7 %, and dropping 20 % lowers it to 2.4 %. The strongest single signal is how much of the "ego" vote map piles up within 2 cells of the chosen pose (AUROC 0.918 alone).</p>
+    </div>
+    <div class="box card">
+      <h3>What it cannot do</h3>
+      <p>Three trained heads that see the vote maps, the per-token evidence or the statistics all land on the logistic's ranking. The remaining misses look exactly like correct frames: many tokens agree sharply on a wrong but plausible place. Separating them needs evidence the matcher does not produce, such as a second map year, a route prior or a finer verification pass. Across all cities AUROC is 0.874; New York alone is 0.76.</p>
+    </div>
+  </div>
+</section>
+
+<section>
+  <h2>8 · Choices we made</h2>
+  <ul class="plain">
+    <li><b>Benchmark protocol:</b> FG²'s 80/20 train/validation split; the last checkpoint is used (the validation proxy picked worse ones); every baseline is rerun on our draws rather than quoted.</li>
+    <li><b>Grid:</b> 0.125 m/px, 2 m cells, 112 m canvas for VIGOR; the Poznań/Durham pipeline keeps 0.25 m/px until re-checked there.</li>
+    <li><b>Query:</b> Loc²-style depth-placed panorama tokens with a trained projection head for VIGOR; the flat-ground picture stays as the camera-only baseline row.</li>
+    <li><b>Solver and consensus:</b> 3-DoF (se2) RANSAC with Sat-RoMa's default mode extraction; a sweep confirmed the defaults.</li>
+    <li><b>Refinement:</b> a second decoder pass on a finer window, not a sub-cell regression head.</li>
+    <li><b>Confidence:</b> the calibrated logistic is the confidence of record; the small token-stream head is kept as the trained alternative for the particle filter.</li>
+    <li><b>Training:</b> one full 4× H100 node per run, TF32, bf16 encoder and decoder, compiled encoder, total batch 32; regularisation D (augmentation, label smoothing, weight decay) for the next runs.</li>
+    <li><b>Licences:</b> FG² (GPL-3.0) and Loc² (AGPL-3.0) are wrapped from <code>third_party/</code>, never copied into our code.</li>
+  </ul>
+</section>
+
+<section>
+  <h2>9 · Open work</h2>
+  <div class="box scroll">
+    <table>
+      <thead><tr><th>Item</th><th>State</th><th>Next step</th></tr></thead>
+      <tbody>
+        <tr><td>PanoRoMa D, 100 epochs + regularised second pass</td><td><span class="tag">running</span></td><td>Coarse at epoch ~80; second pass follows (~14 h). Then all three VIGOR splits and Poznań against FG² and Loc².</td></tr>
+        <tr><td>All-cities row with both 100-epoch decoders</td><td><span class="tag">running</span></td><td>12000-sample evaluation, job 8878169</td></tr>
+        <tr><td>Fine-tune PanoRoMa on Poznań</td><td><span class="tag">next</span></td><td>The remaining 0.5 m gap to Loc² on Poznań; zero-shot is now level with FG²</td></tr>
+        <tr><td>PanoRoMa-F: FG²'s lifting as the query</td><td><span class="tag">spec to write</span></td><td>Same decoder and second pass; removes the need for a depth network</td></tr>
+        <tr><td>Multi-year reference maps (Esri Wayback, Task 05)</td><td><span class="tag">decision needed</span></td><td>The 2021 Esri imagery in Chicago, San Francisco and Seattle is off-nadir 0.5 m satellite imagery; it cannot be aligned to the VIGOR tiles better than about 1 m. New York (aerial orthophotos) aligns at +0.48 m east with 0.18 m residual. Recommended: run the map-age study in New York first.</td></tr>
+        <tr><td>Ablation 9b: cosine similarity instead of the decoder, same geometry</td><td><span class="tag">planned</span></td><td>Isolates how much of the gain over Loc² is the decoder itself</td></tr>
+        <tr><td>Unknown-orientation setting</td><td><span class="tag">planned</span></td><td>FG² and Loc² both report it; we only have known orientation</td></tr>
+        <tr><td>Whole-tile half-pixel paste offset</td><td><span class="tag">known issue</span></td><td>Up to 6 cm label bias at odd canvas gaps (San Francisco at 0.125 m); fixing it moves every coarse number slightly</td></tr>
+        <tr><td>Merge to <code>main</code></td><td><span class="tag">open</span></td><td>All of the above lives on <code>task03/eval-density-solver-pf</code>; <code>main</code> still shows the old Lift-Splat results</td></tr>
+      </tbody>
+    </table>
+  </div>
+  <p class="note">Sources: <code>experiments/10_loc2_matcher/REPORT.md</code>, <code>experiments/09_vigor/REPORT.md</code> + <code>IDEAS.md</code>, <code>docs/decisions.md</code>, <code>docs/tasks/04_loc2_matcher.md</code>, <code>05_reference_years.md</code>, <code>06_certainty.md</code>.</p>
+</section>
+
+</div>
+
+<script>
+(function () {
+  var NS = "http://www.w3.org/2000/svg";
+  function el(tag, attrs, parent, text) {
+    var e = document.createElementNS(NS, tag);
+    for (var k in attrs) e.setAttribute(k, attrs[k]);
+    if (text != null) e.textContent = text;
+    if (parent) parent.appendChild(e);
+    return e;
+  }
+  function tipFor(box) {
+    var t = document.createElement("div"); t.className = "tip"; t.hidden = true; box.appendChild(t);
+    return {
+      show: function (html, evt) {
+        t.innerHTML = html; t.hidden = false;
+        var r = box.getBoundingClientRect(), x = evt.clientX - r.left + 12, y = evt.clientY - r.top + 12;
+        if (x + t.offsetWidth > r.width - 8) x = evt.clientX - r.left - t.offsetWidth - 12;
+        t.style.left = Math.max(4, x) + "px"; t.style.top = y + "px";
+      },
+      hide: function () { t.hidden = true; }
+    };
+  }
+  function hover(node, tip, html, dot) {
+    node.addEventListener("pointermove", function (e) { tip.show(html, e); if (dot) dot.setAttribute("r", 7); });
+    node.addEventListener("pointerleave", function () { tip.hide(); if (dot) dot.setAttribute("r", 5.5); });
+  }
+  var C = { ours: "var(--s-ours)", fg2: "var(--s-fg2)", loc: "var(--s-loc)", ref: "var(--s-ref)", muted: "var(--muted)", surf: "var(--surface)" };
+
+  // 1 · medians by split (dot plot)
+  (function () {
+    var box = document.getElementById("c-split"), svg = box.querySelector("svg"), tip = tipFor(box);
+    var rows = [
+      { name: "Same-area, Chicago", n: "3000 frames", v: { fg2: 1.06, ours: 1.05, loc: 1.33 } },
+      { name: "Same-area, all cities", n: "12000 frames", v: { fg2: 1.08, ours: 1.51, loc: 1.59 } },
+      { name: "Cross-area", n: "6000 frames, unseen cities", v: { fg2: 1.41, ours: 1.94, loc: 1.99 } }
+    ];
+    var names = { ours: "Ours, two-pass", fg2: "FG²", loc: "Loc²" };
+    var x0 = 190, x1 = 740, xmax = 2.2, sx = function (v) { return x0 + (x1 - x0) * v / xmax; };
+    for (var t = 0; t <= 2.0001; t += 0.5) {
+      el("line", { class: "grid", x1: sx(t), x2: sx(t), y1: 12, y2: 172 }, svg);
+      el("text", { class: "tick", x: sx(t), y: 190, "text-anchor": "middle" }, svg, t.toFixed(1));
+    }
+    el("text", { class: "axl", x: x1, y: 206, "text-anchor": "end" }, svg, "median error (m)");
+    rows.forEach(function (r, i) {
+      var y = 38 + i * 52;
+      el("text", { class: "rowlab", x: 0, y: y - 2 }, svg, r.name);
+      el("text", { class: "rowsub", x: 0, y: y + 14 }, svg, r.n);
+      var vals = [r.v.fg2, r.v.ours, r.v.loc];
+      el("line", { class: "conn", x1: sx(Math.min.apply(0, vals)), x2: sx(Math.max.apply(0, vals)), y1: y, y2: y }, svg);
+      ["fg2", "loc", "ours"].forEach(function (k) {
+        var cx = sx(r.v[k]);
+        var d = el("circle", { class: "dot", cx: cx, cy: y, r: 5.5, fill: C[k], stroke: C.surf, "stroke-width": 2 }, svg);
+        if (k === "ours") el("text", { class: "lab", x: cx, y: y - 12, "text-anchor": "middle" }, svg, r.v[k].toFixed(2));
+        var h = el("rect", { class: "hit", x: cx - 12, y: y - 14, width: 24, height: 28 }, svg);
+        hover(h, tip, "<b>" + names[k] + "</b><br>" + r.name + ": " + r.v[k].toFixed(2) + " m", d);
+      });
+    });
+  })();
+
+  // 2 · progression (median + mean, one axis in metres)
+  (function () {
+    var box = document.getElementById("c-prog"), svg = box.querySelector("svg"), tip = tipFor(box);
+    var st = [
+      ["Zero-shot", "Poznań weights", 5.59, 10.07],
+      ["3k steps", "Chicago fine-tune", 3.61, 6.35],
+      ["30k steps", "plateau", 2.90, 5.45],
+      ["4 cities", "60k steps", 2.51, 4.95],
+      ["2 m cells", "0.125 m/px", 1.89, 5.19],
+      ["Depth tokens", "Task 04, Chicago", 1.76, 4.16],
+      ["Task 04", "four cities", 1.77, 3.68],
+      ["Second pass", "Chicago fine", 1.19, 3.24],
+      ["Second pass", "four-city fine", 1.24, 3.33],
+      ["100 epochs", "4× H100, bf16", 1.22, 2.89],
+      ["Regularised", "D, 30 epochs", 1.22, 2.69],
+      ["Both 100 ep.", "coarse + fine", 1.05, 2.67]
+    ];
+    var x0 = 44, x1 = 940, y0 = 262, y1 = 14, ymax = 11;
+    var sx = function (i) { return x0 + 20 + (x1 - x0 - 40) * i / (st.length - 1); };
+    var sy = function (v) { return y0 - (y0 - y1) * v / ymax; };
+    for (var t = 0; t <= 10; t += 2) {
+      el("line", { class: "grid", x1: x0, x2: x1, y1: sy(t), y2: sy(t) }, svg);
+      el("text", { class: "tick", x: x0 - 8, y: sy(t) + 4, "text-anchor": "end" }, svg, t + " m");
+    }
+    el("line", { class: "base", x1: x0, x2: x1, y1: y0, y2: y0 }, svg);
+    [["loc", 1.33, "Loc² 1.33"], ["fg2", 1.06, "FG² 1.06"]].forEach(function (r) {
+      el("line", { x1: x0, x2: x1, y1: sy(r[1]), y2: sy(r[1]), stroke: C[r[0]], "stroke-width": 1.5, "stroke-dasharray": "2 4" }, svg);
+    });
+    el("text", { class: "tick", x: x1, y: sy(1.33) - 6, "text-anchor": "end" }, svg, "Loc² 1.33 · FG² 1.06");
+    function line(idx, color, dash) {
+      var pts = st.map(function (s, i) { return sx(i) + "," + sy(s[idx]); }).join(" ");
+      el("polyline", { points: pts, fill: "none", stroke: color, "stroke-width": 2, "stroke-dasharray": dash || "none", "stroke-linejoin": "round" }, svg);
+    }
+    line(3, C.ref, "6 4"); line(2, C.ours);
+    st.forEach(function (s, i) {
+      var x = sx(i);
+      el("circle", { cx: x, cy: sy(s[3]), r: 3.5, fill: C.ref, stroke: C.surf, "stroke-width": 1.5 }, svg);
+      var d = el("circle", { class: "dot", cx: x, cy: sy(s[2]), r: 5.5, fill: C.ours, stroke: C.surf, "stroke-width": 2 }, svg);
+      el("text", { class: "tick", x: x, y: y0 + 18, "text-anchor": "middle" }, svg, s[0]);
+      el("text", { class: "rowsub", x: x, y: y0 + 32, "text-anchor": "middle" }, svg, s[1]);
+      if (i === 0 || i === 4 || i === st.length - 1) el("text", { class: "lab", x: x + (i === st.length - 1 ? -8 : 8), y: sy(s[2]) - 10, "text-anchor": i === st.length - 1 ? "end" : "start" }, svg, s[2].toFixed(2));
+      var h = el("rect", { class: "hit", x: x - 30, y: y1, width: 60, height: y0 - y1 }, svg);
+      hover(h, tip, "<b>" + s[0] + "</b> · " + s[1] + "<br>median " + s[2].toFixed(2) + " m<br>mean " + s[3].toFixed(2) + " m", d);
+    });
+  })();
+
+  // 3 · abstention curve
+  (function () {
+    var box = document.getElementById("c-abst"), svg = box.querySelector("svg"), tip = tipFor(box);
+    var D = {"inlier_isotonic": [[0.05, 1.33], [0.1, 1.67], [0.15, 1.56], [0.2, 1.5], [0.25, 1.33], [0.3, 1.44], [0.35, 1.33], [0.4, 1.67], [0.45, 1.78], [0.5, 1.87], [0.55, 2.12], [0.6, 2.22], [0.65, 2.67], [0.7, 2.67], [0.75, 3.07], [0.8, 3.5], [0.85, 4.2], [0.9, 5.44], [0.95, 6.88], [1.0, 9.1]], "logistic": [[0.05, 0.0], [0.1, 0.0], [0.15, 0.0], [0.2, 0.0], [0.25, 0.0], [0.3, 0.0], [0.35, 0.0], [0.4, 0.0], [0.45, 0.0], [0.5, 0.13], [0.55, 0.12], [0.6, 0.22], [0.65, 0.41], [0.7, 0.86], [0.75, 1.38], [0.8, 2.38], [0.85, 3.33], [0.9, 4.7], [0.95, 6.6], [1.0, 9.1]], "oracle": [[0.05, 0.0], [0.1, 0.0], [0.15, 0.0], [0.2, 0.0], [0.25, 0.0], [0.3, 0.0], [0.35, 0.0], [0.4, 0.0], [0.45, 0.0], [0.5, 0.0], [0.55, 0.0], [0.6, 0.0], [0.65, 0.0], [0.7, 0.0], [0.75, 0.0], [0.8, 0.0], [0.85, 0.0], [0.9, 0.0], [0.95, 4.32], [1.0, 9.1]]};
+    var x0 = 50, x1 = 740, y0 = 250, y1 = 14, sx = function (c) { return x0 + (x1 - x0) * (c - 0.05) / 0.95; }, sy = function (g) { return y0 - (y0 - y1) * g / 10; };
+    for (var g = 0; g <= 10; g += 2) {
+      el("line", { class: "grid", x1: x0, x2: x1, y1: sy(g), y2: sy(g) }, svg);
+      el("text", { class: "tick", x: x0 - 8, y: sy(g) + 4, "text-anchor": "end" }, svg, g + " %");
+    }
+    [0.1, 0.3, 0.5, 0.7, 0.9, 1.0].forEach(function (c) { el("text", { class: "tick", x: sx(c), y: y0 + 18, "text-anchor": "middle" }, svg, Math.round(c * 100) + " %"); });
+    el("text", { class: "axl", x: x1, y: y0 + 38, "text-anchor": "end" }, svg, "frames kept (coverage)");
+    el("line", { class: "base", x1: x0, x2: x1, y1: y0, y2: y0 }, svg);
+    el("line", { class: "grid", x1: sx(0.9), x2: sx(0.9), y1: y1, y2: y0, "stroke-dasharray": "3 4" }, svg);
+    var ser = [["oracle", C.muted, "2 4", "Oracle"], ["inlier_isotonic", C.ref, "6 4", "Inlier ratio"], ["logistic", C.ours, null, "Logistic"]];
+    ser.forEach(function (s) {
+      el("polyline", { points: D[s[0]].map(function (p) { return sx(p[0]) + "," + sy(p[1]); }).join(" "), fill: "none", stroke: s[1], "stroke-width": 2, "stroke-dasharray": s[2] || "none", "stroke-linejoin": "round" }, svg);
+    });
+    var g90 = D.logistic[17][1];
+    var dot = el("circle", { class: "dot", cx: sx(0.9), cy: sy(g90), r: 5.5, fill: C.ours, stroke: C.surf, "stroke-width": 2 }, svg);
+    el("text", { class: "lab", x: sx(0.9) - 10, y: sy(g90) - 10, "text-anchor": "end" }, svg, "4.7 % at 90 %");
+    el("text", { class: "lab", x: sx(1.0) - 4, y: sy(9.1) - 10, "text-anchor": "end" }, svg, "9.1 % keeping all");
+    D.logistic.forEach(function (p, i) {
+      var c = p[0], w = (x1 - x0) / 19;
+      var h = el("rect", { class: "hit", x: sx(c) - w / 2, y: y1, width: w, height: y0 - y1 }, svg);
+      hover(h, tip, "<b>keep " + Math.round(c * 100) + " %</b><br>logistic " + p[1].toFixed(1) + " %<br>inlier ratio " + D.inlier_isotonic[i][1].toFixed(1) + " %<br>oracle " + D.oracle[i][1].toFixed(1) + " %", c === 0.9 ? dot : null);
+    });
+  })();
+
+  // 4 · per-city dumbbell
+  (function () {
+    var box = document.getElementById("c-city"), svg = box.querySelector("svg"), tip = tipFor(box);
+    var rows = [["San Francisco", 1.79, 1.20], ["Chicago", 1.79, 1.25], ["Seattle", 1.83, 1.35], ["New York", 3.11, 2.95]];
+    var x0 = 130, x1 = 740, xmax = 3.5, sx = function (v) { return x0 + (x1 - x0) * v / xmax; };
+    for (var t = 0; t <= 3.0001; t += 0.5) {
+      el("line", { class: "grid", x1: sx(t), x2: sx(t), y1: 8, y2: 166 }, svg);
+      el("text", { class: "tick", x: sx(t), y: 184, "text-anchor": "middle" }, svg, t.toFixed(1));
+    }
+    el("text", { class: "axl", x: x1, y: 199, "text-anchor": "end" }, svg, "median error (m)");
+    rows.forEach(function (r, i) {
+      var y = 28 + i * 40;
+      el("text", { class: "rowlab", x: 0, y: y + 5 }, svg, r[0]);
+      el("line", { x1: sx(r[2]), x2: sx(r[1]), y1: y, y2: y, stroke: C.ours, "stroke-width": 2, "stroke-opacity": .5 }, svg);
+      el("circle", { cx: sx(r[1]), cy: y, r: 5.5, fill: C.surf, stroke: C.ours, "stroke-width": 2 }, svg);
+      var d = el("circle", { class: "dot", cx: sx(r[2]), cy: y, r: 5.5, fill: C.ours, stroke: C.surf, "stroke-width": 2 }, svg);
+      el("text", { class: "lab", x: sx(r[2]) - 10, y: y + 4, "text-anchor": "end" }, svg, r[2].toFixed(2));
+      el("text", { class: "tick", x: sx(r[1]) + 10, y: y + 4 }, svg, r[1].toFixed(2));
+      var h = el("rect", { class: "hit", x: sx(r[2]) - 12, y: y - 14, width: sx(r[1]) - sx(r[2]) + 24, height: 28 }, svg);
+      hover(h, tip, "<b>" + r[0] + "</b><br>coarse " + r[1].toFixed(2) + " m → fine " + r[2].toFixed(2) + " m<br>gain " + (r[1] - r[2]).toFixed(2) + " m", d);
+    });
+  })();
+})();
+</script>
