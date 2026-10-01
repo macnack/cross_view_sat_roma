@@ -43,3 +43,7 @@ second-pass decoder (`vigor_samearea_4city_fine00625_erp_depth_last.pt`, 60k ste
   4.66 m (old 5.34 m) — longer VIGOR training does not hurt transfer in the end. Still ~0.9 m behind Loc²-UniK3D.
 - Next: the 100-epoch fine decoder (8867975), then two-pass rows with both new decoders on VIGOR (three splits) and
   Poznań.
+
+## Both decoders at 100 epochs (2026-10-01)
+
+Coarse `..._cell0125_e100_last` + fine `vigor_samearea_4city_fine00625_erp_depth_e100_last` (job 8867975, 100 epochs, bf16): **VIGOR Chicago 3000 two-pass 1.05 m (95 % CI 1.02–1.09), mean 2.67 m, ≤ 5 m 89 %, ≤ 10 m 93 %** (job 8878168) — level with FG² (1.06 m) on the median, below Loc² (2.93 m) on the mean; FG²'s mean 1.86 m. Poznań zero-shot two-pass 4.55 m (3.83–5.10), worse than with the old fine decoder (4.37 m): the 100-epoch fine decoder specialises to VIGOR (job 8878170). All-cities row: job 8878169.
