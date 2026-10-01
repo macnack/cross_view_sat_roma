@@ -1,0 +1,76 @@
+{
+  "eval_json": "experiments/13_panoroma_long/eval_vigor_e100_full_chicago_twopass_se2_samearea.json",
+  "ckpt": "checkpoints/vigor_samearea_4city_erp_depth_cell0125_e100_last.pt",
+  "fine_ckpt": "checkpoints/vigor_samearea_4city_fine00625_erp_depth_e100_last.pt",
+  "pick": "ids",
+  "quantiles": [
+    5,
+    15,
+    25,
+    35,
+    45,
+    50
+  ],
+  "frames": [
+    {
+      "id": "Chicago/MyX5FkowZD0bv8uqKUyy3A,41.877047,-87.619082,.jpg",
+      "percentile": 4.001333777925975,
+      "coarse_m": 1.3083842558580174,
+      "final_m": 0.23937411381392465
+    },
+    {
+      "id": "Chicago/4tiB8B4K68H824DmNXro8w,41.874002,-87.679826,.jpg",
+      "percentile": 5.001667222407469,
+      "coarse_m": 0.9303635221794126,
+      "final_m": 0.2645471209852045
+    },
+    {
+      "id": "Chicago/hPxxLmGcTeuVwEDge65eOA,41.864890,-87.686263,.jpg",
+      "percentile": 6.002000666888963,
+      "coarse_m": 0.9274501081805908,
+      "final_m": 0.28906495220313017
+    },
+    {
+      "id": "Chicago/-pARrCcO8EO0IWZR8MbK3A,41.864786,-87.661499,.jpg",
+      "percentile": 15.005001667222407,
+      "coarse_m": 0.7696440609340157,
+      "final_m": 0.47066635930256057
+    },
+    {
+      "id": "Chicago/wzC-iVJkVnH_nwaUx-DReA,41.857736,-87.669594,.jpg",
+      "percentile": 25.008336112037345,
+      "coarse_m": 1.6371933261740443,
+      "final_m": 0.6283272203763989
+    },
+    {
+      "id": "Chicago/xz4ZV6_y3CzDt5iuGbTIBw,41.879323,-87.638758,.jpg",
+      "percentile": 28.00933644548183,
+      "coarse_m": 1.8411793440696238,
+      "final_m": 0.6784264133063598
+    },
+    {
+      "id": "Chicago/8WxJW96en5rf7iR39zqbYA,41.872036,-87.640463,.jpg",
+      "percentile": 35.01167055685229,
+      "coarse_m": 4.237624800409433,
+      "final_m": 0.7896977714019218
+    },
+    {
+      "id": "Chicago/nCA8gB-vqKOVvHhz5UaZBg,41.894449,-87.682850,.jpg",
+      "percentile": 45.01500500166722,
+      "coarse_m": 1.4955720766850782,
+      "final_m": 0.9538813956541962
+    },
+    {
+      "id": "Chicago/X5uEYl2qj9_92lhAiesP4A,41.852385,-87.689286,.jpg",
+      "percentile": 46.01533844614872,
+      "coarse_m": 1.3833003657224554,
+      "final_m": 0.9711085350052555
+    },
+    {
+      "id": "Chicago/S0kh4Wsbuf6ZGODaaXLKJA,41.871727,-87.673830,.jpg",
+      "percentile": 50.01667222407469,
+      "coarse_m": 2.29194660886145,
+      "final_m": 1.05325045139662
+    }
+  ]
+}

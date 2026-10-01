@@ -47,3 +47,32 @@ second-pass decoder (`vigor_samearea_4city_fine00625_erp_depth_last.pt`, 60k ste
 ## Both decoders at 100 epochs (2026-10-01)
 
 Coarse `..._cell0125_e100_last` + fine `vigor_samearea_4city_fine00625_erp_depth_e100_last` (job 8867975, 100 epochs, bf16): **VIGOR Chicago 3000 two-pass 1.05 m (95 % CI 1.02–1.09), mean 2.67 m, ≤ 5 m 89 %, ≤ 10 m 93 %** (job 8878168) — level with FG² (1.06 m) on the median, below Loc² (2.93 m) on the mean; FG²'s mean 1.86 m. Poznań zero-shot two-pass 4.55 m (3.83–5.10), worse than with the old fine decoder (4.37 m): the 100-epoch fine decoder specialises to VIGOR (job 8878170). All-cities row: job 8878169.
+
+## Match figures of frames that work (`make panoroma-viz`, 2026-10-01)
+
+`viz/`: coarse `vigor_samearea_4city_erp_depth_cell0125_e100_last.pt` + fine
+`vigor_samearea_4city_fine00625_erp_depth_e100_last.pt`, se2, bf16 decoder, gate 6 m, on the Chicago same-area draw
+(3000, seed 0) of `eval_vigor_e100_full_chicago_twopass_se2_samearea.json` (two-pass median 1.05 m, coarse 1.37 m).
+Frames re-matched by `scripts/viz_panoroma_matches.py`; recomputed errors equal the json's on all 30 candidates.
+Percentile = rank of the final error among the 3000 (lower is better). Six at 5/15/25/35/45/50 %, four more picked by
+scene type from a 2-50 % pool (no frame directly under the elevated track was in the pool; #5 has a CTA station).
+
+| # | Percentile | Panorama | Scene | Coarse | Final |
+|---|---|---|---|---|---|
+| 1 | 4 | MyX5FkowZD0bv8uqKUyy3A | park / formal garden | 1.31 m | 0.24 m |
+| 2 | 5 | 4tiB8B4K68H824DmNXro8w | tree-lined street by a school | 0.93 m | 0.26 m |
+| 3 | 6 | hPxxLmGcTeuVwEDge65eOA | intersection, traffic lights | 0.93 m | 0.29 m |
+| 4 | 15 | -pARrCcO8EO0IWZR8MbK3A | straight residential road | 0.77 m | 0.47 m |
+| 5 | 25 | wzC-iVJkVnH_nwaUx-DReA | shopping street, elevated CTA station behind | 1.64 m | 0.63 m |
+| 6 | 28 | xz4ZV6_y3CzDt5iuGbTIBw | downtown high-rise intersection | 1.84 m | 0.68 m |
+| 7 | 35 | 8WxJW96en5rf7iR39zqbYA | straight road along a long building | 4.24 m | 0.79 m |
+| 8 | 45 | nCA8gB-vqKOVvHhz5UaZBg | alley with trees | 1.50 m | 0.95 m |
+| 9 | 46 | X5uEYl2qj9_92lhAiesP4A | open parking lot | 1.38 m | 0.97 m |
+| 10 | 50 | S0kh4Wsbuf6ZGODaaXLKJA | open plaza | 2.29 m | 1.05 m |
+
+`viz/contact_sheet.jpg` = all ten; `viz/diagram_explained.jpg` = #5 with the parts labelled.
+
+Seen in the figures: the stored UniK3D depth PNGs (`vigor/<City>/unik3d_depth/`) have row stripes: neighbouring rows
+differ by ~2 m on average in the lower half (columns: 0.001 m), on both files checked. Sky rows therefore alternate
+between "too far" and a few metres, and some sky tokens get placed (visible as dotted sky rows in panel 1). Worth
+checking `scripts/loc2_depth_vigor.py` / the UniK3D spherical camera before the next training run.
