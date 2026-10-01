@@ -254,11 +254,11 @@ def _scale_bar(ax, length_m, label=None):
             path_effects=_halo())
 
 
-def _north(ax):
+def _north(ax, fx=0.06):
     x0, x1 = ax.get_xlim()
     y0, y1 = ax.get_ylim()
     w, h = x1 - x0, y1 - y0
-    ax.annotate("N", xy=(x0 + 0.06 * w, y1 - 0.05 * h), xytext=(x0 + 0.06 * w, y1 - 0.16 * h), ha="center",
+    ax.annotate("N", xy=(x0 + fx * w, y1 - 0.05 * h), xytext=(x0 + fx * w, y1 - 0.16 * h), ha="center",
                 va="center", fontsize=22, color="white", fontweight="bold", zorder=21, path_effects=_halo(),
                 arrowprops=dict(arrowstyle="-|>,head_width=0.5,head_length=0.8", color="white", lw=3))
 
@@ -325,6 +325,19 @@ def _map_axes(ax, img, centre_en, cell_m, size, title):
     ax.set_aspect("equal")
 
 
+def _crop_to_tile(ax, ref, cell_m, size, margin_m=3.0):
+    """Limit a whole-canvas axis to the satellite tile (the canvas is black outside it), square, plus a margin."""
+    nz = np.argwhere(ref.max(-1) > 8)
+    if not len(nz):
+        return
+    (v0, u0), (v1, u1) = nz.min(0), nz.max(0)
+    e = px_to_en(np.array([[u0, v1], [u1, v0]], float), (0.0, 0.0), cell_m, size)
+    c = e.mean(0)
+    half = max(e[1, 0] - e[0, 0], e[1, 1] - e[0, 1]) / 2.0 + margin_m
+    ax.set_xlim(c[0] - half, c[0] + half)
+    ax.set_ylim(c[1] - half, c[1] + half)
+
+
 def render_frame(b, path, out_w=2400):
     import matplotlib
     matplotlib.use("Agg")
@@ -335,7 +348,7 @@ def render_frame(b, path, out_w=2400):
     plt.rcParams.update({"font.family": "DejaVu Sans"})
     fig = plt.figure(figsize=(24, 34.2), dpi=out_w / 24, facecolor="white")
     gs = fig.add_gridspec(5, 2, height_ratios=[12, 0.55, 6.2, 0.35, 12], hspace=0.1, wspace=0.14,
-                          left=0.045, right=0.985, top=0.955, bottom=0.025)
+                          left=0.045, right=0.985, top=0.935, bottom=0.025)
     city, pano = mt["id"].split("/", 1)
     valid = b["valid"]
     h, w = valid.shape
@@ -347,9 +360,9 @@ def render_frame(b, path, out_w=2400):
     else:
         stf, fine_txt = None, "no fine pose"
     fig.suptitle(f"{city}  ·  {pano.split(',')[0]}  ·  coarse error {mt['coarse_m']:.2f} m  →  final error "
-                 f"{mt['final_m']:.2f} m\ninlier tokens {n_inl_tok} / {n_placed} placed (coarse), {fine_txt} (fine)"
-                 f"  ·  {mt['percentile']:.0f}th percentile of the final error over {mt['n_draw']} test panoramas",
-                 fontsize=26, fontweight="bold", y=0.993)
+                 f"{mt['final_m']:.2f} m\n{mt['percentile']:.0f}th percentile of the final error over "
+                 f"{mt['n_draw']} Chicago test panoramas  ·  inlier tokens {n_inl_tok} / {n_placed} placed (coarse), "
+                 f"{fine_txt} (fine)", fontsize=24, fontweight="bold", y=0.997)
 
     # --- panorama -------------------------------------------------------------------------------------------------
     ax = fig.add_subplot(gs[0, :])
@@ -401,7 +414,8 @@ def render_frame(b, path, out_w=2400):
     axd.axvline(w / 2, color="white", lw=2, ls="--")
     axd.set_xticks([])
     axd.set_yticks([])
-    axd.set_title("2  UniK3D metric depth along each ray (grey = not placed)", fontsize=19, loc="left", pad=8)
+    axd.set_title("2  UniK3D metric depth along each ray (grey = not placed;\n    the row stripes are in the stored "
+                  "depth files)", fontsize=19, loc="left", pad=8)
     cb = fig.colorbar(im, ax=axd, fraction=0.035, pad=0.015)
     cb.set_label("depth (m)", fontsize=17)
     cb.ax.tick_params(labelsize=14)
@@ -438,8 +452,10 @@ def render_frame(b, path, out_w=2400):
     # --- coarse canvas --------------------------------------------------------------------------------------------
     axc = fig.add_subplot(gs[4, 0])
     _map_axes(axc, b["ref"], (0.0, 0.0), mt["cell_m"], mt["S"],
-              f"3  Coarse: {mt['S'] * mt['cell_m']:.0f} m map, {cm2:.0f} m cells — error {mt['coarse_m']:.2f} m")
+              f"3  Coarse: {mt['S'] * mt['cell_m']:.0f} m canvas (shown: the tile), {cm2:.0f} m cells — error "
+              f"{mt['coarse_m']:.2f} m")
     draw_matches(axc, b, "", (0.0, 0.0), mt["cell_m"], mt["S"], "2 m", dot=26)
+    _crop_to_tile(axc, b["ref"], mt["cell_m"], mt["S"])
     half = mt["Sf"] * mt["cell_f_m"] / 2.0
     cf = b["centre_f"]
     axc.add_patch(Rectangle((cf[0] - half, cf[1] - half), 2 * half, 2 * half, fill=False, ec="#ff9900", lw=2.5,
@@ -462,7 +478,7 @@ def render_frame(b, path, out_w=2400):
     _pos(axf, b["en_final"], "final")
     _scale_bar(axf, 5)
     _north(axf)
-    fig.savefig(path, dpi=out_w / 24, pil_kwargs=dict(quality=85, optimize=True))
+    fig.savefig(path, dpi=out_w / 24, pil_kwargs=dict(quality=80, optimize=True))
     plt.close(fig)
 
 
@@ -511,7 +527,7 @@ def render_diagram(b, path, out_w=2400):
                 if ok]
     _, hc, hr, hk = min(cand)
     # an outlier token whose matched cell lies inside the zoom, far from where the pose puts it
-    zoom = 24.0
+    zoom = 18.0
     centre = gt
     best_out = None
     for k, (t, e, ok) in enumerate(zip(tok, b["mode_err_cells"], inl)):
@@ -523,9 +539,9 @@ def render_diagram(b, path, out_w=2400):
             if best_out is None or abs(t[0] - hc) > abs(best_out[1] - hc):
                 best_out = (k, int(t[0]), int(t[1]))
     plt.rcParams.update({"font.family": "DejaVu Sans"})
-    fig = plt.figure(figsize=(24, 21), dpi=out_w / 24, facecolor="white")
-    gs = fig.add_gridspec(2, 3, height_ratios=[6.2, 8.6], hspace=0.16, wspace=0.12, left=0.03, right=0.99,
-                          top=0.93, bottom=0.035)
+    fig = plt.figure(figsize=(24, 23), dpi=out_w / 24, facecolor="white")
+    gs = fig.add_gridspec(2, 3, height_ratios=[11.5, 7.6], hspace=0.13, wspace=0.16, left=0.035, right=0.99,
+                          top=0.935, bottom=0.04)
     fig.suptitle("How PanoRoMa localises a panorama (one example, Chicago same-area test; "
                  f"coarse {mt['coarse_m']:.2f} m → final {mt['final_m']:.2f} m)", fontsize=27, fontweight="bold")
     col = az_colour([hc], w)[0]
@@ -579,8 +595,8 @@ def render_diagram(b, path, out_w=2400):
     axe.set_xlabel("east of camera (m)", fontsize=15)
     axe.set_ylabel("north of camera (m)", fontsize=15)
     axe.tick_params(labelsize=13)
-    axe.set_title("b  Tokens placed on the ground around the camera\n(no satellite yet; this is the query)",
-                  fontsize=19, loc="left")
+    axe.set_title("b  Tokens placed on the ground around the\ncamera (the query; no satellite yet)\n",
+                  fontsize=18, loc="left")
     # (c) coarse zoom
     axc = fig.add_subplot(gs[1, 1])
     _map_axes(axc, b["ref"], (0.0, 0.0), cell, mt["S"], "")
@@ -596,9 +612,11 @@ def render_diagram(b, path, out_w=2400):
     yl = (centre[1] - zoom, centre[1] + zoom)
     ann = dict(fontsize=17, color="white", fontweight="bold", path_effects=_halo(4), zorder=40)
     axc.annotate("RANSAC inlier: the cell it matched\nagrees with the pose", xy=p_h,
-                 xytext=(xl[0] + 1.5, yl[1] - 4), arrowprops=dict(arrowstyle="-|>", color="white", lw=2.5), **ann)
+                 xytext=(0.03, 0.97), textcoords="axes fraction", va="top",
+                 arrowprops=dict(arrowstyle="-|>", color="white", lw=2.5), **ann)
     axc.annotate(f"matched cell\n({2 * half:.0f} m × {2 * half:.0f} m)", xy=(c_h[0] + half, c_h[1]),
-                 xytext=(xl[1] - 15, yl[1] - 12), arrowprops=dict(arrowstyle="-|>", color="yellow", lw=2.5),
+                 xytext=(0.62, 0.80), textcoords="axes fraction", va="top",
+                 arrowprops=dict(arrowstyle="-|>", color="yellow", lw=2.5),
                  **{**ann, "color": "yellow"})
     if best_out is not None:
         k, oc, orow = best_out
@@ -608,20 +626,21 @@ def render_diagram(b, path, out_w=2400):
         axc.add_patch(Rectangle((p1[0] - half, p1[1] - half), 2 * half, 2 * half, fill=False, ec="white", lw=2.5,
                                 ls="--", zorder=12))
         axc.annotate("outlier: matched a cell far from\nwhere the pose puts it → ignored", xy=p0,
-                     xytext=(xl[0] + 1.5, yl[0] + 8), arrowprops=dict(arrowstyle="-|>", color="white", lw=2.5), **ann)
+                     xytext=(0.03, 0.24), textcoords="axes fraction", va="top",
+                     arrowprops=dict(arrowstyle="-|>", color="white", lw=2.5), **ann)
     _pos(axc, gt, "gt", 0.8)
     _pos(axc, b["en_c"], "coarse", 0.8)
-    axc.annotate("ground truth", xy=gt, xytext=(gt[0] + 5, gt[1] - 9), arrowprops=dict(arrowstyle="-|>",
+    axc.annotate("ground truth", xy=gt, xytext=(0.55, 0.30), textcoords="axes fraction", arrowprops=dict(arrowstyle="-|>",
                  color="#22dd22", lw=2.5), **{**ann, "color": "#22dd22"})
     axc.annotate(f"coarse prediction\n({mt['coarse_m']:.2f} m off)", xy=b["en_c"],
-                 xytext=(b["en_c"][0] + 6, b["en_c"][1] + 5),
+                 xytext=(0.62, 0.58), textcoords="axes fraction", va="top",
                  arrowprops=dict(arrowstyle="-|>", color="#ff9900", lw=2.5), **{**ann, "color": "#ff9900"})
     axc.set_xlim(*xl)
     axc.set_ylim(*yl)
     _scale_bar(axc, 10)
-    _north(axc)
-    axc.set_title("c  Coarse pass (zoom of the 112 m map): every token\nvotes for a 2 m cell; RANSAC finds the pose "
-                  "most agree with", fontsize=19, loc="left")
+    _north(axc, 0.93)
+    axc.set_title("c  Coarse pass (zoom of the 112 m map): each\ntoken votes for a 2 m cell; RANSAC keeps the\n"
+                  "pose that most votes agree with", fontsize=18, loc="left")
     # (d) fine
     axf = fig.add_subplot(gs[1, 2])
     cf = b["centre_f"]
@@ -631,18 +650,18 @@ def render_diagram(b, path, out_w=2400):
     _pos(axf, gt, "gt", 0.8)
     _pos(axf, b["en_c"], "coarse", 0.7)
     _pos(axf, b["en_final"], "final", 0.8)
-    zf = 14.0
+    zf = 10.0
     axf.set_xlim(gt[0] - zf, gt[0] + zf)
     axf.set_ylim(gt[1] - zf, gt[1] + zf)
     axf.annotate(f"final prediction\n({mt['final_m']:.2f} m off)", xy=b["en_final"],
-                 xytext=(gt[0] - zf + 1, gt[1] + zf - 2), arrowprops=dict(arrowstyle="-|>", color="#ff2020", lw=2.5),
+                 xytext=(0.03, 0.97), textcoords="axes fraction", arrowprops=dict(arrowstyle="-|>", color="#ff2020", lw=2.5),
                  **{**ann, "color": "#ff2020", "fontsize": 17}, va="top")
-    axf.annotate("ground truth", xy=gt, xytext=(gt[0] + 3, gt[1] - zf + 3),
+    axf.annotate("ground truth", xy=gt, xytext=(0.55, 0.12), textcoords="axes fraction",
                  arrowprops=dict(arrowstyle="-|>", color="#22dd22", lw=2.5), **{**ann, "color": "#22dd22"})
     _scale_bar(axf, 5)
-    _north(axf)
-    axf.set_title("d  Fine pass: a 56 m window at 6 cm/px around the coarse\npose, 1 m cells, the same voting → "
-                  "final pose (zoom)", fontsize=19, loc="left")
+    _north(axf, 0.93)
+    axf.set_title("d  Fine pass (zoom): 56 m window at 6 cm/px\naround the coarse pose, 1 m cells, the same\n"
+                  "voting → final pose", fontsize=18, loc="left")
     fig.savefig(path, dpi=out_w / 24, pil_kwargs=dict(quality=88, optimize=True))
     plt.close(fig)
 
