@@ -21,6 +21,7 @@ from pathlib import Path
 os.environ.setdefault("CUBLAS_WORKSPACE_CONFIG", ":4096:8")   # Loc²'s eval_vigor.py sets this for determinism
 
 import numpy as np  # noqa: E402
+from PIL import Image  # noqa: E402
 import torch  # noqa: E402
 import torch.nn.functional as F  # noqa: E402
 from torch.utils.data import DataLoader, Subset, default_collate  # noqa: E402
@@ -115,8 +116,23 @@ def main():
     # would silently shrink the row (and shift the pano names below); fail instead
     check_depth_coverage(len(idx), missing, "eval_loc2_vigor", 0.0,
                          f"make loc2-depth SPLIT={a.split} LIMIT={a.limit} CITIES=... first")
-    print(f"{len(idx)} samples, split {a.split}, cities {cities}, batch {batch}, max depth {max_depth} m, depth from "
-          f"{DEPTH_DIR}/", flush=True)
+    # Loc²'s own dataloader refuses a panorama whose depth is >= the max depth everywhere (far-field scenes such as boats
+    # on the Chicago river) and returns None for it. Find them first so the batches stay aligned, and score them as
+    # misses below (the rule every method follows: a frame without a pose is a miss), instead of dropping them silently.
+    def no_usable_depth(path):
+        with Image.open(path) as im:
+            d = np.clip(np.array(im).astype(np.float32) / 1000.0, 0, max_depth)
+        return bool(np.all(d == max_depth))
+    unusable = [k for k, lab in enumerate(ours.labels)
+                if no_usable_depth(loc2_wrap.depth_png_path(root, lab["city"], lab["pano"]))]
+    skip = set(unusable)
+    miss_names = [names[k] for k in unusable]
+    miss_city = [ours.labels[k]["city"] for k in unusable]
+    idx_all, names_all = idx, names
+    idx = [i for k, i in enumerate(idx_all) if k not in skip]
+    names = [n for k, n in enumerate(names_all) if k not in skip]
+    print(f"{len(idx_all)} samples ({len(unusable)} without usable depth, scored as misses), split {a.split}, cities "
+          f"{cities}, batch {batch}, max depth {max_depth} m, depth from {DEPTH_DIR}/", flush=True)
     loader = DataLoader(Subset(ds, idx), batch_size=batch, shuffle=False, num_workers=a.workers, collate_fn=safe_collate)
 
     model, meta = loc2_wrap.load_matcher(dev, area=a.split, orientation="known_ori")
@@ -181,11 +197,13 @@ def main():
                 print(f"  {done} done  {msg}", flush=True)
 
     solvers = [k for k in ("procrustes", "ransac") if f"{k}_m" in rows[0]]
+    for nm, ct in zip(miss_names, miss_city):                       # no usable depth: no pose = a miss
+        rows.append(dict(pano=nm, city=ct, centre_guess_m=float("nan"), **{f"{k}_m": None for k in solvers}))
     summary = {}
     for name in ["all"] + sorted({r["city"] for r in rows}):
         sub = rows if name == "all" else [r for r in rows if r["city"] == name]
         summary[name] = {k: summarise_pose([r[f"{k}_m"] for r in sub]) for k in solvers}
-        summary[name]["centre_guess"] = summarise_pose([r["centre_guess_m"] for r in sub])
+        summary[name]["centre_guess"] = summarise_pose([r["centre_guess_m"] for r in sub if r["centre_guess_m"] == r["centre_guess_m"]])
         for k in solvers:
             summary[name][f"mean_{k}_m"] = float(np.mean([min(1e3 if r[f"{k}_m"] is None else r[f"{k}_m"], 1e3) for r in sub]))
     out = Path(a.out)
@@ -193,7 +211,7 @@ def main():
     path = out / f"eval_loc2_{a.tag}_{a.split}.json"
     path.write_text(json.dumps(dict(meta=dict(method="Loc2", checkpoint=meta, split=a.split, cities=cities, n=len(rows),
                                               limit=a.limit, seed=a.seed, orientation="known_ori", max_depth_m=max_depth,
-                                              skipped_no_depth=0, depth_dir=DEPTH_DIR, city_res=CITY_RES,
+                                              skipped_no_depth=0, n_no_usable_depth=len(unusable), no_usable_depth=miss_names, depth_dir=DEPTH_DIR, city_res=CITY_RES,
                                               sec_per_sample=dict(model=t_model / max(1, len(rows)),
                                                                   **{k: v / max(1, len(rows)) for k, v in t_solve.items()})),
                                     frames=rows, summary=summary), indent=2))
