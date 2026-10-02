@@ -276,8 +276,8 @@ def render_frame(b, f, s, title_cat, path, out_w=2400):
     inl = st[rr, cc] == 1
 
     plt.rcParams.update({"font.family": "DejaVu Sans"})
-    fig = plt.figure(figsize=(24, 9.6), dpi=out_w / 24, facecolor="white")
-    gs = fig.add_gridspec(1, 2, width_ratios=[2.0, 1.0], wspace=0.07, left=0.012, right=0.985, top=0.83, bottom=0.075)
+    fig = plt.figure(figsize=(24, 10.6), dpi=out_w / 24, facecolor="white")
+    gs = fig.add_gridspec(1, 2, width_ratios=[2.0, 1.0], wspace=0.07, left=0.012, right=0.985, top=0.80, bottom=0.17)
     city, pano = s["id"].split("/", 1)
     fig.suptitle(f"{city} · {pano.split(',')[0]}   [{title_cat}]\nPanoRoMa {mt['final_m']:.2f} m  ·  "
                  f"FG² {f['err_m']:.2f} m", fontsize=26, fontweight="bold", y=0.985)
@@ -294,9 +294,9 @@ def render_frame(b, f, s, title_cat, path, out_w=2400):
     ax.set_ylim(h, 0)
     ax.set_xticks([])
     ax.set_yticks([])
-    ax.set_title(f"panorama (brightened); dots = {len(rr)} of PanoRoMa's {int(valid.sum())} depth-placed tokens of the "
-                 f"{'second' if pre else 'first'} pass, filled = RANSAC inlier, colour = azimuth", fontsize=16.5,
-                 loc="left")
+    ax.set_title(f"panorama (brightened). Dots: {len(rr)} of PanoRoMa's {int(valid.sum())} depth-placed tokens "
+                 f"({'second' if pre else 'first'} pass; filled = RANSAC inlier,\nhollow = outlier, colour = azimuth); "
+                 "the same dots are drawn on the tile where PanoRoMa's final pose puts them", fontsize=16.5, loc="left")
 
     # --- tile
     axm = fig.add_subplot(gs[0, 1])
@@ -322,12 +322,15 @@ def render_frame(b, f, s, title_cat, path, out_w=2400):
         p = pts[k]
         axm.plot([gt[0], p[0]], [gt[1], p[1]], color=colr, lw=2.2, zorder=24, path_effects=V._halo(4))
         axm.scatter([p[0]], [p[1]], marker=mk, s=sz, c=colr, edgecolors="white", linewidths=2.0, zorder=31)
-        mid = (gt + p) / 2 if err > 4 else p
-        axm.text(mid[0] + 1.0, mid[1] + (1.2 if k == "pano" else -1.2), f"{err:.1f} m", color=colr, fontsize=20,
-                 fontweight="bold", ha="left", va="center", zorder=32, path_effects=V._halo(4))
+        # label next to the prediction, PanoRoMa above-right, FG² below-right (they often land close together)
+        up = k == "pano"
+        right = p[0] > c[0] + 0.1 * half                    # right part of the view: label to the left of it
+        axm.text(p[0] + (-2.0 if right else 2.0), p[1] + (2.5 if up else -2.5), f"{name} {err:.1f} m", color=colr,
+                 fontsize=18, fontweight="bold", ha="right" if right else "left", va="bottom" if up else "top", zorder=32, path_effects=V._halo(4),
+                 clip_on=True)
     axm.scatter([gt[0]], [gt[1]], marker="P", s=640, c="#22dd22", edgecolors="black", linewidths=2.0, zorder=30)
     V._scale_bar(axm, 10)
-    V._north(axm, 0.93)
+    V._north(axm, 0.07)
     axm.set_title("satellite tile (north up)", fontsize=18, loc="left")
     axm.set_xlabel("east of tile centre (m)", fontsize=14)
     axm.set_ylabel("north of tile centre (m)", fontsize=14)
@@ -336,7 +339,8 @@ def render_frame(b, f, s, title_cat, path, out_w=2400):
           Line2D([], [], marker="^", ls="", ms=18, mfc="#2f6dff", mec="white", label="FG²"),
           Line2D([], [], marker="o", ls="", ms=10, mfc="0.6", mec="black", label="token, inlier"),
           Line2D([], [], marker="o", ls="", ms=10, mfc="none", mec="0.6", mew=2, label="token, outlier")]
-    axm.legend(handles=hd, loc="upper right", fontsize=13, framealpha=0.85, ncol=1)
+    axm.legend(handles=hd, loc="upper center", bbox_to_anchor=(0.5, -0.11), fontsize=14, ncol=3, frameon=False,
+               columnspacing=1.0, handletextpad=0.3)
     fig.savefig(path, dpi=out_w / 24, pil_kwargs=dict(quality=85, optimize=True))
     plt.close(fig)
 
