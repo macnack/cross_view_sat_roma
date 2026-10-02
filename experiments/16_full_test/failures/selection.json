@@ -1,0 +1,134 @@
+{
+  "ids_json": "experiments/16_full_test/failures/fail_cases.json",
+  "extra_both": 2,
+  "pano_json": "experiments/16_full_test/eval_vigor_full_chicago_pano_D_samearea.json",
+  "fg2_csv": "experiments/16_full_test/eval_fg2_full_chicago_fg2_samearea.csv",
+  "frames": [
+    {
+      "id": "Chicago/E5-fxqKdtqohJjgBSDBP2A,41.876583,-87.645192,.jpg",
+      "pano": "E5-fxqKdtqohJjgBSDBP2A,41.876583,-87.645192,.jpg",
+      "cat": "fg2_fails",
+      "extra": false,
+      "pano_m": 1.1545931315840756,
+      "fg2_index": 9963,
+      "fg2_m": 34.49982452392578
+    },
+    {
+      "id": "Chicago/jGzQImBrHXF8sUD3WwA0Hw,41.875792,-87.652998,.jpg",
+      "pano": "jGzQImBrHXF8sUD3WwA0Hw,41.875792,-87.652998,.jpg",
+      "cat": "fg2_fails",
+      "extra": false,
+      "pano_m": 0.6773775248924802,
+      "fg2_index": 5649,
+      "fg2_m": 16.608551025390625
+    },
+    {
+      "id": "Chicago/1BXlokrs7aE2xfI1l8CIwQ,41.886555,-87.636026,.jpg",
+      "pano": "1BXlokrs7aE2xfI1l8CIwQ,41.886555,-87.636026,.jpg",
+      "cat": "fg2_fails",
+      "extra": false,
+      "pano_m": 1.5081060187454463,
+      "fg2_index": 9238,
+      "fg2_m": 9.606468200683594
+    },
+    {
+      "id": "Chicago/N5na-NWJTmViOVspOpiDwg,41.854732,-87.631831,.jpg",
+      "pano": "N5na-NWJTmViOVspOpiDwg,41.854732,-87.631831,.jpg",
+      "cat": "fg2_fails",
+      "extra": false,
+      "pano_m": 0.9811330847877229,
+      "fg2_index": 7499,
+      "fg2_m": 5.041056156158447
+    },
+    {
+      "id": "Chicago/Y9eWNNRHVVleDul0suJTUw,41.881828,-87.618107,.jpg",
+      "pano": "Y9eWNNRHVVleDul0suJTUw,41.881828,-87.618107,.jpg",
+      "cat": "pano_fails",
+      "extra": false,
+      "pano_m": 35.50408095591984,
+      "fg2_index": 12344,
+      "fg2_m": 1.2951666116714478
+    },
+    {
+      "id": "Chicago/Gnh-0xvD_DX227ndxKsN4g,41.887526,-87.633975,.jpg",
+      "pano": "Gnh-0xvD_DX227ndxKsN4g,41.887526,-87.633975,.jpg",
+      "cat": "pano_fails",
+      "extra": false,
+      "pano_m": 14.76214623776386,
+      "fg2_index": 6789,
+      "fg2_m": 1.6214662790298462
+    },
+    {
+      "id": "Chicago/KUz__VKFOcVBDm9aY3amKQ,41.883228,-87.632886,.jpg",
+      "pano": "KUz__VKFOcVBDm9aY3amKQ,41.883228,-87.632886,.jpg",
+      "cat": "pano_fails",
+      "extra": false,
+      "pano_m": 7.832690657673633,
+      "fg2_index": 2209,
+      "fg2_m": 1.0564062595367432
+    },
+    {
+      "id": "Chicago/-oxRcnPAwIk7xdTy74oASg,41.890443,-87.625332,.jpg",
+      "pano": "-oxRcnPAwIk7xdTy74oASg,41.890443,-87.625332,.jpg",
+      "cat": "pano_fails",
+      "extra": false,
+      "pano_m": 5.0078893227275065,
+      "fg2_index": 5987,
+      "fg2_m": 1.1149795055389404
+    },
+    {
+      "id": "Chicago/wRT0regD2jAHAUDUUs0EgA,41.892250,-87.626018,.jpg",
+      "pano": "wRT0regD2jAHAUDUUs0EgA,41.892250,-87.626018,.jpg",
+      "cat": "both_fail",
+      "extra": false,
+      "pano_m": 36.86806352410274,
+      "fg2_index": 11740,
+      "fg2_m": 38.88832473754883
+    },
+    {
+      "id": "Chicago/-xqRG7MYYMOGiITk7fGnxQ,41.879429,-87.630802,.jpg",
+      "pano": "-xqRG7MYYMOGiITk7fGnxQ,41.879429,-87.630802,.jpg",
+      "cat": "both_fail",
+      "extra": false,
+      "pano_m": 20.777480590057422,
+      "fg2_index": 5902,
+      "fg2_m": 19.38910675048828
+    },
+    {
+      "id": "Chicago/uk0RPFvOq6Os72VsDw_3yQ,41.889749,-87.619736,.jpg",
+      "pano": "uk0RPFvOq6Os72VsDw_3yQ,41.889749,-87.619736,.jpg",
+      "cat": "both_fail",
+      "extra": false,
+      "pano_m": 14.286720387482452,
+      "fg2_index": 9579,
+      "fg2_m": 13.469741821289062
+    },
+    {
+      "id": "Chicago/S5JUAgiweJNt_27KOrKApQ,41.889139,-87.639496,.jpg",
+      "pano": "S5JUAgiweJNt_27KOrKApQ,41.889139,-87.639496,.jpg",
+      "cat": "both_fail",
+      "extra": false,
+      "pano_m": 12.390358883876955,
+      "fg2_index": 8305,
+      "fg2_m": 10.004837036132812
+    },
+    {
+      "id": "Chicago/ZJZp4VCr5oxlMT2WzfRqkw,41.890917,-87.650826,.jpg",
+      "pano": "ZJZp4VCr5oxlMT2WzfRqkw,41.890917,-87.650826,.jpg",
+      "cat": "both_fail",
+      "extra": true,
+      "pano_m": 36.82812069461701,
+      "fg2_index": 2527,
+      "fg2_m": 36.57533645629883
+    },
+    {
+      "id": "Chicago/NEERhpUONAYHhrPYNHUDMw,41.889589,-87.621815,.jpg",
+      "pano": "NEERhpUONAYHhrPYNHUDMw,41.889589,-87.621815,.jpg",
+      "cat": "both_fail",
+      "extra": true,
+      "pano_m": 36.33438955119529,
+      "fg2_index": 2149,
+      "fg2_m": 40.460548400878906
+    }
+  ]
+}

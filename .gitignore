@@ -20,3 +20,4 @@ experiments/15_kitscenes/*.png
 experiments/**/sweep_cache/
 experiments/**/cert_cache/
 wandb/
+experiments/16_full_test/failures/bundles/
