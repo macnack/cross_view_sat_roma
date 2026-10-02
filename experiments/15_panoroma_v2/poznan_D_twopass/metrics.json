@@ -1,0 +1,263 @@
+{
+  "method": "PanoRoMa",
+  "manifest": "experiments/06_fg2_bevsplat/manifest.json",
+  "years": [
+    2025,
+    2024
+  ],
+  "heading": "prior",
+  "ref_up": "north",
+  "extent_m": 71.0,
+  "ego_mask_deg": 20.0,
+  "coarse": {
+    "config": "configs/vigor_cell0125.yaml",
+    "ckpt": "checkpoints/vigor_v2_reg_D_e100_last.pt",
+    "step": 131500
+  },
+  "fine": {
+    "config": "configs/vigor_cell00625_fine.yaml",
+    "ckpt": "checkpoints/vigor_v2_reg_D_fine_e100_last.pt",
+    "step": 131500,
+    "gate_m": 6.0
+  },
+  "solver": "se2",
+  "decoder_dtype": "bfloat16",
+  "n": 400,
+  "n_entries": 400,
+  "sec_per_entry": 0.936470884680748,
+  "map_vs_tile_error_max_diff_m": 2.915470894038208e-06,
+  "median_abs_residual_rot_deg": 5.461427090585616,
+  "summary": {
+    "panoroma_coarse": {
+      "all": {
+        "n": 400,
+        "matched": 400,
+        "median_m": 4.064348550254271,
+        "median_ci": [
+          3.581741679994488,
+          4.556425230129026
+        ],
+        "recall@5m": 0.6025,
+        "recall@5m_ci": [
+          0.555,
+          0.655
+        ],
+        "recall@10m": 0.8525,
+        "recall@10m_ci": [
+          0.82,
+          0.8875
+        ],
+        "frac_gt_30m": 0.0225,
+        "recall@1m": 0.075,
+        "mean_capped_m": 6.1539771964756165,
+        "median_deg": 3.3601004694044736,
+        "mean_deg": 3.8427617312667315,
+        "n_heading": 400
+      },
+      "2024": {
+        "n": 200,
+        "matched": 200,
+        "median_m": 3.9464136956938,
+        "median_ci": [
+          3.442110876179921,
+          4.640561068079235
+        ],
+        "recall@5m": 0.61,
+        "recall@5m_ci": [
+          0.54,
+          0.68
+        ],
+        "recall@10m": 0.845,
+        "recall@10m_ci": [
+          0.795,
+          0.895
+        ],
+        "frac_gt_30m": 0.025,
+        "recall@1m": 0.08,
+        "mean_capped_m": 6.410648689723502,
+        "median_deg": 3.219006196624159,
+        "mean_deg": 3.781264825253113,
+        "n_heading": 200
+      },
+      "2025": {
+        "n": 200,
+        "matched": 200,
+        "median_m": 4.212088240031836,
+        "median_ci": [
+          3.387579264184641,
+          4.75325895446135
+        ],
+        "recall@5m": 0.595,
+        "recall@5m_ci": [
+          0.53,
+          0.665
+        ],
+        "recall@10m": 0.86,
+        "recall@10m_ci": [
+          0.815,
+          0.91
+        ],
+        "frac_gt_30m": 0.02,
+        "recall@1m": 0.07,
+        "mean_capped_m": 5.897305703227728,
+        "median_deg": 3.580319709411267,
+        "mean_deg": 3.90425863728035,
+        "n_heading": 200
+      }
+    },
+    "panoroma_fine": {
+      "all": {
+        "n": 400,
+        "matched": 400,
+        "median_m": 3.3759880081894713,
+        "median_ci": [
+          2.913870283904912,
+          3.684838515949051
+        ],
+        "recall@5m": 0.655,
+        "recall@5m_ci": [
+          0.6075,
+          0.7025
+        ],
+        "recall@10m": 0.86,
+        "recall@10m_ci": [
+          0.825,
+          0.8925
+        ],
+        "frac_gt_30m": 0.0275,
+        "recall@1m": 0.1025,
+        "mean_capped_m": 5.780648767987284,
+        "median_deg": 4.161035346525037,
+        "mean_deg": 4.432391483522633,
+        "n_heading": 400
+      },
+      "2024": {
+        "n": 200,
+        "matched": 200,
+        "median_m": 3.394594265775212,
+        "median_ci": [
+          2.6111469589389045,
+          4.014310006244797
+        ],
+        "recall@5m": 0.665,
+        "recall@5m_ci": [
+          0.595,
+          0.73
+        ],
+        "recall@10m": 0.86,
+        "recall@10m_ci": [
+          0.815,
+          0.91
+        ],
+        "frac_gt_30m": 0.035,
+        "recall@1m": 0.09,
+        "mean_capped_m": 6.109942432587206,
+        "median_deg": 4.114591449033124,
+        "mean_deg": 4.3306568956398905,
+        "n_heading": 200
+      },
+      "2025": {
+        "n": 200,
+        "matched": 200,
+        "median_m": 3.3466435006870143,
+        "median_ci": [
+          3.0283989964245888,
+          3.731548836163256
+        ],
+        "recall@5m": 0.645,
+        "recall@5m_ci": [
+          0.58,
+          0.71
+        ],
+        "recall@10m": 0.86,
+        "recall@10m_ci": [
+          0.81,
+          0.905
+        ],
+        "frac_gt_30m": 0.02,
+        "recall@1m": 0.115,
+        "mean_capped_m": 5.451355103387361,
+        "median_deg": 4.262492210798789,
+        "mean_deg": 4.534126071405373,
+        "n_heading": 200
+      }
+    },
+    "panoroma_two_pass": {
+      "all": {
+        "n": 400,
+        "matched": 400,
+        "median_m": 3.396470788593822,
+        "median_ci": [
+          3.0283989964245888,
+          3.7355620487759875
+        ],
+        "recall@5m": 0.65,
+        "recall@5m_ci": [
+          0.6025,
+          0.6975
+        ],
+        "recall@10m": 0.8575,
+        "recall@10m_ci": [
+          0.8225,
+          0.89
+        ],
+        "frac_gt_30m": 0.0275,
+        "recall@1m": 0.1,
+        "mean_capped_m": 5.822375536360481,
+        "median_deg": 4.184819252908616,
+        "mean_deg": 4.43383730001237,
+        "n_heading": 400
+      },
+      "2024": {
+        "n": 200,
+        "matched": 200,
+        "median_m": 3.4054893864694837,
+        "median_ci": [
+          2.6343906469129363,
+          4.097565194758114
+        ],
+        "recall@5m": 0.66,
+        "recall@5m_ci": [
+          0.595,
+          0.725
+        ],
+        "recall@10m": 0.855,
+        "recall@10m_ci": [
+          0.805,
+          0.905
+        ],
+        "frac_gt_30m": 0.035,
+        "recall@1m": 0.09,
+        "mean_capped_m": 6.164458677185096,
+        "median_deg": 4.114591449033124,
+        "mean_deg": 4.362888034967918,
+        "n_heading": 200
+      },
+      "2025": {
+        "n": 200,
+        "matched": 200,
+        "median_m": 3.3882906624087274,
+        "median_ci": [
+          3.0555204541659955,
+          3.7626297247596803
+        ],
+        "recall@5m": 0.64,
+        "recall@5m_ci": [
+          0.575,
+          0.705
+        ],
+        "recall@10m": 0.86,
+        "recall@10m_ci": [
+          0.81,
+          0.905
+        ],
+        "frac_gt_30m": 0.02,
+        "recall@1m": 0.11,
+        "mean_capped_m": 5.480292395535864,
+        "median_deg": 4.262492210798789,
+        "mean_deg": 4.504786565056822,
+        "n_heading": 200
+      }
+    }
+  }
+}
