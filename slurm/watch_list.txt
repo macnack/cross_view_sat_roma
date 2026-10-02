@@ -147,3 +147,8 @@
 8881117 v2_plain_fine ^(DDP|step [0-9]* VAL|Traceback|.*Error|\[run\] exit)
 8881118 v2_cross_coarse ^(DDP|step [0-9]* VAL|Traceback|.*Error|\[run\] exit)
 8881119 v2_cross_fine ^(DDP|step [0-9]* VAL|Traceback|.*Error|\[run\] exit)
+8882820 loc2v2_all2 ^([A-Za-z]+ +n +[0-9]+|wrote|Traceback|.*Error|\[run\] exit)
+8882821 ev2_D_coarse_chi ^(all +n|wrote|Traceback|.*Error|\[run\] exit)
+8882822 ev2_plain_coarse_chi ^(all +n|wrote|Traceback|.*Error|\[run\] exit)
+8882823 ev2_cross_coarse ^(all +n|wrote|Traceback|.*Error|\[run\] exit)
+8882824 ev2_D_coarse_all ^(all +n|wrote|Traceback|.*Error|\[run\] exit)
