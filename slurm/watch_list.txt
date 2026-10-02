@@ -160,3 +160,7 @@
 8883487 ev2f_plain_all ^(all +n|wrote|Traceback|.*Error|\[run\] exit)
 8883488 pz2f_plain ^(panoroma_two_pass +all|wrote|Traceback|.*Error|\[run\] exit)
 8883489 ev2f_cross_cross ^(all +n|wrote|Traceback|.*Error|\[run\] exit)
+# --- full Chicago same-area test split (12739), PanoRoMa D vs FG² vs Loc² ---
+8888246 full_pano_D ^(all +n|fine_gated median|wrote|Traceback|.*Error|\[run\] exit)
+8888247 full_fg2 ^([A-Za-z]+ +n +[0-9]+|wrote|Traceback|.*Error|\[run\] exit)
+8888248 full_loc2 ^([A-Za-z]+ +n +[0-9]+|wrote|Traceback|.*Error|\[run\] exit)
