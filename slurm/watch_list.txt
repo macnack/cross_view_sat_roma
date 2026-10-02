@@ -152,3 +152,11 @@
 8882822 ev2_plain_coarse_chi ^(all +n|wrote|Traceback|.*Error|\[run\] exit)
 8882823 ev2_cross_coarse ^(all +n|wrote|Traceback|.*Error|\[run\] exit)
 8882824 ev2_D_coarse_all ^(all +n|wrote|Traceback|.*Error|\[run\] exit)
+# --- two-pass evaluations on v2 depth, dependent on the second-pass trainings ---
+8883483 ev2f_D_chicago ^(all +n|wrote|Traceback|.*Error|\[run\] exit)
+8883484 ev2f_D_all ^(all +n|wrote|Traceback|.*Error|\[run\] exit)
+8883485 pz2f_D ^(panoroma_two_pass +all|wrote|Traceback|.*Error|\[run\] exit)
+8883486 ev2f_plain_chicago ^(all +n|wrote|Traceback|.*Error|\[run\] exit)
+8883487 ev2f_plain_all ^(all +n|wrote|Traceback|.*Error|\[run\] exit)
+8883488 pz2f_plain ^(panoroma_two_pass +all|wrote|Traceback|.*Error|\[run\] exit)
+8883489 ev2f_cross_cross ^(all +n|wrote|Traceback|.*Error|\[run\] exit)
