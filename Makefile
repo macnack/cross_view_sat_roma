@@ -386,7 +386,8 @@ train:     ## fusion BEV + Sat-RoMa decoder on the real orthophoto (needs data.o
 	$(RUN) scripts/train_fusion.py --config $(CONFIG)
 
 # --- KITScenes Multimodal (gated on HuggingFace: accept the terms, `hf auth login` / HF_TOKEN) ---
-# Defaults from configs/default.yaml `kitscenes:`. SCENE= <uuid> SPLIT= val|train|test; outputs under experiments/15_kitscenes/.
+# Defaults from configs/default.yaml `kitscenes:`. SCENE= <uuid> SPLIT= val|train|test; outputs under experiments/15_kitscenes/ (local, gitignored: CC BY-NC frames).
+# Needs the devkit submodule: git submodule update --init third_party/kitscenes (all KITScenes file I/O goes through it).
 KS_SCENE = $(if $(SCENE),$(SCENE),142f1419-b6f2-4215-4055-6eb161f63043)
 KS_SPLIT = $(if $(SPLIT),$(SPLIT),val)
 kitscenes-fetch: ## download + extract ONE KITScenes scene (default: the smallest val scene, 1.65 GB) into data/kitscenes; SCENE= SPLIT=
