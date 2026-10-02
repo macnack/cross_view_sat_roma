@@ -9,7 +9,7 @@ REF     ?= 200
 RUN      = PYTHONPATH=src:.pydeps $(PY)
 
 .PHONY: panoroma-viz vigor-aug-viz poznan-depth loc2-smoke loc2-eval panoroma-poznan poznan-three-way wayback-fetch wayback-calib eagle-fetch-wayback fg2-vigor eagle-watch eagle-probe eagle-submit-ddp eagle-probe-ddp vigor-viz loc2-depth loc2-vigor vigor-report loftr-fine vigor-certainty vigor-sweep vigor-cert-cache vigor-cert-head
-.PHONY: help deps test fetch stats mask lens viewer oxts odometry bevs mosaic smoke h1 targets overfit train calib all roma-viz mapillary mapillary-scan mapillary-sample ipm-smoke lift-overfit lift-splat lift-eval lift-splat-years lift-aug-viz lift-layers-viz lift-splat-aug lift-splat-pose-nll lift-splat-seq baselines-manifest fg2-smoke fg2-eval fg2-train bevsplat-smoke bevsplat-eval bevsplat-train baselines-report
+.PHONY: help deps test fetch stats mask lens viewer oxts odometry bevs mosaic smoke h1 targets overfit train calib all roma-viz mapillary mapillary-scan mapillary-sample ipm-smoke lift-overfit lift-splat lift-eval lift-splat-years lift-aug-viz lift-layers-viz lift-splat-aug lift-splat-pose-nll lift-splat-seq baselines-manifest fg2-smoke fg2-eval fg2-train bevsplat-smoke bevsplat-eval bevsplat-train baselines-report kitscenes-fetch kitscenes-pano
 help:
 	@grep -E '^[a-z0-9_-]+:.*##' $(MAKEFILE_LIST) | sed -E 's/:.*## /\t/' | expand -t 12
 
@@ -384,6 +384,18 @@ overfit:   ## fusion training plumbing test: 4 frames, SYNTHETIC reference (no o
 
 train:     ## fusion BEV + Sat-RoMa decoder on the real orthophoto (needs data.ortho in the config)
 	$(RUN) scripts/train_fusion.py --config $(CONFIG)
+
+# --- KITScenes Multimodal (gated on HuggingFace: accept the terms, `hf auth login` / HF_TOKEN) ---
+# Defaults from configs/default.yaml `kitscenes:`. SCENE= <uuid> SPLIT= val|train|test; outputs under experiments/15_kitscenes/.
+KS_SCENE = $(if $(SCENE),$(SCENE),142f1419-b6f2-4215-4055-6eb161f63043)
+KS_SPLIT = $(if $(SPLIT),$(SPLIT),val)
+kitscenes-fetch: ## download + extract ONE KITScenes scene (default: the smallest val scene, 1.65 GB) into data/kitscenes; SCENE= SPLIT=
+	mkdir -p data/kitscenes
+	hf download KIT-MRT/KITScenes-Multimodal --repo-type dataset --local-dir data/kitscenes --include "data/sequence_archives.csv" --include "data/$(KS_SPLIT)/$(KS_SCENE).tar"
+	tar -xf data/kitscenes/data/$(KS_SPLIT)/$(KS_SCENE).tar -C data/kitscenes/data/$(KS_SPLIT) && rm data/kitscenes/data/$(KS_SPLIT)/$(KS_SCENE).tar
+
+kitscenes-pano: ## 6 ring cameras -> ERP panorama + availability mask_*.png + LiDAR overlay + calibration checks -> experiments/15_kitscenes; FRAMES="0 50", CROP=1 (pano_crop_*.jpg without black pixels), EGO_MASK=20 (crop below -20 deg: ego car), MAX_EL=
+	$(RUN) scripts/kitscenes_pano.py --config $(CONFIG) $(if $(FRAMES),--frames $(FRAMES),) $(if $(CROP),--crop,) $(if $(EGO_MASK),--ego-mask-deg $(EGO_MASK),) $(if $(MAX_EL),--max-elevation-deg $(MAX_EL),)
 
 calib: stats mask lens oxts viewer   ## all calibration artefacts
 all: test calib odometry bevs mosaic smoke   ## everything that needs no orthophoto

@@ -62,6 +62,22 @@ Parser: `bevloc.data.dur360.read_scan`.
   pairs them directly. Median offset from OxTS: image −1 ms, LiDAR +0 ms; worst case 30 ms, i.e. the
   0.03 s tolerance of the dataset (0.3 m at 10 m/s). OxTS rate 10.0 Hz.
 
+## kitscenes/ — KITScenes Multimodal (KIT-MRT, arXiv:2606.02956, CC BY-NC 4.0, early release v1.0.x)
+
+Gated on HuggingFace: accept the terms with the account whose token you use (`hf auth login` / `HF_TOKEN`), then
+`make kitscenes-fetch` (default: the smallest val scene `142f1419-…`, 1.65 GB, 100 frames at 10 Hz, Frankfurt; `SCENE=`
+`SPLIT=` for others). Scenes are `data/kitscenes/data/<split>/<scene>/`; reader and conventions: `bevloc.data.kitscenes`.
+
+No 360° camera: six undistorted pinhole ring cameras (3504×2272, f ≈ 1843 px, 87°×63°), stitched into an ERP
+panorama (`ErpStitcher`, `make kitscenes-pano`) with the scene's `calibration/calib.json` — covers ±28° of elevation
+(34 % of a 2048×1024 ERP), the rest is invalid. Verified on the scene (tests/test_kitscenes.py, experiments/15_kitscenes):
+- reference frame = `lidar_top` (identity extrinsic): x forward, y left, z up; camera extrinsics are OpenCV camera → reference;
+- ring yaws +1, +61, +121, −179, −118, −58° (60° apart); all cameras 0.18 m below the LiDAR origin, level;
+- LiDAR depth edges projected into the panorama coincide with colour edges (gradient peak at 0 px on frames 50 and 99);
+- `poses.txt` heading minus direction of travel: median −1.40°, σ 0.28° (n = 82) — UNVERIFIED cause (crab angle vs
+  GNSS/INS mounting vs map-frame convergence); pose frame = local metres around `maps/origin.json` (Frankfurt, 50.1104 N 8.6821 E).
+No orthophoto of Karlsruhe / Frankfurt / Sindelfingen is available yet, so there is no matcher run on it.
+
 ## ortho/durham/<year>/ — orthophoto reference (NOT YET AVAILABLE)
 Environment Agency Vertical Aerial Photography (OGL v3), EPSG:27700. Build one VRT over the tiles
 (`gdalbuildvrt`) and point `data.ortho` in `configs/default.yaml` at it; `bevloc.data.ortho.OrthoMap`

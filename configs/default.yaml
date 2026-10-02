@@ -292,3 +292,21 @@ pf:                               # scripts/track_route.py (task 03, Task 5): SE
   sigma_yaw: 1.0                  # deg per frame
   sigma_yaw_obs: 5.0              # deg, compass observation
   temperature: 1.0                # multiplies the heatmap log-likelihood (< 1 tempers over-confidence)
+
+kitscenes:                        # KITScenes Multimodal wrapper (src/bevloc/data/kitscenes.py, scripts/kitscenes_pano.py, make kitscenes-pano)
+  root: data/kitscenes/data
+  split: val
+  scene: 142f1419-b6f2-4215-4055-6eb161f63043   # smallest val scene (1.65 GB, 100 frames, Frankfurt); `make kitscenes-fetch SCENE=<uuid>` for others
+  frames: [0, 50, 99]
+  erp_size: [2048, 1024]          # = VIGOR panorama size, what PanoRoMa's erp_depth query expects
+  pano_centre: mean               # mean = mean ring-camera position (~(0, 0, -0.18) m in the lidar_top frame) | [x, y, z]
+  prefilter_scale: 0.25           # cameras are shrunk (INTER_AREA) by this before the remap: ERP px is ~7x coarser than a camera px
+  blend_power: 4.0                # seam feathering exponent (0 = hard average of the overlapping cameras)
+  lidar: lidar_top
+  overlay_min_range_m: 3.0
+  # availability mask: mask_<frame>.png is always written (white = a camera sees it, black = no image; the pinhole ring
+  # covers ~+-28 deg of elevation and less at the seams between cameras)
+  crop:                           # pano_crop_<frame>.jpg: only rows with image at EVERY azimuth -> no black pixel
+    enabled: false                # --crop / make kitscenes-pano CROP=1
+    ego_mask_deg: null            # also drop rows steeper than this below the horizon (ego car body), e.g. 20 (= poznan.ego_mask_deg)
+    max_elevation_deg: null       # also drop rows above this elevation

@@ -11,6 +11,9 @@ experiments/**/*.npy
 experiments/**/*.html
 experiments/**/queries/
 experiments/**/*.tif
+# KITScenes frames are CC BY-NC dataset content: regenerate with `make kitscenes-pano`, never commit (metrics.json / config.yaml are kept)
+experiments/15_kitscenes/*.jpg
+experiments/15_kitscenes/*.png
 
 # Claude Code linked worktrees
 .claude/worktrees/
