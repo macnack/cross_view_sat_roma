@@ -1,17 +1,15 @@
 """KITScenes Multimodal (KIT-MRT, arXiv:2606.02956) reader + ring-camera -> ERP panorama for PanoRoMa.
 
 KITScenes has no 360 deg / fisheye camera: it has six undistorted pinhole "ring" cameras (3504 x 2272, f ~ 1843 px,
-87 x 63 deg FOV) at yaws (ccw from forward) +1, +61, +121, -179, -118, -58 deg (60 deg apart, ~27 deg overlap). `stitch_erp` turns them
-into the panorama the PanoRoMa query expects (same convention as the Dur360BEV / Mapillary ERPs: centre column =
-ego forward, azimuth increases to the right, top row = zenith). Coverage is only +-31 deg of elevation; the rest is
-invalid (`valid` = 0), as are the ego-car rows of the lens-based datasets.
+87 x 63 deg FOV) at yaws (ccw from forward) +1, +61, +121, -179, -118, -58 deg (60 deg apart, ~27 deg overlap).
+`ErpStitcher` turns them into the panorama the PanoRoMa query expects (same convention as the Dur360BEV / Mapillary
+ERPs: centre column = ego forward, azimuth increases to the right, top row = zenith). Coverage is only +-31 deg of
+elevation; the rest is invalid (`valid` = 0, `crop_clean` cuts to the rows that are valid at every azimuth).
 
-Layout of one scene (devkit: github.com/KIT-MRT/kitscenes; this module does NOT import it):
-  <scene>/calibration/calib.json   per camera "<name>_pinhole": intrinsics{focal_length, principal_point_u/v},
-                                   resolution{width,height}, T_to_reference (4x4, camera -> reference); lidars bare name
-  <scene>/<camera>/<idx:010d>.jpg  <scene>/<lidar>/<idx:010d>.parquet  (x, y, z int32 * discretization_resolution)
-  <scene>/poses.txt                TUM "t tx ty tz qx qy qz qw", one line per reference frame; timestamp.reference.txt
-  <scene>/maps/{map.osm,origin.json}
+All file access (calibration, images, LiDAR, timestamps, poses) goes through the KIT-MRT devkit (Apache-2.0), used
+unchanged from third_party/kitscenes (wrap, never edit; `KITSCENES_DEVKIT_DIR` overrides): `SensorDataLoader` for
+calib.json / JPEGs / parquet / timestamps, `load_ego_poses` for poses.txt. The devkit is imported lazily, so the pure
+geometry here (stitcher, crop, alignment check) works without the submodule. Scene layout: data/README.md.
 
 Frames (VERIFIED on scene 142f1419 against calib.json, tests/test_kitscenes.py):
   * reference = ego = `lidar_top` frame (its T_to_reference is the identity): x forward, y left, z up;
@@ -24,18 +22,38 @@ few metres ghost in the overlaps.
 """
 from __future__ import annotations
 
-import json
+import functools
+import os
+import sys
 from dataclasses import dataclass
 from pathlib import Path
 
 import cv2
 import numpy as np
+from scipy.spatial.transform import Rotation
 
 from bevloc.bev.spherical import lidar_to_erp
 
 RING_CAMERAS = ("camera_ring_front", "camera_ring_front_right", "camera_ring_rear_right",
                 "camera_ring_rear", "camera_ring_rear_left", "camera_ring_front_left")   # clockwise from the front
-FRAME_WIDTH = 10
+
+
+@functools.lru_cache(maxsize=None)
+def devkit():
+    """The KIT-MRT `kitscenes` package, found like the other third_party code: $KITSCENES_DEVKIT_DIR, else
+    third_party/kitscenes (git submodule). Importable without Lanelet2 (only its map_api needs it)."""
+    env = os.environ.get("KITSCENES_DEVKIT_DIR", "")
+    if env and not (Path(env) / "kitscenes/sensors.py").exists():                  # an explicit choice must not fall back
+        raise ImportError(f"$KITSCENES_DEVKIT_DIR={env!r} is not a KITScenes devkit checkout (no kitscenes/sensors.py)")
+    sub = Path(__file__).resolve().parents[3] / "third_party/kitscenes"
+    root = env or (str(sub) if (sub / "kitscenes/sensors.py").exists() else None)
+    if root is None:
+        raise ImportError("KITScenes devkit not found: `git submodule update --init third_party/kitscenes` "
+                          "or set KITSCENES_DEVKIT_DIR")
+    sys.path.insert(0, root)            # first, so the chosen checkout wins over a pip-installed `kitscenes`
+    import kitscenes
+    from kitscenes import poses
+    return kitscenes, poses
 
 
 @dataclass(frozen=True)
@@ -60,24 +78,32 @@ class Camera:
         return float(np.degrees(np.arctan2(a[1], a[0])))
 
 
+def _loader(scene):
+    """A devkit `SensorDataLoader` for a scene directory (or the loader itself)."""
+    sdl = devkit()[0].SensorDataLoader
+    return scene if isinstance(scene, sdl) else sdl(scene)
+
+
 def load_calibration(scene, names=RING_CAMERAS):
-    """{name: Camera} from <scene>/calibration/calib.json (keys carry a `_pinhole` suffix for most cameras)."""
-    c = json.load(open(Path(scene) / "calibration" / "calib.json"))
+    """{name: Camera} from the devkit's calibration of a scene directory / `SensorDataLoader`."""
+    ld = _loader(scene)
     out = {}
     for n in names:
-        e = c.get(n) or c[n + "_pinhole"]
-        i = e["intrinsics"]
-        f = float(i["focal_length"])
-        K = np.array([[f, 0, i["principal_point_u"]], [0, f, i["principal_point_v"]], [0, 0, 1.0]])
-        out[n] = Camera(n, K, np.array(e["T_to_reference"], np.float64),
-                        (int(e["resolution"]["width"]), int(e["resolution"]["height"])))
+        c = ld.get_camera_calibration(n)
+        size = c.image_size
+        if size is None:                                                      # calib.json without `resolution`: read a JPEG header
+            frames = ld.get_frame_indices(n)
+            if not frames:
+                raise FileNotFoundError(f"{n}: calib.json has no resolution and the camera directory has no images")
+            size = ld.get_camera_image_size(n, frames[0])
+        out[n] = Camera(n, np.asarray(c.intrinsic, np.float64), np.asarray(c.extrinsic, np.float64),
+                        (int(size[0]), int(size[1])))
     return out
 
 
 def lidar_extrinsic(scene, name="lidar_top"):
-    """(4, 4) T_lidar_to_reference from calib.json."""
-    c = json.load(open(Path(scene) / "calibration" / "calib.json"))
-    return np.array(c[name]["T_to_reference"], np.float64)
+    """(4, 4) T_lidar_to_reference."""
+    return np.asarray(_loader(scene).get_lidar_extrinsic(name), np.float64)
 
 
 def erp_rays(width, height):
@@ -180,54 +206,73 @@ def crop_clean(erp, valid, ego_mask_deg=None, max_elevation_deg=None):
 
 
 def quat_to_R(q):
-    """(qx, qy, qz, qw) -> 3x3 rotation matrix."""
-    x, y, z, w = np.asarray(q, np.float64) / np.linalg.norm(q)
-    return np.array([[1 - 2 * (y * y + z * z), 2 * (x * y - z * w), 2 * (x * z + y * w)],
-                     [2 * (x * y + z * w), 1 - 2 * (x * x + z * z), 2 * (y * z - x * w)],
-                     [2 * (x * z - y * w), 2 * (y * z + x * w), 1 - 2 * (x * x + y * y)]])
+    """(qx, qy, qz, qw) -> 3x3 rotation matrix (the devkit's / TUM quaternion order)."""
+    return Rotation.from_quat(np.asarray(q, np.float64)).as_matrix()
 
 
 class KitScene:
-    """One extracted scene directory: frames, ring-camera images, LiDAR sweeps, ego poses, calibration."""
+    """One extracted scene: ring-camera images, LiDAR sweeps, ego poses, calibration, all read by the devkit."""
 
     def __init__(self, scene):
         self.path = Path(scene)
-        self.cams = load_calibration(self.path)
-        self.T_lidar_top = lidar_extrinsic(self.path, "lidar_top")
-        self.t = np.loadtxt(self.path / "timestamp.reference.txt")
-        poses = np.loadtxt(self.path / "poses.txt")
-        self.pose_t, self.pose_xyz, self.pose_q = poses[:, 0], poses[:, 1:4], poses[:, 4:8]
-        self.origin = json.load(open(self.path / "maps" / "origin.json"))     # map origin (lat, lon)
+        self.loader = _loader(self.path)                                       # devkit SensorDataLoader
+        self.cams = load_calibration(self.loader)
+        # the devkit returns empty arrays / lists for missing files instead of raising: a scene that is not fully
+        # extracted must fail here, not as an empty dataset or an un-deskewed sweep later
+        self.timestamps_ns = self.loader.get_reference_timestamps() if (self.path / "timestamp.reference.txt").exists() else []
+        ego = devkit()[1].load_ego_poses(self.path)                            # list of EgoPose (UTM-local, TUM file)
+        if not len(self.timestamps_ns):
+            raise FileNotFoundError(f"{self.path}: timestamp.reference.txt missing or empty")
+        if not ego:
+            raise FileNotFoundError(f"{self.path}: poses.txt missing or empty (the LiDAR cannot be deskewed without it)")
+        self.pose_t = np.array([p.timestamp_ns for p in ego], np.int64) / 1e9
+        self.pose_xyz = np.array([p.translation for p in ego], np.float64)
+        self.pose_q = np.array([p.rotation for p in ego], np.float64)          # (qx, qy, qz, qw)
+        # frame index = the file stem (images, sweeps); poses and timestamps are indexed by position in the lists.
+        # They coincide only if the stems are 0..N-1, so keep the map and refuse a scene where the counts disagree.
+        self.frame_ids = self.loader.get_frame_indices("lidar_top")
+        if not (len(self.frame_ids) == len(ego) == len(self.timestamps_ns)):
+            raise ValueError(f"{self.path}: {len(self.frame_ids)} lidar_top sweeps, {len(ego)} poses, "
+                             f"{len(self.timestamps_ns)} reference timestamps")
+        self._pos = {f: i for i, f in enumerate(self.frame_ids)}
 
     def __len__(self):
-        return len(self.t)
+        return len(self.timestamps_ns)
 
     def image(self, cam, idx):
         """(H, W, 3) uint8 RGB."""
-        im = cv2.imread(str(self.path / cam / f"{idx:0{FRAME_WIDTH}d}.jpg"), cv2.IMREAD_COLOR)
-        if im is None:
-            raise FileNotFoundError(f"{cam} frame {idx}")
-        return cv2.cvtColor(im, cv2.COLOR_BGR2RGB)
+        return self.loader.get_camera_image(cam, idx)
 
     def images(self, idx, names=None):
         return {n: self.image(n, idx) for n in (names or self.cams)}
 
     def lidar(self, idx, name="lidar_top", with_ring=False):
-        """(N, 3) float64 points in the reference frame + (N,) reflectivity (zero-range returns dropped); with
-        `with_ring` also the (N,) beam index."""
-        import pyarrow.parquet as pq
-        t = pq.read_table(self.path / name / f"{idx:0{FRAME_WIDTH}d}.parquet")
-        res = float(t.schema.metadata[b"discretization_resolution"])
-        xyz = np.stack([t[k].to_numpy() for k in "xyz"], 1).astype(np.float64) * res
-        keep = np.abs(xyz).sum(1) > 0
-        T = lidar_extrinsic(self.path, name)
-        pts = xyz[keep] @ T[:3, :3].T + T[:3, 3]
-        refl = t["reflectivity"].to_numpy()[keep]
-        return (pts, refl, t["ring"].to_numpy()[keep]) if with_ring else (pts, refl)
+        """(N, 3) float64 points in the reference frame + (N,) reflectivity (all-zero returns dropped); with
+        `with_ring` also the (N,) beam index. `idx` is the file stem, as for `image`.
+
+        The devkit's default sweep: ego-motion deskewed with each point's timestamp and the interpolated pose (the
+        sweep takes 100 ms; up to ~0.6 m of shift at speed) and moved into the reference frame by the sensor's
+        extrinsic. The devkit does that only for points that have a timestamp, and returns the raw sensor-frame sweep
+        if it cannot deskew at all (e.g. no poses); the points it did not move are rotated into the reference frame
+        here, so every point is in the reference frame whatever the LiDAR. Those fallback points are not deskewed.
+        """
+        sw = self.loader.get_lidar_sweep(name, idx)
+        T = lidar_extrinsic(self.loader, name)
+        arr, raw = sw.points, sw.raw()
+        xyz = np.stack([arr[k] for k in "xyz"], 1).astype(np.float64)
+        raw_xyz = np.stack([raw[k] for k in "xyz"], 1)
+        ts = raw["timestamp"] if "timestamp" in raw.dtype.names else np.zeros(len(raw))
+        moved = (np.asarray(ts) > 0) & (np.abs(raw_xyz).sum(1) > 0) if sw.deskewed else np.zeros(len(raw), bool)
+        xyz[~moved] = xyz[~moved] @ T[:3, :3].T + T[:3, 3]                      # what the devkit left in the sensor frame
+        keep = np.abs(raw_xyz).sum(1) > 0                                       # drop all-zero returns (no echo)
+        out = (xyz[keep], arr["reflectivity"][keep])
+        return out + (arr["ring"][keep],) if with_ring else out
 
     def ego_pose(self, idx):
-        """(R (3, 3) ego -> map, t (3,)) in the poses.txt frame (local metres around maps/origin.json)."""
-        return quat_to_R(self.pose_q[idx]), self.pose_xyz[idx]
+        """(R (3, 3) ego -> map, t (3,)) of frame `idx` (file stem) in the poses.txt frame (local metres around
+        maps/origin.json)."""
+        i = self._pos[idx]
+        return quat_to_R(self.pose_q[i]), self.pose_xyz[i]
 
     def heading_vs_travel(self, min_step_m=0.3):
         """Per-step (ego-forward yaw - direction of travel) in degrees, wrapped to +-180: should centre on 0 if the

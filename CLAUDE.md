@@ -18,7 +18,8 @@ Next task (agreed 2026-09-25): docs/tasks/04_loc2_matcher.md — Loc² geometry 
 Open design decisions are listed at the end of docs/decisions.md.
 
 ## Repo layout
-- third_party/   read-only: Dur360BEV, RoMa, RoMaV2, FG2, VIGOR, bev-patch-pf, lift-splat-shoot. Wrap, never edit.
+- third_party/   read-only: Dur360BEV, RoMa, RoMaV2, FG2, VIGOR, bev-patch-pf, lift-splat-shoot, kitscenes (KIT-MRT devkit, all KITScenes
+                 file I/O: `git submodule update --init third_party/kitscenes`, needs numpy<2). Wrap, never edit.
                  Sat-RoMa inference code is used from ~/Github/sat-roma-infer (or $SATROMA_INFER_DIR).
 - configs/       default.yaml = every tunable parameter; scripts snapshot it into their output folder
 - src/bevloc/    data/ (frames, calib, ortho, mapillary), bev/ (lens, projection, ground/contact, variants, mask,

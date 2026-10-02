@@ -31,3 +31,6 @@
 [submodule "third_party/Loc2"]
 	path = third_party/Loc2
 	url = https://github.com/vita-epfl/Loc2.git
+[submodule "third_party/kitscenes"]
+	path = third_party/kitscenes
+	url = https://github.com/KIT-MRT/kitscenes.git

@@ -180,6 +180,68 @@ def test_real_lidar_erp_matches_camera_projection():
     assert np.median(err) < 8.0, np.median(err)               # full-res px; 1 ERP px = ~7 camera px
 
 
+def _xyz(arr):
+    return np.stack([arr[k] for k in "xyz"], 1).astype(np.float64)
+
+
+@needs_scene
+def test_real_lidar_top_is_the_devkits_deskewed_sweep():
+    sc = K.KitScene(SCENE)
+    pts, refl, ring = sc.lidar(50, with_ring=True)
+    sw = sc.loader.get_lidar_sweep("lidar_top", 50)
+    raw, des = _xyz(sw.raw()), _xyz(sw.points)
+    nz = np.abs(raw).sum(1) > 0
+    assert sw.deskewed and np.allclose(pts, des[nz])               # exactly the devkit's default (deskewed) points
+    assert np.linalg.norm(pts - raw[nz], axis=1).max() > 0.1       # ...and the deskew did move points (frame 50: 0.4 m)
+    assert len(pts) == len(refl) == len(ring)
+
+
+@needs_scene
+@pytest.mark.parametrize("frame", [50, 99])
+def test_real_other_lidar_lands_in_the_reference_frame(frame):
+    """lidar_front (non-identity extrinsic) must coincide with lidar_top on the same surfaces, also while the car moves
+    (frame 50: the deskew shifts points by up to 0.4 m, so a front sweep that were not deskewed like the top one, or
+    left in its sensor frame, would be off by that much or by the mounting offset)."""
+    from scipy.spatial import cKDTree
+    sc = K.KitScene(SCENE)
+    assert not np.allclose(K.lidar_extrinsic(SCENE, "lidar_front"), np.eye(4))
+    front, _ = sc.lidar(frame, "lidar_front")
+    top, _ = sc.lidar(frame, "lidar_top")
+    sel = (np.linalg.norm(front, axis=1) > 8) & (np.linalg.norm(front, axis=1) < 30) & (front[:, 0] > 0)
+    d, _ = cKDTree(top).query(front[sel])
+    assert sel.sum() > 1000 and np.median(d) < 0.3, (frame, np.median(d))      # the same walls / ground, two sensors
+    # (the 0.3 m bound catches a sweep left in its sensor frame, median ~0.55 m; it cannot tell a deskewed sweep from a
+    # raw one, 0.085 vs 0.114 m at frame 50, so check the deskew directly)
+    sw = sc.loader.get_lidar_sweep("lidar_front", frame)
+    T = K.lidar_extrinsic(SCENE, "lidar_front")
+    raw = _xyz(sw.raw())
+    raw = raw[np.abs(raw).sum(1) > 0] @ T[:3, :3].T + T[:3, 3]
+    shift = np.linalg.norm(front - raw, axis=1)
+    assert (shift.max() > 0.1) if frame == 50 else (shift.max() < 0.1), (frame, shift.max())
+
+
+@needs_scene
+def test_partial_scene_fails_loudly(tmp_path):
+    """The devkit returns empty arrays for missing files; KitScene must raise instead."""
+    (tmp_path / "calibration").mkdir()
+    (tmp_path / "calibration/calib.json").write_bytes((SCENE / "calibration/calib.json").read_bytes())
+    with pytest.raises(FileNotFoundError, match="timestamp.reference.txt"):
+        K.KitScene(tmp_path)
+    (tmp_path / "timestamp.reference.txt").write_text("0.1\n0.2\n")
+    with pytest.raises(FileNotFoundError, match="poses.txt"):
+        K.KitScene(tmp_path)
+
+
+def test_devkit_env_override_must_be_valid(monkeypatch, tmp_path):
+    monkeypatch.setenv("KITSCENES_DEVKIT_DIR", str(tmp_path))
+    K.devkit.cache_clear()
+    try:
+        with pytest.raises(ImportError, match="KITSCENES_DEVKIT_DIR"):
+            K.devkit()
+    finally:
+        K.devkit.cache_clear()
+
+
 @needs_scene
 def test_real_stitch_covers_ring():
     sc = K.KitScene(SCENE)

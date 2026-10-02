@@ -67,10 +67,14 @@ Parser: `bevloc.data.dur360.read_scan`.
 Gated on HuggingFace: accept the terms with the account whose token you use (`hf auth login` / `HF_TOKEN`), then
 `make kitscenes-fetch` (default: the smallest val scene `142f1419-…`, 1.65 GB, 100 frames at 10 Hz, Frankfurt; `SCENE=`
 `SPLIT=` for others). Scenes are `data/kitscenes/data/<split>/<scene>/`; reader and conventions: `bevloc.data.kitscenes`.
+All file access goes through the KIT-MRT devkit, the `third_party/kitscenes` submodule (Apache-2.0, used unchanged;
+`git submodule update --init third_party/kitscenes`, `$KITSCENES_DEVKIT_DIR` overrides; needs numpy < 2 and Python < 3.13,
+Lanelet2 only for its map API): calibration, images, timestamps, poses and the ego-motion-deskewed `lidar_top` sweeps.
 
 No 360° camera: six undistorted pinhole ring cameras (3504×2272, f ≈ 1843 px, 87°×63°), stitched into an ERP
 panorama (`ErpStitcher`, `make kitscenes-pano`) with the scene's `calibration/calib.json` — covers ±28° of elevation
-(34 % of a 2048×1024 ERP), the rest is invalid. Verified on the scene (tests/test_kitscenes.py, experiments/15_kitscenes):
+(34 % of a 2048×1024 ERP), the rest is invalid. `make kitscenes-pano` writes panoramas / masks / overlays to
+`experiments/15_kitscenes/` (local and gitignored: they are CC BY-NC frames). Verified on the scene (tests/test_kitscenes.py):
 - reference frame = `lidar_top` (identity extrinsic): x forward, y left, z up; camera extrinsics are OpenCV camera → reference;
 - ring yaws +1, +61, +121, −179, −118, −58° (60° apart); all cameras 0.18 m below the LiDAR origin, level;
 - LiDAR depth edges projected into the panorama coincide with colour edges (gradient peak at 0 px on frames 50 and 99);
