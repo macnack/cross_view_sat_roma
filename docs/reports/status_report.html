@@ -113,6 +113,7 @@ a { color: var(--accent); }
 .tip b { font-weight: 600; }
 details.data summary { cursor: pointer; font-size: 13px; color: var(--accent); }
 details.data table { font-size: 13px; margin-top: 6px; }
+.gallery { display: grid; gap: 28px; }
 figure.fig { margin: 0; display: grid; gap: 8px; }
 figure.fig img { display: block; width: 100%; height: auto; border: 1px solid var(--line); border-radius: 6px; background: #000; }
 figure.fig figcaption { font-size: 13.5px; color: var(--muted); max-width: 90ch; }
@@ -123,13 +124,75 @@ figure.fig figcaption b { color: var(--fg); }
 <div class="wrap">
 
 <header>
-  <div class="eyebrow">cross_view_sat_roma · branch task03/eval-density-solver-pf · status 1 Oct 2026</div>
+  <div class="eyebrow">cross_view_sat_roma · branch task03/eval-density-solver-pf · status 2 Oct 2026</div>
   <h1>Camera-only cross-view localisation with the Sat-RoMa matcher: what we built and where it stands</h1>
   <p class="lede">One ground panorama in, a metric position on the satellite tile out. This page collects the VIGOR benchmark campaign (24 Sep – 1 Oct): the method we settled on, now named <b>PanoRoMa</b>, how it differs from FG² and Loc², every result on identical sample draws, the 100-epoch training and regularisation runs, what did not work, and the decisions still open.</p>
   <p class="meta">VIGOR, known orientation. All rows on shared seed-0 draws: 3000 Chicago same-area · 12000 all four cities · 6000 San Francisco + Chicago cross-area. Metric: position error in metres, median with 95 % bootstrap CI, mean, recall ≤ 5 m.</p>
 </header>
 
-<div style="border-left:4px solid var(--bad);background:var(--surface);padding:14px 18px;border-radius:0 6px 6px 0;font-size:15px"><b>Correction, 1 Oct:</b> a bug in our depth script corrupted almost every UniK3D depth map. Every PanoRoMa / Task 04 number on this page (including 1.05 m Chicago and all Poznań PanoRoMa rows) and our Loc² baseline rows used that depth, so they are <b>provisional</b>; the Loc² rows likely understate Loc². FG², the flat-ground (IPM) rows and the relative regularisation findings are not affected. Depth is being regenerated; baselines and PanoRoMa will be rerun and this page updated.</div>
+<div style="border-left:4px solid var(--bad);background:var(--surface);padding:14px 18px;border-radius:0 6px 6px 0;font-size:15px"><b>Correction, 1–2 Oct:</b> a bug in our depth script corrupted almost every UniK3D depth map, so every PanoRoMa and Loc² number in sections 0–9 below that was produced before 1 Oct is <b>superseded</b>. The corrected results are in the section directly below (full Chicago test split, retrained on corrected depth). FG² and the flat-ground rows were never affected.</div>
+
+<section>
+  <h2>Corrected results and where the methods fail</h2>
+  <p>These are the results on <b>corrected depth</b>, on the <b>whole VIGOR same-area test list of Chicago: 12,739 panoramas, no sampling</b>, known orientation. The settings were fixed before this run. PanoRoMa D is the regularised model with both decoders trained for 100 epochs.</p>
+  <div class="box scroll">
+    <table>
+      <thead><tr><th>Method</th><th class="num">Median (95 % CI)</th><th class="num">Mean</th><th class="num">≤ 5 m</th><th class="num">≤ 10 m</th></tr></thead>
+      <tbody>
+        <tr><td>FG²</td><td class="num"><b>1.05 m</b> (1.04–1.06)</td><td class="num"><b>1.87 m</b></td><td class="num"><b>95 %</b></td><td class="num"><b>97 %</b></td></tr>
+        <tr class="ours"><td>PanoRoMa D, two-pass</td><td class="num">1.12 m (1.10–1.13)</td><td class="num">2.44 m</td><td class="num">92 %</td><td class="num">95 %</td></tr>
+        <tr><td>Loc² (corrected depth)</td><td class="num">1.26 m (1.23–1.28)</td><td class="num">3.01 m</td><td class="num">88 %</td><td class="num">93 %</td></tr>
+        <tr><td>PanoRoMa D, first pass only</td><td class="num">1.37 m (1.35–1.39)</td><td class="num">2.66 m</td><td class="num">91 %</td><td class="num">95 %</td></tr>
+      </tbody>
+    </table>
+  </div>
+  <p>PanoRoMa is 0.07 m behind FG² on the median and ahead of Loc² on every measure. The distance to FG² is in the tail: 8.1 % of our frames are off by more than 5 m against 5.3 % for FG². On Poznań street imagery, zero-shot, PanoRoMa D reaches 3.40 m (FG² 4.15 m, Loc² 3.30 m).</p>
+
+  <h3>Which frames each method gets wrong</h3>
+  <div class="box chart" style="padding:16px 18px">
+    <div class="sub">Share of the 12,739 test frames, by whether each method is within 5 m of the label.</div>
+    <div style="display:flex;height:34px;border-radius:4px;overflow:hidden;margin:10px 0 8px;font-size:12.5px;font-weight:600">
+      <div style="flex:90.3;background:var(--line);color:var(--fg);display:flex;align-items:center;padding-left:10px;white-space:nowrap">both within 5 m · 90.3 %</div>
+      <div style="flex:1.6;background:var(--s-fg2)" title="only FG² fails: 1.6 %"></div>
+      <div style="flex:4.5;background:var(--s-ours)" title="only PanoRoMa fails: 4.5 %"></div>
+      <div style="flex:3.6;background:var(--bad)" title="both fail: 3.6 %"></div>
+    </div>
+    <div class="keys"><span><i style="background:var(--s-fg2)"></i>only FG² fails · 1.6 % (208 frames)</span><span><i style="background:var(--s-ours)"></i>only PanoRoMa fails · 4.5 % (570)</span><span><i style="background:var(--bad)"></i>both fail · 3.6 % (461)</span></div>
+  </div>
+  <ul class="plain">
+    <li><b>Most failures are shared.</b> When FG² fails, PanoRoMa also fails 69 % of the time; when PanoRoMa fails, FG² fails 45 %. Both off by more than 10 m on 1.8 % of frames.</li>
+    <li><b>FG² right, PanoRoMa wrong by more than 5 m:</b> 329 frames (2.6 %) that FG² gets within 2 m. Most of the gap in the mean error is here.</li>
+    <li><b>PanoRoMa right, FG² wrong:</b> 83 frames (0.7 %) that PanoRoMa gets within 2 m.</li>
+  </ul>
+  <p class="note">Each figure: the panorama (brightened) with PanoRoMa's depth-placed tokens (filled = RANSAC inlier), and the satellite tile with the true position (green +), PanoRoMa's final answer (red ×) and FG²'s answer (blue ▲). Both methods were re-run on these frames and reproduce the full-split errors exactly. The readings are my own interpretation after looking at each figure.</p>
+
+  <h3>FG² fails, PanoRoMa works</h3>
+  <p>FG² slides along a repetitive straight structure (expressway lanes, a street under leaning towers) or flips to the far side of a roughly symmetric scene. PanoRoMa keeps the position because the tokens placed next to the camera (barriers, lane marks, kerbs) carry the detail.</p>
+  <div class="gallery"><figure class="fig"><img src="../../experiments/16_full_test/failures/fg2_fails/contact_sheet.jpg" alt="Contact sheet: fg2_fails" loading="lazy"><figcaption>All frames of this group at a glance. Green + = true position, red × = PanoRoMa, blue ▲ = FG².</figcaption></figure>
+<figure class="fig"><img src="../../experiments/16_full_test/failures/fg2_fails/01_Chicago_E5-fxqKdtqohJjgBSDBP2A.jpg" alt="<b>1 · Under a highway overpass.</b> PanoRoMa 1.15 m, FG² 34.5 m. The tile shows the deck, not the ground below. FG² jumps to the far side of the expressway, almost point-mirrored through the tile centre." loading="lazy"><figcaption><b>1 · Under a highway overpass.</b> PanoRoMa 1.15 m, FG² 34.5 m. The tile shows the deck, not the ground below. FG² jumps to the far side of the expressway, almost point-mirrored through the tile centre.</figcaption></figure>
+<figure class="fig"><img src="../../experiments/16_full_test/failures/fg2_fails/02_Chicago_jGzQImBrHXF8sUD3WwA0Hw.jpg" alt="<b>2 · Multi-lane expressway.</b> PanoRoMa 0.68 m, FG² 16.6 m. FG² slides 16 m along the road; PanoRoMa's tokens near the camera (lane marks, shoulder) pin the position." loading="lazy"><figcaption><b>2 · Multi-lane expressway.</b> PanoRoMa 0.68 m, FG² 16.6 m. FG² slides 16 m along the road; PanoRoMa's tokens near the camera (lane marks, shoulder) pin the position.</figcaption></figure>
+<figure class="fig"><img src="../../experiments/16_full_test/failures/fg2_fails/03_Chicago_1BXlokrs7aE2xfI1l8CIwQ.jpg" alt="<b>3 · Wacker Drive between glass towers.</b> PanoRoMa 1.51 m, FG² 9.6 m. The tile is off-nadir (towers lean across the road); FG² slides about 9 m along the street." loading="lazy"><figcaption><b>3 · Wacker Drive between glass towers.</b> PanoRoMa 1.51 m, FG² 9.6 m. The tile is off-nadir (towers lean across the road); FG² slides about 9 m along the street.</figcaption></figure>
+<figure class="fig"><img src="../../experiments/16_full_test/failures/fg2_fails/04_Chicago_N5na-NWJTmViOVspOpiDwg.jpg" alt="<b>4 · Parking lot.</b> PanoRoMa 0.98 m, FG² 5.04 m. Only just over the 5 m line; the parked cars differ from the tile. Borderline." loading="lazy"><figcaption><b>4 · Parking lot.</b> PanoRoMa 0.98 m, FG² 5.04 m. Only just over the 5 m line; the parked cars differ from the tile. Borderline.</figcaption></figure></div>
+
+  <h3>PanoRoMa fails, FG² works</h3>
+  <p>In three of four frames the ground near the camera is hidden on the tile or looks the same elsewhere: tree canopy, bridge trusses, a street under leaning roofs. PanoRoMa then locks onto a similar-looking spot, already in the first pass. The bridge frame shows a weakness specific to our method: overhead structure is placed by depth as if it were on the ground.</p>
+  <div class="gallery"><figure class="fig"><img src="../../experiments/16_full_test/failures/pano_fails/contact_sheet.jpg" alt="Contact sheet: pano_fails" loading="lazy"><figcaption>All frames of this group at a glance. Green + = true position, red × = PanoRoMa, blue ▲ = FG².</figcaption></figure>
+<figure class="fig"><img src="../../experiments/16_full_test/failures/pano_fails/01_Chicago_Y9eWNNRHVVleDul0suJTUw.jpg" alt="<b>1 · Park under tree canopy.</b> PanoRoMa 35.5 m, FG² 1.30 m. The canopy hides most paths on the tile; the ground tokens see paved path and lawn that repeat. PanoRoMa locks onto another junction 35 m away, already in the first pass." loading="lazy"><figcaption><b>1 · Park under tree canopy.</b> PanoRoMa 35.5 m, FG² 1.30 m. The canopy hides most paths on the tile; the ground tokens see paved path and lawn that repeat. PanoRoMa locks onto another junction 35 m away, already in the first pass.</figcaption></figure>
+<figure class="fig"><img src="../../experiments/16_full_test/failures/pano_fails/02_Chicago_Gnh-0xvD_DX227ndxKsN4g.jpg" alt="<b>2 · Steel truss bridge deck.</b> PanoRoMa 14.8 m, FG² 1.62 m. Overhead trusses fill the view and are placed by depth as if they lay on the ground; the bridge looks the same along its axis. A PanoRoMa-specific weakness." loading="lazy"><figcaption><b>2 · Steel truss bridge deck.</b> PanoRoMa 14.8 m, FG² 1.62 m. Overhead trusses fill the view and are placed by depth as if they lay on the ground; the bridge looks the same along its axis. A PanoRoMa-specific weakness.</figcaption></figure>
+<figure class="fig"><img src="../../experiments/16_full_test/failures/pano_fails/03_Chicago_KUz__VKFOcVBDm9aY3amKQ.jpg" alt="<b>3 · Street canyon under leaning roofs.</b> PanoRoMa 7.83 m, FG² 1.06 m. The street is hidden under a roof on the off-nadir tile; PanoRoMa slides 8 m along it." loading="lazy"><figcaption><b>3 · Street canyon under leaning roofs.</b> PanoRoMa 7.83 m, FG² 1.06 m. The street is hidden under a roof on the off-nadir tile; PanoRoMa slides 8 m along it.</figcaption></figure>
+<figure class="fig"><img src="../../experiments/16_full_test/failures/pano_fails/04_Chicago_-oxRcnPAwIk7xdTy74oASg.jpg" alt="<b>4 · Plain street by a parking lot.</b> PanoRoMa 5.01 m, FG² 1.11 m. On the threshold; nothing fixes the position along the street. Borderline." loading="lazy"><figcaption><b>4 · Plain street by a parking lot.</b> PanoRoMa 5.01 m, FG² 1.11 m. On the threshold; nothing fixes the position along the street. Borderline.</figcaption></figure></div>
+
+  <h3>Both fail</h3>
+  <p>In five of six frames the two methods, which work very differently, put the camera within 1–4 m of each other and 10–40 m from the label. In three the panorama clearly contradicts the label (a roof, a bridge deck seen from a boat, a raised plaza above the riverwalk). So a good part of the 3.6 % of frames where both fail is probably label or GPS error in VIGOR, not method error. That is my reading of six frames, not a measured rate.</p>
+  <div class="gallery"><figure class="fig"><img src="../../experiments/16_full_test/failures/both_fail/contact_sheet.jpg" alt="Contact sheet: both_fail" loading="lazy"><figcaption>All frames of this group at a glance. Green + = true position, red × = PanoRoMa, blue ▲ = FG².</figcaption></figure>
+<figure class="fig"><img src="../../experiments/16_full_test/failures/both_fail/01_Chicago_wRT0regD2jAHAUDUUs0EgA.jpg" alt="<b>1 · Label looks wrong.</b> PanoRoMa 36.9 m, FG² 38.9 m. The panorama is at an intersection, but the true position sits on a roof 35 m from the only street in the tile. Both methods agree within 2 m on that street." loading="lazy"><figcaption><b>1 · Label looks wrong.</b> PanoRoMa 36.9 m, FG² 38.9 m. The panorama is at an intersection, but the true position sits on a roof 35 m from the only street in the tile. Both methods agree within 2 m on that street.</figcaption></figure>
+<figure class="fig"><img src="../../experiments/16_full_test/failures/both_fail/02_Chicago_-xqRG7MYYMOGiITk7fGnxQ.jpg" alt="<b>2 · Street canyon.</b> PanoRoMa 20.8 m, FG² 19.4 m. Both predict the same point 20 m west; canyons repeat and the lean of the buildings hides the street. Could also be a label offset. Unclear." loading="lazy"><figcaption><b>2 · Street canyon.</b> PanoRoMa 20.8 m, FG² 19.4 m. Both predict the same point 20 m west; canyons repeat and the lean of the buildings hides the street. Could also be a label offset. Unclear.</figcaption></figure>
+<figure class="fig"><img src="../../experiments/16_full_test/failures/both_fail/03_Chicago_uk0RPFvOq6Os72VsDw_3yQ.jpg" alt="<b>3 · Corner by a glass tower.</b> PanoRoMa 14.3 m, FG² 13.5 m. The true position is in deep shadow under canopy; both agree on the open road 13 m east. Unclear." loading="lazy"><figcaption><b>3 · Corner by a glass tower.</b> PanoRoMa 14.3 m, FG² 13.5 m. The true position is in deep shadow under canopy; both agree on the open road 13 m east. Unclear.</figcaption></figure>
+<figure class="fig"><img src="../../experiments/16_full_test/failures/both_fail/04_Chicago_S5JUAgiweJNt_27KOrKApQ.jpg" alt="<b>4 · Photographed from a boat.</b> PanoRoMa 12.4 m, FG² 10.0 m. The panorama is on the river, the label is on the bridge deck; both predict open water, which fits the panorama better. Label error, most likely." loading="lazy"><figcaption><b>4 · Photographed from a boat.</b> PanoRoMa 12.4 m, FG² 10.0 m. The panorama is on the river, the label is on the bridge deck; both predict open water, which fits the panorama better. Label error, most likely.</figcaption></figure>
+<figure class="fig"><img src="../../experiments/16_full_test/failures/both_fail/05_Chicago_ZJZp4VCr5oxlMT2WzfRqkw.jpg" alt="<b>5 · Expressway with an overpass.</b> PanoRoMa 36.8 m, FG² 36.6 m. Both land on the same spot 37 m along the highway (PanoRoMa's second pass was gated off). A real cue (sign gantry) or a label offset. Unclear." loading="lazy"><figcaption><b>5 · Expressway with an overpass.</b> PanoRoMa 36.8 m, FG² 36.6 m. Both land on the same spot 37 m along the highway (PanoRoMa's second pass was gated off). A real cue (sign gantry) or a label offset. Unclear.</figcaption></figure>
+<figure class="fig"><img src="../../experiments/16_full_test/failures/both_fail/06_Chicago_NEERhpUONAYHhrPYNHUDMw.jpg" alt="<b>6 · Riverwalk below a plaza.</b> PanoRoMa 36.3 m, FG² 40.5 m. The label is on a raised plaza at street level; the panorama was taken on the lower riverwalk, which is where both put the camera. Most likely a label error." loading="lazy"><figcaption><b>6 · Riverwalk below a plaza.</b> PanoRoMa 36.3 m, FG² 40.5 m. The label is on a raised plaza at street level; the panorama was taken on the lower riverwalk, which is where both put the camera. Most likely a label error.</figcaption></figure></div>
+</section>
+
 <section>
   <h2>Headline</h2>
   <div class="kpis">
