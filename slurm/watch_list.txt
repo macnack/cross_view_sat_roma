@@ -164,3 +164,7 @@
 8888246 full_pano_D ^(all +n|fine_gated median|wrote|Traceback|.*Error|\[run\] exit)
 8888247 full_fg2 ^([A-Za-z]+ +n +[0-9]+|wrote|Traceback|.*Error|\[run\] exit)
 8888248 full_loc2 ^([A-Za-z]+ +n +[0-9]+|wrote|Traceback|.*Error|\[run\] exit)
+# --- full Chicago test on SliceMatch-corrected labels (root vigor_corrected) ---
+8890915 cl_pano_D ^(all +n|fine_gated median|wrote|Traceback|.*Error|\[run\] exit)
+8890919 cl_fg2 ^([A-Za-z]+ +n +[0-9]+|wrote|Traceback|.*Error|\[run\] exit)
+8890920 cl_loc2 ^([A-Za-z]+ +n +[0-9]+|wrote|Traceback|.*Error|\[run\] exit)
