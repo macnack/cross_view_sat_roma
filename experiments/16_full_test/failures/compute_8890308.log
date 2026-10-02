@@ -1,0 +1,80 @@
+[run] host=gpu17 date=2026-10-02T21:53:47+02:00 CMD=scripts/viz_failure_cases.py --config configs/vigor_cell0125.yaml --ids-json experiments/16_full_test/failures/fail_cases.json --extra-both 2 --stage compute
+  fg2_fails  E5-fxqKdtqohJjgBSDBP2A,41.876583,-87.645 PanoRoMa   1.15 m  FG²  34.50 m
+  fg2_fails  jGzQImBrHXF8sUD3WwA0Hw,41.875792,-87.652 PanoRoMa   0.68 m  FG²  16.61 m
+  fg2_fails  1BXlokrs7aE2xfI1l8CIwQ,41.886555,-87.636 PanoRoMa   1.51 m  FG²   9.61 m
+  fg2_fails  N5na-NWJTmViOVspOpiDwg,41.854732,-87.631 PanoRoMa   0.98 m  FG²   5.04 m
+  pano_fails Y9eWNNRHVVleDul0suJTUw,41.881828,-87.618 PanoRoMa  35.50 m  FG²   1.30 m
+  pano_fails Gnh-0xvD_DX227ndxKsN4g,41.887526,-87.633 PanoRoMa  14.76 m  FG²   1.62 m
+  pano_fails KUz__VKFOcVBDm9aY3amKQ,41.883228,-87.632 PanoRoMa   7.83 m  FG²   1.06 m
+  pano_fails -oxRcnPAwIk7xdTy74oASg,41.890443,-87.625 PanoRoMa   5.01 m  FG²   1.11 m
+  both_fail  wRT0regD2jAHAUDUUs0EgA,41.892250,-87.626 PanoRoMa  36.87 m  FG²  38.89 m
+  both_fail  -xqRG7MYYMOGiITk7fGnxQ,41.879429,-87.630 PanoRoMa  20.78 m  FG²  19.39 m
+  both_fail  uk0RPFvOq6Os72VsDw_3yQ,41.889749,-87.619 PanoRoMa  14.29 m  FG²  13.47 m
+  both_fail  S5JUAgiweJNt_27KOrKApQ,41.889139,-87.639 PanoRoMa  12.39 m  FG²  10.00 m
+  both_fail  ZJZp4VCr5oxlMT2WzfRqkw,41.890917,-87.650 PanoRoMa  36.83 m  FG²  36.58 m
+  both_fail  NEERhpUONAYHhrPYNHUDMw,41.889589,-87.621 PanoRoMa  36.33 m  FG²  40.46 m
+Using Dinov3 as Sat Encoder, model: vit_large_patch16_dinov3.sat493m
+Using Dinov3 as Sat Encoder, model: vit_large_patch16_dinov3.sat493m
+fine pass: checkpoints/vigor_v2_reg_D_fine_e100_last.pt (mode erp_depth, step 131500), cell 0.0625 m, window 56.0 m, gate 6.0 m, solver se2
+  Chicago/E5-fxqKdtqohJjgBSDBP2A,41.876583,-87.645192,.jpg  p52  coarse 2.04 m (json 2.04)  final 1.15 m (json 1.15)  fallback False
+  Chicago/jGzQImBrHXF8sUD3WwA0Hw,41.875792,-87.652998,.jpg  p26  coarse 3.26 m (json 3.26)  final 0.68 m (json 0.68)  fallback False
+  Chicago/1BXlokrs7aE2xfI1l8CIwQ,41.886555,-87.636026,.jpg  p66  coarse 2.19 m (json 2.19)  final 1.51 m (json 1.51)  fallback False
+  Chicago/N5na-NWJTmViOVspOpiDwg,41.854732,-87.631831,.jpg  p43  coarse 0.07 m (json 0.07)  final 0.98 m (json 0.98)  fallback False
+  Chicago/Y9eWNNRHVVleDul0suJTUw,41.881828,-87.618107,.jpg  p100  coarse 34.18 m (json 34.18)  final 35.50 m (json 35.50)  fallback False
+  Chicago/Gnh-0xvD_DX227ndxKsN4g,41.887526,-87.633975,.jpg  p97  coarse 11.62 m (json 11.62)  final 14.76 m (json 14.76)  fallback False
+  Chicago/KUz__VKFOcVBDm9aY3amKQ,41.883228,-87.632886,.jpg  p94  coarse 7.48 m (json 7.48)  final 7.83 m (json 7.83)  fallback False
+  Chicago/-oxRcnPAwIk7xdTy74oASg,41.890443,-87.625332,.jpg  p92  coarse 3.39 m (json 3.39)  final 5.01 m (json 5.01)  fallback False
+  Chicago/wRT0regD2jAHAUDUUs0EgA,41.892250,-87.626018,.jpg  p100  coarse 34.75 m (json 34.75)  final 36.87 m (json 36.87)  fallback False
+  Chicago/-xqRG7MYYMOGiITk7fGnxQ,41.879429,-87.630802,.jpg  p98  coarse 20.06 m (json 20.06)  final 20.78 m (json 20.78)  fallback False
+  Chicago/uk0RPFvOq6Os72VsDw_3yQ,41.889749,-87.619736,.jpg  p97  coarse 12.56 m (json 12.56)  final 14.29 m (json 14.29)  fallback False
+  Chicago/S5JUAgiweJNt_27KOrKApQ,41.889139,-87.639496,.jpg  p96  coarse 11.84 m (json 11.84)  final 12.39 m (json 12.39)  fallback False
+  Chicago/ZJZp4VCr5oxlMT2WzfRqkw,41.890917,-87.650826,.jpg  p100  coarse 36.83 m (json 36.83)  final 36.83 m (json 36.83)  fallback True
+  Chicago/NEERhpUONAYHhrPYNHUDMw,41.889589,-87.621815,.jpg  p100  coarse 33.89 m (json 33.89)  final 36.33 m (json 36.33)  fallback False
+  PanoRoMa Chicago/E5-fxqKdtqohJjgBSDBP2A,41.876583  recomputed 1.1546 m  json 1.1546 m  |d| 0.00e+00
+  PanoRoMa Chicago/jGzQImBrHXF8sUD3WwA0Hw,41.875792  recomputed 0.6774 m  json 0.6774 m  |d| 0.00e+00
+  PanoRoMa Chicago/1BXlokrs7aE2xfI1l8CIwQ,41.886555  recomputed 1.5081 m  json 1.5081 m  |d| 0.00e+00
+  PanoRoMa Chicago/N5na-NWJTmViOVspOpiDwg,41.854732  recomputed 0.9811 m  json 0.9811 m  |d| 0.00e+00
+  PanoRoMa Chicago/Y9eWNNRHVVleDul0suJTUw,41.881828  recomputed 35.5041 m  json 35.5041 m  |d| 0.00e+00
+  PanoRoMa Chicago/Gnh-0xvD_DX227ndxKsN4g,41.887526  recomputed 14.7621 m  json 14.7621 m  |d| 0.00e+00
+  PanoRoMa Chicago/KUz__VKFOcVBDm9aY3amKQ,41.883228  recomputed 7.8327 m  json 7.8327 m  |d| 0.00e+00
+  PanoRoMa Chicago/-oxRcnPAwIk7xdTy74oASg,41.890443  recomputed 5.0079 m  json 5.0079 m  |d| 0.00e+00
+  PanoRoMa Chicago/wRT0regD2jAHAUDUUs0EgA,41.892250  recomputed 36.8681 m  json 36.8681 m  |d| 0.00e+00
+  PanoRoMa Chicago/-xqRG7MYYMOGiITk7fGnxQ,41.879429  recomputed 20.7775 m  json 20.7775 m  |d| 0.00e+00
+  PanoRoMa Chicago/uk0RPFvOq6Os72VsDw_3yQ,41.889749  recomputed 14.2867 m  json 14.2867 m  |d| 0.00e+00
+  PanoRoMa Chicago/S5JUAgiweJNt_27KOrKApQ,41.889139  recomputed 12.3904 m  json 12.3904 m  |d| 0.00e+00
+  PanoRoMa Chicago/ZJZp4VCr5oxlMT2WzfRqkw,41.890917  recomputed 36.8281 m  json 36.8281 m  |d| 0.00e+00
+  PanoRoMa Chicago/NEERhpUONAYHhrPYNHUDMw,41.889589  recomputed 36.3344 m  json 36.3344 m  |d| 0.00e+00
+Loaded /mnt/storage_6/project_data/pl1269-01/krupka_maciej/vigor/splits/splits/Chicago/satellite_list.txt, 22308 entries
+Loaded /mnt/storage_6/project_data/pl1269-01/krupka_maciej/vigor/splits/splits/Chicago/same_area_balanced_test.txt, 12739 entries
+xFormers not available
+xFormers not available
+FG² batch 0: 24/24 frames match the csv (max |d| 2.71e-07 m); CUDA offset per batch 13292
+FG² batch 89: 24/24 frames match the csv (max |d| 2.65e-07 m)
+  FG² Chicago/NEERhpUONAYHhrPYNHUDMw,41.889589  recomputed 40.4605 m  csv 40.4605 m  pred EN (-5.76, -18.94)  GT FG² (16.91, 14.58) ours (16.91, 14.58)
+FG² batch 92: 24/24 frames match the csv (max |d| 1.54e-07 m)
+  FG² Chicago/KUz__VKFOcVBDm9aY3amKQ,41.883228  recomputed 1.0564 m  csv 1.0564 m  pred EN (13.20, 0.05)  GT FG² (12.35, 0.67) ours (12.35, 0.67)
+FG² batch 105: 24/24 frames match the csv (max |d| 1.20e-06 m)
+  FG² Chicago/ZJZp4VCr5oxlMT2WzfRqkw,41.890917  recomputed 36.5753 m  csv 36.5753 m  pred EN (14.12, -8.16)  GT FG² (-13.13, 16.24) ours (-13.13, 16.24)
+FG² batch 235: 24/24 frames match the csv (max |d| 1.53e-06 m)
+  FG² Chicago/jGzQImBrHXF8sUD3WwA0Hw,41.875792  recomputed 16.6086 m  csv 16.6086 m  pred EN (5.71, 15.84)  GT FG² (-10.57, 12.57) ours (-10.57, 12.57)
+FG² batch 245: 24/24 frames match the csv (max |d| 1.88e-06 m)
+  FG² Chicago/-xqRG7MYYMOGiITk7fGnxQ,41.879429  recomputed 19.3891 m  csv 19.3891 m  pred EN (-16.60, 15.18)  GT FG² (2.78, 15.69) ours (2.78, 15.69)
+FG² batch 249: 24/24 frames match the csv (max |d| 1.64e-07 m)
+  FG² Chicago/-oxRcnPAwIk7xdTy74oASg,41.890443  recomputed 1.1150 m  csv 1.1150 m  pred EN (17.50, 1.56)  GT FG² (17.47, 0.45) ours (17.47, 0.45)
+FG² batch 282: 24/24 frames match the csv (max |d| 2.83e-07 m)
+  FG² Chicago/Gnh-0xvD_DX227ndxKsN4g,41.887526  recomputed 1.6215 m  csv 1.6215 m  pred EN (-5.52, 5.45)  GT FG² (-4.34, 4.34) ours (-4.34, 4.34)
+FG² batch 312: 24/24 frames match the csv (max |d| 5.41e-07 m)
+  FG² Chicago/N5na-NWJTmViOVspOpiDwg,41.854732  recomputed 5.0411 m  csv 5.0411 m  pred EN (-11.37, 1.27)  GT FG² (-9.12, 5.79) ours (-9.12, 5.79)
+FG² batch 346: 24/24 frames match the csv (max |d| 1.29e-06 m)
+  FG² Chicago/S5JUAgiweJNt_27KOrKApQ,41.889139  recomputed 10.0048 m  csv 10.0048 m  pred EN (8.33, 10.55)  GT FG² (12.24, 1.34) ours (12.24, 1.34)
+FG² batch 384: 24/24 frames match the csv (max |d| 4.13e-07 m)
+  FG² Chicago/1BXlokrs7aE2xfI1l8CIwQ,41.886555  recomputed 9.6065 m  csv 9.6065 m  pred EN (1.11, -1.12)  GT FG² (7.79, 5.79) ours (7.79, 5.79)
+FG² batch 399: 24/24 frames match the csv (max |d| 1.27e-06 m)
+  FG² Chicago/uk0RPFvOq6Os72VsDw_3yQ,41.889749  recomputed 13.4697 m  csv 13.4697 m  pred EN (20.26, -1.84)  GT FG² (6.90, -3.56) ours (6.90, -3.56)
+FG² batch 415: 24/24 frames match the csv (max |d| 4.07e-06 m)
+  FG² Chicago/E5-fxqKdtqohJjgBSDBP2A,41.876583  recomputed 34.4998 m  csv 34.4998 m  pred EN (-14.95, 9.24)  GT FG² (14.80, -8.23) ours (14.80, -8.23)
+FG² batch 489: 24/24 frames match the csv (max |d| 1.15e-06 m)
+  FG² Chicago/wRT0regD2jAHAUDUUs0EgA,41.892250  recomputed 38.8883 m  csv 38.8883 m  pred EN (13.07, 18.73)  GT FG² (-2.23, -17.02) ours (-2.23, -17.02)
+FG² batch 514: 24/24 frames match the csv (max |d| 3.50e-07 m)
+  FG² Chicago/Y9eWNNRHVVleDul0suJTUw,41.881828  recomputed 1.2952 m  csv 1.2952 m  pred EN (-4.64, -9.65)  GT FG² (-3.78, -8.68) ours (-3.78, -8.68)
+[run] exit=0 date=2026-10-02T21:58:28+02:00
