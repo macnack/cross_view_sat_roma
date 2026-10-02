@@ -2,6 +2,7 @@
 from __future__ import annotations
 
 import json
+import os
 from pathlib import Path
 
 import cv2
@@ -12,10 +13,39 @@ from pyproj import Geod, Transformer
 from rasterio.windows import Window
 from torch.utils.data import Dataset
 
+from bevloc.bev.ipm_sphere import (
+    above_contact_mask, contact_feet, depression_mask, ipm_erp, mosaic_ipm, paint_feet,
+)
 from bevloc.data.ortho import Oriented, gt_homography, sample_negative_reference, sample_reference
 
 CS92 = "EPSG:2180"
 _TO_CS92 = Transformer.from_crs("EPSG:4326", CS92, always_xy=True)
+
+
+def sat_data_root() -> Path:
+    """Root of the geoportal / lantmäteriet tile folders.
+
+    Overridable with SAT_DATA_DIR for Eagle, where $HOME is not mounted on compute nodes."""
+    return Path(os.environ.get("SAT_DATA_DIR", str(Path.home() / "Github/sat_data")))
+
+
+def poznan_tiles(year: int) -> list[Path]:
+    paths = sorted(sat_data_root().glob(f"geoportal_poznan_15km2_*/year_{int(year)}.tif"))
+    if len(paths) < 9:
+        raise FileNotFoundError(
+            f"expected >= 9 Poznań tiles for {year} under {sat_data_root()}, found {len(paths)}")
+    return paths
+
+
+MAP_ROOT = Path(__file__).resolve().parents[3] / "data/mapillary"
+TRAIN_SEQS = [
+    MAP_ROOT / "Fixtor/iHfmEq03Tc6752Y4Ke8wlC",
+    MAP_ROOT / "Fixtor/NWVA14Y83pMRsijaGFkmQS",
+    MAP_ROOT / "Fixtor/gXabFhpwk2dcl0i4518mDQ",
+    MAP_ROOT / "Fixtor/doQ3OhJBKe56c8UxjAFmat",
+]
+VAL_SEQS = [MAP_ROOT / "Fixtor/IcRzj0wTLZX874qitxVsQa"]          # checkpoint selection, dev numbers
+TEST_SEQS = [MAP_ROOT / "Fixtor/irAsBUKtGCfhPHuMbmOcLd"]         # reserved: never trained on, never selected on
 
 
 def rodrigues(r):
@@ -207,16 +237,84 @@ class MapillaryPairs(Dataset):
                 uniq.append(j)
         return uniq
 
-    def _load_erp_R_pose(self, fr, rng):
+    def _load_erp_R_pose(self, fr, rng, full=False):
+        """Resized, jittered ERP (+ the full-resolution one when ``full``), R_w2c, up-bearing, EN."""
         path = Path(fr["_seq"]) / "images" / f"{fr['id']}.jpg"
-        erp = cv2.cvtColor(cv2.imread(str(path)), cv2.COLOR_BGR2RGB)
-        erp = cv2.resize(erp, (self.erp_w, self.erp_h), interpolation=cv2.INTER_AREA)
+        erp_full = cv2.cvtColor(cv2.imread(str(path)), cv2.COLOR_BGR2RGB)
+        erp = cv2.resize(erp_full, (self.erp_w, self.erp_h), interpolation=cv2.INTER_AREA)
         R = rodrigues(fr["computed_rotation"]).astype(np.float32)
         lon, lat = fr["computed_geometry"]["coordinates"]
         up, en = grid_bearing(lon, lat, fr["computed_compass_angle"])
         R = self._attitude_noise(R, rng)
         erp = self._colour_jitter(erp, rng)
+        if full:
+            return erp, R, up, en, erp_full
         return erp, R, up, en
+
+    def _query_mode(self):
+        L = getattr(self.cfg, "lift", None)
+        return str(getattr(L, "query_mode", "lift") or "lift") if L else "lift"
+
+    # Cityscapes train ids (scripts/semantic_precompute.py)
+    _DYNAMIC_IDS = (11, 12, 13, 14, 15, 16, 17, 18)          # person, rider, car, truck, bus, train, motorcycle, bicycle
+    _GROUND_IDS = (0, 1, 8, 9)                                # road, sidewalk, vegetation, terrain
+
+    def _semantic(self, fr, erp_hw):
+        """Precomputed SegFormer class map (H, W) uint8 resized to erp_hw, or None if absent."""
+        p = Path(fr["_seq"]) / "semantic" / f"{fr['id']}.png"
+        if not p.exists():
+            return None
+        sem = cv2.imread(str(p), cv2.IMREAD_UNCHANGED)
+        if sem is None:
+            return None
+        if sem.shape[:2] != tuple(erp_hw):
+            sem = cv2.resize(sem, (erp_hw[1], erp_hw[0]), interpolation=cv2.INTER_NEAREST)
+        return sem
+
+    def _erp_valid(self, fr, erp_hw):
+        """(H, W) bool validity of the panorama for the IPM picture: ego-body cut by depression angle,
+        plus dynamic-object (and optionally non-ground) pixels masked when a precomputed semantic map
+        exists at <seq>/semantic/<id>.png (scripts/semantic_precompute.py)."""
+        ipm = self.cfg.ipm
+        dep = float(getattr(ipm, "max_depression_deg", 0.0) or 0.0)
+        valid = depression_mask(erp_hw, dep) if dep > 0 else np.ones(erp_hw, bool)
+        use_dyn = bool(getattr(ipm, "semantic_dynamic_mask", False))
+        ground_only = bool(getattr(ipm, "semantic_ground_only", False))
+        contact = bool(getattr(ipm, "contact_line", False))
+        if use_dyn or ground_only or contact:
+            sem = self._semantic(fr, erp_hw)
+            if sem is not None:
+                if use_dyn:
+                    valid &= ~np.isin(sem, self._DYNAMIC_IDS)
+                if ground_only:
+                    valid &= np.isin(sem, self._GROUND_IDS)
+                if contact:
+                    # ipm_cl: no IPM at or above the wall/hedge contact row (no radial facade smear);
+                    # the feet are painted afterwards by _paint_contact
+                    classes = tuple(int(c) for c in getattr(ipm, "contact_classes", (2, 3, 4)))
+                    if bool(getattr(ipm, "contact_vegetation", False)):
+                        classes = classes + (8,)
+                    valid &= above_contact_mask(sem, classes, erp_hw)
+        return valid
+
+    def _paint_contact(self, fr, erp_full, R, bev, bev_valid):
+        """ipm_cl: draw the wall (and hedge) feet of this frame into its IPM picture, in place."""
+        ipm = self.cfg.ipm
+        if not bool(getattr(ipm, "contact_line", False)):
+            return bev, bev_valid
+        sem = self._semantic(fr, erp_full.shape[:2])
+        if sem is None:
+            return bev, bev_valid
+        g = self.cfg.grid
+        classes = [tuple(int(c) for c in getattr(ipm, "contact_classes", (2, 3, 4)))]
+        if bool(getattr(ipm, "contact_vegetation", False)):
+            classes.append((8,))
+        thick = int(getattr(ipm, "contact_thickness_px", 2))
+        rng_max = float(getattr(getattr(self.cfg, "erp_query", None), "max_range_m", 40.0)) if getattr(self.cfg, "erp_query", None) else 40.0
+        for ids in classes:
+            feet = contact_feet(sem, erp_full, ids, R, ipm.height_m, g.n, g.cell_m, max_range_m=rng_max)
+            paint_feet(bev, bev_valid, feet, g.n, g.cell_m, thickness=thick)
+        return bev, bev_valid
 
     def _pose_budget(self, rng):
         L = getattr(self.cfg, "lift", None)
@@ -257,11 +355,15 @@ class MapillaryPairs(Dataset):
         dR = np.eye(3) + np.sin(ang) * K + (1 - np.cos(ang)) * (K @ K)
         return (dR.astype(np.float32) @ R)
 
+    def _up_of(self, fr):
+        lon, lat = fr["computed_geometry"]["coordinates"]
+        return grid_bearing(lon, lat, fr["computed_compass_angle"])[0]
+
     def _one(self, i):
         fr = self.frames[i]
         rng = (self.rng if self.train
                else np.random.default_rng([self.cfg.matcher.seed, int(fr["id"]) % (2**32)]))
-        erp_q, R_q, up_q, en_q = self._load_erp_R_pose(fr, rng)
+        erp_q, R_q, up_q, en_q, erp_full = self._load_erp_R_pose(fr, rng, full=True)
         g = self.cfg.grid
         query = Oriented(en_q, up_q, g.n, g.cell_m)
         year = int(rng.choice(self.years)) if self.train else int(self.years[0])
@@ -275,6 +377,22 @@ class MapillaryPairs(Dataset):
                                              max_rot_deg=rot)
         else:
             ref_o = sample_reference(query, rng, scale=scale, max_offset_frac=off, max_rot_deg=rot)
+        return self._build(i, ref_o, year, rng, negative=negative, scale=scale,
+                           loaded=(erp_q, R_q, up_q, en_q, erp_full))
+
+    def sample_for(self, frame_id, ref_o, year):
+        """Deterministic sample for one frame with a GIVEN reference crop (manifest evaluation)."""
+        i = next(k for k, fr in enumerate(self.frames) if str(fr["id"]) == str(frame_id))
+        rng = np.random.default_rng([self.cfg.matcher.seed, int(frame_id) % (2**32)])
+        return self._build(i, ref_o, int(year), rng, negative=False,
+                           scale=int(ref_o.size // self.cfg.grid.n))
+
+    def _build(self, i, ref_o, year, rng, negative=False, scale=4, loaded=None):
+        fr = self.frames[i]
+        erp_q, R_q, up_q, en_q, erp_full = (loaded if loaded is not None
+                                             else self._load_erp_R_pose(fr, rng, full=True))
+        g = self.cfg.grid
+        query = Oriented(en_q, up_q, g.n, g.cell_m)
         ref, valid = self.ortho[year].render(ref_o)
         if float(valid.mean()) < 0.5 or float((ref.sum(-1) > 0).mean()) < 0.5:
             raise RuntimeError(f"black / missing reference for {fr['id']} year {year} at {en_q}")
@@ -284,9 +402,13 @@ class MapillaryPairs(Dataset):
         # Multi-frame: query + frames ~seq_dists metres behind
         neigh = self._neighbor_indices(i)
         erps, Rs, se2s = [], [], []
+        fulls = {}                                   # neighbour full-res ERPs, decoded once (IPM mosaic)
+        want_full = self._query_mode() == "ipm"
         for j in neigh:
             if j == i:
                 erp, R, up, en = erp_q, R_q, up_q, en_q
+            elif want_full:
+                erp, R, up, en, fulls[j] = self._load_erp_R_pose(self.frames[j], rng, full=True)
             else:
                 erp, R, up, en = self._load_erp_R_pose(self.frames[j], rng)
             yaw, tx, ty = src_in_query_se2(en_q, up_q, en, up)
@@ -294,7 +416,7 @@ class MapillaryPairs(Dataset):
             Rs.append(torch.from_numpy(R))
             se2s.append(torch.tensor([yaw, tx, ty], dtype=torch.float32))
 
-        return dict(
+        out = dict(
             id=fr["id"],
             year=year,
             scale=scale,
@@ -306,6 +428,31 @@ class MapillaryPairs(Dataset):
             H=torch.from_numpy(H),
             en=torch.tensor(en_q, dtype=torch.float64),
         )
+        if self._query_mode() == "ipm":
+            # Camera-only flat-ground picture of the QUERY frame at full ERP resolution
+            # (kick-off H2 lower bound): the decoder sees it through the frozen encoder.
+            ipm = self.cfg.ipm
+            bev, bev_valid = ipm_erp(erp_full, R_q, ipm.height_m, g.n, g.cell_m, ipm.blind_radius_m,
+                                     erp_valid=self._erp_valid(fr, erp_full.shape[:2]))
+            if len(neigh) > 1:
+                # Multi-frame IPM mosaic: the neighbours' pictures warped by the proxy relative pose,
+                # nearest camera wins per cell (the query keeps everything it sees close by).
+                pics, vals, poses = [bev], [bev_valid], [(0.0, 0.0, 0.0)]
+                for j, R_j, se2 in zip(neigh, Rs, se2s):
+                    if j == i:
+                        continue
+                    full_j = fulls[j]                                    # same decode and same R as the ERP stack
+                    pic_j, val_j = ipm_erp(full_j, R_j.numpy(), ipm.height_m, g.n, g.cell_m, ipm.blind_radius_m,
+                                           erp_valid=self._erp_valid(self.frames[j], full_j.shape[:2]))
+                    pics.append(pic_j)
+                    vals.append(val_j)
+                    poses.append(tuple(float(v) for v in se2.tolist()))
+                bev, bev_valid = mosaic_ipm(pics, vals, poses, g.n, g.cell_m)
+            bev, bev_valid = self._paint_contact(fr, erp_full, R_q, bev, bev_valid)   # ipm_cl (off by default)
+            bev = self._colour_jitter(bev, rng)
+            out["bev"] = torch.from_numpy(np.ascontiguousarray(bev)).permute(2, 0, 1).float().div(255.0)
+            out["bev_valid"] = torch.from_numpy(bev_valid)
+        return out
 
     def __getitem__(self, i):
         last = None
@@ -335,6 +482,9 @@ def collate(batch):
         "H": torch.stack([b["H"] for b in batch]),
         "en": torch.stack([b["en"] for b in batch]),
     }
+    if "bev" in batch[0]:
+        out["bev"] = torch.stack([b["bev"] for b in batch])
+        out["bev_valid"] = torch.stack([b["bev_valid"] for b in batch])
     out["id"] = [b["id"] for b in batch]
     out["year"] = [b["year"] for b in batch]
     out["scale"] = [b["scale"] for b in batch]

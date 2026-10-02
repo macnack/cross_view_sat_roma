@@ -12,7 +12,8 @@ import torch.nn as nn
 import torch.nn.functional as F
 
 
-def coarse_targets(H, patch_valid, ref_valid=None, query_size=224, ref_size=896, patch=16, cells=56):
+def coarse_targets(H, patch_valid, ref_valid=None, query_size=224, ref_size=896, patch=16, cells=56,
+                   query_xy=None):
     """GT reference cell of every query patch centre.
 
     H: (B, 3, 3) query px -> reference px. patch_valid: (B, h, w) bool.
@@ -27,9 +28,15 @@ def coarse_targets(H, patch_valid, ref_valid=None, query_size=224, ref_size=896,
     (if ref_valid given) target real reference content.
     """
     B, h, w = patch_valid.shape
-    c = (torch.arange(h, device=H.device, dtype=H.dtype) + 0.5) * patch - 0.5        # patch-centre pixels
-    v, u = torch.meshgrid(c, c, indexing="ij")
-    p = torch.stack([u, v, torch.ones_like(u)], -1).reshape(1, -1, 3) @ H.transpose(1, 2)
+    if query_xy is not None:
+        # placed query points (B, h, w, 2) in query pixels, e.g. ERP tokens placed on the virtual BEV
+        uv = query_xy.to(H.dtype).reshape(B, -1, 2)
+        p = torch.cat([uv, torch.ones_like(uv[..., :1])], -1) @ H.transpose(1, 2)
+    else:
+        cy = (torch.arange(h, device=H.device, dtype=H.dtype) + 0.5) * patch - 0.5    # patch-centre pixels
+        cx = (torch.arange(w, device=H.device, dtype=H.dtype) + 0.5) * patch - 0.5
+        v, u = torch.meshgrid(cy, cx, indexing="ij")
+        p = torch.stack([u, v, torch.ones_like(u)], -1).reshape(1, -1, 3) @ H.transpose(1, 2)
     xy = p[..., :2] / p[..., 2:3]
     s = ref_size / cells
     col, row = torch.floor((xy[..., 0] + 0.5) / s).long(), torch.floor((xy[..., 1] + 0.5) / s).long()
@@ -88,13 +95,34 @@ def neighbour_hinge(logits, tgt, radius, margin=1.0):
     return torch.cat(terms, 1).mean()
 
 
+def vote_heatmap(gm_cls, gm_certainty=None, matchable=None):
+    """Certainty-weighted soft vote of all query patches: (B, K, K) log-probabilities over the
+    reference grid. This is the quantity RANSAC ultimately votes for and the observation a
+    particle filter reads (bevloc.track)."""
+    B, K2, h, w = gm_cls.shape
+    k = int(round(K2 ** 0.5))
+    if k * k != K2:
+        raise ValueError(f"gm_cls channels {K2} not a square")
+    log_p = F.log_softmax(gm_cls.float().permute(0, 2, 3, 1), dim=-1)      # (B, h, w, K2)
+    if gm_certainty is not None:
+        c = gm_certainty[:, 0] if gm_certainty.ndim == 4 else gm_certainty
+        weight = torch.sigmoid(c.float())
+    else:
+        weight = gm_cls.new_ones(B, h, w, dtype=torch.float32)
+    if matchable is not None:
+        weight = weight * matchable.float()
+    wsum = weight.reshape(B, -1).sum(-1).clamp_min(1e-6)
+    heat = (log_p * weight[..., None]).reshape(B, -1, K2).sum(1) / wsum[:, None]
+    return F.log_softmax(heat, dim=-1).reshape(B, k, k)
+
+
 def pose_heatmap_nll(gm_cls, H, matchable=None, gm_certainty=None, local_radius=6,
                      query_size=224, patch=16, ref_size=896):
     """OrienterNet-style NLL of the GT vehicle cell under a soft pose heatmap.
 
     Sat-RoMa's ``gm_cls`` is per-patch over a fixed K×K reference grid (K=56). We
-    certainty-weight the per-patch softmaxes into one (B, K, K) heatmap, optionally
-    window it around the GT centre cell, and take −log p(GT). This trains the
+    certainty-weight the per-patch softmaxes into one (B, K, K) heatmap (``vote_heatmap``),
+    optionally window it around the GT centre cell, and take −log p(GT). This trains the
     quantity RANSAC ultimately votes for, not each patch in isolation.
 
     Returns (nll scalar, stats dict). Empty / no-match batches return 0 loss.
@@ -103,23 +131,6 @@ def pose_heatmap_nll(gm_cls, H, matchable=None, gm_certainty=None, local_radius=
     k = int(round(K2 ** 0.5))
     if k * k != K2:
         raise ValueError(f"gm_cls channels {K2} not a square")
-    # Soft votes: (B, h, w, K2)
-    log_p = F.log_softmax(gm_cls.float().permute(0, 2, 3, 1), dim=-1)
-    if gm_certainty is not None:
-        c = gm_certainty[:, 0] if gm_certainty.ndim == 4 else gm_certainty
-        weight = torch.sigmoid(c.float())
-    else:
-        weight = gm_cls.new_ones(B, h, w)
-    if matchable is not None:
-        weight = weight * matchable.float()
-    # logsumexp over patches with weights: heatmap logits (B, K2)
-    # Σ_i w_i log_p_i  is not a log-prob; use weighted mean of log_p then log_softmax.
-    wsum = weight.reshape(B, -1).sum(-1).clamp_min(1e-6)
-    if float(wsum.max()) <= 1e-6 or (matchable is not None and not bool(matchable.any())):
-        z = gm_cls.sum() * 0.0
-        return z, dict(pose_nll=0.0, pose_err=float("nan"), n=0)
-    weighted = (log_p * weight[..., None]).reshape(B, -1, K2).sum(1) / wsum[:, None]
-    heat = weighted  # (B, K2) unnormalised log-votes
     # GT vehicle centre (query image centre) → reference cell
     centre = torch.tensor([query_size / 2 - 0.5, query_size / 2 - 0.5, 1.0],
                           device=H.device, dtype=H.dtype)
@@ -129,9 +140,15 @@ def pose_heatmap_nll(gm_cls, H, matchable=None, gm_certainty=None, local_radius=
     col = torch.floor((xy[:, 0] + 0.5) / s).long()
     row = torch.floor((xy[:, 1] + 0.5) / s).long()
     inside = (col >= 0) & (col < k) & (row >= 0) & (row < k)
+    if matchable is not None and not bool(matchable.any()):
+        # n_norm: the samples a larger batch holding this one would average over (their uniform heat-map has zero
+        # gradient); the data-parallel normaliser (bevloc.model.ddp.global_loss) needs them
+        z = gm_cls.sum() * 0.0
+        return z, dict(pose_nll=0.0, pose_err=float("nan"), n=0, n_norm=int(inside.sum()))
+    heat = vote_heatmap(gm_cls, gm_certainty, matchable).reshape(B, K2)   # log-probs, constant shift vs raw votes
     if not bool(inside.any()):
         z = gm_cls.sum() * 0.0
-        return z, dict(pose_nll=0.0, pose_err=float("nan"), n=0)
+        return z, dict(pose_nll=0.0, pose_err=float("nan"), n=0, n_norm=0)
     tgt = (row.clamp(0, k - 1) * k + col.clamp(0, k - 1))
     pred = window_logits(heat, tgt, local_radius) if local_radius else heat
     # Only supervise frames whose GT centre lands on the crop
@@ -142,11 +159,29 @@ def pose_heatmap_nll(gm_cls, H, matchable=None, gm_certainty=None, local_radius=
         err = torch.hypot((am // k - tgt // k).float(), (am % k - tgt % k).float())
         pose_err = float(err[inside].mean()) if bool(inside.any()) else float("nan")
         n = int(inside.sum())
-    return nll, dict(pose_nll=float(nll.detach()), pose_err=pose_err, n=n)
+    return nll, dict(pose_nll=float(nll.detach()), pose_err=pose_err, n=n, n_norm=n)
+
+
+def smoothed_cross_entropy(logits, tgt, eps, support=None):
+    """Per-row label-smoothed cross-entropy: (1 - eps) * (-log p[tgt]) + eps * mean over the support of (-log p[j]).
+
+    logits (N, K2), tgt (N,), support (N, K2) bool = the classes the eps mass is spread over (None = all K2 classes,
+    which is exactly F.cross_entropy(..., label_smoothing=eps)). The target is always kept in the support. Returns
+    (per-row loss (N,), per-row plain NLL (N,))."""
+    logp = F.log_softmax(logits.float(), dim=-1)
+    nll = -logp.gather(1, tgt[:, None])[:, 0]
+    if support is None:
+        smooth = -logp.mean(-1)
+    else:
+        sup = support.clone()
+        sup[torch.arange(sup.shape[0], device=sup.device), tgt] = True
+        smooth = -(logp * sup).sum(-1) / sup.sum(-1)
+    return (1.0 - eps) * nll + eps * smooth, nll
 
 
 def roma_coarse_loss(gm_cls, idx, matchable, gm_certainty=None, certainty_weight=0.01,
-                     local_radius=0, neighbour_radius=0, neighbour_weight=0.1, patch_weight=None):
+                     local_radius=0, neighbour_radius=0, neighbour_weight=0.1, patch_weight=None, parts=None,
+                     label_smoothing=0.0, smooth_support=None):
     """Sat-RoMa scale-16 objective: classify the reference cell, and say if the patch is matchable.
 
     RoMa's coarse loss is a categorical over reference cells, taken only where the
@@ -154,17 +189,37 @@ def roma_coarse_loss(gm_cls, idx, matchable, gm_certainty=None, certainty_weight
     head trained on that same mask. It is not a cosine between descriptors.
     `certainty_weight` is their `ce_weight` (default 0.01): classification dominates.
     `matchable`: (B, h, w) bool. `gm_certainty`: (B, 1, h, w) or (B, h, w) logits.
+    parts: optional dict, filled with name -> (weighted term, normaliser count) such that loss = sum of the terms and
+    each term is a mean over `count` items (data-parallel reweighting, bevloc.model.ddp.global_loss): "ce" and
+    "hinge" over the matchable tokens (the hinge's neighbour count per token is constant), "cert" over all tokens.
+    label_smoothing eps > 0 (2026-09-30, regularisation): the cell CE becomes `smoothed_cross_entropy` with the eps
+    mass spread over `smooth_support` (B, K2) bool = the sample's valid reference cells (None = all cells); still a
+    mean over the matchable tokens (same "ce" count). The logged "ce" stays the PLAIN cross-entropy, so training and
+    validation curves remain comparable with unsmoothed runs. Not with local_radius (the window's -1e4 logits would
+    receive smoothing mass) or patch_weight. The neighbour hinge is not smoothed (a bounded margin, not a likelihood).
     """
     logits = gm_cls.permute(0, 2, 3, 1)[matchable].float()
     tgt = idx[matchable]
     hinge = gm_cls.new_zeros(())
+    ce_plain = None
     if tgt.numel() == 0:
         ce = gm_cls.sum() * 0.0
         acc = cell_err = top5 = float("nan")
         n = 0
     else:
         pred = window_logits(logits, tgt, local_radius) if local_radius else logits
-        if patch_weight is None:
+        if label_smoothing:
+            if local_radius or patch_weight is not None:
+                raise ValueError("label_smoothing is implemented for the full-map CE only (no local_radius / patch_weight)")
+            sup = None
+            if smooth_support is not None:
+                B, _, h, w = gm_cls.shape
+                bidx = torch.arange(B, device=gm_cls.device)[:, None, None].expand(B, h, w)[matchable]
+                sup = smooth_support.reshape(B, -1).bool()[bidx]
+            per, nll = smoothed_cross_entropy(pred, tgt, float(label_smoothing), sup)
+            ce = per.mean()
+            ce_plain = float(nll.detach().mean())
+        elif patch_weight is None:
             ce = F.cross_entropy(pred, tgt)
         else:
             w = patch_weight[matchable].float()
@@ -184,8 +239,18 @@ def roma_coarse_loss(gm_cls, idx, matchable, gm_certainty=None, certainty_weight
         c = gm_certainty[:, 0] if gm_certainty.ndim == 4 else gm_certainty
         cert = F.binary_cross_entropy_with_logits(c.float(), matchable.float())
     loss = ce + certainty_weight * cert + neighbour_weight * hinge
-    return loss, dict(
-        ce=float(ce.detach()), cert=float(cert.detach()), acc=acc, cell_err=cell_err, top5=top5, n=n)
+    if parts is not None:
+        if patch_weight is not None and n:
+            raise ValueError("parts: the patch-weighted CE has no count normaliser")
+        parts["ce"] = (ce, n)
+        parts["hinge"] = (neighbour_weight * hinge, n if neighbour_radius else 0)
+        parts["cert"] = (certainty_weight * cert, int(matchable.numel()) if (gm_certainty is not None
+                                                                              and certainty_weight) else 0)
+    st = dict(ce=float(ce.detach()), cert=float(cert.detach()), acc=acc, cell_err=cell_err, top5=top5, n=n)
+    if label_smoothing:
+        st["ce_smooth"] = st["ce"]
+        st["ce"] = ce_plain if n else float("nan")
+    return loss, st
 
 
 def coarse_loss(gm_cls, idx, use):
@@ -246,3 +311,141 @@ class FeatureQueryMatcher(nn.Module):
 
 def to_tensor(img_uint8, device):
     return torch.from_numpy(np.ascontiguousarray(img_uint8)).to(device).permute(2, 0, 1).float().div(255.0)[None]
+
+
+# ---- Loc² VCE pose loss on a differentiable weighted Procrustes (task 04, Step 2) ------------------------------
+# Written from Loc² (2509.09792v3) Eq. 2-6; nothing copied from third_party/Loc2 (AGPL-3.0).
+
+
+def procrustes_2d(A, B, w, eps=1e-8):
+    """Weighted rigid 2-D fit B ≈ R·A + t with the scale fixed to 1 (metric depth, shared GSD).
+
+    A, B: (Bt, N, 2); w: (Bt, N) >= 0. Closed form of the 2-D Procrustes (no SVD, smooth gradients):
+    with weighted centroids removed, cos θ ∝ Σ w a·b and sin θ ∝ Σ w a×b. Returns R (Bt, 2, 2), t (Bt, 2).
+    Degenerate input (both sums ~0: coincident points or zero weights) gives the identity rotation, not zeros."""
+    wn = w / w.sum(1, keepdim=True).clamp_min(eps)
+    ma = (wn[..., None] * A).sum(1)
+    mb = (wn[..., None] * B).sum(1)
+    ac, bc = A - ma[:, None], B - mb[:, None]
+    s = (wn * (ac[..., 0] * bc[..., 1] - ac[..., 1] * bc[..., 0])).sum(1)
+    c = (wn * (ac * bc).sum(-1)).sum(1)
+    r = torch.sqrt(s * s + c * c + eps * eps)
+    degenerate = (s.abs() <= eps) & (c.abs() <= eps)
+    cos = torch.where(degenerate, torch.ones_like(c), c / r)
+    sin = torch.where(degenerate, torch.zeros_like(s), s / r)
+    R = torch.stack([torch.stack([cos, -sin], -1), torch.stack([sin, cos], -1)], -2)
+    t = mb - (R @ ma[..., None])[..., 0]
+    return R, t
+
+
+def virtual_points(n, cell_m, grid_m=5.0, points=10, device=None):
+    """(points², 2) virtual BEV px on a grid_m square centred on the camera (Loc²: 10 x 10 over 5 m)."""
+    o = (n - 1) / 2.0
+    ax = torch.linspace(-grid_m / 2, grid_m / 2, int(points), device=device) / float(cell_m)
+    gu, gv = torch.meshgrid(ax, ax, indexing="ij")
+    return torch.stack([gu.reshape(-1) + o, gv.reshape(-1) + o], -1)
+
+
+def vce_distance(R, t, H_gt, X, cell_m):
+    """Loc² Eq. 6: mean Euclidean distance (metres) between the virtual points X (P, 2) BEV px mapped by the
+    estimate (R, t) and by the ground truth H_gt (Bt, 3, 3) BEV px -> reference px. Returns (Bt,)."""
+    Xh = torch.cat([X, torch.ones_like(X[:, :1])], -1)                       # (P, 3)
+    g = Xh[None] @ H_gt.float().transpose(1, 2)                              # (Bt, P, 3)
+    g = g[..., :2] / g[..., 2:3]
+    p = X[None] @ R.transpose(1, 2) + t[:, None]
+    return (p - g).norm(dim=-1).mean(-1) * float(cell_m)
+
+
+def cell_centres(cells, ref_size, device=None):
+    """(cells², 2) reference px (x, y) of every class centre, class = row * cells + col (coarse_targets' binning)."""
+    s = float(ref_size) / cells
+    c = (torch.arange(cells, device=device, dtype=torch.float32) + 0.5) * s - 0.5
+    rr, cc = torch.meshgrid(c, c, indexing="ij")
+    return torch.stack([cc.reshape(-1), rr.reshape(-1)], -1)
+
+
+def vce_pose_loss(gm_cls, query_xy, token_valid, H_gt, cell_m, n, ref_size=896, gm_certainty=None,
+                  mode="sample", n_samples=1024, grid_m=5.0, points=10, use_certainty=True, generator=None,
+                  min_tokens=3, ref_valid=None, min_weight=1e-8):
+    """Loc²'s VCE pose loss with the Sat-RoMa decoder as the matcher.
+
+    gm_cls (B, K², h, w) logits; query_xy (B, h, w, 2) placed query points (virtual BEV px); token_valid (B, h, w);
+    H_gt (B, 3, 3) BEV px -> reference px. Reference and BEV share the GSD cell_m, so the pose is rigid (scale 1).
+
+    mode "sample": n_samples (token, cell) pairs drawn in two stages, with replacement: a token from p(token) ∝
+    valid·sigmoid(certainty), then a cell from that token's p(cell | token). Each pair is weighted in the Procrustes by
+    its probability p(token)·p(cell | token), so the gradient reaches the logits (and certainty) through the weights.
+    The pairs have the joint's distribution, but this is NOT Loc²'s code, which draws one multinomial over the flat
+    (aerial × ground) matching matrix (and torch caps a multinomial at 2^24 categories: 1568 × 3136 is close for
+    larger grids). mode "expect": one pair per valid token, its reference point = the expected cell centre under
+    p(cell | token), weight = p(token).
+    ref_valid (B, K, K) bool: reference cells with content (`ref_cell_validity`, the mask the coarse CE uses);
+    the logits of the others are -inf before the softmax, so no pair or expectation lands on the black canvas.
+    Samples are left out (like the coarse CE's unusable patches) when they have < min_tokens valid tokens, token
+    weights summing to <= min_weight, or no valid reference cell.
+    Returns (loss scalar = mean VCE in metres over the samples kept, stats)."""
+    B, K2, h, w = gm_cls.shape
+    k = int(round(K2 ** 0.5))
+    dev = gm_cls.device
+    N = h * w
+    logits = gm_cls.float().reshape(B, K2, N).transpose(1, 2)                           # (B, N, K2)
+    ok = token_valid.reshape(B, N).sum(1) >= min_tokens
+    if ref_valid is not None:
+        rv = ref_valid.reshape(B, K2).bool()
+        has = rv.any(1)
+        ok = ok & has
+        rv = rv | ~has[:, None]                              # excluded samples: unmasked, only to stay finite
+        logits = logits.masked_fill(~rv[:, None, :], float("-inf"))
+    logp = F.log_softmax(logits, dim=-1)
+    tw = token_valid.reshape(B, N).float()
+    if use_certainty and gm_certainty is not None:
+        c = gm_certainty[:, 0] if gm_certainty.ndim == 4 else gm_certainty
+        tw = tw * torch.sigmoid(c.float().reshape(B, N))
+    ok = ok & (tw.sum(1) > min_weight)
+    if not bool(ok.any()):
+        z = gm_cls.sum() * 0.0
+        return z, dict(vce_m=float("nan"), vce_pose_m=float("nan"), n_vce=0)
+    tw = torch.where(ok[:, None], tw, torch.ones_like(tw))                             # keep rows samplable
+    ptok = tw / tw.sum(1, keepdim=True).clamp_min(1e-12)
+    xy = query_xy.reshape(B, N, 2).float()
+    centres = cell_centres(k, ref_size, dev)                                            # (K2, 2)
+    if mode == "sample":
+        # two-stage draw = a draw from the joint, without a (N·K²)-way multinomial (torch caps categories at 2^24)
+        S = int(n_samples)
+        tok = torch.multinomial(ptok.detach(), S, replacement=True, generator=generator)         # (B, S)
+        lp_tok = torch.gather(logp, 1, tok[..., None].expand(-1, -1, K2))                        # (B, S, K2)
+        cls = torch.multinomial(lp_tok.detach().exp().reshape(B * S, K2), 1, generator=generator).reshape(B, S)
+        A = torch.gather(xy, 1, tok[..., None].expand(-1, -1, 2))
+        Bp = centres[cls]
+        wts = torch.gather(ptok, 1, tok) * torch.gather(lp_tok, 2, cls[..., None])[..., 0].exp()  # joint prob of the pair
+    elif mode == "expect":
+        A = xy
+        Bp = logp.exp() @ centres                                                       # (B, N, 2); exp(-inf) = 0
+        wts = ptok
+    else:
+        raise ValueError(f"vce mode must be 'sample' or 'expect', got {mode!r}")
+    R, t = procrustes_2d(A, Bp, wts)
+    X = virtual_points(n, cell_m, grid_m, points, dev)
+    vce = vce_distance(R, t, H_gt, X, cell_m)
+    loss = vce[ok].mean()
+    with torch.no_grad():
+        o = torch.full((1, 2), (n - 1) / 2.0, device=dev)
+        pose = vce_distance(R, t, H_gt, o, cell_m)
+    return loss, dict(vce_m=float(loss.detach()), vce_pose_m=float(pose[ok].mean()), n_vce=int(ok.sum()))
+
+
+def resolve_vce_weight(cfg, mode):
+    """cfg.train.vce_weight: a number, or "auto"/missing = 1.0 for the erp_depth query and 0 otherwise."""
+    v = getattr(getattr(cfg, "train", None), "vce_weight", "auto")
+    if v is None or (isinstance(v, str) and v.lower() == "auto"):
+        return 1.0 if mode == "erp_depth" else 0.0
+    return float(v)
+
+
+def vce_options(cfg):
+    """VCE keyword arguments from cfg.erp_depth (defaults = Loc²)."""
+    E = getattr(cfg, "erp_depth", None)
+    g = (lambda k, d: getattr(E, k, d) if E is not None else d)
+    return dict(mode=str(g("vce_mode", "sample")), n_samples=int(g("vce_samples", 1024)),
+                grid_m=float(g("vce_grid_m", 5.0)), points=int(g("vce_points", 10)),
+                use_certainty=bool(g("vce_use_certainty", True)))

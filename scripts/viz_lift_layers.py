@@ -13,12 +13,14 @@ import torch
 import torch.nn.functional as F
 
 from bevloc import config as C
-from bevloc.data.mapillary import PoznanOrtho, grid_bearing, load_frames, rodrigues
+from bevloc.data.mapillary import PoznanOrtho, grid_bearing, load_frames, rodrigues, poznan_tiles
 from bevloc.data.ortho import Oriented, gt_homography, sample_reference
 from bevloc.eval.metrics import pose_errors
 from bevloc.match.satroma import SatRoMa
 from bevloc.model.coarse import FeatureQueryMatcher
 from bevloc.model.lift_splat import SphericalLiftSplat
+from bevloc.model.query import lift_state_dict
+from bevloc.viz import box, fit, heat_to_bgr, mass_to_bgr, pca_rgb, pose_overlay  # noqa: F401
 
 MAP_ROOT = C.REPO / "data/mapillary"
 VAL_SEQ = MAP_ROOT / "Fixtor/IcRzj0wTLZX874qitxVsQa"
@@ -39,7 +41,7 @@ def main():
     dev = "cuda" if torch.cuda.is_available() else "cpu"
     OUT.mkdir(parents=True, exist_ok=True)
 
-    ortho_paths = sorted(Path.home().glob(f"Github/sat_data/geoportal_poznan_15km2_*/year_{a.year}.tif"))
+    ortho_paths = poznan_tiles(a.year)
     ortho = PoznanOrtho(ortho_paths)
     frames = load_frames([VAL_SEQ], ortho, margin_m=L.margin_m)
     # spread across the held-out route
@@ -53,7 +55,7 @@ def main():
         dim=L.dim, depth_bins=L.depth_bins, d_min=L.d_min, d_max=L.d_max,
         n=cfg.grid.n, cell=cfg.grid.cell_m, max_elev_deg=L.max_elev_deg,
     ).to(dev).eval()
-    lift.load_state_dict(state["lift"])
+    lift.load_state_dict(lift_state_dict(state))
     ransac = SatRoMa.from_config(cfg, use_means=False, min_valid_frac=L.min_patch_valid)
     ransac.m.model.decoder.load_state_dict(state["decoder"], strict=False)
 
@@ -188,56 +190,6 @@ def depth_to_bgr(depth_hw):
     d = (d - d.min()) / (d.max() - d.min() + 1e-6)
     u8 = (d * 255).astype(np.uint8)
     return cv2.applyColorMap(u8, cv2.COLORMAP_TURBO)
-
-
-def mass_to_bgr(valid_hw):
-    u8 = (np.clip(valid_hw.astype(np.float32), 0, 1) * 255).astype(np.uint8)
-    return cv2.applyColorMap(u8, cv2.COLORMAP_BONE)
-
-
-def pca_rgb(feat_bchw):
-    """First 3 PCA components of channels → RGB uint8 (H, W, 3)."""
-    f = feat_bchw[0].detach().float().cpu().numpy()  # C,H,W
-    C, H, W = f.shape
-    X = f.reshape(C, -1).T  # HW, C
-    X = X - X.mean(0, keepdims=True)
-    # thin PCA via covariance on channels
-    cov = (X.T @ X) / max(X.shape[0] - 1, 1)
-    vals, vecs = np.linalg.eigh(cov)
-    basis = vecs[:, -3:][:, ::-1]  # C,3
-    Y = X @ basis  # HW,3
-    for i in range(3):
-        lo, hi = np.percentile(Y[:, i], [2, 98])
-        Y[:, i] = np.clip((Y[:, i] - lo) / (hi - lo + 1e-6), 0, 1)
-    rgb = (Y.reshape(H, W, 3) * 255).astype(np.uint8)
-    return cv2.cvtColor(rgb, cv2.COLOR_RGB2BGR)
-
-
-def heat_to_bgr(heat_kk, ref_hw):
-    h = heat_kk / (heat_kk.max() + 1e-8)
-    u8 = (h * 255).astype(np.uint8)
-    cm = cv2.applyColorMap(u8, cv2.COLORMAP_INFERNO)
-    return cv2.resize(cm, (ref_hw[1], ref_hw[0]), interpolation=cv2.INTER_NEAREST)
-
-
-def pose_overlay(ref_rgb, H_gt, H_est, n):
-    canvas = cv2.cvtColor(ref_rgb, cv2.COLOR_RGB2BGR).copy()
-    box(canvas, H_gt, n, (0, 220, 0), 2)
-    if H_est is not None:
-        box(canvas, H_est, n, (0, 0, 255), 2)
-    return canvas
-
-
-def box(img, H, n, color, thick):
-    corners = np.array([[0, 0, 1], [n - 1, 0, 1], [n - 1, n - 1, 1], [0, n - 1, 1]], float)
-    p = corners @ np.asarray(H, float).T
-    pts = np.ascontiguousarray(np.round(p[:, :2] / p[:, 2:3]).astype(np.int32)).reshape(-1, 1, 2)
-    cv2.polylines(img, [pts], True, color, thick, cv2.LINE_AA)
-
-
-def fit(img, h):
-    s = h / img.shape[0]
-    return cv2.resize(img, (int(round(img.shape[1] * s)), h), interpolation=cv2.INTER_AREA)
 
 
 if __name__ == "__main__":

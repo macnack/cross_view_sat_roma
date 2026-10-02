@@ -1,0 +1,112 @@
+{
+  "method": "FG2",
+  "manifest": "experiments/06_fg2_bevsplat/manifest.json",
+  "years": [
+    2025,
+    2024
+  ],
+  "heading": "gt",
+  "n": 400,
+  "checkpoint": {
+    "checkpoint": "checkpoints/baselines/fg2/VIGOR/samearea/known_ori/model.pt",
+    "sha256": "7822a4de30d0c35403865c96f645f7da5daf6615f3e67c11e73331e2655f325e",
+    "area": "samearea",
+    "orientation": "known_ori",
+    "first_run": null,
+    "native": {
+      "ground_image_size": [
+        714,
+        1428
+      ],
+      "satellite_image_size": [
+        630,
+        630
+      ],
+      "grid_size_h": 71.0,
+      "grid_size_v": 20.0,
+      "grd_bev_res": 41,
+      "grd_height_res": 11,
+      "sat_bev_res": 41,
+      "num_samples_matches": 1024
+    },
+    "license": "GPL-3.0 (third_party/FG2/LICENSE)"
+  },
+  "yaw_sign": 1.0,
+  "summary": {
+    "all": {
+      "n": 400,
+      "matched": 400,
+      "median_m": 3.9798838762896285,
+      "median_ci": [
+        3.6322751027513878,
+        4.624713702503685
+      ],
+      "recall@5m": 0.5925,
+      "recall@5m_ci": [
+        0.545,
+        0.6425
+      ],
+      "recall@10m": 0.8625,
+      "recall@10m_ci": [
+        0.8275,
+        0.895
+      ],
+      "frac_gt_30m": 0.0025,
+      "recall@1m": 0.0525,
+      "mean_capped_m": 5.541298729347777,
+      "median_deg": 1.997336930343664,
+      "mean_deg": 3.540208866190677,
+      "n_heading": 400
+    },
+    "2024": {
+      "n": 200,
+      "matched": 200,
+      "median_m": 3.7638991889077413,
+      "median_ci": [
+        3.3111448529853478,
+        4.674983006293932
+      ],
+      "recall@5m": 0.59,
+      "recall@5m_ci": [
+        0.525,
+        0.66
+      ],
+      "recall@10m": 0.865,
+      "recall@10m_ci": [
+        0.82,
+        0.91
+      ],
+      "frac_gt_30m": 0.005,
+      "recall@1m": 0.06,
+      "mean_capped_m": 5.596332718304058,
+      "median_deg": 1.9949735657615264,
+      "mean_deg": 3.3263452921450782,
+      "n_heading": 200
+    },
+    "2025": {
+      "n": 200,
+      "matched": 200,
+      "median_m": 4.316742910539981,
+      "median_ci": [
+        3.7389914371230173,
+        4.912174422184721
+      ],
+      "recall@5m": 0.595,
+      "recall@5m_ci": [
+        0.53,
+        0.66
+      ],
+      "recall@10m": 0.86,
+      "recall@10m_ci": [
+        0.81,
+        0.91
+      ],
+      "frac_gt_30m": 0.0,
+      "recall@1m": 0.045,
+      "mean_capped_m": 5.486264740391498,
+      "median_deg": 2.037262108435172,
+      "mean_deg": 3.7540724402362766,
+      "n_heading": 200
+    }
+  }
+}

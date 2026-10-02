@@ -1,0 +1,154 @@
+{
+  "ref": "experiments/13_panoroma_long/bf16/grad/g1_fp32.pt",
+  "meta_ref": {
+    "loss": 12.140592575073242,
+    "ce": 7.842641830444336,
+    "n": 37224,
+    "bad": false,
+    "decoder_dtype": "float32",
+    "encoder_dtype": "float32",
+    "tf32": false,
+    "compile": "none",
+    "world_size": 1,
+    "batch": 32,
+    "n_tensors": 87,
+    "n_params": 68942401
+  },
+  "rows": {
+    "experiments/13_panoroma_long/bf16/grad/g1_fp16.pt": {
+      "rel_l2": 0.5330778372384621,
+      "sign_flip_pct": 16.354034435209183,
+      "zero_pct": 5.880894690627326,
+      "zero_pct_ref": 2.8599410107576615,
+      "cosine": 0.8505631998680873,
+      "norm_ratio": 0.763214831069839,
+      "n_entries": 68942401,
+      "n_tensors": 87,
+      "mismatched_keys": [],
+      "per_group_rel_l2": {
+        "query.head": 0.5484985528543049,
+        "decoder.embedding_decoder": 0.4595615018243314,
+        "decoder.gps": 0.24955147949281709,
+        "decoder.proj": 0.5741695837140084
+      },
+      "worst": [
+        [
+          1.6452264706360498,
+          "decoder.embedding_decoder.blocks.4.norm2.weight"
+        ],
+        [
+          1.6100477785150662,
+          "decoder.embedding_decoder.blocks.2.norm1.weight"
+        ],
+        [
+          1.5969631646679383,
+          "decoder.embedding_decoder.blocks.3.norm1.weight"
+        ]
+      ],
+      "meta": {
+        "loss": 12.140447616577148,
+        "ce": 7.842563152313232,
+        "n": 37224,
+        "bad": false,
+        "decoder_dtype": "float16",
+        "encoder_dtype": "float32",
+        "tf32": false,
+        "compile": "none",
+        "world_size": 1,
+        "batch": 32,
+        "n_tensors": 87,
+        "n_params": 68942401
+      }
+    },
+    "experiments/13_panoroma_long/bf16/grad/g1_bf16.pt": {
+      "rel_l2": 0.0072566707871255555,
+      "sign_flip_pct": 0.357939376088744,
+      "zero_pct": 2.860470438214068,
+      "zero_pct_ref": 2.8599410107576615,
+      "cosine": 0.9999736895016821,
+      "norm_ratio": 1.0001709481483836,
+      "n_entries": 68942401,
+      "n_tensors": 87,
+      "mismatched_keys": [],
+      "per_group_rel_l2": {
+        "query.head": 0.007240206521966176,
+        "decoder.embedding_decoder": 0.007051659844968795,
+        "decoder.gps": 0.008371999899260187,
+        "decoder.proj": 0.007279349206023151
+      },
+      "worst": [
+        [
+          0.023164073778637558,
+          "decoder.embedding_decoder.blocks.1.norm2.weight"
+        ],
+        [
+          0.01575555252295104,
+          "decoder.embedding_decoder.blocks.2.norm1.weight"
+        ],
+        [
+          0.014749672102575518,
+          "decoder.embedding_decoder.blocks.3.norm1.weight"
+        ]
+      ],
+      "meta": {
+        "loss": 12.139179229736328,
+        "ce": 7.841854572296143,
+        "n": 37224,
+        "bad": false,
+        "decoder_dtype": "bfloat16",
+        "encoder_dtype": "float32",
+        "tf32": false,
+        "compile": "none",
+        "world_size": 1,
+        "batch": 32,
+        "n_tensors": 87,
+        "n_params": 68942401
+      }
+    },
+    "experiments/13_panoroma_long/bf16/grad/g4_fp32.pt": {
+      "rel_l2": 1.2832006664679053e-05,
+      "sign_flip_pct": 0.0001189398669187631,
+      "zero_pct": 2.859943911730025,
+      "zero_pct_ref": 2.8599410107576615,
+      "cosine": 0.9999999999201833,
+      "norm_ratio": 0.9999998022560453,
+      "n_entries": 68942401,
+      "n_tensors": 87,
+      "mismatched_keys": [],
+      "per_group_rel_l2": {
+        "query.head": 8.602515858194424e-06,
+        "decoder.embedding_decoder": 1.944442815201253e-06,
+        "decoder.gps": 1.7426216211025214e-05,
+        "decoder.proj": 3.218710051253361e-05
+      },
+      "worst": [
+        [
+          3.38774003293753e-05,
+          "decoder.gps.16.pos_conv.weight"
+        ],
+        [
+          3.27868377821281e-05,
+          "decoder.proj.16.0.weight"
+        ],
+        [
+          9.234423836883475e-06,
+          "decoder.embedding_decoder.blocks.4.mlp.fc2.weight"
+        ]
+      ],
+      "meta": {
+        "loss": 3.1361846923828125,
+        "ce": 7.842641843971631,
+        "n": 37224,
+        "bad": false,
+        "decoder_dtype": "float32",
+        "encoder_dtype": "float32",
+        "tf32": false,
+        "compile": "none",
+        "world_size": 4,
+        "batch": 32,
+        "n_tensors": 87,
+        "n_params": 68942401
+      }
+    }
+  }
+}

@@ -1,0 +1,117 @@
+{
+  "method": "Loc2",
+  "manifest": "experiments/06_fg2_bevsplat/manifest.json",
+  "years": [
+    2025,
+    2024
+  ],
+  "heading": "gt",
+  "depth": "flat",
+  "ego_mask_deg": null,
+  "camera_height_m": 1.65,
+  "ransac": true,
+  "n": 40,
+  "checkpoint": {
+    "checkpoint": "checkpoints/baselines/loc2/vigor/samearea/known_ori/model.pt",
+    "sha256": "c7753a0fc68cbc58048691d89588d7943ca3431b831fce085f85eb5d77e7a34d",
+    "area": "samearea",
+    "orientation": "known_ori",
+    "native": {
+      "ground_image_size": [
+        714,
+        1428
+      ],
+      "satellite_image_size": [
+        630,
+        630
+      ],
+      "sat_bev_res": 41,
+      "num_samples_matches": 1024,
+      "max_depth_m": 35.0,
+      "depth_png_max_m": 65.0,
+      "panorama_size": [
+        2048,
+        1024
+      ]
+    },
+    "license": "AGPL-3.0 (third_party/Loc2/LICENSE)"
+  },
+  "yaw_sign": -1.0,
+  "summary": {
+    "all": {
+      "n": 40,
+      "matched": 40,
+      "median_m": 3.439894287731377,
+      "median_ci": [
+        2.3350309389069976,
+        4.226047198005228
+      ],
+      "recall@5m": 0.675,
+      "recall@5m_ci": [
+        0.55,
+        0.8
+      ],
+      "recall@10m": 0.75,
+      "recall@10m_ci": [
+        0.625,
+        0.875
+      ],
+      "frac_gt_30m": 0.075,
+      "recall@1m": 0.025,
+      "mean_capped_m": 9.262954800439548,
+      "median_deg": 2.5024721227354974,
+      "mean_deg": 4.237070700702698,
+      "n_heading": 40
+    },
+    "2024": {
+      "n": 20,
+      "matched": 20,
+      "median_m": 3.697643464950591,
+      "median_ci": [
+        2.1436827370583678,
+        4.589457790047399
+      ],
+      "recall@5m": 0.7,
+      "recall@5m_ci": [
+        0.5,
+        0.9
+      ],
+      "recall@10m": 0.8,
+      "recall@10m_ci": [
+        0.6,
+        0.95
+      ],
+      "frac_gt_30m": 0.1,
+      "recall@1m": 0.05,
+      "mean_capped_m": 8.898154508241209,
+      "median_deg": 2.828124465543624,
+      "mean_deg": 3.312050920052532,
+      "n_heading": 20
+    },
+    "2025": {
+      "n": 20,
+      "matched": 20,
+      "median_m": 2.9130926588893153,
+      "median_ci": [
+        2.1506460969845347,
+        14.281508688509213
+      ],
+      "recall@5m": 0.65,
+      "recall@5m_ci": [
+        0.45,
+        0.85
+      ],
+      "recall@10m": 0.7,
+      "recall@10m_ci": [
+        0.5,
+        0.9
+      ],
+      "frac_gt_30m": 0.05,
+      "recall@1m": 0.0,
+      "mean_capped_m": 9.627755092637887,
+      "median_deg": 2.269990019187617,
+      "mean_deg": 5.162090481352864,
+      "n_heading": 20
+    }
+  }
+}

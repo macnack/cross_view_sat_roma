@@ -1,0 +1,804 @@
+"""Fine-tune a query checkpoint (decoder + any query parameters) on VIGOR, known orientation.
+
+  make vigor-train CKPT=checkpoints/05_lift_splat_fixtor_ipm_long_best.pt SPLIT=samearea CITIES="Chicago" STEPS=3000 TAG=chicago
+  make vigor-train CKPT= QUERY=ipm SPLIT=samearea CITIES="Chicago" STEPS=30000 TAG=chicago_noposnan   # no warm start
+  make vigor-train CKPT= QUERY=erp_depth SPLIT=samearea CITIES="Chicago" STEPS=10000 TAG=chicago_same_10k_erp_depth
+
+Same recipe as train_lift_splat.py (coarse CE over reference cells + certainty + neighbour hinge + pose NLL),
+on VigorPairs samples. The training set is the split's train labels for the given cities minus a held-out
+--val-frac (FG²'s protocol: the train list shuffled with seed 0, 80/20); validation = the first --val-samples
+of the held-out part, scored with the windowed loss and the argmax/pose proxies every --val-every steps (the
+RANSAC evaluation is scripts/eval_vigor.py). --val-frac 0 restores the earlier draw from the TEST labels of
+--val-cities (checkpoint selection then peeks at the test cities: cross-area runs before 2026-09-25 did this).
+Saves `<tag>_best.pt` by validation pose error in the same {"query", "mode", "decoder"} layout every evaluator loads.
+
+--query erp_depth (task 04, Step 2): ERP tokens placed from UniK3D depth (`make loc2-depth ... TRAIN=1` first; labels
+whose panorama has no depth file are dropped and counted), plus Loc²'s VCE pose loss (cfg.train.vce_weight, auto = 1
+for this mode; --vce-weight overrides). With VCE on, the checkpoint is selected by the validation Procrustes pose
+error (vce_pose_m, fixed match draw) instead of the heat-map proxy.
+
+--refine-weight W (cfg.train.refine_weight, default 0 = the refiner frozen and left out of the checkpoint, as before):
+RoMa's fine loss on the decoder's conv refiner (its only refiner, stride 16; train_lift_splat.refine_step_loss): the
+refiner is unfrozen, trained on detached coarse inputs, and saved in the checkpoint's decoder dict, from which
+eval_vigor.py --refine then reads it. Validation logs the refined vs input-warp end-point error (fine_epe_px).
+
+Second-pass decoder (coarse-to-fine, task 04): `--config configs/vigor_cell00625_fine.yaml` trains unchanged except
+for the reference, which VigorPairs then builds as a 56 m window at 0.0625 m/px centred on the true position plus a
+uniform disc jitter of cfg.vigor.ref_jitter_m (a fresh draw every time in training; the --val-frac validation copy
+uses the same distribution with one fixed draw per sample, so the validation curve is comparable across steps).
+
+Numerics (after the 2026-09-26 run went NaN at step 23,425 under float16 autocast): the refiner trains in
+cfg.train.refine_precision (float32), its gradient norm is clipped to cfg.train.refine_grad_clip, a batch whose
+refined warp / fine loss is non-finite trains the coarse terms only (counted), a step whose total loss or refiner
+gradient is non-finite does not update (counted), and more than cfg.train.refine_max_nonfinite such steps in a row
+stop the run with an error. A validation with any non-finite logged value is never saved as `_best.pt`;
+`_last_finite.pt` is the last checkpoint whose validation was fully finite.
+
+Long runs (2026-09-29, PanoRoMa 100 epochs; bevloc.model.trainrun): --epochs E sets steps = E x (len(train) // batch)
+and validates every epoch; --save-every-epochs K adds `vigor_<tag>_ep{e:03d}.pt` (same lean layout as `_best.pt`:
+the query module = projection head, and the decoder; the frozen DINOv3 encoder lives in the matcher and is never
+saved - asserted at start-up). After every validation `vigor_<tag>_resume.pt` (weights + AdamW state + RNG +
+counters, written atomically) is refreshed; --resume auto continues from it (same sample order: the training order
+is a permutation seeded by (seed, epoch)), so SLURM requeues and 7-day segments chained with afterany continue
+instead of restarting; a job killed mid-epoch loses that epoch only, its CSV rows past the resume step are dropped on
+resume, and a different batch / training-set size / tag is refused. Exact on resume: weights, AdamW, sample order,
+the main-process RNG (VCE draws); NOT bitwise: the DataLoader workers' RNG (the fine config's fresh reference jitter
+per draw; same distribution, other draws) and cuDNN nondeterminism. A run found finished rewrites `_last.pt` and exits
+0 (afterok chains). All checkpoints are written atomically (tmp + fsync + rename). --profile N times N steps (data
+wait / host-to-device / compute, peak memory, GPU util, a per-phase breakdown) and exits without checkpoints (refused
+with --resume / --save-every-epochs): `make eagle-probe`. --pin-memory, --prefetch, --tf32 (default off; recorded in
+the checkpoints' train dict) tune throughput.
+
+Decoder precision (2026-09-29, bevloc.model.speed.set_decoder_dtype): --decoder-dtype float16 | bfloat16 | float32 sets
+the autocast dtype the Sat-RoMa decoder opens on CUDA (the package's `amp_dtype`; default float16 = the released
+configuration and every run before this flag). Training has no GradScaler, so float16 flushes the small per-logit
+gradients to zero in backward; bfloat16 keeps float32's exponent range. Recorded in the train dict, the config
+snapshot and the resume counters (a resume with another decoder dtype warns). --check-decoder validates a --ckpt with
+the float16 decoder and with --decoder-dtype (one CHECK json line, as --check-encoder); --dump-grads PATH runs one
+training step and saves the step-1 gradient of the trainable head + decoder (DDP: the summed global-batch gradient)
+for scripts/grad_compare.py, then exits (no checkpoints).
+
+Multi-GPU (bevloc.model.ddp; `make eagle-submit-ddp`, slurm/run_ddp.sbatch): `torchrun --standalone --nproc_per_node W
+scripts/train_vigor.py ... --batch B`. --batch is ALWAYS the global optimizer batch: each rank draws B / W samples
+(printed as "global batch B = W ranks x b per rank"), so steps per epoch, lr and epochs are those of one GPU at batch
+B. The epoch permutation is sharded (rank r: positions r::W); every loss term (a mean over matchable tokens, tokens or
+samples) is normalised by the GLOBAL count (one small all-reduce before backward, bevloc.model.ddp.global_loss:
+each rank backpropagates its share of the global-batch loss, so the float16 decoder backward sees the single-GPU
+gradient values), and the gradients of the trainable head + decoder summed over the ranks with one all-reduce per
+step ARE the single-GPU gradient of the global batch (the frozen encoder is a plain module on every
+rank; the VCE draws differ per rank, as any two runs' draws do). A step skipped on
+one rank (non-finite loss) is skipped on all, and the logged training statistics are those of the global batch. Rank
+0 alone validates (the same --val-samples frames; --val-batch, default min(B, 32)), writes the CSV, config snapshot and
+every checkpoint (bare state dicts, no `module.` prefix); the others wait. The resume file also stores the world size,
+the per-rank batch and every rank's RNG; resuming with another world size or split is refused. Without torchrun the
+script runs exactly as before.
+
+Regularisation (2026-09-30, experiments/14_regularisation; every option off by default = every earlier run, bit for
+bit; each flag falls back to cfg.train.<same name>): --label-smoothing eps (coarse cell CE only, eps spread over the
+sample's valid reference cells; the logged / validated CE stays the plain one), --weight-decay-decoder w /
+--weight-decay-head w (AdamW decoupled decay on weights only, biases / norm weights / 1-D tensors 0; unset = the one
+cfg.train.weight_decay on every tensor, as before; bevloc.model.regularise), --feat-dropout p (dropout on the query
+features before the decoder, training only), --aug-photometric p and --aug-geometric rot90,rot,flip,shift
+[--aug-rot-deg D] (label-consistent pair augmentation in the DataLoader workers, bevloc.data.augment; training set
+only), --select-by pose|loss (`_best.pt` rule; pose = the rule above). The settings are recorded as "reg" in the
+checkpoints' train dict, the config snapshot and the resume counters; a resume with other settings is refused.
+"""
+from __future__ import annotations
+
+import argparse
+import copy
+import os
+import sys
+import time
+from pathlib import Path
+
+import numpy as np
+import torch
+from torch.utils.data import DataLoader
+
+sys.path.insert(0, str(Path(__file__).resolve().parent))
+from train_lift_splat import refine_options, step, validate  # noqa: E402
+
+from bevloc import config as C  # noqa: E402
+from bevloc.model import trainrun as R  # noqa: E402
+from bevloc.model.ddp import DDP_LOSS_NORM, Dist, assert_unwrapped, check_resume_world, per_rank_batch  # noqa: E402
+from bevloc.model.speed import (  # noqa: E402
+    COMPILE_CHOICES, DECODER_DTYPE_DEFAULT, DECODER_DTYPES, ENCODER_DTYPES, attention_report, compile_modules,
+    encoder_diff, precision_mismatch, precision_record, set_decoder_dtype, set_encoder_dtype,
+)
+from bevloc.data import augment as AUG  # noqa: E402
+from bevloc.data.vigor import VigorPairs, collate_vigor, split_cities  # noqa: E402
+from bevloc.model import regularise as REG  # noqa: E402
+from bevloc.model.coarse import FeatureQueryMatcher, resolve_vce_weight, vce_options  # noqa: E402
+from bevloc.model.query import apply_query_cfg, build_query, load_query_state  # noqa: E402
+from bevloc.model.refine import (  # noqa: E402
+    REFINER_KEY, NonFiniteGuard, best_candidate, clip_refiner_grads, decoder_state, refiner_parameters,
+    set_refiner_trainable,
+)
+
+
+def main():
+    ap = C.add_args(argparse.ArgumentParser(description=__doc__))
+    ap.add_argument("--ckpt", default=None, help="warm start; omit to start from the released Sat-RoMa decoder "
+                    "(the no-Poznań ablation) with the query mode given by --query")
+    ap.add_argument("--query", default="ipm", choices=("lift", "ipm", "hybrid", "erp", "erp_depth"),
+                    help="query mode when no --ckpt")
+    ap.add_argument("--root", default=os.environ.get("VIGOR_DIR", "data/vigor"))
+    ap.add_argument("--split", default="samearea", choices=("samearea", "crossarea"))
+    ap.add_argument("--cities", nargs="*", default=None)
+    ap.add_argument("--val-cities", nargs="*", default=None, help="default = the training cities (same-area) or the split's test cities")
+    ap.add_argument("--steps", type=int, default=3000)
+    ap.add_argument("--epochs", type=int, default=0,
+                    help="> 0 overrides --steps: steps = epochs x (len(train) // batch) (drop_last); validation "
+                         "every epoch unless --val-every is given")
+    ap.add_argument("--save-every-epochs", type=int, default=0,
+                    help="with --epochs: also save checkpoints/vigor_<tag>_ep{e:03d}.pt every K epochs (lean: the "
+                         "trainable weights only, same layout as _best.pt)")
+    ap.add_argument("--resume", default=None,
+                    help="path to a vigor_<tag>_resume.pt (decoder, head, optimizer, step, RNG, best) to continue from; "
+                         "'auto' = checkpoints/vigor_<tag>_resume.pt if it exists, else start fresh (chained jobs)")
+    ap.add_argument("--profile", type=int, default=0,
+                    help="probe: run this many timed training steps (after --profile-warmup), print one PROFILE json "
+                         "line (peak memory, data-wait vs compute, samples/s, GPU util, per-sample CPU cost), no "
+                         "validation, no checkpoints; exit code 3 on CUDA OOM")
+    ap.add_argument("--profile-warmup", type=int, default=3)
+    ap.add_argument("--tf32", action="store_true",
+                    help="allow TF32 for float32 matmuls (the frozen encoder runs in float32; default off = the "
+                         "precision of every run so far; cuDNN convolutions already default to TF32 in PyTorch). "
+                         "Recorded in the checkpoints' train dict")
+    ap.add_argument("--encoder-dtype", default="float32", choices=sorted(ENCODER_DTYPES),
+                    help="autocast dtype of the FROZEN encoder's forward (outputs cast back to float32; the decoder "
+                         "keeps its own autocast, --decoder-dtype); default float32 = every run so far (bevloc.model.speed)")
+    ap.add_argument("--decoder-dtype", default=DECODER_DTYPE_DEFAULT, choices=sorted(DECODER_DTYPES),
+                    help="autocast dtype of the Sat-RoMa decoder on CUDA (the package's amp_dtype; training has no "
+                         "GradScaler: float16 underflows small gradients, bfloat16 does not); default float16 = the "
+                         "released configuration and every run so far (bevloc.model.speed.set_decoder_dtype)")
+    ap.add_argument("--compile", default="none", choices=COMPILE_CHOICES,
+                    help="in-place torch.compile (dynamic=False) of the frozen encoder / the decoder; state dict keys "
+                         "unchanged")
+    ap.add_argument("--check-encoder", action="store_true",
+                    help="accuracy check of --encoder-dtype: with --ckpt, validate the --val-samples frames with the "
+                         "float32 encoder and with --encoder-dtype, plus the token difference on one batch; prints one "
+                         "CHECK json line and exits (no training, no checkpoints)")
+    ap.add_argument("--check-decoder", action="store_true",
+                    help="accuracy check of --decoder-dtype: with --ckpt, validate the --val-samples frames with the "
+                         "float16 decoder and with --decoder-dtype; prints one CHECK json line and exits")
+    ap.add_argument("--dump-grads", default=None,
+                    help="diagnostic: run ONE training step, save {name: gradient} of the trainable head + decoder "
+                         "(DDP: the summed global-batch gradient, rank 0) to this .pt and exit (no checkpoints); "
+                         "compare dumps with scripts/grad_compare.py")
+    ap.add_argument("--train-limit", type=int, default=0, help="smoke tests: keep only the first N training labels")
+    ap.add_argument("--batch", type=int, default=4,
+                    help="GLOBAL batch (samples per optimizer step); under torchrun each of the W ranks draws batch / W")
+    ap.add_argument("--val-batch", type=int, default=None,
+                    help="validation batch (rank 0 alone validates); default --batch on one GPU, min(--batch, 32) "
+                         "under torchrun")
+    ap.add_argument("--workers", type=int, default=0, help="DataLoader workers (the IPM picture is built on the CPU per sample)")
+    ap.add_argument("--prefetch", type=int, default=2, help="DataLoader prefetch_factor (batches per worker; needs workers > 0)")
+    ap.add_argument("--pin-memory", action="store_true", help="DataLoader pin_memory + non-blocking host-to-device copies")
+    ap.add_argument("--val-every", type=int, default=None, help="default 500 steps, or one epoch with --epochs")
+    ap.add_argument("--val-samples", type=int, default=200)
+    ap.add_argument("--val-frac", type=float, default=0.2,
+                    help="hold out this fraction of the TRAINING labels for validation (seed 0); 0 = draw from the test labels")
+    ap.add_argument("--neighbour-radius", type=int, default=4)
+    ap.add_argument("--neighbour-weight", type=float, default=0.5)
+    ap.add_argument("--pose-nll-weight", type=float, default=None,
+                    help="heat-map pose NLL weight (default 0.5; 0 for erp_depth, whose placed tokens do not "
+                         "target the camera cell the NLL rewards)")
+    ap.add_argument("--head", action="store_true",
+                    help="erp_depth: train the projection head (sets cfg.erp_depth.head; default off = ablation 4b)")
+    ap.add_argument("--vce-weight", type=float, default=None,
+                    help="Loc² VCE pose loss weight (default cfg.train.vce_weight: auto = 1 for erp_depth, else 0)")
+    ap.add_argument("--refine-weight", type=float, default=None,
+                    help="RoMa fine loss on the decoder's conv refiner (default cfg.train.refine_weight, 0 = off: "
+                         "refiner frozen and not saved)")
+    ap.add_argument("--local-radius", type=int, default=0, help="CE window in cells (0 = full 56x56 map: the tile IS the search area)")
+    # regularisation (2026-09-30; every default = off = the behaviour of every earlier run; None = cfg.train.<key>)
+    ap.add_argument("--label-smoothing", type=float, default=None,
+                    help="eps of the coarse cell CE, spread over the sample's valid reference cells (cfg.train."
+                         "label_smoothing, default 0); the hinge / heat-map NLL / VCE terms are not smoothed")
+    ap.add_argument("--weight-decay-decoder", type=float, default=None,
+                    help="AdamW decoupled decay on the decoder's weights only (biases / norm weights / 1-D tensors: 0); "
+                         "default = cfg.train.weight_decay_decoder, unset = the single cfg.train.weight_decay on everything")
+    ap.add_argument("--weight-decay-head", type=float, default=None,
+                    help="same for the query module (erp_depth projection head)")
+    ap.add_argument("--feat-dropout", type=float, default=None,
+                    help="element-wise dropout on the query features before the decoder, training only (default 0)")
+    ap.add_argument("--select-by", default=None, choices=REG.SELECT_RULES,
+                    help="_best.pt rule: pose (default, as before: validation VCE pose error with VCE on, else the "
+                         "heat-map pose error) | loss (validation cell CE)")
+    ap.add_argument("--aug-photometric", type=float, default=None,
+                    help="probability of colour jitter (+ optional blur) per image, panorama and reference "
+                         "independently (bevloc.data.augment; magnitudes cfg.train.aug_*; default 0)")
+    ap.add_argument("--aug-geometric", default=None,
+                    help="comma list of label-consistent pair transforms: rot90 | rot (full circle) | flip | shift, "
+                         "or 'none' (default cfg.train.aug_geometric = none); bevloc.data.augment")
+    ap.add_argument("--aug-rot-deg", type=float, default=None,
+                    help="small-angle rotation uniform in +-D degrees (ERP-column quantised), alone or on top of rot90")
+    ap.add_argument("--tag", required=True)
+    ap.add_argument("--out", default="experiments/09_vigor")
+    a = ap.parse_args()
+    if a.dump_grads and (a.resume or a.save_every_epochs or a.profile):
+        raise SystemExit("--dump-grads is a one-step diagnostic: refusing it with --resume / --save-every-epochs / "
+                         "--profile")
+    if a.profile and (a.resume or a.save_every_epochs):
+        raise SystemExit("--profile is a throughput probe (exits after the timed steps, writes no checkpoint): "
+                         "refusing it together with --resume / --save-every-epochs (a real run's flags)")
+    D = Dist.from_env()                            # world 1 (no torchrun): a no-op, the script runs as before
+    b_rank = per_rank_batch(a.batch, D.world)
+    if not D.main:                                 # one log: ranks 1..W-1 print nothing (errors still reach stderr)
+        sys.stdout = open(os.devnull, "w")
+    if D.on:
+        print(f"DDP: global batch {a.batch} = {D.world} ranks x {b_rank} per rank "
+              f"(backend {torch.distributed.get_backend()}, rank 0 on {D.device()})", flush=True)
+    if a.val_batch is None:
+        a.val_batch = a.batch if not D.on else min(a.batch, 32)
+    cfg = C.load(a.config)
+    L = cfg.lift
+    dev = D.device() if D.on else ("cuda" if torch.cuda.is_available() else "cpu")
+    if a.tf32:                                     # off by default: every run so far used full float32 matmuls
+        torch.backends.cuda.matmul.allow_tf32 = True
+        torch.backends.cudnn.allow_tf32 = True     # already PyTorch's default; set explicitly for the record
+        print("TF32 matmuls/convolutions ON (--tf32)", flush=True)
+    torch.manual_seed(cfg.train.seed)
+    np.random.seed(cfg.train.seed)
+    state = torch.load(a.ckpt, map_location=dev, weights_only=False) if a.ckpt else None
+    mode = state.get("mode", "lift") if state else a.query
+    if state:
+        apply_query_cfg(cfg, state)                 # e.g. an erp_depth warm start keeps its head setting
+    if a.head:
+        cfg.erp_depth.head = True
+    L.query_mode = mode
+    vce_w = resolve_vce_weight(cfg, mode) if a.vce_weight is None else float(a.vce_weight)
+    vce_opts = vce_options(cfg)
+    if a.pose_nll_weight is None:
+        a.pose_nll_weight = 0.0 if mode == "erp_depth" else 0.5
+    refine_w = float(getattr(cfg.train, "refine_weight", 0.0) or 0.0) if a.refine_weight is None else float(a.refine_weight)
+    refine_opts = refine_options(cfg)
+    grad_clip = float(getattr(cfg.train, "refine_grad_clip", 1.0))
+    guard = NonFiniteGuard(int(getattr(cfg.train, "refine_max_nonfinite", 20)))
+    placed = mode == "erp_depth"          # heat-map "pose" = argmax of the token votes, not a pose for placed tokens
+    train_meta = dict(pose_nll_weight=a.pose_nll_weight, vce_weight=vce_w, vce_opts=vce_opts if vce_w else None,
+                      neighbour_radius=a.neighbour_radius, neighbour_weight=a.neighbour_weight, steps=a.steps,
+                      batch=a.batch, local_radius=a.local_radius, refine_weight=refine_w,
+                      refine_opts=refine_opts if refine_w else None,
+                      grid=dict(cell_m=float(cfg.grid.cell_m),
+                                ref_window_m=getattr(getattr(cfg, "vigor", None), "ref_window_m", None),
+                                ref_jitter_m=float(getattr(getattr(cfg, "vigor", None), "ref_jitter_m", 0.0) or 0.0)),
+                      refine_grad_clip=grad_clip if refine_w else None,
+                      refine_max_nonfinite=guard.max if refine_w else None)
+    print(f"pose NLL weight {a.pose_nll_weight}  refine weight {refine_w}" + (f" {refine_opts}" if refine_w else ""),
+          flush=True)
+    tr_cities = a.cities or split_cities(a.split, True)
+    va_cities = a.val_cities or (tr_cities if a.split == "samearea" else split_cities(a.split, False))
+    # the held-out split, so eval_vigor.py --calib can reproduce it and skip the frames used for selection (task 06)
+    train_meta.update(split=a.split, cities=list(tr_cities), val_frac=a.val_frac, val_samples=a.val_samples)
+    tr = VigorPairs(a.root, cfg, cities=tr_cities, split=a.split, train=True)
+    if a.val_frac > 0:
+        idx = np.random.default_rng(0).permutation(len(tr.labels))
+        n_tr = int(len(idx) * (1.0 - a.val_frac))
+        va = copy.copy(tr)
+        va.jitter_seed = 0          # window mode: the training jitter distribution, one fixed draw per val sample
+        va.labels = [tr.labels[i] for i in idx[n_tr:n_tr + a.val_samples]]
+        tr.labels = [tr.labels[i] for i in idx[:n_tr]]
+        va_cities = tr_cities
+        print(f"train {len(tr)} ({tr_cities})  val {len(va)} of {len(idx) - n_tr} held out from the train list "
+              f"(val_frac {a.val_frac})  mode {mode}  batch {a.batch}", flush=True)
+    else:
+        va = VigorPairs(a.root, cfg, cities=va_cities, split=a.split, train=False, limit=a.val_samples, seed=1)
+        print(f"train {len(tr)} ({tr_cities})  val {len(va)} from the TEST labels ({va_cities})  mode {mode}  batch {a.batch}", flush=True)
+    if tr.ref_window_m is not None:
+        print(f"reference: {tr.ref_window_m} m window at {cfg.grid.cell_m} m/px centred on the true position + a "
+              f"uniform disc jitter of radius {tr.ref_jitter_m} m (train: fresh per draw; val: fixed per sample, "
+              f"jitter_seed {va.jitter_seed})", flush=True)
+    n_no_depth = {}
+    if tr.depth:                                    # after the split, so the held-out part is the same as without depth
+        n_no_depth = dict(train=tr.keep_with_depth(max_drop_frac=0.01),    # tolerate the writers' few rejects
+                          val=va.keep_with_depth(max_drop_frac=0.01))
+        print(f"depth: dropped {n_no_depth['train']} train / {n_no_depth['val']} val labels without a depth file "
+              f"-> train {len(tr)}  val {len(va)}", flush=True)
+        if not len(tr) or not len(va):
+            raise SystemExit("no depth files: run `make loc2-depth SPLIT=... CITIES=... TRAIN=1` first")
+    print(f"VCE weight {vce_w}  {vce_opts if vce_w else ''}", flush=True)
+    reg = REG.resolve(cfg, a)
+    aug = AUG.from_config(cfg, a.aug_photometric, a.aug_geometric, a.aug_rot_deg)
+    tr.set_aug(aug)                                 # training only: the validation copy never augments
+    va.aug = None
+    reg["aug"] = aug.record() if aug is not None else None
+    train_meta["reg"] = reg
+    print("regularisation: " + ", ".join(f"{k} {v}" for k, v in reg.items() if k != "aug")
+          + f", aug {reg['aug'] if aug is not None else 'off'}", flush=True)
+    if a.train_limit:                               # smoke tests of the epoch / resume logic only
+        tr.labels = tr.labels[:a.train_limit]
+        print(f"--train-limit: training on the first {len(tr)} labels only (smoke test)", flush=True)
+    # epoch-seeded order (seed, epoch): a resumed run continues the same permutation mid-epoch (bevloc.model.trainrun)
+    # DDP: rank r takes positions r::W of the same permutation (truncated to whole global batches)
+    sampler = (R.EpochSampler(len(tr), seed=cfg.train.seed, rank=D.rank, world=D.world, global_batch=a.batch)
+               if D.on else R.EpochSampler(len(tr), seed=cfg.train.seed))
+    # the loader's own generator (worker base seeds): starting an epoch's iterator must not consume the global RNG,
+    # or a resumed run's global stream (VCE draws) would drift from the uninterrupted one. DDP: rank r > 0 seed + r
+    g_loader = torch.Generator().manual_seed(int(cfg.train.seed) + D.rank)
+    wkw = dict(prefetch_factor=a.prefetch) if a.workers > 0 else {}
+    tr_loader = DataLoader(tr, batch_size=b_rank, sampler=sampler, num_workers=a.workers, collate_fn=collate_vigor,
+                           drop_last=True, persistent_workers=a.workers > 0, pin_memory=a.pin_memory, generator=g_loader,
+                           **wkw)
+    va_loader = DataLoader(va, batch_size=a.val_batch, shuffle=False, num_workers=a.workers, collate_fn=collate_vigor,
+                           pin_memory=a.pin_memory, **wkw)
+    spe = R.steps_per_epoch(len(tr), a.batch)
+    if a.epochs > 0:
+        a.steps = R.epoch_steps(len(tr), a.batch, a.epochs)
+    if a.val_every is None:
+        a.val_every = spe if a.epochs > 0 else 500
+    train_meta.update(steps=a.steps, epochs=a.epochs or None, steps_per_epoch=spe, n_train=len(tr),
+                      lr_decoder=float(cfg.train.lr_decoder), tf32=bool(a.tf32),
+                      matmul_tf32=bool(torch.backends.cuda.matmul.allow_tf32),
+                      cudnn_tf32=bool(torch.backends.cudnn.allow_tf32))
+    if D.on:                                       # single-GPU checkpoints keep their train dict unchanged
+        train_meta.update(world_size=D.world, batch_per_rank=b_rank, val_batch=a.val_batch, loss_norm=DDP_LOSS_NORM)
+    print(f"{spe} steps per epoch ({'global ' if D.on else ''}batch {a.batch}, drop_last)  total {a.steps} steps"
+          + (f" = {a.epochs} epochs" if a.epochs else f" = {a.steps / spe:.2f} epochs")
+          + f"  validation every {a.val_every} steps  workers {a.workers} prefetch {a.prefetch if a.workers else '-'} "
+            f"pin_memory {a.pin_memory}", flush=True)
+
+    matcher = FeatureQueryMatcher(cfg.matcher.checkpoint, dev, train_decoder=True)
+    if a.encoder_dtype != "float32" or a.check_encoder:
+        set_encoder_dtype(matcher.model.encoder, a.encoder_dtype)
+    if a.decoder_dtype != DECODER_DTYPE_DEFAULT:
+        set_decoder_dtype(matcher.model.decoder, a.decoder_dtype)
+    print(f"encoder autocast {a.encoder_dtype}  decoder autocast {a.decoder_dtype}  compile {a.compile}  attention: encoder "
+          f"{attention_report(matcher.model.encoder)} decoder {attention_report(matcher.model.decoder)}", flush=True)
+    prec = precision_record(a.encoder_dtype, a.compile, a.decoder_dtype)   # train dict, snapshot, resume counters
+    train_meta.update(prec)
+    n_ref = set_refiner_trainable(matcher.model.decoder, refine_w > 0)
+    if refine_w:
+        print(f"conv refiner unfrozen: {n_ref / 1e6:.2f} M parameters (fine loss weight {refine_w})", flush=True)
+    if state:
+        matcher.model.decoder.load_state_dict(state["decoder"], strict=False)
+    # a warm start that carries a trained refiner keeps it in every checkpoint, even with the fine loss off
+    # (it is then frozen at those weights): silently dropping trained weights would revert eval to the released ones
+    keep_refiner = refine_w > 0 or bool(state and any(REFINER_KEY in k for k in state["decoder"]))
+    if keep_refiner and not refine_w:
+        print("warm start carries a trained conv refiner: kept (frozen) and saved in the checkpoints", flush=True)
+    query = build_query(cfg, mode).to(dev)
+    if state:
+        load_query_state(query, state)
+    else:
+        print("no --ckpt: decoder = released Sat-RoMa checkpoint, query untrained", flush=True)
+    groups = []
+    qp = [p for p in query.parameters() if p.requires_grad]
+    if qp:
+        E = getattr(cfg, "erp_depth", None)
+        lr_q = float(getattr(E, "lr_head", L.lr_lift)) if mode == "erp_depth" and E is not None else L.lr_lift
+        # weight_decay_head None: one group, the optimiser-wide decay (as before); else weights w / biases+norms 0
+        groups += REG.module_groups(query, lr_q, reg["weight_decay_head"], "head")
+        train_meta.update(lr_query=float(lr_q))
+        print(f"query {mode}: {sum(p.numel() for p in qp) / 1e6:.2f} M trainable parameters (lr {lr_q})", flush=True)
+    groups += REG.module_groups(matcher.model.decoder, cfg.train.lr_decoder, reg["weight_decay_decoder"], "decoder")
+    opt = torch.optim.AdamW(groups, weight_decay=cfg.train.weight_decay)
+    print(f"AdamW groups: {REG.groups_report(opt)}", flush=True)
+    opt_params = [p for g in opt.param_groups for p in g["params"]]
+    if D.on:
+        # rank 0's trainable weights on every rank (as DDP does at construction; they are equal already), then one
+        # RNG stream per rank (rank 0 keeps the single-GPU seed) so ranks > 0 draw their own VCE samples
+        D.broadcast_params([query, matcher.model.decoder])
+        if D.rank:
+            torch.manual_seed(cfg.train.seed + D.rank)
+            np.random.seed(cfg.train.seed + D.rank)
+    out = Path(a.out)
+    out.mkdir(parents=True, exist_ok=True)
+    ckpt_dir = C.REPO / "checkpoints"
+    ckpt_dir.mkdir(parents=True, exist_ok=True)
+    ckpt_path = ckpt_dir / f"vigor_{a.tag}_best.pt"
+    log = out / f"train_{a.tag}.csv"
+    val_keys = (["ce", "top1"] + (["pose_nll", "pose_err_m"] if a.pose_nll_weight else [])
+                + (["vce_m", "vce_pose_m"] if vce_w else []) + (["fine_epe_px", "fine_epe_in_px"] if refine_w else []))
+    ref_params = refiner_parameters(matcher.model.decoder) if refine_w else []
+    last_finite_path = ckpt_path.with_name(f"vigor_{a.tag}_last_finite.pt")
+
+    def ckpt_state(k, v):
+        # lean: the query module (projection head; the frozen encoder lives in the matcher, not here) and the decoder
+        return {"query": query.state_dict(), "mode": mode,
+                "erp_depth": vars(cfg.erp_depth) if mode == "erp_depth" else None,
+                "train": train_meta,
+                "decoder": decoder_state(matcher.model.decoder, include_refiner=keep_refiner),
+                "step": k, "epoch": k / spe, "val": v}
+
+    sd0 = ckpt_state(0, None)
+    R.assert_no_frozen_encoder(sd0, matcher.model.encoder)
+    assert_unwrapped(sd0)
+    rep = R.param_groups_report({"query": sd0["query"], "decoder": sd0["decoder"]})
+    n_enc = sum(p.numel() for p in matcher.model.encoder.parameters())
+    n_opt = sum(p.numel() for g in opt.param_groups for p in g["params"])
+    print("checkpoint contents: " + "  ".join(f"{g} {n / 1e6:.2f} M tensors ({b / 2 ** 20:.0f} MiB)"
+                                              for g, (n, b) in rep.items())
+          + f"  | optimised {n_opt / 1e6:.2f} M params | frozen encoder {n_enc / 1e6:.1f} M NOT saved", flush=True)
+    step_kw = dict(certainty_weight=0.01, pose_nll_weight=a.pose_nll_weight, vce_weight=vce_w, vce_opts=vce_opts,
+                   refine_weight=refine_w, refine_opts=refine_opts)
+    if reg["label_smoothing"]:                     # training steps only; validate() scores the plain objective
+        step_kw["label_smoothing"] = reg["label_smoothing"]
+    if reg["feat_dropout"]:
+        step_kw["feat_dropout"] = reg["feat_dropout"]
+
+    def to_dev(b):
+        return {kk: (x.to(dev, non_blocking=a.pin_memory) if torch.is_tensor(x) else x) for kk, x in b.items()}
+
+    parts_checked = []
+
+    def train_step(batch, tick=lambda name: None):
+        """One optimizer step; returns (loss, stats, bad, g_ok) as the main loop needs them. tick(name) is called
+        after the forward, backward and optimizer phases (the --profile breakdown synchronises there).
+        DDP: backward on every rank with a finite loss, then one all-reduce averages the gradients and ORs the
+        non-finite flags (a step skipped on one rank is skipped on all) and returns the global-batch statistics."""
+        opt.zero_grad(set_to_none=True)
+        parts = {} if D.on else None
+        loss, st = step(query, matcher, batch, cfg, L.min_patch_valid, a.local_radius,
+                        a.neighbour_radius, a.neighbour_weight, parts=parts, **step_kw)
+        if D.on:
+            if not parts_checked:                      # once: the terms must add up to the loss step() returns
+                s_parts = sum(t.detach() for t, _ in parts.values() if t is not None)
+                if not torch.allclose(s_parts, loss.detach(), rtol=1e-4, atol=1e-5, equal_nan=True):
+                    raise RuntimeError(f"step() loss terms {sorted(parts)} sum to {float(s_parts)} != loss "
+                                       f"{float(loss)}: a term is missing from parts (DDP normalisation)")
+                parts_checked.append(True)
+            # this rank's share of the global-batch loss (global counts); the summed gradients = the single-GPU one
+            loss = D.global_loss(loss, parts)
+        bad = not bool(torch.isfinite(loss.detach()))
+        tick("forward")
+        g_ok = True
+        if D.on:
+            if not bad:
+                loss.backward()
+            tick("backward")
+            bad, st = D.reduce_step(opt_params, bad, st, average=False)   # global_loss: shares, summed
+            tick("allreduce")
+            if not bad:
+                if ref_params:                         # on the averaged gradient: the same decision on every rank
+                    _, g_ok = clip_refiner_grads(ref_params, grad_clip)
+                opt.step()
+                tick("optimizer")
+            return loss, st, bad, g_ok
+        if not bad:
+            loss.backward()
+            tick("backward")
+            if ref_params:
+                _, g_ok = clip_refiner_grads(ref_params, grad_clip)
+            opt.step()
+            tick("optimizer")
+        return loss, st, bad, g_ok
+
+    if a.check_encoder or a.check_decoder:
+        run_check_encoder(a, query, matcher, va, va_loader, cfg, L, dev, to_dev, dict(
+            pose_nll_weight=a.pose_nll_weight, vce_weight=vce_w, vce_opts=vce_opts, refine_weight=refine_w,
+            refine_opts=refine_opts), D)
+        D.close()
+        return
+    if a.compile != "none":                        # after the checkpoint-content checks: keys are unchanged anyway
+        print(f"torch.compile: {compile_modules(matcher, a.compile)}", flush=True)
+    if a.profile:
+        run_profile(a, tr, tr_loader, sampler, dev, to_dev, train_step, matcher, D=D, b_rank=b_rank)
+        D.close()
+        return
+
+    # ---- resume ----
+    res_path = R.resume_path(ckpt_dir, a.tag)
+    rp = None
+    if a.resume == "auto":
+        rp = res_path if res_path.is_file() else None
+        print(f"--resume auto: {'resuming from ' + str(rp) if rp else 'no ' + str(res_path) + ', starting fresh'}",
+              flush=True)
+    elif a.resume:
+        rp = Path(a.resume)
+    k0, best, best_step, n_skip_step, elapsed0, v = 0, float("inf"), None, 0, 0.0, None
+    if rp is not None:
+        # before loading anything: other regularisation settings = another objective, optimiser group layout or
+        # _best.pt score (an old file without the record counts as all defaults)
+        pre = torch.load(rp, map_location="cpu", weights_only=False, mmap=True).get("counters", {})
+        bad_reg = REG.mismatch(pre.get("reg"), reg)
+        if bad_reg:
+            raise SystemExit(f"resume refused: {rp} was trained with other regularisation settings: "
+                             + "; ".join(bad_reg))
+        del pre
+        cnt = R.load_resume(rp, query, matcher.model.decoder, opt, loader_gen=g_loader)
+        R.check_resume(cnt, a.batch, spe, len(tr), a.tag)
+        check_resume_world(cnt, D.world, b_rank)
+        if D.on:                                   # this rank's own RNG streams (rank 0's are the file's "rng")
+            rr = torch.load(rp, map_location="cpu", weights_only=False).get("rng_ranks")
+            if rr is None or len(rr) != D.world:
+                raise SystemExit(f"resume refused: {rp} has no per-rank RNG states for {D.world} ranks")
+            R.set_rng_state(rr[D.rank])
+            g_loader.set_state(rr[D.rank]["loader"])
+        k0, best, best_step = int(cnt["step"]), float(cnt["best"]), cnt["best_step"]
+        n_skip_step, guard.total, elapsed0 = int(cnt["n_skip_step"]), int(cnt["guard_total"]), float(cnt["elapsed"])
+        v = cnt.get("val")
+        if bool(cnt.get("tf32", False)) != bool(a.tf32):
+            print(f"WARNING: resume file trained with tf32={cnt.get('tf32', False)}, this segment --tf32={a.tf32}",
+                  flush=True)
+        for w in precision_mismatch(cnt, dict(encoder_dtype=a.encoder_dtype, compile=a.compile,
+                                              decoder_dtype=a.decoder_dtype)):
+            print(f"WARNING: {w}", flush=True)         # the precision of the encoder / decoder changes mid-run
+        if D.on and cnt.get("loss_norm") != DDP_LOSS_NORM:
+            raise SystemExit(f"resume refused: {rp} was written by a DDP run without the global-count loss "
+                             f"normalisation ({cnt.get('loss_norm')!r} != {DDP_LOSS_NORM!r}); continuing it would "
+                             "change the objective mid-run")
+        print(f"resumed {rp}: step {k0} (epoch {k0 / spe:.2f}), best {best:.3f} at step {best_step}", flush=True)
+        if k0 >= a.steps:
+            # finished: make sure `_last.pt` exists and is whole (a kill between the final resume save and the
+            # `_last.pt` write would otherwise leave a chained fine run without its --ckpt), then exit 0 (afterok)
+            last_path = ckpt_path.with_name(f"vigor_{a.tag}_last.pt")
+            D.save(ckpt_state(k0, v), last_path)
+            print(f"already at step {k0} >= {a.steps}: nothing to do (rewrote {last_path})", flush=True)
+            D.barrier()
+            D.close()
+            return
+        n_drop = R.truncate_log(log, k0) if D.main else 0
+        if n_drop:
+            print(f"{log}: dropped {n_drop} rows after step {k0} (re-run by this segment)", flush=True)
+    else:
+        snap = dict(tag=a.tag, ckpt=a.ckpt, split=a.split, train_cities=tr_cities, val_cities=va_cities,
+                    val_frac=a.val_frac, val_samples=a.val_samples, query_mode=mode,
+                    vce_weight=vce_w, no_depth=n_no_depth, pose_nll_weight=a.pose_nll_weight,
+                    refine_weight=refine_w, epochs=a.epochs, steps=a.steps, batch=a.batch, reg=reg, tf32=a.tf32, **prec)
+        if D.on:
+            snap.update(world_size=D.world, batch_per_rank=b_rank, val_batch=a.val_batch, loss_norm=DDP_LOSS_NORM)
+        if D.main:
+            p_snap = C.snapshot(cfg, out, snap)
+            # several runs may share --out (the coarse and fine long runs do) and overwrite config.yaml: keep a per-tag copy
+            (out / f"config_{a.tag}.yaml").write_text(Path(p_snap).read_text())
+    if D.main and (rp is None or not log.is_file()):
+        log.write_text("step,split,ce,top1,cell_err_m,pose_nll,pose_err_m,n,sec,vce_m,vce_pose_m,fine_epe_px,"
+                       "fine_epe_in_px,fine_skipped\n")
+
+    def save_resume(k, v):
+        cnt = dict(step=k, best=best, best_step=best_step, n_skip_step=n_skip_step, guard_total=guard.total,
+                   elapsed=time.time() - t0, batch=a.batch, steps_per_epoch=spe, n_train=len(tr), tag=a.tag,
+                   tf32=bool(a.tf32), reg=reg, val=v, **prec)
+        if not D.on:
+            R.atomic_save(R.make_resume(ckpt_state(k, v), opt, loader_gen=g_loader, counters=cnt), res_path)
+            return
+        # every rank's RNG (collective: all ranks call this), written by rank 0 with the world size and split
+        mine = R.rng_state()
+        mine["loader"] = g_loader.get_state()
+        rngs = D.gather_object(mine)
+        cnt.update(world_size=D.world, batch_per_rank=b_rank, loss_norm=DDP_LOSS_NORM)
+        if D.main:
+            D.save(dict(R.make_resume(ckpt_state(k, v), opt, loader_gen=g_loader, counters=cnt), rng_ranks=rngs),
+                   res_path)
+        D.barrier()
+
+    def batches(k_start):
+        e, skip = divmod(k_start, spe)
+        while True:
+            sampler.set_epoch(e, skip * a.batch)           # the rest of epoch e in its seeded order (DDP: all shards)
+            for b in tr_loader:
+                yield b
+            e, skip = e + 1, 0
+    it = batches(k0)
+    m_per_cell = (cfg.grid.n * cfg.reference.scale / 56.0) * cfg.grid.cell_m
+    query.train()
+    t0 = time.time() - elapsed0
+    for k in range(k0 + 1, a.steps + 1):
+        batch = to_dev(next(it))
+        loss, st, bad, g_ok = train_step(batch)
+        if a.dump_grads:                               # one-step diagnostic: the (DDP: summed) gradient, then exit
+            dump_grads(a.dump_grads, query, matcher.model.decoder, loss, st, bad, a, D)
+            D.barrier()
+            D.close()
+            return
+        if bad:                                        # no update at all from a non-finite total loss
+            n_skip_step += 1
+            print(f"step {k}: non-finite loss, no update ({n_skip_step} so far)", flush=True)
+        elif not g_ok:
+            print(f"step {k}: non-finite refiner gradient, refiner not updated", flush=True)
+            bad = True
+        bad = bad or bool(st.get("fine_skipped", 0))
+        guard.update(bad, k)                           # raises after refine_max_nonfinite bad steps in a row
+        e_save = R.is_epoch_save(k, spe, a.save_every_epochs) if a.epochs else 0
+        if not D.main:                                 # DDP: rank 0 logs, validates and saves; the others wait
+            if k % a.val_every == 0 or k == a.steps or e_save:
+                save_resume(k, None)                   # the RNG gather + barrier (waits for rank 0's validation)
+            continue
+        with log.open("a") as f:
+            f.write(f"{k},train,{st['ce']:.4f},{st['acc']:.4f},{st['cell_err'] * m_per_cell:.2f},"
+                    f"{st['pose_nll']:.4f},{st['pose_err'] * m_per_cell:.2f},{st['n']},{time.time() - t0:.1f},"
+                    f"{st['vce_m']:.3f},{st['vce_pose_m']:.3f},{st['fine_epe_px']:.3f},{st['fine_epe_in_px']:.3f},"
+                    f"{st.get('fine_skipped', 0)}\n")
+        if k == k0 + 1 or k % 25 == 0:
+            print(f"step {k} TRAIN  CE {st['ce']:.3f}  poseNLL {st['pose_nll']:.3f}  top1 {st['acc']:.1%}  "
+                  f"arg {st['cell_err'] * m_per_cell:.1f} m  n {st['n']}"
+                  + (f"  VCE {st['vce_m']:.2f} m  procrustes {st['vce_pose_m']:.2f} m" if vce_w else "")
+                  + (f"  fine EPE {st['fine_epe_px']:.2f} px (input {st['fine_epe_in_px']:.2f})"
+                     f"  non-finite steps {guard.total}" if refine_w else "")
+                  + f"  ({time.time() - t0:.0f}s, epoch {k / spe:.2f})", flush=True)
+        if k % a.val_every == 0 or k == a.steps or e_save:          # an epoch save always validates first
+            v = validate(query, matcher, va_loader, cfg, L.min_patch_valid, a.local_radius, device=dev,
+                         max_batches=max(1, -(-a.val_samples // a.val_batch)), certainty_weight=0.01,
+                         pose_nll_weight=a.pose_nll_weight, vce_weight=vce_w, vce_opts=vce_opts,
+                         refine_weight=refine_w, refine_opts=refine_opts)
+            with log.open("a") as f:
+                f.write(f"{k},val,{v['ce']:.4f},{v['top1']:.4f},{v['cell_err_m'] / (cfg.grid.cell_m * 16) * m_per_cell:.2f},"
+                        f"{v['pose_nll']:.4f},{v['pose_err_m'] / (cfg.grid.cell_m * 16) * m_per_cell:.2f},{v['n']},{time.time() - t0:.1f},"
+                        f"{v['vce_m']:.3f},{v['vce_pose_m']:.3f},{v['fine_epe_px']:.3f},{v['fine_epe_in_px']:.3f},"
+                        f"{v.get('fine_skipped', 0)}\n")
+            pose_m = v["pose_err_m"] / (cfg.grid.cell_m * 16) * m_per_cell
+            print(f"step {k} VAL    CE {v['ce']:.3f}  poseNLL {v['pose_nll']:.3f}  top1 {v['top1']:.1%}  "
+                  + (f"{'heatmap-argmax (not a pose)' if placed else 'pose'} {pose_m:.1f} m  " if a.pose_nll_weight else "")
+                  + f"n {v['n']}"
+                  + (f"  VCE {v['vce_m']:.2f} m  procrustes {v['vce_pose_m']:.2f} m" if vce_w else "")
+                  + (f"  fine EPE {v['fine_epe_px']:.2f} px (input {v['fine_epe_in_px']:.2f})" if refine_w else ""),
+                  flush=True)
+            score = REG.select_score(reg["select_by"], v, pose_m, bool(vce_w))
+            finite, is_best = best_candidate(v, score, best, val_keys)
+            if not finite:
+                print(f"  WARNING step {k}: validation not finite ({ {kk: v.get(kk) for kk in val_keys} }, "
+                      f"fine batches skipped {v.get('fine_skipped', 0)}): not a checkpoint candidate", flush=True)
+            else:
+                D.save(ckpt_state(k, v), last_finite_path)
+            if is_best:
+                best, best_step = score, k
+                D.save(ckpt_state(k, v), ckpt_path)
+                print(f"  best -> {ckpt_path}", flush=True)
+            if e_save:
+                p_ep = R.epoch_ckpt_path(ckpt_dir, a.tag, e_save)
+                D.save(ckpt_state(k, v), p_ep)
+                print(f"  epoch {e_save} -> {p_ep} ({p_ep.stat().st_size / 2 ** 20:.0f} MiB)", flush=True)
+            save_resume(k, v)
+            query.train()
+    last_path = ckpt_path.with_name(f"vigor_{a.tag}_last.pt")   # a late (multimodal) checkpoint stays evaluable
+    D.save(ckpt_state(a.steps, v if a.steps else None), last_path)
+    D.barrier()
+    D.close()
+    print(f"wrote {ckpt_path} (best, step {best_step}), {last_finite_path} (last finite validation) and {last_path} "
+          f"(last, step {a.steps}, {last_path.stat().st_size / 2 ** 20:.0f} MiB); resume state {res_path}; "
+          f"non-finite steps {guard.total}, no-update steps {n_skip_step}", flush=True)
+
+
+def run_check_encoder(a, query, matcher, va, va_loader, cfg, L, dev, to_dev, vkw, D):
+    """--check-encoder: float32 vs --encoder-dtype on the frozen encoder. One CHECK json line with the token
+    difference on the first validation batch (reference and panorama) and the validation metrics both ways.
+    --check-decoder: the same validation with the float16 decoder and with --decoder-dtype (the encoder at
+    --encoder-dtype both times)."""
+    import json
+    if not D.main:
+        return
+    out = dict(encoder_dtype=a.encoder_dtype, decoder_dtype=a.decoder_dtype, ckpt=a.ckpt, val_samples=len(va),
+               tf32=a.tf32)
+    if a.check_decoder:
+        dec = matcher.model.decoder
+        out["check"] = "decoder"
+
+        def switch(name):
+            set_decoder_dtype(dec, name)
+        names = (DECODER_DTYPE_DEFAULT, a.decoder_dtype)
+    else:
+        enc = matcher.model.encoder
+        b = to_dev(next(iter(va_loader)))
+        out.update(check="encoder",
+                   token_diff=dict(ref=encoder_diff(enc, b["ref"]), pano=encoder_diff(enc, b["erp"][:, 0])))
+
+        def switch(name):
+            enc._bevloc_amp_dtype = name
+        names = ("float32", a.encoder_dtype)
+    m_per_cell = (cfg.grid.n * cfg.reference.scale / 56.0) * cfg.grid.cell_m
+    for name in names:
+        switch(name)
+        t = time.time()
+        v = validate(query, matcher, va_loader, cfg, L.min_patch_valid, a.local_radius, device=dev,
+                     max_batches=max(1, -(-a.val_samples // a.val_batch)), certainty_weight=0.01, **vkw)
+        v["pose_m"] = v["pose_err_m"] / (cfg.grid.cell_m * 16) * m_per_cell
+        v["sec"] = time.time() - t
+        out[name] = v
+        print(f"check {name}: {v}", flush=True)
+    print("CHECK " + json.dumps(out), flush=True)
+
+
+def dump_grads(path, query, decoder, loss, st, bad, a, D):
+    """--dump-grads: {"grads": {"query.<n>" / "decoder.<n>": float32 CPU gradient}, "meta": ...} of every trainable
+    parameter after one training step (DDP: after the all-reduce = the global-batch gradient; rank 0 writes)."""
+    if not D.main:
+        return
+    g = {}
+    for pre, mod in (("query", query), ("decoder", decoder)):
+        for n, p in mod.named_parameters():
+            if p.requires_grad and p.grad is not None:
+                g[f"{pre}.{n}"] = p.grad.detach().float().cpu().clone()
+    meta = dict(loss=float(loss.detach()), ce=st.get("ce"), n=st.get("n"), bad=bool(bad), decoder_dtype=a.decoder_dtype,
+                encoder_dtype=a.encoder_dtype, tf32=bool(a.tf32), compile=a.compile, world_size=D.world,
+                batch=a.batch, n_tensors=len(g), n_params=int(sum(t.numel() for t in g.values())))
+    Path(path).parent.mkdir(parents=True, exist_ok=True)
+    torch.save(dict(grads=g, meta=meta), path)
+    print(f"GRADDUMP {path}: {meta}", flush=True)
+
+
+def run_profile(a, tr, tr_loader, sampler, dev, to_dev, train_step, matcher=None, D=None, b_rank=None):
+    """--profile N: time --profile-warmup + N real training steps (no validation, no checkpoints) and print one
+    PROFILE json line: peak CUDA memory, per-step data wait (blocked on next(loader)) / host-to-device / compute
+    (forward + backward + optimizer, synchronised), samples/s, nvidia-smi GPU utilisation, per-sample CPU cost.
+    Under torchrun: one PROFILE line per rank (its own batch b, its samples/s; compute includes the gradient
+    all-reduce and the wait for the slowest rank) and one aggregate line (global batch, node samples/s)."""
+    D = D or Dist()
+    b_rank = b_rank or a.batch
+    cuda = str(dev).startswith("cuda")
+    sync = torch.cuda.synchronize if cuda else (lambda: None)
+    cost = R.sample_cost(tr, n=16) if D.main else None
+    print(f"per-sample CPU cost (main process, s): {cost}", flush=True)
+    base = dict(workers=a.workers, prefetch=a.prefetch if a.workers else None, pin_memory=a.pin_memory,
+                cpus=len(os.sched_getaffinity(0)), config=a.config, sample_cost_s=cost,
+                encoder_dtype=a.encoder_dtype, decoder_dtype=a.decoder_dtype, compile=a.compile)
+    if D.on:
+        base.update(rank=D.rank, world_size=D.world, global_batch=a.batch)
+    if cuda:
+        torch.cuda.reset_peak_memory_stats()
+    total = torch.cuda.get_device_properties(torch.cuda.current_device()).total_memory if cuda else 0
+    sampler.set_epoch(0)
+    it = iter(tr_loader)
+    t_data, t_h2d, t_comp = [], [], []
+    gu = R.GpuUtil(index=D.local_rank if D.on else None)
+    try:
+        for k in range(a.profile_warmup + a.profile):
+            if k == a.profile_warmup:
+                gu.__enter__()
+            t = time.perf_counter()
+            b = next(it)
+            t1 = time.perf_counter()
+            batch = to_dev(b)
+            sync()
+            t2 = time.perf_counter()
+            train_step(batch)
+            sync()
+            t3 = time.perf_counter()
+            if k >= a.profile_warmup:
+                t_data.append(t1 - t)
+                t_h2d.append(t2 - t1)
+                t_comp.append(t3 - t2)
+            print(f"profile step {k + 1}: data {t1 - t:.3f}s h2d {t2 - t1:.3f}s compute {t3 - t2:.3f}s", flush=True)
+    except torch.cuda.OutOfMemoryError as e:
+        gu.__exit__(None, None, None)
+        R.print_profile(dict(batch=b_rank, oom=True, error=str(e).splitlines()[0][:200],
+                             peak_reserved_gib=torch.cuda.max_memory_reserved() / 1024 ** 3, **base))
+        sys.exit(3)
+    gu.__exit__(None, None, None)
+    if matcher is not None and a.profile:
+        # breakdown on the last batch, 3 repeats, medians: frozen encoder (no grad) on the reference and on the
+        # panorama separately, then the full step split at synchronised forward / backward / optimizer boundaries
+        # (forward includes both encoder passes; decoder forward = forward - encoder)
+        rows = []
+        for _ in range(3):
+            r = {}
+            with torch.no_grad():
+                sync()
+                t = time.perf_counter()
+                matcher.reference_features(batch["ref"])
+                sync()
+                r["enc_ref"] = time.perf_counter() - t
+                t = time.perf_counter()
+                matcher.model.encoder(batch["erp"][:, 0])
+                sync()
+                r["enc_pano"] = time.perf_counter() - t
+            last = [time.perf_counter()]
+
+            def tick(name, r=r, last=last):
+                sync()
+                now = time.perf_counter()
+                r[name] = now - last[0]
+                last[0] = now
+            train_step(batch, tick)
+            rows.append(r)
+        bd = {k: float(np.median([r.get(k, float("nan")) for r in rows])) for k in rows[0]}
+        bd["decoder_fwd_etc"] = bd["forward"] - bd["enc_ref"] - bd["enc_pano"]
+        base.update(breakdown_s=bd, tf32=a.tf32,
+                    shapes=dict(ref=list(batch["ref"].shape), erp=list(batch["erp"].shape)))
+    summ = R.profile_summary(
+        b_rank, t_data, t_h2d, t_comp, torch.cuda.max_memory_allocated() if cuda else 0,
+        torch.cuda.max_memory_reserved() if cuda else 0, total, util=gu.mean(), extra=dict(oom=False, **base))
+    if not D.on:
+        R.print_profile(summ)
+        return
+    rows = D.gather_object(summ)
+    if D.main:
+        for r in rows:
+            R.print_profile(r)
+        R.print_profile(R.aggregate_profiles(rows, a.batch))
+
+
+if __name__ == "__main__":
+    main()

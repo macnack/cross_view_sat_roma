@@ -50,6 +50,7 @@ matcher:
   min_valid_frac: 0.5              # PROPOSED, not yet agreed (package default 1.0)
   reproj_cells: 3.0
   seed: 0
+  solver: srt                     # srt = Sat-RoMa 4-DoF similarity (published); se2 = fixed-scale 2-point SE(2) (task 03, H7)
 
 fusion:                            # camera + LiDAR fusion BEV (src/bevloc/model/fusion_bev.py)
   backbone: convnext_tiny.dinov3_lvd1689m     # frozen; same ground backbone as BEV-Patch-PF
@@ -68,6 +69,30 @@ train:                             # scripts/train_fusion.py
   val_every: 250
   val_frames: 32
   seed: 0
+  vce_weight: auto                 # Loc² VCE pose loss weight (task 04): auto = 1.0 for query erp_depth, 0 otherwise
+  refine_weight: 0.0               # RoMa fine loss on the decoder's conv refiner (stride 16, its only one); 0 = refiner frozen + not saved
+  refine_alpha: 0.5                # generalised Charbonnier alpha (RoMa §3.4 Eq. 16)
+  refine_c: 1.0e-4                 # Charbonnier scale s = c * stride, normalised reference coords (RoMa code: c = 1e-4)
+  refine_cert_cells: 0.5           # refiner certainty target: GT within this many reference cells (Chebyshev) of its input warp
+  refine_precision: float32         # refiner autocast dtype in training (and at eval for a trained refiner); float16 went NaN (26 Sep)
+  refine_grad_clip: 1.0            # max gradient norm of the refiner parameters (<= 0: off)
+  refine_max_nonfinite: 20         # this many non-finite fine-stage steps in a row stop the run with an error (<= 0: never)
+  # regularisation (2026-09-30, scripts/train_vigor.py; every default = off = earlier runs; CLI flags of the same name win)
+  label_smoothing: 0.0             # coarse cell CE eps, spread over the sample's valid reference cells (hinge / NLL / VCE unsmoothed)
+  weight_decay_decoder: null       # AdamW decay on decoder WEIGHTS only (biases, norms, 1-D: 0); null = weight_decay on everything (as before)
+  weight_decay_head: null          # same for the query module (erp_depth projection head)
+  feat_dropout: 0.0                # dropout on the query features before the decoder (training only)
+  select_by: pose                  # _best.pt: pose = validation VCE pose error (heat-map pose without VCE) | loss = validation cell CE
+  aug_photometric: 0.0             # probability of colour jitter (+ blur) per image, panorama and reference independently (bevloc.data.augment)
+  aug_brightness: 0.2              # factors uniform in [1 - a, 1 + a]
+  aug_contrast: 0.2
+  aug_saturation: 0.2
+  aug_hue_deg: 5.0                 # hue shift uniform in +-this
+  aug_blur_p: 0.2                  # Gaussian blur (sigma uniform 0.1..aug_blur_sigma px) after the jitter, with this probability
+  aug_blur_sigma: 1.0
+  aug_geometric: []                # label-consistent pair transforms: rot90 | rot (full circle) | flip | shift (window configs: rot90, flip)
+  aug_rot_deg: 0.0                 # small-angle rotation uniform in +-this (ERP-column quantised), alone or on top of rot90
+  aug_shift_max_m: null            # translation cap per axis (null = keep the tile fully on the canvas, nothing more)
 
 lift:                              # camera-only spherical Lift-Splat (scripts/train_lift_splat.py)
   erp_size: [896, 448]             # width, height; 2:1 keeps the panorama geometry for sat493m
@@ -102,8 +127,186 @@ lift:                              # camera-only spherical Lift-Splat (scripts/t
   certainty_weight: 0.01           # RoMa ce_weight; still applies on positive patches
   pose_nll_weight: 0.0             # OrienterNet-style pose heatmap NLL; set 0.5 for tonight deep-dive
   seq_dists_m: [0.0]               # metres behind query; [0,2,5] = multi-frame soft-splat
+  query_mode: lift                # lift | ipm | hybrid | erp (task 03) | erp_depth (task 04)
+  min_elev_deg: -3.5              # hybrid: rays below this hit ground inside ground_max_range_m and are placed by IPM
+  ground_max_range_m: 28.0
+
+vigor:                            # src/bevloc/data/vigor.py, scripts/eval_vigor.py (known-orientation protocol)
+  root: null                      # default: $VIGOR_DIR
+  row_sign: 1.0                   # label dy > 0 = panorama south of the tile centre = down in the image (verified, `make vigor-check-labels`)
+  col_sign: -1.0                  # label dx > 0 = panorama WEST of the tile centre = LEFT in the image (verified)
+  height_m: 2.5                   # panorama camera height for the IPM picture; calibrated 2026-09-24 on 150 Chicago samples
+                                  # (1.6 m: 7.9, 2.0 m: 5.6, 2.5 m: 4.4, 3.0 m: 4.9 m median; wrong row sign: 18-20 m)
+  fg2_batch: 24                   # scripts/eval_fg2_vigor.py: FG²'s own default batch (native 714x1428 / 630x630 inputs)
+  loc2_batch: 24                  # scripts/eval_loc2_vigor.py (Loc² uses 80 on an H100; 24 keeps the shim's PyTorch attention comfortable)
+  ref_window_m: null              # null = whole tile centred in the canvas; a number = a window of the tile this wide
+                                  # (the coarse-to-fine second pass, configs/vigor_cell00625_fine.yaml)
+  ref_jitter_m: 0.0               # window mode, train/val: centre = true position + uniform disc jitter of this radius
+  ref_source: vigor               # vigor = the VIGOR tile (<City>/satellite); wayback_<year> = the Esri Wayback window of that
+                                  # footprint (<City>/wayback_<year>, make wayback-fetch); eval_vigor.py --ref-source / --ref-sources
+
+wayback:                          # Esri World Imagery Wayback reference years (task 05; bevloc.data.wayback, scripts/fetch_wayback_vigor.py)
+  years: [2025, 2019]             # default YEARS of make wayback-fetch: the version closest to 1 July of each year (ties -> newer)
+  select_by: capture              # capture = by the capture date of each version at the tile (metadata identify per version,
+                                  # cached); publication = by the release date (lags the capture by up to years, tile by tile)
+  calib_year: 2021                # make wayback-calib: the version closest (same select_by rule) to the VIGOR capture (2020-2021), phase-correlated with the tile
+  calib_tiles: 150                # distinct tiles per city in the calibration (a seeded choice among the unique tiles of a
+                                  # 4x larger VigorPairs test-list draw, seed 0; several panoramas share a tile)
+  calib_gate_m: 0.3               # PASS when the median residual |offset_i - median| is below this (docs/tasks/05_reference_years.md)
+  calib_domain: gradient          # gradient = Sobel magnitude after the blur (cross-source pairs); intensity = grey values
+  calib_blur_k: 0.5               # VIGOR tile blurred to the Wayback source resolution (sidecar SRC_RES, else tile GSD):
+                                  # sigma = k * sqrt(src^2 - vigor^2) / out_gsd px (WorldView-2 0.5 m in Chicago: 1.9 px)
+  calib_band: true                # whiten, then weight the spectrum by the same Gaussian (only the common band votes)
+  calib_max_shift_m: 3.0          # the correlation peak is searched only within this radius of zero
+  calib_min_psr: 7.0              # peak-to-sidelobe ratio (inside the radius, 5 px around the peak excluded) below this:
+                                  # the tile is dropped. Real pairs 2026-09-28 (150 per city): noise-only tiles (Chicago /
+                                  # SF / Seattle, 0.46-0.5 m satellite) PSR p50 3.7-4.0, p99 5.7-6.5, 1 of 450 above 7;
+                                  # New York (0.15 m aerial) is bimodal: the same noise mode plus a matched mode 7-31
+  calib_psr_exclude_px: 5         # PSR: the peak's neighbourhood left out of the sidelobe statistics
+  calib_min_tiles: 30             # PASS also needs at least this many tiles in the aggregate
+  calib_max_dev_px: 4.0           # tiles more than this from the median offset are outliers (dropped, counted)
+  out_gsd_m: 0.125                # the written window: round(640 * CITY_RES / this) px over the tile's 640 * CITY_RES m footprint
+  zoom_pref: [20, 19]             # finest zoom first; the first whose centre tile exists is used (19 in Chicago / Seattle, 20 in NY / SF)
+  walk_zoom: 19                   # tilemap zoom of the version walk (exists in all four cities)
+  rate_hz: 10.0                   # at most this many requests per second (tiles, tilemap, metadata)
+  workers: 6                      # tiles fetched concurrently (threads); rate_hz is global over all of them
+  retries: 3                      # per request, 1 / 2 / 4 s back-off
+  metadata: true                  # also query the capture date / sensor of the chosen release at the tile centre (one request each)
+  user_agent: "cross_view_sat_roma/0.1 (academic research; maciej.krupka@gmail.com)"
+  attribution: "Esri, Maxar, Earthstar Geographics"
+
+certainty:                        # scripts/certainty_vigor.py (task 06): calibrated per-frame confidence from eval_vigor.py rows
+  targets_m: [2.0, 5.0, 10.0]     # events "position error < tau", one calibrated probability each
+  rank_target_m: 5.0              # P(error < this) orders the frames of the abstention curve (must be in targets_m)
+  gross_m: 10.0                   # "gross miss" of the abstention curve
+  folds: 5                        # single-json mode: k-fold by frame, out-of-fold numbers
+  conformal_alpha: 0.1            # split conformal: coverage >= 1 - alpha
+  n_bins: 10                      # reliability diagram / ECE
+  l2: 1.0                         # logistic regression ridge on standardised features
+  seed: 0
+  coverage_points: [0.9, 0.8]     # abstention-curve points reported / printed
+  coverage_grid: [0.05, 1.0, 0.01]  # abstention curve: start, stop (inclusive), step
+  gate_auroc: 0.85                # task-06 gate: AUROC for error < rank_target_m ...
+  gate_gross_frac: 0.05           # ... and at most this fraction > gross_m at coverage_points[0]
+  # read by scripts/eval_vigor.py (the frame statistics); the VIGOR configs fall back to this block
+  stats_radius_cells: 2.0         # vote_mass_2cells / ego_mass_2cells: mass within this many cells of the pose
+  ref_cell_min_frac: 0.5          # a reference cell is valid (on the tile) when this fraction of its px is non-black
+
+certainty_head:                   # scripts/train_certainty_head.py (task 06 step 4, make vigor-cert-head); the VIGOR configs fall back to this block
+  streams: [map, tokens, frame]   # bevloc.model.certainty_head: map (4 x 56 x 56 conv), tokens (T x 8, attention pooling), frame (the 19 statistics)
+  lr: 1.0e-3                      # AdamW
+  weight_decay: 1.0e-4
+  batch: 256
+  epochs: 60
+  patience: 10                    # early stop: epochs without a better validation NLL at certainty.rank_target_m
+  val_frames: 1000                # the LAST val_frames frames of the calibration cache: early stopping + temperature only
+  map_channels: [32, 64, 64]      # conv(32, s2) > conv(64, s2) > conv(64, s2) > global average pool
+  token_dim: 64                   # per-token MLP 8 > 64 > 64, learned-query attention pooling
+  frame_dim: 32                   # standardised statistics > 32
+  fusion_dim: 128                 # concat > 128 > one logit per certainty.targets_m
+  dropout: 0.0                    # in the fusion layer
+  augment: true                   # random quarter turns + mirror of the maps, token azimuth shifted consistently
+  seed: 0
+
+consensus_sweep:                  # scripts/sweep_consensus_vigor.py (make vigor-sweep); the VIGOR configs fall back to this block
+  cache_thr: 0.004                # mode threshold of the cache = the loosest one that can be swept
+  calib_limit: 1000               # calibration frames (held-out training frames after the checkpoint-selection ones)
+  select: median                  # calibration objective: median | mean (ties broken by the other)
+  joint_top: 3                    # joint grid over this many most sensitive factors of the one-factor-at-a-time pass
+  gross_m: 10.0                   # gross miss: error > this or no pose
+  n_boot: 1000                    # bootstrap resamples (median CI, paired chosen-vs-default interval)
+  grid:                           # values per factor; the one-factor pass varies each around the current default
+    reproj_cells: [0.5, 0.75, 1.0, 1.5, 2.0, 3.0]
+    target: [peak, means]
+    max_modes: [1, 2, 3, 5, 0]    # 0 = all modes of a token
+    mode_thr: [0.004, 0.008, 0.016, 0.03, 0.06]   # package fixed_threshold on the blurred categorical (default 0.008)
+    cert: ["off", weight, uniform, filter]   # uniform = weighted code path, equal weights (control)
+    solver: [se2, sim, srt]
+    ransac: [default, 4x]         # 4x = four times max_iters and confidence 1 - (1 - 0.995)^4
+
+erp_query:                        # ERP-token query, placement after matching (task 03, Task 6)
+  max_range_m: 40.0               # ground tokens beyond this are not placed (IPM too coarse there)
+
+erp_depth:                        # ERP tokens placed from metric depth + Sat-RoMa decoder + VCE (task 04, Step 2)
+  max_depth_m: 35.0               # tokens at or beyond this depth are not placed (Loc² §3.2 / its eval default)
+  erp_size: [896, 448]            # width, height of the panorama fed to sat493m -> 56 x 28 tokens (Loc²: 1428 x 714 -> 102 x 51)
+  head: false                     # light projection head on the frozen tokens (Loc² §3.1, OPEN item 6); ablation 4b
+  head_dim: 256                   # head width (1x1 down 1024 -> dim, convs, one self-attention block, 1x1 up)
+  head_convs: 2                   # 3x3 convs (circular padding along the azimuth)
+  head_heads: 4                   # self-attention heads
+  head_ff_mult: 2                 # feed-forward width = mult * dim; 256, 2 convs, mult 2 -> 2.2 M params
+  lr_head: 2.0e-4                 # head learning rate (the decoder uses train.lr_decoder)
+  vce_samples: 1024               # (token, reference cell) pairs drawn per sample for the Procrustes (Loc²: 1024)
+  vce_mode: sample                # sample = Loc²: multinomial draw, gradient through the pair weights; expect = soft-argmax cell per token
+  vce_grid_m: 5.0                 # virtual points span this square around the camera (Loc² --loss_grid_size 5)
+  vce_points: 10                  # per side (Loc² num_virtual_point 10 -> 10 x 10)
+  vce_use_certainty: true         # weight each token's pairs by sigmoid(gm_certainty)
+
+ipm:                              # camera-only flat-ground query on Mapillary (task 03, Task 2)
+  height_m: 1.7                   # Mapillary rig height above the road, assumed (not in the files)
+  blind_radius_m: 1.2             # disc under the camera (rig / vehicle roof)
+  max_depression_deg: 20.0        # ERP rows looking steeper down than this are the capture car's own body
+                                  # (semantic probe 2026-09-24: the bottom ~40 % of a Fixtor ERP is car roof);
+                                  # on the ground that is a 1.7 / tan 20° = 4.7 m disc, which the mosaic refills
+  semantic_dynamic_mask: true     # mask person/car/bus/... pixels when <seq>/semantic/<id>.png exists
+  semantic_ground_only: false     # keep only road/sidewalk/vegetation/terrain pixels (ablation)
+  contact_line: false             # ipm_cl: paint wall/hedge feet (camera-only contact line from the semantic map)
+  contact_classes: [2, 3, 4]      # Cityscapes ids: building, wall, fence
+  contact_vegetation: true        # also paint the feet of vegetation (hedges, tree lines)
+  contact_thickness_px: 2         # BEV cells per foot mark
 
 reference:
   scale: 4
   max_offset_frac: 0.30
   max_rot_deg: 55.0
+
+poznan:                           # Poznań three-way comparison (decision 2026-09-29): Loc², FG², PanoRoMa on one manifest
+  manifest: experiments/06_fg2_bevsplat/manifest.json   # the 200 held-out IcRzj frames; the IPM / FG² / Loc² rows used its 2025 + 2024 entries
+  years: [2025, 2024]
+  heading: prior                  # prior = the panorama is oriented by the manifest's noisy heading (crop_up, U(-10, 10) deg off the
+                                  # proxy): the method must recover the residual rotation, as the IPM row does. gt = oriented by the
+                                  # proxy heading itself, which is what the reported FG² / Loc² "native" rows did (bevloc.baselines.common.heading_setup)
+  ego_mask_deg: 20.0              # UniK3D depth: camera rows steeper than this below the horizon are the Fixtor car body -> invalid (= ipm.max_depression_deg)
+  depth_model: unik3d-vitl        # scripts/unik3d_depth_poznan.py: the model and settings of Loc²'s VIGOR preprocessing
+  depth_resolution_level: 9
+  depth_size: [2048, 1024]        # the panorama is resized to the VIGOR panorama size before UniK3D; PNG at this size
+  height_band_deg: [-20.0, -8.0]  # camera-height sanity check: ground points seen between these elevations (below the car body limit)
+  height_azimuth_deg: 30.0        # ... within this many degrees of straight ahead or straight behind (the road)
+  panoroma:                       # scripts/eval_panoroma_poznan.py (make panoroma-poznan)
+    coarse_config: configs/vigor_cell0125.yaml
+    coarse_ckpt: checkpoints/vigor_samearea_4city_erp_depth_cell0125_last.pt
+    fine_config: configs/vigor_cell00625_fine.yaml
+    fine_ckpt: checkpoints/vigor_samearea_4city_fine00625_erp_depth_last.pt
+    solver: se2
+    fine_gate_m: 6.0
+    ref_up: north                 # north = north-up reference, panorama rolled so the prior's north faces forward (VIGOR's geometry);
+                                  # crop = the baselines' crop orientation (reference up = crop_up), no roll under heading prior
+    coarse_extent_m: null         # null = orthophoto over the whole 112 m canvas; e.g. 71 = a VIGOR-tile-sized square, black outside
+    base_size: [2048, 1024]       # the panorama is resampled to the VIGOR panorama size (and rolled there) before the erp_depth resize
+
+pf:                               # scripts/track_route.py (task 03, Task 5): SE(2) particle filter
+  n: 512
+  init_sigma_xy: 10.0             # m, initial spread around the first proxy pose
+  init_sigma_yaw: 5.0             # deg
+  sigma_xy: 1.0                   # m per frame: injected motion noise = process noise
+  sigma_yaw: 1.0                  # deg per frame
+  sigma_yaw_obs: 5.0              # deg, compass observation
+  temperature: 1.0                # multiplies the heatmap log-likelihood (< 1 tempers over-confidence)
+
+kitscenes:                        # KITScenes Multimodal wrapper (src/bevloc/data/kitscenes.py, scripts/kitscenes_pano.py, make kitscenes-pano)
+  root: data/kitscenes/data
+  split: val
+  scene: 142f1419-b6f2-4215-4055-6eb161f63043   # smallest val scene (1.65 GB, 100 frames, Frankfurt); `make kitscenes-fetch SCENE=<uuid>` for others
+  frames: [0, 50, 99]
+  erp_size: [2048, 1024]          # = VIGOR panorama size, what PanoRoMa's erp_depth query expects
+  pano_centre: mean               # mean = mean ring-camera position (~(0, 0, -0.18) m in the lidar_top frame) | [x, y, z]
+  prefilter_scale: 0.25           # cameras are shrunk (INTER_AREA) by this before the remap: ERP px is ~7x coarser than a camera px
+  blend_power: 4.0                # seam feathering exponent (0 = hard average of the overlapping cameras)
+  lidar: lidar_top
+  overlay_min_range_m: 3.0
+  # availability mask: mask_<frame>.png is always written (white = a camera sees it, black = no image; the pinhole ring
+  # covers ~+-28 deg of elevation and less at the seams between cameras)
+  crop:                           # pano_crop_<frame>.jpg: only rows with image at EVERY azimuth -> no black pixel
+    enabled: false                # --crop / make kitscenes-pano CROP=1
+    ego_mask_deg: null            # also drop rows steeper than this below the horizon (ego car body), e.g. 20 (= poznan.ego_mask_deg)
+    max_elevation_deg: null       # also drop rows above this elevation

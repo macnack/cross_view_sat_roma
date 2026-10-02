@@ -15,11 +15,14 @@ import torch.nn.functional as F
 
 class SphericalLiftSplat(nn.Module):
     def __init__(self, in_dim=1024, dim=128, depth_bins=16, d_min=1.0, d_max=40.0,
-                 n=224, cell=0.25, out_dim=1024, patch=16, max_elev_deg=-5.0):
+                 n=224, cell=0.25, out_dim=1024, patch=16, max_elev_deg=-5.0, min_elev_deg=-90.0):
         super().__init__()
         self.n, self.cell, self.patch = int(n), float(cell), int(patch)
         self.out_dim = int(out_dim)
+        # Only tokens with min_elev <= elevation <= max_elev are splatted (+up). The default band
+        # keeps everything below max_elev; HybridQuery raises min_elev so ground rays go to IPM.
         self.max_elev = math.radians(float(max_elev_deg))
+        self.min_elev = math.radians(float(min_elev_deg))
         self.register_buffer(
             "depths", torch.linspace(float(d_min), float(d_max), int(depth_bins)), persistent=False)
         self.depth_head = nn.Sequential(
@@ -117,7 +120,7 @@ class SphericalLiftSplat(nn.Module):
         x, y = self.ego_xy(dir_cam, R_w2c, self.depths.to(dtype=f_erp.dtype))
         if se2 is not None:
             x, y = self.apply_se2(x, y, se2)
-        elev_ok = elev <= self.max_elev
+        elev_ok = (elev <= self.max_elev) & (elev >= self.min_elev)
         bev, valid = self.splat(feat, alpha, x, y, elev_ok[None].expand(B, -1))
         f_q = self.bev_head(bev)
         frac = F.avg_pool2d(valid.float()[:, None], self.patch)[:, 0]
@@ -134,7 +137,7 @@ class SphericalLiftSplat(nn.Module):
         H, W = int(erp_hw[0]), int(erp_hw[1])
         device, dtype = f_erp.device, f_erp.dtype
         dir_cam, elev = self.token_rays(h, w, H, W, device, dtype)
-        elev_ok = elev <= self.max_elev
+        elev_ok = (elev <= self.max_elev) & (elev >= self.min_elev)
         depths = self.depths.to(dtype=dtype)
         n, cell = self.n, self.cell
         bev = f_erp.new_zeros(B, self.feat_proj.out_channels, n * n)

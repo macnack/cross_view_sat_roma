@@ -14,7 +14,7 @@ import numpy as np
 
 from bevloc import config as C
 from bevloc.bev.grid import BevGrid
-from bevloc.data.mapillary import PoznanOrtho, grid_bearing, load_frames, rodrigues
+from bevloc.data.mapillary import PoznanOrtho, grid_bearing, load_frames, rodrigues, poznan_tiles
 from bevloc.data.ortho import Oriented, sample_negative_reference, sample_reference
 
 _spec = importlib.util.spec_from_file_location("ipm_mapillary", C.REPO / "scripts/ipm_mapillary.py")
@@ -35,7 +35,7 @@ def main():
     L = cfg.lift
     OUT.mkdir(parents=True, exist_ok=True)
 
-    ortho = PoznanOrtho(sorted(Path.home().glob(f"Github/sat_data/geoportal_poznan_15km2_*/year_{a.year}.tif")))
+    ortho = PoznanOrtho(poznan_tiles(a.year))
     frames = load_frames([VAL], ortho, margin_m=L.margin_m)
     fr = frames[min(a.index, len(frames) - 1)]
     path = Path(fr["_seq"]) / "images" / f"{fr['id']}.jpg"

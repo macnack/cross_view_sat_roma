@@ -1,0 +1,24 @@
+{
+ "use_means=False": {
+  "modes": 196,
+  "patches": 196,
+  "multimodal": 0,
+  "inlier_ratio": 1.0,
+  "error_px": {
+   "corner_m": 2.497950815299514,
+   "position_m": 2.4745686921990075,
+   "yaw_deg": 0.17535673273537059
+  }
+ },
+ "use_means=True": {
+  "modes": 196,
+  "patches": 196,
+  "multimodal": 0,
+  "inlier_ratio": 1.0,
+  "error_px": {
+   "corner_m": 2.3893262066019627,
+   "position_m": 2.3558953280472203,
+   "yaw_deg": 0.20506135751592253
+  }
+ }
+}

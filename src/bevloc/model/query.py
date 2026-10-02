@@ -1,0 +1,112 @@
+"""Query builders: anything that turns a sample into the (B, 1024, 14, 14) tokens the decoder expects.
+
+  lift   — spherical Lift-Splat (learned depth per ERP token)            [05_lift_splat]
+  ipm    — RGB flat-ground IPM picture through the frozen sat493m encoder [kick-off H2 lower bound]
+  hybrid — dense IPM ground features + learned depth above the horizon   [task 03, Task 3]
+  erp    — the panorama's own tokens; placement after matching (Loc²)     [task 03, Task 6]
+  erp_depth — erp tokens [+ projection head], placed from metric depth    [task 04, Step 2]
+"""
+from __future__ import annotations
+
+import torch
+import torch.nn as nn
+import torch.nn.functional as F
+
+from bevloc.model.lift_splat import SphericalLiftSplat
+
+
+def _lift_from_cfg(cfg, **kw):
+    L, g = cfg.lift, cfg.grid
+    args = dict(dim=L.dim, depth_bins=L.depth_bins, d_min=L.d_min, d_max=L.d_max,
+                n=g.n, cell=g.cell_m, max_elev_deg=L.max_elev_deg)
+    args.update(kw)
+    return SphericalLiftSplat(**args)
+
+
+class LiftQuery(nn.Module):
+    def __init__(self, cfg):
+        super().__init__()
+        self.lift = _lift_from_cfg(cfg)
+
+    def forward(self, batch, matcher):
+        erp = batch["erp"]                                  # (B, T, 3, H, W)
+        B, T = erp.shape[:2]
+        with torch.no_grad():
+            feats = [matcher.model.encoder(erp[:, t])[16] for t in range(T)]
+        hw = erp.shape[-2:]
+        if T == 1:
+            return self.lift(feats[0], batch["R_w2c"][:, 0], erp_hw=hw)
+        return self.lift.forward_multiframe(torch.stack(feats, 1), batch["R_w2c"], batch["se2"], erp_hw=hw)
+
+
+class IpmQuery(nn.Module):
+    """No parameters of its own: the picture goes through the frozen encoder; the decoder is what trains."""
+
+    def __init__(self, cfg):
+        super().__init__()
+        self.patch = 16
+
+    def forward(self, batch, matcher):
+        f_q = matcher.image_query_features(batch["bev"])
+        frac = F.avg_pool2d(batch["bev_valid"].float()[:, None], self.patch)[:, 0]
+        return f_q, frac
+
+
+def build_query(cfg, mode):
+    if mode == "lift":
+        return LiftQuery(cfg)
+    if mode == "ipm":
+        return IpmQuery(cfg)
+    if mode == "hybrid":
+        from bevloc.model.hybrid_query import HybridQuery
+        return HybridQuery(cfg)
+    if mode == "erp":
+        from bevloc.model.erp_query import ErpQuery
+        return ErpQuery(cfg)
+    if mode == "erp_depth":
+        from bevloc.model.depth_query import ErpDepthQuery
+        return ErpDepthQuery(cfg)
+    raise ValueError(f"unknown query mode {mode!r}")
+
+
+def load_query_state(query, state):
+    """Accept both the new {"query": ..., "mode": ...} and the old {"lift": ...} checkpoint layouts.
+
+    When the checkpoint was written by another query mode (eval_pose --query override), only the
+    overlapping parameters are loaded and the rest keep their initialisation; the caller prints the
+    mismatch. Raises only when nothing at all can be loaded into a parameterised query."""
+    own = query.state_dict()
+    if "query" in state:
+        src = state["query"]
+    elif "lift" in state:
+        src = {f"lift.{k}": v for k, v in state["lift"].items()} if hasattr(query, "lift") else {}
+    else:
+        src = {}
+    common = {k: v for k, v in src.items() if k in own and tuple(v.shape) == tuple(own[k].shape)}
+    if own and not common and src:
+        raise KeyError(f"checkpoint mode {state.get('mode', 'lift')!r} shares no parameters with {type(query).__name__}")
+    if common:
+        query.load_state_dict(common, strict=False)
+    return len(common), len(own)
+
+
+def lift_state_dict(state):
+    """The raw SphericalLiftSplat weights from either checkpoint layout (for viz scripts)."""
+    if "lift" in state:
+        return state["lift"]
+    if "query" in state:
+        return {k[len("lift."):]: v for k, v in state["query"].items() if k.startswith("lift.")}
+    raise KeyError("checkpoint has neither 'lift' nor 'query'")
+
+
+def apply_query_cfg(cfg, state):
+    """Restore the query-shaping config a checkpoint was trained with (today: the erp_depth block, whose `head`
+    decides whether the query has parameters at all), so an evaluator builds the same module. Without this an
+    erp_depth checkpoint with a head, evaluated under a head-off config, would silently load nothing."""
+    from types import SimpleNamespace
+    E = state.get("erp_depth") if isinstance(state, dict) else None
+    if E:
+        base = vars(getattr(cfg, "erp_depth", SimpleNamespace())).copy()
+        base.update(E)
+        cfg.erp_depth = SimpleNamespace(**base)
+    return cfg

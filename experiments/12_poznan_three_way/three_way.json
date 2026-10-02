@@ -1,0 +1,1703 @@
+{
+  "prior/IPM + Sat-RoMa (existing)": {
+    "summary": {
+      "all": {
+        "n": 400,
+        "matched": 399,
+        "median_m": 5.693739793017913,
+        "median_ci": [
+          4.939311035450855,
+          6.537559658845507
+        ],
+        "recall@5m": 0.4525,
+        "recall@5m_ci": [
+          0.405,
+          0.505
+        ],
+        "recall@10m": 0.715,
+        "recall@10m_ci": [
+          0.67,
+          0.7575
+        ],
+        "frac_gt_30m": 0.0525,
+        "recall@1m": 0.06,
+        "mean_capped_m": 11.609292080831901,
+        "median_deg": 2.62636753861602,
+        "mean_deg": 4.350202967434038,
+        "n_heading": 399
+      },
+      "2024": {
+        "n": 200,
+        "matched": 199,
+        "median_m": 5.9450139117182745,
+        "median_ci": [
+          4.772112998101644,
+          6.672434520636845
+        ],
+        "recall@5m": 0.45,
+        "recall@5m_ci": [
+          0.385,
+          0.52
+        ],
+        "recall@10m": 0.71,
+        "recall@10m_ci": [
+          0.645,
+          0.77
+        ],
+        "frac_gt_30m": 0.05,
+        "recall@1m": 0.06,
+        "mean_capped_m": 14.239101972902182,
+        "median_deg": 2.47109938773172,
+        "mean_deg": 4.739972696300762,
+        "n_heading": 199
+      },
+      "2025": {
+        "n": 200,
+        "matched": 200,
+        "median_m": 5.507534229946653,
+        "median_ci": [
+          4.341912517118052,
+          6.852070436489672
+        ],
+        "recall@5m": 0.455,
+        "recall@5m_ci": [
+          0.39,
+          0.525
+        ],
+        "recall@10m": 0.72,
+        "recall@10m_ci": [
+          0.66,
+          0.78
+        ],
+        "frac_gt_30m": 0.055,
+        "recall@1m": 0.06,
+        "mean_capped_m": 8.979482188761622,
+        "median_deg": 2.675541722036446,
+        "mean_deg": 3.9623820872116493,
+        "n_heading": 200
+      }
+    },
+    "source": "checkpoints/05_lift_splat_fixtor_ipm_best.pt, solver srt",
+    "same_entries": true
+  },
+  "prior/FG\u00b2 native": {
+    "summary": {
+      "all": {
+        "n": 400,
+        "matched": 400,
+        "median_m": 4.148410916144477,
+        "median_ci": [
+          3.8233582675004643,
+          4.555160896418937
+        ],
+        "recall@5m": 0.585,
+        "recall@5m_ci": [
+          0.5375,
+          0.63
+        ],
+        "recall@10m": 0.8575,
+        "recall@10m_ci": [
+          0.825,
+          0.89
+        ],
+        "frac_gt_30m": 0.0,
+        "recall@1m": 0.0625,
+        "mean_capped_m": 5.70404237897863,
+        "median_deg": 2.404639878200399,
+        "mean_deg": 4.103330905421319,
+        "n_heading": 400
+      },
+      "2024": {
+        "n": 200,
+        "matched": 200,
+        "median_m": 4.1213615346467485,
+        "median_ci": [
+          3.415827095464781,
+          4.601308112654608
+        ],
+        "recall@5m": 0.595,
+        "recall@5m_ci": [
+          0.53,
+          0.665
+        ],
+        "recall@10m": 0.855,
+        "recall@10m_ci": [
+          0.805,
+          0.905
+        ],
+        "frac_gt_30m": 0.0,
+        "recall@1m": 0.07,
+        "mean_capped_m": 5.807075936963558,
+        "median_deg": 1.9716084496555197,
+        "mean_deg": 3.9160627557875904,
+        "n_heading": 200
+      },
+      "2025": {
+        "n": 200,
+        "matched": 200,
+        "median_m": 4.148410916144477,
+        "median_ci": [
+          3.8499641841417063,
+          4.944785761032819
+        ],
+        "recall@5m": 0.575,
+        "recall@5m_ci": [
+          0.51,
+          0.645
+        ],
+        "recall@10m": 0.86,
+        "recall@10m_ci": [
+          0.81,
+          0.91
+        ],
+        "frac_gt_30m": 0.0,
+        "recall@1m": 0.055,
+        "mean_capped_m": 5.601008820993704,
+        "median_deg": 2.6497769847032515,
+        "mean_deg": 4.290599055055049,
+        "n_heading": 200
+      }
+    },
+    "source": "experiments/12_poznan_three_way/fg2_prior",
+    "same_entries": true
+  },
+  "prior/Loc\u00b2 native flat depth": {
+    "summary": {
+      "all": {
+        "n": 400,
+        "matched": 400,
+        "median_m": 3.907728007409841,
+        "median_ci": [
+          3.470155680889432,
+          4.253286360608353
+        ],
+        "recall@5m": 0.625,
+        "recall@5m_ci": [
+          0.575,
+          0.675
+        ],
+        "recall@10m": 0.835,
+        "recall@10m_ci": [
+          0.7975,
+          0.87
+        ],
+        "frac_gt_30m": 0.03,
+        "recall@1m": 0.0625,
+        "mean_capped_m": 6.795737960587125,
+        "median_deg": 2.3369414532331234,
+        "mean_deg": 3.3400371913991678,
+        "n_heading": 400
+      },
+      "2024": {
+        "n": 200,
+        "matched": 200,
+        "median_m": 3.6466399410816654,
+        "median_ci": [
+          3.341249567364225,
+          4.066475992735766
+        ],
+        "recall@5m": 0.655,
+        "recall@5m_ci": [
+          0.59,
+          0.72
+        ],
+        "recall@10m": 0.84,
+        "recall@10m_ci": [
+          0.785,
+          0.89
+        ],
+        "frac_gt_30m": 0.03,
+        "recall@1m": 0.06,
+        "mean_capped_m": 6.658743177728026,
+        "median_deg": 2.291537271080216,
+        "mean_deg": 3.1530871322005742,
+        "n_heading": 200
+      },
+      "2025": {
+        "n": 200,
+        "matched": 200,
+        "median_m": 4.172780062972724,
+        "median_ci": [
+          3.5873171137261735,
+          4.695237199552356
+        ],
+        "recall@5m": 0.595,
+        "recall@5m_ci": [
+          0.525,
+          0.665
+        ],
+        "recall@10m": 0.83,
+        "recall@10m_ci": [
+          0.775,
+          0.88
+        ],
+        "frac_gt_30m": 0.03,
+        "recall@1m": 0.065,
+        "mean_capped_m": 6.932732743446224,
+        "median_deg": 2.3390874798663503,
+        "mean_deg": 3.5269872505977613,
+        "n_heading": 200
+      }
+    },
+    "source": "experiments/12_poznan_three_way/loc2_flat_prior",
+    "same_entries": true
+  },
+  "prior/Loc\u00b2 native UniK3D": {
+    "summary": {
+      "all": {
+        "n": 400,
+        "matched": 400,
+        "median_m": 3.504060255240991,
+        "median_ci": [
+          3.262822704109519,
+          3.7728362153593267
+        ],
+        "recall@5m": 0.68,
+        "recall@5m_ci": [
+          0.6325,
+          0.7225
+        ],
+        "recall@10m": 0.855,
+        "recall@10m_ci": [
+          0.82,
+          0.8875
+        ],
+        "frac_gt_30m": 0.0325,
+        "recall@1m": 0.0575,
+        "mean_capped_m": 6.29443992848247,
+        "median_deg": 2.0152928001036514,
+        "mean_deg": 2.846537977527868,
+        "n_heading": 400
+      },
+      "2024": {
+        "n": 200,
+        "matched": 200,
+        "median_m": 3.376698687164653,
+        "median_ci": [
+          2.9755653172909913,
+          3.8380837853289984
+        ],
+        "recall@5m": 0.665,
+        "recall@5m_ci": [
+          0.6,
+          0.73
+        ],
+        "recall@10m": 0.855,
+        "recall@10m_ci": [
+          0.8,
+          0.9
+        ],
+        "frac_gt_30m": 0.035,
+        "recall@1m": 0.055,
+        "mean_capped_m": 6.294280164705722,
+        "median_deg": 1.8877314279144741,
+        "mean_deg": 2.8333476574548535,
+        "n_heading": 200
+      },
+      "2025": {
+        "n": 200,
+        "matched": 200,
+        "median_m": 3.6221394290405264,
+        "median_ci": [
+          3.3035092230893826,
+          4.1849273026514915
+        ],
+        "recall@5m": 0.695,
+        "recall@5m_ci": [
+          0.63,
+          0.76
+        ],
+        "recall@10m": 0.855,
+        "recall@10m_ci": [
+          0.805,
+          0.9
+        ],
+        "frac_gt_30m": 0.03,
+        "recall@1m": 0.06,
+        "mean_capped_m": 6.294599692259217,
+        "median_deg": 2.0789555849666783,
+        "mean_deg": 2.859728297600883,
+        "n_heading": 200
+      }
+    },
+    "source": "experiments/12_poznan_three_way/loc2_unik3d_prior",
+    "same_entries": true
+  },
+  "prior/PanoRoMa coarse (crop)": {
+    "summary": {
+      "all": {
+        "n": 400,
+        "matched": 400,
+        "median_m": 5.204885923715704,
+        "median_ci": [
+          4.650968379241557,
+          5.8322866384921905
+        ],
+        "recall@5m": 0.4875,
+        "recall@5m_ci": [
+          0.44,
+          0.535
+        ],
+        "recall@10m": 0.77,
+        "recall@10m_ci": [
+          0.7225,
+          0.8125
+        ],
+        "frac_gt_30m": 0.02,
+        "recall@1m": 0.025,
+        "mean_capped_m": 7.76363298019096,
+        "median_deg": 5.278046087081296,
+        "mean_deg": 7.470019071624235,
+        "n_heading": 400
+      },
+      "2024": {
+        "n": 200,
+        "matched": 200,
+        "median_m": 4.847761417853805,
+        "median_ci": [
+          4.454165547233325,
+          5.771810456737738
+        ],
+        "recall@5m": 0.505,
+        "recall@5m_ci": [
+          0.435,
+          0.575
+        ],
+        "recall@10m": 0.785,
+        "recall@10m_ci": [
+          0.725,
+          0.845
+        ],
+        "frac_gt_30m": 0.02,
+        "recall@1m": 0.02,
+        "mean_capped_m": 7.545288612374685,
+        "median_deg": 5.335373210599357,
+        "mean_deg": 7.683947167209608,
+        "n_heading": 200
+      },
+      "2025": {
+        "n": 200,
+        "matched": 200,
+        "median_m": 5.488652995072908,
+        "median_ci": [
+          4.632564487364623,
+          6.430433004241763
+        ],
+        "recall@5m": 0.47,
+        "recall@5m_ci": [
+          0.405,
+          0.54
+        ],
+        "recall@10m": 0.755,
+        "recall@10m_ci": [
+          0.7,
+          0.81
+        ],
+        "frac_gt_30m": 0.02,
+        "recall@1m": 0.03,
+        "mean_capped_m": 7.981977348007233,
+        "median_deg": 5.141785382852637,
+        "mean_deg": 7.256090976038865,
+        "n_heading": 200
+      }
+    },
+    "source": "experiments/12_poznan_three_way/panoroma_prior_crop",
+    "same_entries": true
+  },
+  "prior/PanoRoMa two-pass (crop)": {
+    "summary": {
+      "all": {
+        "n": 400,
+        "matched": 400,
+        "median_m": 5.010867924046451,
+        "median_ci": [
+          4.497755349443271,
+          5.57469869926946
+        ],
+        "recall@5m": 0.4975,
+        "recall@5m_ci": [
+          0.45,
+          0.5475
+        ],
+        "recall@10m": 0.7725,
+        "recall@10m_ci": [
+          0.73,
+          0.8125
+        ],
+        "frac_gt_30m": 0.0275,
+        "recall@1m": 0.025,
+        "mean_capped_m": 7.66585535515215,
+        "median_deg": 4.372657682229379,
+        "mean_deg": 5.780575061414789,
+        "n_heading": 400
+      },
+      "2024": {
+        "n": 200,
+        "matched": 200,
+        "median_m": 4.500689109887299,
+        "median_ci": [
+          3.7818045193868675,
+          5.062437583129204
+        ],
+        "recall@5m": 0.555,
+        "recall@5m_ci": [
+          0.49,
+          0.63
+        ],
+        "recall@10m": 0.78,
+        "recall@10m_ci": [
+          0.725,
+          0.84
+        ],
+        "frac_gt_30m": 0.025,
+        "recall@1m": 0.03,
+        "mean_capped_m": 7.2565444130991885,
+        "median_deg": 3.929576294770055,
+        "mean_deg": 5.590146529829314,
+        "n_heading": 200
+      },
+      "2025": {
+        "n": 200,
+        "matched": 200,
+        "median_m": 5.565019154665237,
+        "median_ci": [
+          4.808311691476043,
+          6.384626052989854
+        ],
+        "recall@5m": 0.44,
+        "recall@5m_ci": [
+          0.375,
+          0.51
+        ],
+        "recall@10m": 0.765,
+        "recall@10m_ci": [
+          0.7,
+          0.82
+        ],
+        "frac_gt_30m": 0.03,
+        "recall@1m": 0.02,
+        "mean_capped_m": 8.075166297205111,
+        "median_deg": 4.830392528919033,
+        "mean_deg": 5.9710035930002645,
+        "n_heading": 200
+      }
+    },
+    "source": "experiments/12_poznan_three_way/panoroma_prior_crop",
+    "same_entries": true
+  },
+  "prior/PanoRoMa fine (ungated) (crop)": {
+    "summary": {
+      "all": {
+        "n": 400,
+        "matched": 400,
+        "median_m": 4.969217057601135,
+        "median_ci": [
+          4.458621701851753,
+          5.57469869926946
+        ],
+        "recall@5m": 0.5,
+        "recall@5m_ci": [
+          0.4525,
+          0.5475
+        ],
+        "recall@10m": 0.7725,
+        "recall@10m_ci": [
+          0.73,
+          0.8125
+        ],
+        "frac_gt_30m": 0.0275,
+        "recall@1m": 0.025,
+        "mean_capped_m": 7.655863686254935,
+        "median_deg": 4.362007828851588,
+        "mean_deg": 5.66587537381371,
+        "n_heading": 400
+      },
+      "2024": {
+        "n": 200,
+        "matched": 200,
+        "median_m": 4.45049023240761,
+        "median_ci": [
+          3.7130538032893172,
+          5.053030336972409
+        ],
+        "recall@5m": 0.56,
+        "recall@5m_ci": [
+          0.495,
+          0.635
+        ],
+        "recall@10m": 0.78,
+        "recall@10m_ci": [
+          0.725,
+          0.84
+        ],
+        "frac_gt_30m": 0.025,
+        "recall@1m": 0.03,
+        "mean_capped_m": 7.236561075304758,
+        "median_deg": 3.870977975266824,
+        "mean_deg": 5.360747154627156,
+        "n_heading": 200
+      },
+      "2025": {
+        "n": 200,
+        "matched": 200,
+        "median_m": 5.565019154665237,
+        "median_ci": [
+          4.808311691476043,
+          6.384626052989854
+        ],
+        "recall@5m": 0.44,
+        "recall@5m_ci": [
+          0.375,
+          0.51
+        ],
+        "recall@10m": 0.765,
+        "recall@10m_ci": [
+          0.7,
+          0.82
+        ],
+        "frac_gt_30m": 0.03,
+        "recall@1m": 0.02,
+        "mean_capped_m": 8.075166297205111,
+        "median_deg": 4.830392528919033,
+        "mean_deg": 5.9710035930002645,
+        "n_heading": 200
+      }
+    },
+    "source": "experiments/12_poznan_three_way/panoroma_prior_crop",
+    "same_entries": true
+  },
+  "prior/PanoRoMa coarse (north)": {
+    "summary": {
+      "all": {
+        "n": 400,
+        "matched": 400,
+        "median_m": 5.464898473458619,
+        "median_ci": [
+          5.197850851571391,
+          6.157450124361537
+        ],
+        "recall@5m": 0.42,
+        "recall@5m_ci": [
+          0.3725,
+          0.47
+        ],
+        "recall@10m": 0.7475,
+        "recall@10m_ci": [
+          0.705,
+          0.7875
+        ],
+        "frac_gt_30m": 0.0425,
+        "recall@1m": 0.0175,
+        "mean_capped_m": 8.696583148641396,
+        "median_deg": 5.7376413954816154,
+        "mean_deg": 7.825215245222218,
+        "n_heading": 400
+      },
+      "2024": {
+        "n": 200,
+        "matched": 200,
+        "median_m": 5.379720080082806,
+        "median_ci": [
+          5.069195849005716,
+          6.319099642179516
+        ],
+        "recall@5m": 0.42,
+        "recall@5m_ci": [
+          0.355,
+          0.49
+        ],
+        "recall@10m": 0.765,
+        "recall@10m_ci": [
+          0.71,
+          0.82
+        ],
+        "frac_gt_30m": 0.035,
+        "recall@1m": 0.025,
+        "mean_capped_m": 8.212816101429041,
+        "median_deg": 5.613032396148377,
+        "mean_deg": 6.871519447915721,
+        "n_heading": 200
+      },
+      "2025": {
+        "n": 200,
+        "matched": 200,
+        "median_m": 5.594827115286417,
+        "median_ci": [
+          5.0162437180811565,
+          6.5581280853166835
+        ],
+        "recall@5m": 0.42,
+        "recall@5m_ci": [
+          0.355,
+          0.495
+        ],
+        "recall@10m": 0.73,
+        "recall@10m_ci": [
+          0.67,
+          0.795
+        ],
+        "frac_gt_30m": 0.05,
+        "recall@1m": 0.01,
+        "mean_capped_m": 9.180350195853753,
+        "median_deg": 5.803343825094695,
+        "mean_deg": 8.778911042528714,
+        "n_heading": 200
+      }
+    },
+    "source": "experiments/12_poznan_three_way/panoroma_prior_north",
+    "same_entries": true
+  },
+  "prior/PanoRoMa two-pass (north)": {
+    "summary": {
+      "all": {
+        "n": 400,
+        "matched": 400,
+        "median_m": 4.753595493270048,
+        "median_ci": [
+          4.033751725511613,
+          5.387519628359668
+        ],
+        "recall@5m": 0.5275,
+        "recall@5m_ci": [
+          0.48,
+          0.58
+        ],
+        "recall@10m": 0.7625,
+        "recall@10m_ci": [
+          0.72,
+          0.805
+        ],
+        "frac_gt_30m": 0.04,
+        "recall@1m": 0.06,
+        "mean_capped_m": 8.048225088294958,
+        "median_deg": 4.403907528306579,
+        "mean_deg": 6.013210361620238,
+        "n_heading": 400
+      },
+      "2024": {
+        "n": 200,
+        "matched": 200,
+        "median_m": 4.753595493270048,
+        "median_ci": [
+          3.981532943371468,
+          5.818367133012835
+        ],
+        "recall@5m": 0.535,
+        "recall@5m_ci": [
+          0.475,
+          0.6
+        ],
+        "recall@10m": 0.785,
+        "recall@10m_ci": [
+          0.73,
+          0.845
+        ],
+        "frac_gt_30m": 0.035,
+        "recall@1m": 0.06,
+        "mean_capped_m": 7.7040952168038,
+        "median_deg": 4.385698921622759,
+        "mean_deg": 5.2730598927084475,
+        "n_heading": 200
+      },
+      "2025": {
+        "n": 200,
+        "matched": 200,
+        "median_m": 4.746331974643913,
+        "median_ci": [
+          3.8606608741177615,
+          5.740399081501326
+        ],
+        "recall@5m": 0.52,
+        "recall@5m_ci": [
+          0.455,
+          0.59
+        ],
+        "recall@10m": 0.74,
+        "recall@10m_ci": [
+          0.68,
+          0.805
+        ],
+        "frac_gt_30m": 0.045,
+        "recall@1m": 0.06,
+        "mean_capped_m": 8.392354959786111,
+        "median_deg": 4.564956465479623,
+        "mean_deg": 6.7533608305320305,
+        "n_heading": 200
+      }
+    },
+    "source": "experiments/12_poznan_three_way/panoroma_prior_north",
+    "same_entries": true
+  },
+  "prior/PanoRoMa fine (ungated) (north)": {
+    "summary": {
+      "all": {
+        "n": 400,
+        "matched": 400,
+        "median_m": 4.829365864947068,
+        "median_ci": [
+          4.091684308662211,
+          5.5108737255073725
+        ],
+        "recall@5m": 0.52,
+        "recall@5m_ci": [
+          0.4725,
+          0.5725
+        ],
+        "recall@10m": 0.7625,
+        "recall@10m_ci": [
+          0.72,
+          0.805
+        ],
+        "frac_gt_30m": 0.04,
+        "recall@1m": 0.06,
+        "mean_capped_m": 8.077421705742573,
+        "median_deg": 4.41322820920299,
+        "mean_deg": 5.902016693249718,
+        "n_heading": 400
+      },
+      "2024": {
+        "n": 200,
+        "matched": 200,
+        "median_m": 4.835018358104421,
+        "median_ci": [
+          4.020966188432793,
+          6.094798563364062
+        ],
+        "recall@5m": 0.525,
+        "recall@5m_ci": [
+          0.465,
+          0.59
+        ],
+        "recall@10m": 0.785,
+        "recall@10m_ci": [
+          0.73,
+          0.845
+        ],
+        "frac_gt_30m": 0.035,
+        "recall@1m": 0.06,
+        "mean_capped_m": 7.7682514692384,
+        "median_deg": 4.385698921622759,
+        "mean_deg": 5.453114177804167,
+        "n_heading": 200
+      },
+      "2025": {
+        "n": 200,
+        "matched": 200,
+        "median_m": 4.829365864947068,
+        "median_ci": [
+          3.885150241618442,
+          5.740399081501326
+        ],
+        "recall@5m": 0.515,
+        "recall@5m_ci": [
+          0.45,
+          0.58
+        ],
+        "recall@10m": 0.74,
+        "recall@10m_ci": [
+          0.68,
+          0.805
+        ],
+        "frac_gt_30m": 0.045,
+        "recall@1m": 0.06,
+        "mean_capped_m": 8.386591942246742,
+        "median_deg": 4.7446303387522635,
+        "mean_deg": 6.35091920869527,
+        "n_heading": 200
+      }
+    },
+    "source": "experiments/12_poznan_three_way/panoroma_prior_north",
+    "same_entries": true
+  },
+  "prior/PanoRoMa coarse (north_ext71)": {
+    "summary": {
+      "all": {
+        "n": 400,
+        "matched": 400,
+        "median_m": 5.335976419951059,
+        "median_ci": [
+          4.685271572623585,
+          6.135700022635026
+        ],
+        "recall@5m": 0.47,
+        "recall@5m_ci": [
+          0.42,
+          0.52
+        ],
+        "recall@10m": 0.7775,
+        "recall@10m_ci": [
+          0.735,
+          0.815
+        ],
+        "frac_gt_30m": 0.02,
+        "recall@1m": 0.0525,
+        "mean_capped_m": 8.146276512702736,
+        "median_deg": 4.697211367922396,
+        "mean_deg": 6.850901957630178,
+        "n_heading": 400
+      },
+      "2024": {
+        "n": 200,
+        "matched": 200,
+        "median_m": 5.432213191972334,
+        "median_ci": [
+          4.3803689237324015,
+          6.365283346014163
+        ],
+        "recall@5m": 0.47,
+        "recall@5m_ci": [
+          0.405,
+          0.54
+        ],
+        "recall@10m": 0.77,
+        "recall@10m_ci": [
+          0.71,
+          0.83
+        ],
+        "frac_gt_30m": 0.025,
+        "recall@1m": 0.06,
+        "mean_capped_m": 8.241792877855584,
+        "median_deg": 4.352633533400941,
+        "mean_deg": 7.004064237942377,
+        "n_heading": 200
+      },
+      "2025": {
+        "n": 200,
+        "matched": 200,
+        "median_m": 5.273302348066183,
+        "median_ci": [
+          4.5061019077558,
+          6.244668758462993
+        ],
+        "recall@5m": 0.47,
+        "recall@5m_ci": [
+          0.405,
+          0.54
+        ],
+        "recall@10m": 0.785,
+        "recall@10m_ci": [
+          0.73,
+          0.845
+        ],
+        "frac_gt_30m": 0.015,
+        "recall@1m": 0.045,
+        "mean_capped_m": 8.050760147549886,
+        "median_deg": 4.9132866694171735,
+        "mean_deg": 6.69773967731798,
+        "n_heading": 200
+      }
+    },
+    "source": "experiments/12_poznan_three_way/panoroma_prior_north_ext71",
+    "same_entries": true
+  },
+  "prior/PanoRoMa two-pass (north_ext71)": {
+    "summary": {
+      "all": {
+        "n": 400,
+        "matched": 400,
+        "median_m": 4.53222536658841,
+        "median_ci": [
+          3.882546093043586,
+          5.117254986700666
+        ],
+        "recall@5m": 0.5425,
+        "recall@5m_ci": [
+          0.4925,
+          0.5925
+        ],
+        "recall@10m": 0.76,
+        "recall@10m_ci": [
+          0.72,
+          0.8025
+        ],
+        "frac_gt_30m": 0.03,
+        "recall@1m": 0.0475,
+        "mean_capped_m": 7.867103260115898,
+        "median_deg": 4.168955694344982,
+        "mean_deg": 5.764855863899004,
+        "n_heading": 400
+      },
+      "2024": {
+        "n": 200,
+        "matched": 200,
+        "median_m": 4.30749531065592,
+        "median_ci": [
+          3.487512443694454,
+          5.4626952304498975
+        ],
+        "recall@5m": 0.54,
+        "recall@5m_ci": [
+          0.475,
+          0.605
+        ],
+        "recall@10m": 0.755,
+        "recall@10m_ci": [
+          0.695,
+          0.815
+        ],
+        "frac_gt_30m": 0.04,
+        "recall@1m": 0.04,
+        "mean_capped_m": 7.949890929792867,
+        "median_deg": 3.7918592163374267,
+        "mean_deg": 5.706256428903864,
+        "n_heading": 200
+      },
+      "2025": {
+        "n": 200,
+        "matched": 200,
+        "median_m": 4.636995863230906,
+        "median_ci": [
+          3.825922697051978,
+          5.204182338991476
+        ],
+        "recall@5m": 0.545,
+        "recall@5m_ci": [
+          0.48,
+          0.615
+        ],
+        "recall@10m": 0.765,
+        "recall@10m_ci": [
+          0.705,
+          0.825
+        ],
+        "frac_gt_30m": 0.02,
+        "recall@1m": 0.055,
+        "mean_capped_m": 7.784315590438933,
+        "median_deg": 4.561981499384557,
+        "mean_deg": 5.823455298894143,
+        "n_heading": 200
+      }
+    },
+    "source": "experiments/12_poznan_three_way/panoroma_prior_north_ext71",
+    "same_entries": true
+  },
+  "prior/PanoRoMa fine (ungated) (north_ext71)": {
+    "summary": {
+      "all": {
+        "n": 400,
+        "matched": 400,
+        "median_m": 4.628899069930981,
+        "median_ci": [
+          3.91707790185899,
+          5.1517708315921125
+        ],
+        "recall@5m": 0.535,
+        "recall@5m_ci": [
+          0.4875,
+          0.585
+        ],
+        "recall@10m": 0.76,
+        "recall@10m_ci": [
+          0.72,
+          0.8025
+        ],
+        "frac_gt_30m": 0.03,
+        "recall@1m": 0.0475,
+        "mean_capped_m": 7.901556844859778,
+        "median_deg": 4.246589530071143,
+        "mean_deg": 5.714951332902547,
+        "n_heading": 400
+      },
+      "2024": {
+        "n": 200,
+        "matched": 200,
+        "median_m": 4.574959916913857,
+        "median_ci": [
+          3.7629838063967354,
+          5.637829137033474
+        ],
+        "recall@5m": 0.53,
+        "recall@5m_ci": [
+          0.465,
+          0.6
+        ],
+        "recall@10m": 0.755,
+        "recall@10m_ci": [
+          0.695,
+          0.815
+        ],
+        "frac_gt_30m": 0.04,
+        "recall@1m": 0.04,
+        "mean_capped_m": 8.01385308269041,
+        "median_deg": 3.846968519754972,
+        "mean_deg": 5.467861110148752,
+        "n_heading": 200
+      },
+      "2025": {
+        "n": 200,
+        "matched": 200,
+        "median_m": 4.672381458096435,
+        "median_ci": [
+          3.854441350736817,
+          5.20715118095584
+        ],
+        "recall@5m": 0.54,
+        "recall@5m_ci": [
+          0.475,
+          0.615
+        ],
+        "recall@10m": 0.765,
+        "recall@10m_ci": [
+          0.705,
+          0.825
+        ],
+        "frac_gt_30m": 0.02,
+        "recall@1m": 0.055,
+        "mean_capped_m": 7.789260607029146,
+        "median_deg": 4.561981499384557,
+        "mean_deg": 5.962041555656344,
+        "n_heading": 200
+      }
+    },
+    "source": "experiments/12_poznan_three_way/panoroma_prior_north_ext71",
+    "same_entries": true
+  },
+  "gt/FG\u00b2 native (reported, task 02)": {
+    "summary": {
+      "all": {
+        "n": 400,
+        "matched": 400,
+        "median_m": 4.243053210922433,
+        "median_ci": [
+          3.7879757282346938,
+          4.611565227670501
+        ],
+        "recall@5m": 0.5925,
+        "recall@5m_ci": [
+          0.545,
+          0.64
+        ],
+        "recall@10m": 0.8525,
+        "recall@10m_ci": [
+          0.8175,
+          0.8875
+        ],
+        "frac_gt_30m": 0.0025,
+        "recall@1m": 0.0725,
+        "mean_capped_m": 5.573619771594326,
+        "median_deg": null,
+        "mean_deg": null,
+        "n_heading": 0
+      },
+      "2024": {
+        "n": 200,
+        "matched": 200,
+        "median_m": 3.9533572296233386,
+        "median_ci": [
+          3.347082387967864,
+          4.714685614430403
+        ],
+        "recall@5m": 0.605,
+        "recall@5m_ci": [
+          0.54,
+          0.675
+        ],
+        "recall@10m": 0.845,
+        "recall@10m_ci": [
+          0.795,
+          0.89
+        ],
+        "frac_gt_30m": 0.005,
+        "recall@1m": 0.075,
+        "mean_capped_m": 5.588939667122787,
+        "median_deg": null,
+        "mean_deg": null,
+        "n_heading": 0
+      },
+      "2025": {
+        "n": 200,
+        "matched": 200,
+        "median_m": 4.350964602066833,
+        "median_ci": [
+          3.818582988780989,
+          4.897194868628034
+        ],
+        "recall@5m": 0.58,
+        "recall@5m_ci": [
+          0.515,
+          0.65
+        ],
+        "recall@10m": 0.86,
+        "recall@10m_ci": [
+          0.81,
+          0.91
+        ],
+        "frac_gt_30m": 0.0,
+        "recall@1m": 0.07,
+        "mean_capped_m": 5.558299876065865,
+        "median_deg": null,
+        "mean_deg": null,
+        "n_heading": 0
+      }
+    },
+    "source": "heading column dropped (measured |crop_rot|)",
+    "same_entries": true
+  },
+  "gt/Loc\u00b2 native flat depth (reported, task 02)": {
+    "summary": {
+      "all": {
+        "n": 400,
+        "matched": 400,
+        "median_m": 4.034700205726359,
+        "median_ci": [
+          3.575066645557533,
+          4.350174382820478
+        ],
+        "recall@5m": 0.6225,
+        "recall@5m_ci": [
+          0.5725,
+          0.67
+        ],
+        "recall@10m": 0.8325,
+        "recall@10m_ci": [
+          0.795,
+          0.87
+        ],
+        "frac_gt_30m": 0.03,
+        "recall@1m": 0.0625,
+        "mean_capped_m": 6.768149184404234,
+        "median_deg": null,
+        "mean_deg": null,
+        "n_heading": 0
+      },
+      "2024": {
+        "n": 200,
+        "matched": 200,
+        "median_m": 3.672378960286907,
+        "median_ci": [
+          3.327908773727641,
+          4.192744076416265
+        ],
+        "recall@5m": 0.645,
+        "recall@5m_ci": [
+          0.58,
+          0.71
+        ],
+        "recall@10m": 0.835,
+        "recall@10m_ci": [
+          0.78,
+          0.885
+        ],
+        "frac_gt_30m": 0.03,
+        "recall@1m": 0.055,
+        "mean_capped_m": 6.678917422547248,
+        "median_deg": null,
+        "mean_deg": null,
+        "n_heading": 0
+      },
+      "2025": {
+        "n": 200,
+        "matched": 200,
+        "median_m": 4.214416849192718,
+        "median_ci": [
+          3.6083025919379166,
+          4.6852240155139135
+        ],
+        "recall@5m": 0.6,
+        "recall@5m_ci": [
+          0.535,
+          0.665
+        ],
+        "recall@10m": 0.83,
+        "recall@10m_ci": [
+          0.78,
+          0.88
+        ],
+        "frac_gt_30m": 0.03,
+        "recall@1m": 0.07,
+        "mean_capped_m": 6.857380946261219,
+        "median_deg": null,
+        "mean_deg": null,
+        "n_heading": 0
+      }
+    },
+    "source": "heading column dropped (measured |crop_rot|)",
+    "same_entries": true
+  },
+  "gt/FG\u00b2 native": {
+    "summary": {
+      "all": {
+        "n": 400,
+        "matched": 400,
+        "median_m": 3.9798838762896285,
+        "median_ci": [
+          3.6322751027513878,
+          4.624713702503685
+        ],
+        "recall@5m": 0.5925,
+        "recall@5m_ci": [
+          0.545,
+          0.6425
+        ],
+        "recall@10m": 0.8625,
+        "recall@10m_ci": [
+          0.8275,
+          0.895
+        ],
+        "frac_gt_30m": 0.0025,
+        "recall@1m": 0.0525,
+        "mean_capped_m": 5.541298729347777,
+        "median_deg": 1.997336930343664,
+        "mean_deg": 3.540208866190677,
+        "n_heading": 400
+      },
+      "2024": {
+        "n": 200,
+        "matched": 200,
+        "median_m": 3.7638991889077413,
+        "median_ci": [
+          3.3111448529853478,
+          4.674983006293932
+        ],
+        "recall@5m": 0.59,
+        "recall@5m_ci": [
+          0.525,
+          0.66
+        ],
+        "recall@10m": 0.865,
+        "recall@10m_ci": [
+          0.82,
+          0.91
+        ],
+        "frac_gt_30m": 0.005,
+        "recall@1m": 0.06,
+        "mean_capped_m": 5.596332718304058,
+        "median_deg": 1.9949735657615264,
+        "mean_deg": 3.3263452921450782,
+        "n_heading": 200
+      },
+      "2025": {
+        "n": 200,
+        "matched": 200,
+        "median_m": 4.316742910539981,
+        "median_ci": [
+          3.7389914371230173,
+          4.912174422184721
+        ],
+        "recall@5m": 0.595,
+        "recall@5m_ci": [
+          0.53,
+          0.66
+        ],
+        "recall@10m": 0.86,
+        "recall@10m_ci": [
+          0.81,
+          0.91
+        ],
+        "frac_gt_30m": 0.0,
+        "recall@1m": 0.045,
+        "mean_capped_m": 5.486264740391498,
+        "median_deg": 2.037262108435172,
+        "mean_deg": 3.7540724402362766,
+        "n_heading": 200
+      }
+    },
+    "source": "experiments/12_poznan_three_way/fg2_gt",
+    "same_entries": true
+  },
+  "gt/Loc\u00b2 native flat depth": {
+    "summary": {
+      "all": {
+        "n": 400,
+        "matched": 400,
+        "median_m": 4.010978176172549,
+        "median_ci": [
+          3.597922745835679,
+          4.2799194043580675
+        ],
+        "recall@5m": 0.6075,
+        "recall@5m_ci": [
+          0.56,
+          0.655
+        ],
+        "recall@10m": 0.83,
+        "recall@10m_ci": [
+          0.7925,
+          0.8675
+        ],
+        "frac_gt_30m": 0.03,
+        "recall@1m": 0.0575,
+        "mean_capped_m": 6.831536496948445,
+        "median_deg": 2.3020517669712888,
+        "mean_deg": 3.243920957873105,
+        "n_heading": 400
+      },
+      "2024": {
+        "n": 200,
+        "matched": 200,
+        "median_m": 3.760190659264596,
+        "median_ci": [
+          3.244959223463186,
+          4.183846008324699
+        ],
+        "recall@5m": 0.635,
+        "recall@5m_ci": [
+          0.57,
+          0.7
+        ],
+        "recall@10m": 0.835,
+        "recall@10m_ci": [
+          0.78,
+          0.885
+        ],
+        "frac_gt_30m": 0.03,
+        "recall@1m": 0.05,
+        "mean_capped_m": 6.657361608780025,
+        "median_deg": 2.22618274026145,
+        "mean_deg": 2.970444771676344,
+        "n_heading": 200
+      },
+      "2025": {
+        "n": 200,
+        "matched": 200,
+        "median_m": 4.260757765657495,
+        "median_ci": [
+          3.754809625135901,
+          4.9097120364551525
+        ],
+        "recall@5m": 0.58,
+        "recall@5m_ci": [
+          0.51,
+          0.65
+        ],
+        "recall@10m": 0.825,
+        "recall@10m_ci": [
+          0.775,
+          0.875
+        ],
+        "frac_gt_30m": 0.03,
+        "recall@1m": 0.065,
+        "mean_capped_m": 7.005711385116865,
+        "median_deg": 2.601291426496317,
+        "mean_deg": 3.5173971440698666,
+        "n_heading": 200
+      }
+    },
+    "source": "experiments/12_poznan_three_way/loc2_flat_gt",
+    "same_entries": true
+  },
+  "gt/Loc\u00b2 native UniK3D": {
+    "summary": {
+      "all": {
+        "n": 400,
+        "matched": 400,
+        "median_m": 3.5323053296391107,
+        "median_ci": [
+          3.2154653674513076,
+          3.832037698834882
+        ],
+        "recall@5m": 0.6675,
+        "recall@5m_ci": [
+          0.62,
+          0.7125
+        ],
+        "recall@10m": 0.85,
+        "recall@10m_ci": [
+          0.815,
+          0.885
+        ],
+        "frac_gt_30m": 0.0325,
+        "recall@1m": 0.07,
+        "mean_capped_m": 6.328976714951753,
+        "median_deg": 1.9192101512641528,
+        "mean_deg": 2.7098693511742566,
+        "n_heading": 400
+      },
+      "2024": {
+        "n": 200,
+        "matched": 200,
+        "median_m": 3.3986490986097513,
+        "median_ci": [
+          3.0970725786046023,
+          3.8343836806583305
+        ],
+        "recall@5m": 0.665,
+        "recall@5m_ci": [
+          0.6,
+          0.73
+        ],
+        "recall@10m": 0.86,
+        "recall@10m_ci": [
+          0.805,
+          0.905
+        ],
+        "frac_gt_30m": 0.04,
+        "recall@1m": 0.06,
+        "mean_capped_m": 6.279342882253253,
+        "median_deg": 1.8952915909587773,
+        "mean_deg": 2.6934484963686045,
+        "n_heading": 200
+      },
+      "2025": {
+        "n": 200,
+        "matched": 200,
+        "median_m": 3.6298576407870127,
+        "median_ci": [
+          3.321137007707387,
+          4.208364170633843
+        ],
+        "recall@5m": 0.67,
+        "recall@5m_ci": [
+          0.605,
+          0.735
+        ],
+        "recall@10m": 0.84,
+        "recall@10m_ci": [
+          0.79,
+          0.89
+        ],
+        "frac_gt_30m": 0.025,
+        "recall@1m": 0.08,
+        "mean_capped_m": 6.378610547650251,
+        "median_deg": 1.9513461554800244,
+        "mean_deg": 2.726290205979909,
+        "n_heading": 200
+      }
+    },
+    "source": "experiments/12_poznan_three_way/loc2_unik3d_gt",
+    "same_entries": true
+  },
+  "gt/PanoRoMa coarse (north)": {
+    "summary": {
+      "all": {
+        "n": 400,
+        "matched": 400,
+        "median_m": 5.410228821444767,
+        "median_ci": [
+          4.932428159588777,
+          6.090451426044114
+        ],
+        "recall@5m": 0.4575,
+        "recall@5m_ci": [
+          0.4075,
+          0.505
+        ],
+        "recall@10m": 0.745,
+        "recall@10m_ci": [
+          0.7,
+          0.7875
+        ],
+        "frac_gt_30m": 0.0475,
+        "recall@1m": 0.02,
+        "mean_capped_m": 8.730486029659463,
+        "median_deg": 3.7225205127058603,
+        "mean_deg": 5.958780982688843,
+        "n_heading": 400
+      },
+      "2024": {
+        "n": 200,
+        "matched": 200,
+        "median_m": 5.284984197717696,
+        "median_ci": [
+          4.549530844286983,
+          6.24002174588067
+        ],
+        "recall@5m": 0.465,
+        "recall@5m_ci": [
+          0.395,
+          0.54
+        ],
+        "recall@10m": 0.75,
+        "recall@10m_ci": [
+          0.69,
+          0.81
+        ],
+        "frac_gt_30m": 0.045,
+        "recall@1m": 0.03,
+        "mean_capped_m": 8.368878244882294,
+        "median_deg": 3.618077194043728,
+        "mean_deg": 5.57521232790333,
+        "n_heading": 200
+      },
+      "2025": {
+        "n": 200,
+        "matched": 200,
+        "median_m": 5.537544615185201,
+        "median_ci": [
+          4.82420244067012,
+          6.283581018512034
+        ],
+        "recall@5m": 0.45,
+        "recall@5m_ci": [
+          0.385,
+          0.525
+        ],
+        "recall@10m": 0.74,
+        "recall@10m_ci": [
+          0.68,
+          0.805
+        ],
+        "frac_gt_30m": 0.05,
+        "recall@1m": 0.01,
+        "mean_capped_m": 9.092093814436634,
+        "median_deg": 3.89935406410099,
+        "mean_deg": 6.342349637474354,
+        "n_heading": 200
+      }
+    },
+    "source": "experiments/12_poznan_three_way/panoroma_gt_north",
+    "same_entries": true
+  },
+  "gt/PanoRoMa two-pass (north)": {
+    "summary": {
+      "all": {
+        "n": 400,
+        "matched": 400,
+        "median_m": 4.729123774857659,
+        "median_ci": [
+          4.126787733530569,
+          5.338423809639302
+        ],
+        "recall@5m": 0.515,
+        "recall@5m_ci": [
+          0.465,
+          0.5675
+        ],
+        "recall@10m": 0.755,
+        "recall@10m_ci": [
+          0.71,
+          0.7975
+        ],
+        "frac_gt_30m": 0.045,
+        "recall@1m": 0.055,
+        "mean_capped_m": 8.23890530033009,
+        "median_deg": 2.3456403351263377,
+        "mean_deg": 3.7579097659311036,
+        "n_heading": 400
+      },
+      "2024": {
+        "n": 200,
+        "matched": 200,
+        "median_m": 4.567900394218737,
+        "median_ci": [
+          3.89472017589714,
+          5.794335006306447
+        ],
+        "recall@5m": 0.525,
+        "recall@5m_ci": [
+          0.455,
+          0.595
+        ],
+        "recall@10m": 0.78,
+        "recall@10m_ci": [
+          0.725,
+          0.84
+        ],
+        "frac_gt_30m": 0.045,
+        "recall@1m": 0.06,
+        "mean_capped_m": 7.9826003561648475,
+        "median_deg": 2.091541408596747,
+        "mean_deg": 3.282405675141357,
+        "n_heading": 200
+      },
+      "2025": {
+        "n": 200,
+        "matched": 200,
+        "median_m": 4.9694130842859945,
+        "median_ci": [
+          4.016371850079306,
+          5.612051959860969
+        ],
+        "recall@5m": 0.505,
+        "recall@5m_ci": [
+          0.435,
+          0.575
+        ],
+        "recall@10m": 0.73,
+        "recall@10m_ci": [
+          0.67,
+          0.79
+        ],
+        "frac_gt_30m": 0.045,
+        "recall@1m": 0.05,
+        "mean_capped_m": 8.495210244495333,
+        "median_deg": 2.643868372150689,
+        "mean_deg": 4.233413856720851,
+        "n_heading": 200
+      }
+    },
+    "source": "experiments/12_poznan_three_way/panoroma_gt_north",
+    "same_entries": true
+  },
+  "gt/PanoRoMa fine (ungated) (north)": {
+    "summary": {
+      "all": {
+        "n": 400,
+        "matched": 400,
+        "median_m": 4.880941338574818,
+        "median_ci": [
+          4.147070929045368,
+          5.446068163022995
+        ],
+        "recall@5m": 0.5075,
+        "recall@5m_ci": [
+          0.4575,
+          0.5625
+        ],
+        "recall@10m": 0.755,
+        "recall@10m_ci": [
+          0.71,
+          0.7975
+        ],
+        "frac_gt_30m": 0.045,
+        "recall@1m": 0.055,
+        "mean_capped_m": 8.241509808257135,
+        "median_deg": 2.3559636481533532,
+        "mean_deg": 3.9704107461199145,
+        "n_heading": 400
+      },
+      "2024": {
+        "n": 200,
+        "matched": 200,
+        "median_m": 4.729123774857659,
+        "median_ci": [
+          4.115723571715278,
+          5.8798883048549015
+        ],
+        "recall@5m": 0.515,
+        "recall@5m_ci": [
+          0.45,
+          0.585
+        ],
+        "recall@10m": 0.78,
+        "recall@10m_ci": [
+          0.725,
+          0.84
+        ],
+        "frac_gt_30m": 0.045,
+        "recall@1m": 0.06,
+        "mean_capped_m": 8.002805109904449,
+        "median_deg": 2.091541408596747,
+        "mean_deg": 3.6692586276243935,
+        "n_heading": 200
+      },
+      "2025": {
+        "n": 200,
+        "matched": 200,
+        "median_m": 4.9973954124789906,
+        "median_ci": [
+          4.094986221820207,
+          5.634503801274085
+        ],
+        "recall@5m": 0.5,
+        "recall@5m_ci": [
+          0.43,
+          0.565
+        ],
+        "recall@10m": 0.73,
+        "recall@10m_ci": [
+          0.67,
+          0.79
+        ],
+        "frac_gt_30m": 0.045,
+        "recall@1m": 0.05,
+        "mean_capped_m": 8.480214506609823,
+        "median_deg": 2.643868372150689,
+        "mean_deg": 4.2715628646154356,
+        "n_heading": 200
+      }
+    },
+    "source": "experiments/12_poznan_three_way/panoroma_gt_north",
+    "same_entries": true
+  }
+}

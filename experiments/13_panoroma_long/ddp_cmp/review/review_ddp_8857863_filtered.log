@@ -1,0 +1,597 @@
+[probe-ddp] host=gpu45 date=2026-09-29T19:45:36+02:00 cpus=64 git=8c7818d review: exact DDP loss normalisation (global counts), encoder precision in resume counters, bounded loud recompiles
+0, NVIDIA H100, 95830 MiB, 595.71.05
+1, NVIDIA H100, 95830 MiB, 595.71.05
+2, NVIDIA H100, 95830 MiB, 595.71.05
+3, NVIDIA H100, 95830 MiB, 595.71.05
+[probe-ddp] torch 2.13.0+cu130 cuda 13.0 nccl (2, 29, 7) timm 1.0.28
+[probe-ddp] nproc=4 args=--steps 12 --vce-weight 0 --val-every 1000 --val-samples 32 --tag rcmp0_ddp 2026-09-29T19:45:56+02:00
+DDP: global batch 32 = 4 ranks x 8 per rank (backend nccl, rank 0 on cuda:0)
+pose NLL weight 0.5  refine weight 0.0
+train 42087 (['NewYork', 'Seattle', 'SanFrancisco', 'Chicago'])  val 32 of 10522 held out from the train list (val_frac 0.2)  mode erp_depth  batch 32
+depth: dropped 0 train / 0 val labels without a depth file -> train 42087  val 32
+VCE weight 0.0  
+1315 steps per epoch (global batch 32, drop_last)  total 12 steps = 0.01 epochs  validation every 1000 steps  workers 8 prefetch 2 pin_memory True
+Using Dinov3 as Sat Encoder, model: vit_large_patch16_dinov3.sat493m
+encoder autocast float32  compile none  attention: encoder {'EvaAttention.fused_attn=True': 24, 'sdpa_flash_enabled': True, 'sdpa_mem_efficient_enabled': True} decoder {'sdpa_flash_enabled': True, 'sdpa_mem_efficient_enabled': True}
+no --ckpt: decoder = released Sat-RoMa checkpoint, query untrained
+query erp_depth: 2.23 M trainable parameters (lr 0.0002)
+checkpoint contents: query 2.23 M tensors (9 MiB)  decoder 66.71 M tensors (254 MiB)  | optimised 68.94 M params | frozen encoder 303.1 M NOT saved
+=========================================================================================
+   Native/Hybrid classical routines if you want good performance.
+==================================================================================================================================================================================
+   Native/Hybrid classical routines if you want good performance.
+=========================================================================================
+=========================================================================================
+   Native/Hybrid classical routines if you want good performance.
+==================================================================================================================================================================================
+   Native/Hybrid classical routines if you want good performance.
+=========================================================================================
+step 1 TRAIN  CE 7.843  poseNLL 7.515  top1 0.1%  arg 26.8 m  n 37224  (8s, epoch 0.00)
+=========================================================================================
+   Native/Hybrid classical routines if you want good performance.
+=========================================================================================
+=========================================================================================
+   Native/Hybrid classical routines if you want good performance.
+=========================================================================================
+=========================================================================================
+   Native/Hybrid classical routines if you want good performance.
+=========================================================================================
+=========================================================================================
+   Native/Hybrid classical routines if you want good performance.
+=========================================================================================
+=========================================================================================
+   Native/Hybrid classical routines if you want good performance.
+=========================================================================================
+=========================================================================================
+   Native/Hybrid classical routines if you want good performance.
+=========================================================================================
+=========================================================================================
+   Native/Hybrid classical routines if you want good performance.
+=========================================================================================
+=========================================================================================
+   Native/Hybrid classical routines if you want good performance.
+=========================================================================================
+=========================================================================================
+   Native/Hybrid classical routines if you want good performance.
+=========================================================================================
+=========================================================================================
+   Native/Hybrid classical routines if you want good performance.
+=========================================================================================
+=========================================================================================
+   Native/Hybrid classical routines if you want good performance.
+=========================================================================================
+=========================================================================================
+   Native/Hybrid classical routines if you want good performance.
+=========================================================================================
+=========================================================================================
+   Native/Hybrid classical routines if you want good performance.
+=========================================================================================
+=========================================================================================
+   Native/Hybrid classical routines if you want good performance.
+=========================================================================================
+=========================================================================================
+   Native/Hybrid classical routines if you want good performance.
+=========================================================================================
+=========================================================================================
+   Native/Hybrid classical routines if you want good performance.
+=========================================================================================
+=========================================================================================
+   Native/Hybrid classical routines if you want good performance.
+=========================================================================================
+=========================================================================================
+   Native/Hybrid classical routines if you want good performance.
+=========================================================================================
+=========================================================================================
+   Native/Hybrid classical routines if you want good performance.
+=========================================================================================
+=========================================================================================
+   Native/Hybrid classical routines if you want good performance.
+=========================================================================================
+=========================================================================================
+   Native/Hybrid classical routines if you want good performance.
+=========================================================================================
+=========================================================================================
+   Native/Hybrid classical routines if you want good performance.
+=========================================================================================
+=========================================================================================
+   Native/Hybrid classical routines if you want good performance.
+=========================================================================================
+=========================================================================================
+   Native/Hybrid classical routines if you want good performance.
+=========================================================================================
+=========================================================================================
+   Native/Hybrid classical routines if you want good performance.
+==================================================================================================================================================================================
+   Native/Hybrid classical routines if you want good performance.
+=========================================================================================
+=========================================================================================
+   Native/Hybrid classical routines if you want good performance.
+=========================================================================================
+=========================================================================================
+   Native/Hybrid classical routines if you want good performance.
+=========================================================================================
+=========================================================================================
+   Native/Hybrid classical routines if you want good performance.
+=========================================================================================
+=========================================================================================
+   Native/Hybrid classical routines if you want good performance.
+=========================================================================================
+=========================================================================================
+   Native/Hybrid classical routines if you want good performance.
+=========================================================================================
+=========================================================================================
+   Native/Hybrid classical routines if you want good performance.
+=========================================================================================
+=========================================================================================
+   Native/Hybrid classical routines if you want good performance.
+=========================================================================================
+=========================================================================================
+   Native/Hybrid classical routines if you want good performance.
+=========================================================================================
+=========================================================================================
+   Native/Hybrid classical routines if you want good performance.
+=========================================================================================
+=========================================================================================
+   Native/Hybrid classical routines if you want good performance.
+=========================================================================================
+=========================================================================================
+   Native/Hybrid classical routines if you want good performance.
+=========================================================================================
+=========================================================================================
+   Native/Hybrid classical routines if you want good performance.
+=========================================================================================
+=========================================================================================
+   Native/Hybrid classical routines if you want good performance.
+=========================================================================================
+=========================================================================================
+   Native/Hybrid classical routines if you want good performance.
+=========================================================================================
+=========================================================================================
+   Native/Hybrid classical routines if you want good performance.
+=========================================================================================
+=========================================================================================
+   Native/Hybrid classical routines if you want good performance.
+=========================================================================================
+=========================================================================================
+   Native/Hybrid classical routines if you want good performance.
+=========================================================================================
+=========================================================================================
+   Native/Hybrid classical routines if you want good performance.
+=========================================================================================
+=========================================================================================
+   Native/Hybrid classical routines if you want good performance.
+=========================================================================================
+step 12 VAL    CE 6.147  poseNLL 5.925  top1 0.5%  heatmap-argmax (not a pose) 12.5 m  n 37778
+  best -> /mnt/storage_6/project_data/pl1269-01/krupka_maciej/review_ddp/checkpoints/vigor_rcmp0_ddp_best.pt
+wrote /mnt/storage_6/project_data/pl1269-01/krupka_maciej/review_ddp/checkpoints/vigor_rcmp0_ddp_best.pt (best, step 12), /mnt/storage_6/project_data/pl1269-01/krupka_maciej/review_ddp/checkpoints/vigor_rcmp0_ddp_last_finite.pt (last finite validation) and /mnt/storage_6/project_data/pl1269-01/krupka_maciej/review_ddp/checkpoints/vigor_rcmp0_ddp_last.pt (last, step 12, 263 MiB); resume state /mnt/storage_6/project_data/pl1269-01/krupka_maciej/review_ddp/checkpoints/vigor_rcmp0_ddp_resume.pt; non-finite steps 0, no-update steps 0
+[probe-ddp] exit=0 2026-09-29T19:47:47+02:00
+[probe-ddp] nproc=1 args=--steps 12 --vce-weight 0 --val-every 1000 --val-samples 32 --tag rcmp0_single 2026-09-29T19:47:47+02:00
+pose NLL weight 0.5  refine weight 0.0
+train 42087 (['NewYork', 'Seattle', 'SanFrancisco', 'Chicago'])  val 32 of 10522 held out from the train list (val_frac 0.2)  mode erp_depth  batch 32
+depth: dropped 0 train / 0 val labels without a depth file -> train 42087  val 32
+VCE weight 0.0  
+1315 steps per epoch (batch 32, drop_last)  total 12 steps = 0.01 epochs  validation every 1000 steps  workers 8 prefetch 2 pin_memory True
+Using Dinov3 as Sat Encoder, model: vit_large_patch16_dinov3.sat493m
+encoder autocast float32  compile none  attention: encoder {'EvaAttention.fused_attn=True': 24, 'sdpa_flash_enabled': True, 'sdpa_mem_efficient_enabled': True} decoder {'sdpa_flash_enabled': True, 'sdpa_mem_efficient_enabled': True}
+no --ckpt: decoder = released Sat-RoMa checkpoint, query untrained
+query erp_depth: 2.23 M trainable parameters (lr 0.0002)
+checkpoint contents: query 2.23 M tensors (9 MiB)  decoder 66.71 M tensors (254 MiB)  | optimised 68.94 M params | frozen encoder 303.1 M NOT saved
+=========================================================================================
+   Native/Hybrid classical routines if you want good performance.
+=========================================================================================
+step 1 TRAIN  CE 7.843  poseNLL 7.515  top1 0.1%  arg 26.8 m  n 37224  (14s, epoch 0.00)
+=========================================================================================
+   Native/Hybrid classical routines if you want good performance.
+=========================================================================================
+=========================================================================================
+   Native/Hybrid classical routines if you want good performance.
+=========================================================================================
+=========================================================================================
+   Native/Hybrid classical routines if you want good performance.
+=========================================================================================
+=========================================================================================
+   Native/Hybrid classical routines if you want good performance.
+=========================================================================================
+=========================================================================================
+   Native/Hybrid classical routines if you want good performance.
+=========================================================================================
+=========================================================================================
+   Native/Hybrid classical routines if you want good performance.
+=========================================================================================
+=========================================================================================
+   Native/Hybrid classical routines if you want good performance.
+=========================================================================================
+=========================================================================================
+   Native/Hybrid classical routines if you want good performance.
+=========================================================================================
+=========================================================================================
+   Native/Hybrid classical routines if you want good performance.
+=========================================================================================
+=========================================================================================
+   Native/Hybrid classical routines if you want good performance.
+=========================================================================================
+=========================================================================================
+   Native/Hybrid classical routines if you want good performance.
+=========================================================================================
+=========================================================================================
+   Native/Hybrid classical routines if you want good performance.
+=========================================================================================
+step 12 VAL    CE 6.172  poseNLL 5.928  top1 0.5%  heatmap-argmax (not a pose) 13.8 m  n 37778
+  best -> /mnt/storage_6/project_data/pl1269-01/krupka_maciej/review_ddp/checkpoints/vigor_rcmp0_single_best.pt
+wrote /mnt/storage_6/project_data/pl1269-01/krupka_maciej/review_ddp/checkpoints/vigor_rcmp0_single_best.pt (best, step 12), /mnt/storage_6/project_data/pl1269-01/krupka_maciej/review_ddp/checkpoints/vigor_rcmp0_single_last_finite.pt (last finite validation) and /mnt/storage_6/project_data/pl1269-01/krupka_maciej/review_ddp/checkpoints/vigor_rcmp0_single_last.pt (last, step 12, 263 MiB); resume state /mnt/storage_6/project_data/pl1269-01/krupka_maciej/review_ddp/checkpoints/vigor_rcmp0_single_resume.pt; non-finite steps 0, no-update steps 0
+[probe-ddp] exit=0 2026-09-29T19:50:09+02:00
+[probe-ddp] nproc=4 args=--steps 12 --vce-weight 0 --val-every 1000 --val-samples 32 --tf32 --encoder-dtype bfloat16 --compile encoder --tag rcmp0_ddp_fast 2026-09-29T19:50:09+02:00
+DDP: global batch 32 = 4 ranks x 8 per rank (backend nccl, rank 0 on cuda:0)
+TF32 matmuls/convolutions ON (--tf32)
+pose NLL weight 0.5  refine weight 0.0
+train 42087 (['NewYork', 'Seattle', 'SanFrancisco', 'Chicago'])  val 32 of 10522 held out from the train list (val_frac 0.2)  mode erp_depth  batch 32
+depth: dropped 0 train / 0 val labels without a depth file -> train 42087  val 32
+VCE weight 0.0  
+1315 steps per epoch (global batch 32, drop_last)  total 12 steps = 0.01 epochs  validation every 1000 steps  workers 8 prefetch 2 pin_memory True
+Using Dinov3 as Sat Encoder, model: vit_large_patch16_dinov3.sat493m
+encoder autocast bfloat16  compile encoder  attention: encoder {'EvaAttention.fused_attn=True': 24, 'sdpa_flash_enabled': True, 'sdpa_mem_efficient_enabled': True} decoder {'sdpa_flash_enabled': True, 'sdpa_mem_efficient_enabled': True}
+no --ckpt: decoder = released Sat-RoMa checkpoint, query untrained
+query erp_depth: 2.23 M trainable parameters (lr 0.0002)
+checkpoint contents: query 2.23 M tensors (9 MiB)  decoder 66.71 M tensors (254 MiB)  | optimised 68.94 M params | frozen encoder 303.1 M NOT saved
+torch.compile: ['encoder']
+=========================================================================================
+   Native/Hybrid classical routines if you want good performance.
+=========================================================================================
+=========================================================================================
+   Native/Hybrid classical routines if you want good performance.
+=========================================================================================
+=========================================================================================
+   Native/Hybrid classical routines if you want good performance.
+=========================================================================================
+=========================================================================================
+   Native/Hybrid classical routines if you want good performance.
+=========================================================================================
+step 1 TRAIN  CE 7.848  poseNLL 7.521  top1 0.1%  arg 26.9 m  n 37224  (50s, epoch 0.00)
+=========================================================================================
+   Native/Hybrid classical routines if you want good performance.
+=========================================================================================
+=========================================================================================
+   Native/Hybrid classical routines if you want good performance.
+=========================================================================================
+=========================================================================================
+   Native/Hybrid classical routines if you want good performance.
+=========================================================================================
+=========================================================================================
+   Native/Hybrid classical routines if you want good performance.
+=========================================================================================
+=========================================================================================
+   Native/Hybrid classical routines if you want good performance.
+=========================================================================================
+=========================================================================================
+   Native/Hybrid classical routines if you want good performance.
+=========================================================================================
+=========================================================================================
+   Native/Hybrid classical routines if you want good performance.
+=========================================================================================
+=========================================================================================
+   Native/Hybrid classical routines if you want good performance.
+=========================================================================================
+=========================================================================================
+   Native/Hybrid classical routines if you want good performance.
+=========================================================================================
+=========================================================================================
+   Native/Hybrid classical routines if you want good performance.
+=========================================================================================
+=========================================================================================
+   Native/Hybrid classical routines if you want good performance.
+=========================================================================================
+=========================================================================================
+   Native/Hybrid classical routines if you want good performance.
+=========================================================================================
+=========================================================================================
+   Native/Hybrid classical routines if you want good performance.
+=========================================================================================
+=========================================================================================
+   Native/Hybrid classical routines if you want good performance.
+=========================================================================================
+=========================================================================================
+   Native/Hybrid classical routines if you want good performance.
+=========================================================================================
+=========================================================================================
+   Native/Hybrid classical routines if you want good performance.
+=========================================================================================
+=========================================================================================
+   Native/Hybrid classical routines if you want good performance.
+=========================================================================================
+=========================================================================================
+   Native/Hybrid classical routines if you want good performance.
+=========================================================================================
+=========================================================================================
+   Native/Hybrid classical routines if you want good performance.
+=========================================================================================
+=========================================================================================
+   Native/Hybrid classical routines if you want good performance.
+=========================================================================================
+=========================================================================================
+   Native/Hybrid classical routines if you want good performance.
+=========================================================================================
+=========================================================================================
+   Native/Hybrid classical routines if you want good performance.
+=========================================================================================
+=========================================================================================
+   Native/Hybrid classical routines if you want good performance.
+=========================================================================================
+=========================================================================================
+   Native/Hybrid classical routines if you want good performance.
+=========================================================================================
+=========================================================================================
+   Native/Hybrid classical routines if you want good performance.
+=========================================================================================
+=========================================================================================
+   Native/Hybrid classical routines if you want good performance.
+=========================================================================================
+=========================================================================================
+   Native/Hybrid classical routines if you want good performance.
+=========================================================================================
+=========================================================================================
+   Native/Hybrid classical routines if you want good performance.
+=========================================================================================
+=========================================================================================
+   Native/Hybrid classical routines if you want good performance.
+=========================================================================================
+=========================================================================================
+   Native/Hybrid classical routines if you want good performance.
+=========================================================================================
+=========================================================================================
+   Native/Hybrid classical routines if you want good performance.
+=========================================================================================
+=========================================================================================
+   Native/Hybrid classical routines if you want good performance.
+=========================================================================================
+=========================================================================================
+   Native/Hybrid classical routines if you want good performance.
+=========================================================================================
+=========================================================================================
+   Native/Hybrid classical routines if you want good performance.
+=========================================================================================
+=========================================================================================
+   Native/Hybrid classical routines if you want good performance.
+=========================================================================================
+=========================================================================================
+   Native/Hybrid classical routines if you want good performance.
+=========================================================================================
+=========================================================================================
+   Native/Hybrid classical routines if you want good performance.
+=========================================================================================
+=========================================================================================
+   Native/Hybrid classical routines if you want good performance.
+=========================================================================================
+=========================================================================================
+   Native/Hybrid classical routines if you want good performance.
+=========================================================================================
+=========================================================================================
+   Native/Hybrid classical routines if you want good performance.
+=========================================================================================
+=========================================================================================
+   Native/Hybrid classical routines if you want good performance.
+=========================================================================================
+=========================================================================================
+   Native/Hybrid classical routines if you want good performance.
+=========================================================================================
+=========================================================================================
+   Native/Hybrid classical routines if you want good performance.
+=========================================================================================
+=========================================================================================
+   Native/Hybrid classical routines if you want good performance.
+=========================================================================================
+=========================================================================================
+   Native/Hybrid classical routines if you want good performance.
+=========================================================================================
+step 12 VAL    CE 6.147  poseNLL 5.927  top1 0.5%  heatmap-argmax (not a pose) 12.2 m  n 37778
+  best -> /mnt/storage_6/project_data/pl1269-01/krupka_maciej/review_ddp/checkpoints/vigor_rcmp0_ddp_fast_best.pt
+wrote /mnt/storage_6/project_data/pl1269-01/krupka_maciej/review_ddp/checkpoints/vigor_rcmp0_ddp_fast_best.pt (best, step 12), /mnt/storage_6/project_data/pl1269-01/krupka_maciej/review_ddp/checkpoints/vigor_rcmp0_ddp_fast_last_finite.pt (last finite validation) and /mnt/storage_6/project_data/pl1269-01/krupka_maciej/review_ddp/checkpoints/vigor_rcmp0_ddp_fast_last.pt (last, step 12, 263 MiB); resume state /mnt/storage_6/project_data/pl1269-01/krupka_maciej/review_ddp/checkpoints/vigor_rcmp0_ddp_fast_resume.pt; non-finite steps 0, no-update steps 0
+[probe-ddp] exit=0 2026-09-29T19:52:37+02:00
+[probe-ddp] nproc=4 args=--train-limit 128 --epochs 2 --save-every-epochs 1 --resume auto --val-samples 48 --tf32 --encoder-dtype bfloat16 --compile encoder --tag rsmoke 2026-09-29T19:52:37+02:00
+DDP: global batch 32 = 4 ranks x 8 per rank (backend nccl, rank 0 on cuda:0)
+TF32 matmuls/convolutions ON (--tf32)
+pose NLL weight 0.5  refine weight 0.0
+train 42087 (['NewYork', 'Seattle', 'SanFrancisco', 'Chicago'])  val 48 of 10522 held out from the train list (val_frac 0.2)  mode erp_depth  batch 32
+depth: dropped 0 train / 0 val labels without a depth file -> train 42087  val 48
+VCE weight 1.0  {'mode': 'sample', 'n_samples': 1024, 'grid_m': 5.0, 'points': 10, 'use_certainty': True}
+--train-limit: training on the first 128 labels only (smoke test)
+4 steps per epoch (global batch 32, drop_last)  total 8 steps = 2 epochs  validation every 4 steps  workers 8 prefetch 2 pin_memory True
+Using Dinov3 as Sat Encoder, model: vit_large_patch16_dinov3.sat493m
+encoder autocast bfloat16  compile encoder  attention: encoder {'EvaAttention.fused_attn=True': 24, 'sdpa_flash_enabled': True, 'sdpa_mem_efficient_enabled': True} decoder {'sdpa_flash_enabled': True, 'sdpa_mem_efficient_enabled': True}
+no --ckpt: decoder = released Sat-RoMa checkpoint, query untrained
+query erp_depth: 2.23 M trainable parameters (lr 0.0002)
+checkpoint contents: query 2.23 M tensors (9 MiB)  decoder 66.71 M tensors (254 MiB)  | optimised 68.94 M params | frozen encoder 303.1 M NOT saved
+torch.compile: ['encoder']
+--resume auto: no /mnt/storage_6/project_data/pl1269-01/krupka_maciej/review_ddp/checkpoints/vigor_rsmoke_resume.pt, starting fresh
+=========================================================================================
+   Native/Hybrid classical routines if you want good performance.
+=========================================================================================
+=========================================================================================
+   Native/Hybrid classical routines if you want good performance.
+=========================================================================================
+=========================================================================================
+   Native/Hybrid classical routines if you want good performance.
+=========================================================================================
+=========================================================================================
+   Native/Hybrid classical routines if you want good performance.
+=========================================================================================
+step 1 TRAIN  CE 8.017  poseNLL 7.607  top1 0.0%  arg 27.9 m  n 35801  VCE 20.52 m  procrustes 20.32 m  (18s, epoch 0.25)
+=========================================================================================
+   Native/Hybrid classical routines if you want good performance.
+=========================================================================================
+=========================================================================================
+   Native/Hybrid classical routines if you want good performance.
+=========================================================================================
+=========================================================================================
+   Native/Hybrid classical routines if you want good performance.
+=========================================================================================
+=========================================================================================
+   Native/Hybrid classical routines if you want good performance.
+=========================================================================================
+=========================================================================================
+   Native/Hybrid classical routines if you want good performance.
+=========================================================================================
+=========================================================================================
+   Native/Hybrid classical routines if you want good performance.
+=========================================================================================
+=========================================================================================
+   Native/Hybrid classical routines if you want good performance.
+=========================================================================================
+=========================================================================================
+   Native/Hybrid classical routines if you want good performance.
+=========================================================================================
+=========================================================================================
+   Native/Hybrid classical routines if you want good performance.
+=========================================================================================
+=========================================================================================
+   Native/Hybrid classical routines if you want good performance.
+=========================================================================================
+=========================================================================================
+   Native/Hybrid classical routines if you want good performance.
+=========================================================================================
+=========================================================================================
+   Native/Hybrid classical routines if you want good performance.
+=========================================================================================
+=========================================================================================
+   Native/Hybrid classical routines if you want good performance.
+=========================================================================================
+=========================================================================================
+   Native/Hybrid classical routines if you want good performance.
+=========================================================================================
+step 4 VAL    CE 6.722  poseNLL 6.597  top1 0.6%  heatmap-argmax (not a pose) 15.1 m  n 57189  VCE 14.00 m  procrustes 13.93 m
+  best -> /mnt/storage_6/project_data/pl1269-01/krupka_maciej/review_ddp/checkpoints/vigor_rsmoke_best.pt
+  epoch 1 -> /mnt/storage_6/project_data/pl1269-01/krupka_maciej/review_ddp/checkpoints/vigor_rsmoke_ep001.pt (263 MiB)
+=========================================================================================
+   Native/Hybrid classical routines if you want good performance.
+=========================================================================================
+=========================================================================================
+   Native/Hybrid classical routines if you want good performance.
+=========================================================================================
+=========================================================================================
+   Native/Hybrid classical routines if you want good performance.
+=========================================================================================
+=========================================================================================
+   Native/Hybrid classical routines if you want good performance.
+=========================================================================================
+=========================================================================================
+   Native/Hybrid classical routines if you want good performance.
+==================================================================================================================================================================================
+   Native/Hybrid classical routines if you want good performance.
+=========================================================================================
+=========================================================================================
+   Native/Hybrid classical routines if you want good performance.
+=========================================================================================
+=========================================================================================
+   Native/Hybrid classical routines if you want good performance.
+=========================================================================================
+=========================================================================================
+   Native/Hybrid classical routines if you want good performance.
+=========================================================================================
+=========================================================================================
+   Native/Hybrid classical routines if you want good performance.
+=========================================================================================
+=========================================================================================
+   Native/Hybrid classical routines if you want good performance.
+=========================================================================================
+=========================================================================================
+   Native/Hybrid classical routines if you want good performance.
+=========================================================================================
+=========================================================================================
+   Native/Hybrid classical routines if you want good performance.
+=========================================================================================
+=========================================================================================
+   Native/Hybrid classical routines if you want good performance.
+=========================================================================================
+=========================================================================================
+   Native/Hybrid classical routines if you want good performance.
+=========================================================================================
+=========================================================================================
+   Native/Hybrid classical routines if you want good performance.
+=========================================================================================
+=========================================================================================
+   Native/Hybrid classical routines if you want good performance.
+=========================================================================================
+=========================================================================================
+   Native/Hybrid classical routines if you want good performance.
+=========================================================================================
+step 8 VAL    CE 6.568  poseNLL 6.454  top1 0.8%  heatmap-argmax (not a pose) 14.2 m  n 57189  VCE 13.06 m  procrustes 13.02 m
+  best -> /mnt/storage_6/project_data/pl1269-01/krupka_maciej/review_ddp/checkpoints/vigor_rsmoke_best.pt
+  epoch 2 -> /mnt/storage_6/project_data/pl1269-01/krupka_maciej/review_ddp/checkpoints/vigor_rsmoke_ep002.pt (263 MiB)
+wrote /mnt/storage_6/project_data/pl1269-01/krupka_maciej/review_ddp/checkpoints/vigor_rsmoke_best.pt (best, step 8), /mnt/storage_6/project_data/pl1269-01/krupka_maciej/review_ddp/checkpoints/vigor_rsmoke_last_finite.pt (last finite validation) and /mnt/storage_6/project_data/pl1269-01/krupka_maciej/review_ddp/checkpoints/vigor_rsmoke_last.pt (last, step 8, 263 MiB); resume state /mnt/storage_6/project_data/pl1269-01/krupka_maciej/review_ddp/checkpoints/vigor_rsmoke_resume.pt; non-finite steps 0, no-update steps 0
+[probe-ddp] exit=0 2026-09-29T19:54:43+02:00
+[probe-ddp] nproc=4 args=--train-limit 128 --epochs 3 --save-every-epochs 1 --resume auto --val-samples 48 --tf32 --encoder-dtype bfloat16 --compile encoder --tag rsmoke 2026-09-29T19:54:43+02:00
+DDP: global batch 32 = 4 ranks x 8 per rank (backend nccl, rank 0 on cuda:0)
+TF32 matmuls/convolutions ON (--tf32)
+pose NLL weight 0.5  refine weight 0.0
+train 42087 (['NewYork', 'Seattle', 'SanFrancisco', 'Chicago'])  val 48 of 10522 held out from the train list (val_frac 0.2)  mode erp_depth  batch 32
+depth: dropped 0 train / 0 val labels without a depth file -> train 42087  val 48
+VCE weight 1.0  {'mode': 'sample', 'n_samples': 1024, 'grid_m': 5.0, 'points': 10, 'use_certainty': True}
+--train-limit: training on the first 128 labels only (smoke test)
+4 steps per epoch (global batch 32, drop_last)  total 12 steps = 3 epochs  validation every 4 steps  workers 8 prefetch 2 pin_memory True
+Using Dinov3 as Sat Encoder, model: vit_large_patch16_dinov3.sat493m
+encoder autocast bfloat16  compile encoder  attention: encoder {'EvaAttention.fused_attn=True': 24, 'sdpa_flash_enabled': True, 'sdpa_mem_efficient_enabled': True} decoder {'sdpa_flash_enabled': True, 'sdpa_mem_efficient_enabled': True}
+no --ckpt: decoder = released Sat-RoMa checkpoint, query untrained
+query erp_depth: 2.23 M trainable parameters (lr 0.0002)
+checkpoint contents: query 2.23 M tensors (9 MiB)  decoder 66.71 M tensors (254 MiB)  | optimised 68.94 M params | frozen encoder 303.1 M NOT saved
+torch.compile: ['encoder']
+--resume auto: resuming from /mnt/storage_6/project_data/pl1269-01/krupka_maciej/review_ddp/checkpoints/vigor_rsmoke_resume.pt
+resumed /mnt/storage_6/project_data/pl1269-01/krupka_maciej/review_ddp/checkpoints/vigor_rsmoke_resume.pt: step 8 (epoch 2.00), best 13.016 at step 8
+=========================================================================================
+   Native/Hybrid classical routines if you want good performance.
+==================================================================================================================================================================================
+   Native/Hybrid classical routines if you want good performance.
+=========================================================================================
+=========================================================================================
+   Native/Hybrid classical routines if you want good performance.
+=========================================================================================
+=========================================================================================
+   Native/Hybrid classical routines if you want good performance.
+=========================================================================================
+step 9 TRAIN  CE 6.696  poseNLL 6.576  top1 0.3%  arg 17.1 m  n 37424  VCE 13.95 m  procrustes 13.91 m  (91s, epoch 2.25)
+=========================================================================================
+   Native/Hybrid classical routines if you want good performance.
+=========================================================================================
+=========================================================================================
+   Native/Hybrid classical routines if you want good performance.
+=========================================================================================
+=========================================================================================
+   Native/Hybrid classical routines if you want good performance.
+=========================================================================================
+=========================================================================================
+   Native/Hybrid classical routines if you want good performance.
+=========================================================================================
+=========================================================================================
+   Native/Hybrid classical routines if you want good performance.
+=========================================================================================
+=========================================================================================
+   Native/Hybrid classical routines if you want good performance.
+=========================================================================================
+=========================================================================================
+   Native/Hybrid classical routines if you want good performance.
+=========================================================================================
+=========================================================================================
+   Native/Hybrid classical routines if you want good performance.
+=========================================================================================
+=========================================================================================
+   Native/Hybrid classical routines if you want good performance.
+=========================================================================================
+=========================================================================================
+   Native/Hybrid classical routines if you want good performance.
+=========================================================================================
+=========================================================================================
+   Native/Hybrid classical routines if you want good performance.
+=========================================================================================
+=========================================================================================
+   Native/Hybrid classical routines if you want good performance.
+=========================================================================================
+=========================================================================================
+   Native/Hybrid classical routines if you want good performance.
+=========================================================================================
+=========================================================================================
+   Native/Hybrid classical routines if you want good performance.
+=========================================================================================
+step 12 VAL    CE 6.189  poseNLL 6.025  top1 1.0%  heatmap-argmax (not a pose) 12.3 m  n 57189  VCE 12.09 m  procrustes 12.03 m
+  best -> /mnt/storage_6/project_data/pl1269-01/krupka_maciej/review_ddp/checkpoints/vigor_rsmoke_best.pt
+  epoch 3 -> /mnt/storage_6/project_data/pl1269-01/krupka_maciej/review_ddp/checkpoints/vigor_rsmoke_ep003.pt (263 MiB)
+wrote /mnt/storage_6/project_data/pl1269-01/krupka_maciej/review_ddp/checkpoints/vigor_rsmoke_best.pt (best, step 12), /mnt/storage_6/project_data/pl1269-01/krupka_maciej/review_ddp/checkpoints/vigor_rsmoke_last_finite.pt (last finite validation) and /mnt/storage_6/project_data/pl1269-01/krupka_maciej/review_ddp/checkpoints/vigor_rsmoke_last.pt (last, step 12, 263 MiB); resume state /mnt/storage_6/project_data/pl1269-01/krupka_maciej/review_ddp/checkpoints/vigor_rsmoke_resume.pt; non-finite steps 0, no-update steps 0
+[probe-ddp] exit=0 2026-09-29T19:56:20+02:00
+[probe-ddp] done date=2026-09-29T19:56:20+02:00

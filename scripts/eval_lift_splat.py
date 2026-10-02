@@ -15,14 +15,13 @@ import numpy as np
 import torch
 
 from bevloc import config as C
-from bevloc.data.mapillary import MapillaryPairs, PoznanOrtho, load_frames
+from bevloc.data.mapillary import VAL_SEQS, MapillaryPairs, PoznanOrtho, load_frames, poznan_tiles
 from bevloc.eval.metrics import pose_errors, recall
 from bevloc.match.satroma import SatRoMa
 from bevloc.model.coarse import FeatureQueryMatcher, coarse_targets, ref_cell_validity
 from bevloc.model.lift_splat import SphericalLiftSplat
+from bevloc.model.query import lift_state_dict
 
-MAP_ROOT = C.REPO / "data/mapillary"
-VAL_SEQS = [MAP_ROOT / "Fixtor/IcRzj0wTLZX874qitxVsQa"]
 CELL_M = 4.0
 
 
@@ -41,8 +40,7 @@ def main():
     L = cfg.lift
     dev = "cuda" if torch.cuda.is_available() else "cpu"
 
-    ortho_paths = sorted(Path.home().glob(f"Github/sat_data/geoportal_poznan_15km2_*/year_{a.year}.tif"))
-    ortho = PoznanOrtho(ortho_paths)
+    ortho = PoznanOrtho(poznan_tiles(a.year))
     frames = load_frames(VAL_SEQS, ortho, margin_m=L.margin_m)
     stride = max(1, len(frames) // a.n)
     frames = frames[::stride][: a.n]
@@ -56,7 +54,7 @@ def main():
         dim=L.dim, depth_bins=L.depth_bins, d_min=L.d_min, d_max=L.d_max,
         n=cfg.grid.n, cell=cfg.grid.cell_m, max_elev_deg=L.max_elev_deg,
     ).to(dev)
-    lift.load_state_dict(state["lift"])
+    lift.load_state_dict(lift_state_dict(state))
     lift.eval()
 
     # Two RANSAC modes reuse the same SatRoMa wrapper for estimate_homography.

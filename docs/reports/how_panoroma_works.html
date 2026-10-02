@@ -1,0 +1,209 @@
+<title>How PanoRoMa Works</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,600;9..144,700&family=Source+Sans+3:wght@400;600&family=JetBrains+Mono:wght@400;600&display=swap">
+<style>
+/* Layout: one reading column (max 1000px) that walks the reader from "what is Loc²" to "what we added" to "does it work"; wide figures and tables scroll in their own boxes. Field-survey palette: map-paper ground, survey-blue ink, amber marks what is ours. */
+:root {
+  --bg: #f4f6f3;
+  --surface: #ffffff;
+  --fg: #1b2420;
+  --muted: #5b6862;
+  --line: #d4dbd6;
+  --accent: #245d8c;
+  --ours: #b26500;
+  --ours-bg: #fff3df;
+  --loc: #7a3d8f;
+  --loc-bg: #f4eaf8;
+  --display: "Fraunces", Georgia, "Times New Roman", serif;
+  --body: "Source Sans 3", "Segoe UI", system-ui, sans-serif;
+  --mono: "JetBrains Mono", ui-monospace, Menlo, monospace;
+}
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme="light"]) {
+    --bg: #121714; --surface: #1a211d; --fg: #e4ebe6; --muted: #9aa8a1; --line: #2e3933;
+    --accent: #7db3e0; --ours: #f0ac48; --ours-bg: #2f2513; --loc: #cf9be2; --loc-bg: #2a1f30; color-scheme: dark;
+  }
+}
+:root[data-theme="dark"] {
+  --bg: #121714; --surface: #1a211d; --fg: #e4ebe6; --muted: #9aa8a1; --line: #2e3933;
+  --accent: #7db3e0; --ours: #f0ac48; --ours-bg: #2f2513; --loc: #cf9be2; --loc-bg: #2a1f30; color-scheme: dark;
+}
+body { background: var(--bg); color: var(--fg); font-family: var(--body); font-size: 16.5px; line-height: 1.6; }
+.wrap { max-width: 1000px; margin: 0 auto; padding-inline: 20px; padding-block: 40px 80px; display: grid; gap: 48px; }
+header { display: grid; gap: 12px; }
+.eyebrow { font-family: var(--mono); font-size: 12px; letter-spacing: .08em; text-transform: uppercase; color: var(--accent); }
+h1 { font-family: var(--display); font-weight: 700; font-size: clamp(30px, 5vw, 44px); line-height: 1.1; margin: 0; text-wrap: balance; }
+h2 { font-family: var(--display); font-weight: 600; font-size: 27px; margin: 0; text-wrap: balance; }
+h3 { font-family: var(--body); font-weight: 600; font-size: 18px; margin: 0; }
+p { margin: 0; max-width: 70ch; }
+.lede { font-size: 19px; color: var(--muted); max-width: 66ch; }
+section { display: grid; gap: 18px; min-width: 0; }
+.box { background: var(--surface); border: 1px solid var(--line); border-radius: 8px; }
+.scroll { overflow-x: auto; }
+.pad { padding: 18px 20px; }
+table { border-collapse: collapse; width: 100%; font-size: 15px; font-variant-numeric: tabular-nums; }
+th, td { text-align: left; padding: 9px 12px; border-bottom: 1px solid var(--line); vertical-align: top; }
+th { font-family: var(--mono); font-size: 11.5px; letter-spacing: .05em; text-transform: uppercase; color: var(--muted); font-weight: 600; white-space: nowrap; }
+td.num, th.num { text-align: right; white-space: nowrap; }
+tr:last-child td { border-bottom: 0; }
+tr.ours td { background: var(--ours-bg); }
+tr.ours td:first-child { box-shadow: inset 3px 0 0 var(--ours); font-weight: 600; }
+code { font-family: var(--mono); font-size: .86em; }
+.cols { display: grid; grid-template-columns: repeat(auto-fit, minmax(280px, 1fr)); gap: 16px; }
+.card { padding: 18px 20px; display: grid; gap: 10px; align-content: start; min-width: 0; }
+.card.loc { background: var(--loc-bg); border-color: color-mix(in srgb, var(--loc) 40%, var(--line)); }
+.card.ours { background: var(--ours-bg); border-color: color-mix(in srgb, var(--ours) 40%, var(--line)); }
+.card h3 .tag { font-family: var(--mono); font-size: 11px; letter-spacing: .06em; text-transform: uppercase; margin-right: 8px; }
+.card.loc .tag { color: var(--loc); }
+.card.ours .tag { color: var(--ours); }
+ul { margin: 0; padding-left: 20px; display: grid; gap: 6px; }
+.mermaid { background: var(--surface); border: 1px solid var(--line); border-radius: 8px; padding: 16px; overflow-x: auto; margin: 0; }
+figure { margin: 0; display: grid; gap: 10px; }
+figure img { display: block; width: 100%; height: auto; border: 1px solid var(--line); border-radius: 6px; background: #fff; }
+figcaption { font-size: 14.5px; color: var(--muted); max-width: 90ch; }
+figcaption b { color: var(--fg); }
+.note { font-size: 14.5px; color: var(--muted); max-width: 75ch; }
+.warn { border-left: 3px solid var(--ours); padding: 12px 16px; background: var(--ours-bg); border-radius: 0 6px 6px 0; font-size: 15px; }
+.formula { font-family: var(--mono); font-size: 13.5px; }
+.gallery { display: grid; gap: 36px; }
+a { color: var(--accent); }
+:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
+</style>
+
+<div class="wrap">
+
+<header>
+  <div class="eyebrow">cross_view_sat_roma · 1 Oct 2026 · explanation page</div>
+  <h1>How PanoRoMa finds a car on a satellite map</h1>
+  <p class="lede">One 360° street panorama goes in; the camera's position on a satellite tile comes out. This page explains the network, what each loss teaches it, which parts come from Loc² and which are ours, how well it works, and shows ten real matches from the test set.</p>
+</header>
+
+<section>
+  <h2>The idea in one figure</h2>
+  <figure>
+    <img src="../../experiments/13_panoroma_long/viz/diagram_explained.jpg" alt="Labelled example: panorama tokens, their placement on the ground by depth, the coarse pass matching tokens to 2 m map cells with RANSAC, and the fine pass on a 56 m window." loading="lazy">
+    <figcaption><b>a</b> The panorama is cut into 56 × 28 patches (tokens); each gets an image feature and a distance from a depth network. <b>b</b> Using that distance, every token is put on the ground around the camera, so the query becomes a map-like cloud of points. <b>c</b> The matcher says, for each token, which 2 m cell of the satellite map it belongs to; RANSAC finds the one camera position that most tokens agree with and ignores the rest. <b>d</b> A second, zoomed pass repeats this on a 56 m window with 1 m cells. Here the first pass is 1.64 m off and the second 0.63 m.</figcaption>
+  </figure>
+</section>
+
+<section>
+  <h2>The network</h2>
+  <p>Grey boxes are frozen, amber ones are trained by us. The same pipeline runs twice: the coarse pass on the whole tile, then the fine pass on a window around the coarse answer.</p>
+<pre class="mermaid">
+flowchart LR
+  P["360° panorama<br/>896 × 448"] --> E1["DINOv3 sat493m encoder<br/>frozen, 303 M params"]
+  P --> D["UniK3D depth<br/>metric, precomputed"]
+  E1 --> T["56 × 28 tokens"]
+  T --> H["Projection head<br/>2.2 M, trained"]
+  D --> PL["Place each token on the ground<br/>along its ray (≤ 35 m)"]
+  H --> DEC
+  PL --> DEC
+  S["Satellite tile<br/>112 m canvas, 0.125 m/px"] --> E2["Same DINOv3 encoder<br/>frozen"]
+  E2 --> C["56 × 56 cells of 2 m"]
+  C --> DEC["Sat-RoMa decoder<br/>66.7 M, trained<br/>per token: probability over 3136 cells + certainty"]
+  DEC --> M["Modes per token<br/>(1–3 candidate cells)"]
+  M --> R["RANSAC, 3-DoF<br/>placed point ↔ cell"]
+  R --> CP["Coarse pose"]
+  CP --> W["56 m window, 0.0625 m/px<br/>around the coarse pose"]
+  W --> FD["Second decoder<br/>same design, 1 m cells, trained"]
+  FD --> R2["RANSAC, 3-DoF<br/>keep coarse if it jumps > 6 m"]
+  R2 --> FP["Final pose"]
+  classDef frozen fill:#e7ece9,stroke:#8a9790,color:#1b2420;
+  classDef ours fill:#ffe9c4,stroke:#b26500,color:#1b2420;
+  class E1,E2,D frozen;
+  class H,DEC,FD ours;
+</pre>
+  <p class="note">Sizes: 303 M frozen encoder; trained per pass 2.2 M (head) + 66.7 M (decoder). Training: one Eagle node, 4× H100, TF32, encoder and decoder in bf16, total batch 32, 100 epochs ≈ 13 h per pass.</p>
+</section>
+
+<section>
+  <h2>What Loc² is, and what we added</h2>
+  <p>Loc² (2025) is the method whose geometry we use. It also matches a panorama to a satellite image by putting image patches on the ground with a depth estimate. We kept that geometry and replaced the matcher, the losses around it and the refinement.</p>
+  <div class="cols">
+    <div class="box card loc">
+      <h3><span class="tag">Loc²</span>What it does</h3>
+      <ul>
+        <li>Image features from a foundation model, plus a small trained projection head.</li>
+        <li>Each patch placed on the ground with metric depth along its ray.</li>
+        <li>Matching by <b>cosine similarity</b> (temperature 0.1) between placed patches and 41 × 41 aerial points.</li>
+        <li>Pose from scale-aware Procrustes on 1024 sampled matches, then RANSAC.</li>
+        <li>Losses: a pose loss on 10 × 10 virtual points over 5 m (VCE) and a correspondence cross-entropy (weight 1).</li>
+        <li>One pass.</li>
+      </ul>
+    </div>
+    <div class="box card ours">
+      <h3><span class="tag">PanoRoMa</span>What we changed</h3>
+      <ul>
+        <li><b>Matcher:</b> the Sat-RoMa decoder classifies each token into one of 3136 map cells and says how certain it is, instead of a similarity score.</li>
+        <li><b>Several candidates per token</b> (modes), all handed to RANSAC, so an ambiguous token can still vote correctly.</li>
+        <li><b>One frozen satellite-trained encoder</b> (DINOv3 sat493m) for both the panorama and the map.</li>
+        <li><b>Losses:</b> RoMa's cell classification + certainty, a neighbour hinge, Loc²'s VCE pose loss and a heat-map pose loss (below).</li>
+        <li><b>Second pass</b> at 1 m cells on a 56 m window.</li>
+        <li><b>Calibrated confidence</b> per frame from the vote maps.</li>
+        <li><b>Training:</b> 100 epochs on 4× H100 with bf16 and augmentation (D).</li>
+      </ul>
+    </div>
+  </div>
+</section>
+
+<section>
+  <h2>The losses</h2>
+  <p>All are computed per training pair and summed with the weights shown. The fine pass uses the same losses on its 1 m grid.</p>
+  <div class="box scroll">
+    <table>
+      <thead><tr><th>Loss</th><th>What it teaches</th><th class="num">Weight</th><th>From</th></tr></thead>
+      <tbody>
+        <tr><td><b>Cell classification</b> (cross-entropy over 3136 cells)</td><td>For each token whose true position is on the map: put the probability on the right 2 m cell.</td><td class="num">1</td><td>Sat-RoMa / RoMa</td></tr>
+        <tr><td><b>Certainty</b> (binary cross-entropy)</td><td>For each token: say whether its true cell is on the map at all (sky, far away, off the tile → no).</td><td class="num">0.01</td><td>Sat-RoMa / RoMa</td></tr>
+        <tr><td><b>Neighbour hinge</b> (radius 4 cells)</td><td>The right cell must beat its neighbours by a margin, which sharpens the peak.</td><td class="num">0.5</td><td>ours</td></tr>
+        <tr><td><b>VCE pose loss</b></td><td>Sample 1024 token–cell matches, fit the camera pose with Procrustes, and measure the error on a 10 × 10 grid of virtual points over 5 m. This trains the matches to produce the right <i>pose</i>, not just the right cells.</td><td class="num">1</td><td>Loc²</td></tr>
+        <tr><td><b>Heat-map pose NLL</b></td><td>Sum all tokens' votes into a map of camera positions; the true position must get high probability.</td><td class="num">0.5</td><td>ours</td></tr>
+        <tr class="ours"><td><b>Regularisation D</b> (newest runs)</td><td>Label smoothing 0.1 on the cell classification, weight decay (decoder 0.3, head 0.05), colour jitter, quarter turns ± 10° and mirroring of map + panorama together. Stops the model memorising training tiles.</td><td class="num">—</td><td>ours</td></tr>
+      </tbody>
+    </table>
+  </div>
+</section>
+
+<section>
+  <h2>Does it work?</h2>
+  <p>VIGOR Chicago test set, 3000 panoramas, known heading. FG² and Loc² are their released models run on exactly the same panoramas.</p>
+  <div class="box scroll">
+    <table>
+      <thead><tr><th>Method</th><th class="num">Median error</th><th class="num">Mean error</th><th class="num">Within 5 m</th><th class="num">Within 10 m</th></tr></thead>
+      <tbody>
+        <tr><td>FG²</td><td class="num">1.06 m</td><td class="num">1.86 m</td><td class="num">95 %</td><td class="num">97 %</td></tr>
+        <tr><td>Loc²</td><td class="num">1.33 m</td><td class="num">2.93 m</td><td class="num">88 %</td><td class="num">93 %</td></tr>
+        <tr class="ours"><td>PanoRoMa, both passes trained 100 epochs</td><td class="num">1.05 m</td><td class="num">2.67 m</td><td class="num">89 %</td><td class="num">93 %</td></tr>
+        <tr><td>PanoRoMa, first pass only</td><td class="num">1.37 m</td><td class="num">2.91 m</td><td class="num">89 %</td><td class="num">93 %</td></tr>
+      </tbody>
+    </table>
+  </div>
+  <p>On a typical frame PanoRoMa is now as accurate as FG², the best published method, and better than Loc². The remaining gap is the hard frames: about 7 % of ours are off by more than 10 m against 3 % for FG². On Poznań streets, without any Poznań training, the regularised model reaches 4.01 m, level with FG² (4.15 m) and behind Loc² (3.50 m). Full tables are on the status page.</p>
+  <div class="warn"><b>Correction:</b> the horizontal stripes in the depth maps were a bug in our depth script (the UniK3D camera object was reused and shrank with every image). Almost every stored depth map is affected, so the PanoRoMa numbers above and our Loc² baseline numbers are provisional; the figures below also use the striped depth (panel 2). Depth is being regenerated with the fix; PanoRoMa will be retrained and both re-evaluated.</div>
+</section>
+
+<section>
+  <h2>Ten matches from the test set</h2>
+  <p>Chosen across the good half of the results, not only the best: the percentile says where each frame ranks among the 3000 (5th = better than 95 % of frames, 50th = a typical frame). How to read each figure:</p>
+  <ul>
+    <li><b>Panel 1:</b> the panorama with its token grid. Filled dot = a token whose match agreed with the final pose (RANSAC inlier); hollow = placed but rejected; dark = sky or too far, not used. Colour = direction (the same colours on the maps).</li>
+    <li><b>Panel 2:</b> the depth used to place the tokens.</li>
+    <li><b>Panel 3:</b> first pass on the satellite tile. Each token is drawn where the predicted pose puts it, with a line to the 2 m cell it matched. Green + = true position, orange = first-pass answer.</li>
+    <li><b>Panel 4:</b> second pass on the 56 m window with 1 m cells. Red × = final answer.</li>
+  </ul>
+  <div class="gallery">
+    <figure><img src="../../experiments/13_panoroma_long/viz/01_p04_Chicago_MyX5FkowZD0bv8uqKUyy3A.jpg" alt="Match figure, park, final error 0.24 m" loading="lazy"><figcaption><b>1 · Park / formal garden, 4th percentile.</b> First pass 1.31 m, final 0.24 m.</figcaption></figure>
+    <figure><img src="../../experiments/13_panoroma_long/viz/02_p05_Chicago_4tiB8B4K68H824DmNXro8w.jpg" alt="Match figure, tree-lined street, final error 0.26 m" loading="lazy"><figcaption><b>2 · Tree-lined street by a school, 5th percentile.</b> First pass 0.93 m, final 0.26 m.</figcaption></figure>
+    <figure><img src="../../experiments/13_panoroma_long/viz/03_p06_Chicago_hPxxLmGcTeuVwEDge65eOA.jpg" alt="Match figure, intersection, final error 0.29 m" loading="lazy"><figcaption><b>3 · Intersection with traffic lights, 6th percentile.</b> First pass 0.93 m, final 0.29 m. The depth stripes are clearly visible in panel 2 and as rows of placed tokens in the sky.</figcaption></figure>
+    <figure><img src="../../experiments/13_panoroma_long/viz/04_p15_Chicago_-pARrCcO8EO0IWZR8MbK3A.jpg" alt="Match figure, residential road, final error 0.47 m" loading="lazy"><figcaption><b>4 · Straight residential road, 15th percentile.</b> First pass 0.77 m, final 0.47 m.</figcaption></figure>
+    <figure><img src="../../experiments/13_panoroma_long/viz/05_p25_Chicago_wzC-iVJkVnH_nwaUx-DReA.jpg" alt="Match figure, shopping street, final error 0.63 m" loading="lazy"><figcaption><b>5 · Shopping street with an elevated station behind, 25th percentile.</b> First pass 1.64 m, final 0.63 m (the labelled example above).</figcaption></figure>
+    <figure><img src="../../experiments/13_panoroma_long/viz/06_p28_Chicago_xz4ZV6_y3CzDt5iuGbTIBw.jpg" alt="Match figure, downtown intersection, final error 0.68 m" loading="lazy"><figcaption><b>6 · Downtown high-rise intersection, 28th percentile.</b> First pass 1.84 m, final 0.68 m.</figcaption></figure>
+    <figure><img src="../../experiments/13_panoroma_long/viz/07_p35_Chicago_8WxJW96en5rf7iR39zqbYA.jpg" alt="Match figure, road along a long building, final error 0.79 m" loading="lazy"><figcaption><b>7 · Straight road along a long building, 35th percentile.</b> First pass 4.24 m, final 0.79 m: the second pass recovers a weak first answer.</figcaption></figure>
+    <figure><img src="../../experiments/13_panoroma_long/viz/08_p45_Chicago_nCA8gB-vqKOVvHhz5UaZBg.jpg" alt="Match figure, alley with trees, final error 0.95 m" loading="lazy"><figcaption><b>8 · Alley with trees, 45th percentile.</b> First pass 1.50 m, final 0.95 m.</figcaption></figure>
+    <figure><img src="../../experiments/13_panoroma_long/viz/09_p46_Chicago_X5uEYl2qj9_92lhAiesP4A.jpg" alt="Match figure, parking lot, final error 0.97 m" loading="lazy"><figcaption><b>9 · Open parking lot, 46th percentile.</b> First pass 1.38 m, final 0.97 m.</figcaption></figure>
+    <figure><img src="../../experiments/13_panoroma_long/viz/10_p50_Chicago_S0kh4Wsbuf6ZGODaaXLKJA.jpg" alt="Match figure, open plaza, final error 1.05 m" loading="lazy"><figcaption><b>10 · Open plaza, 50th percentile (a typical frame).</b> First pass 2.29 m, final 1.05 m.</figcaption></figure>
+  </div>
+  <p class="note">Figures: <code>make panoroma-viz</code> (<code>scripts/viz_panoroma_matches.py</code>), checkpoints <code>vigor_samearea_4city_erp_depth_cell0125_e100_last.pt</code> + <code>vigor_samearea_4city_fine00625_erp_depth_e100_last.pt</code>; every recomputed error equals the evaluation's. Files in <code>experiments/13_panoroma_long/viz/</code>.</p>
+</section>
+
+</div>

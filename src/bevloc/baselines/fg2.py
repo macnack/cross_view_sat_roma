@@ -15,6 +15,7 @@ from bevloc import config as C
 from bevloc.baselines.common import sha256_file
 
 FG2_ROOT = C.REPO / "third_party" / "FG2"
+MMCV_SHIM = Path(__file__).resolve().parent / "mmcv_shim"   # see mmcv_shim/mmcv/__init__.py
 CKPT_ROOT = C.REPO / "checkpoints" / "baselines" / "fg2" / "VIGOR"
 
 # Native VIGOR settings from third_party/FG2/config.ini (do not force Sat-RoMa sizes).
@@ -50,10 +51,15 @@ def ensure_fg2_on_path():
             continue
         if Path(p).resolve() == FG2_ROOT.resolve():
             continue
+        if "third_party/Loc2" in p.replace("\\", "/"):      # Loc2's regular `models` package would shadow FG2's namespace one
+            continue
         cleaned.append(p)
     sys.path[:] = [root] + cleaned
+    # Drop cached top-level packages of the same names that live elsewhere (Loc2 ships its own `models`, ...).
     for k in list(sys.modules):
-        if k == "utils" or k.startswith("utils."):
+        top = k.split(".")[0]
+        if top == "utils" or (top in ("models", "dataloaders", "att_layers", "DINO_modules")
+                              and root not in (getattr(sys.modules[k], "__file__", None) or "")):
             del sys.modules[k]
     # FG2 ships utils/*.py without __init__.py — make it a real package at runtime.
     import types
@@ -62,6 +68,20 @@ def ensure_fg2_on_path():
     pkg.__path__ = [str(utils_dir)]  # type: ignore[attr-defined]
     pkg.__file__ = str(utils_dir / "__init__.py")
     sys.modules["utils"] = pkg
+    ensure_mmcv()
+
+
+def ensure_mmcv():
+    """FG² imports two mmcv layers; use the pure-PyTorch shim when mmcv's compiled ops are unavailable."""
+    try:
+        from mmcv.ops.multi_scale_deform_attn import MultiScaleDeformableAttention  # noqa: F401
+        return
+    except Exception:  # ImportError, or mmcv-lite without ops
+        for k in list(sys.modules):
+            if k == "mmcv" or k.startswith("mmcv."):
+                del sys.modules[k]
+        if str(MMCV_SHIM) not in sys.path:
+            sys.path.insert(0, str(MMCV_SHIM))
 
 
 def checkpoint_path(area: str = "samearea", orientation: str = "known_ori",

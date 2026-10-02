@@ -8,9 +8,10 @@ FRAMES  ?= 0 1000 1600 2000
 REF     ?= 200
 RUN      = PYTHONPATH=src:.pydeps $(PY)
 
-.PHONY: help deps test fetch stats mask lens viewer oxts odometry bevs mosaic smoke h1 targets overfit train calib all roma-viz mapillary mapillary-scan mapillary-sample ipm-smoke lift-overfit lift-splat lift-eval lift-splat-years lift-aug-viz lift-layers-viz lift-splat-aug lift-splat-pose-nll lift-splat-seq baselines-manifest fg2-smoke fg2-eval fg2-train bevsplat-smoke bevsplat-eval bevsplat-train baselines-report
+.PHONY: panoroma-viz vigor-aug-viz poznan-depth loc2-smoke loc2-eval panoroma-poznan poznan-three-way wayback-fetch wayback-calib eagle-fetch-wayback fg2-vigor eagle-watch eagle-probe eagle-submit-ddp eagle-probe-ddp vigor-viz loc2-depth loc2-vigor vigor-report loftr-fine vigor-certainty vigor-sweep vigor-cert-cache vigor-cert-head
+.PHONY: help deps test fetch stats mask lens viewer oxts odometry bevs mosaic smoke h1 targets overfit train calib all roma-viz mapillary mapillary-scan mapillary-sample ipm-smoke lift-overfit lift-splat lift-eval lift-splat-years lift-aug-viz lift-layers-viz lift-splat-aug lift-splat-pose-nll lift-splat-seq baselines-manifest fg2-smoke fg2-eval fg2-train bevsplat-smoke bevsplat-eval bevsplat-train baselines-report kitscenes-fetch kitscenes-pano
 help:
-	@grep -E '^[a-z]+:.*##' $(MAKEFILE_LIST) | sed -E 's/:.*## /\t/' | expand -t 12
+	@grep -E '^[a-z0-9_-]+:.*##' $(MAKEFILE_LIST) | sed -E 's/:.*## /\t/' | expand -t 12
 
 deps:      ## install pure-python extras into ./.pydeps (does not touch the conda env)
 	$(PY) -m pip install -q --target .pydeps --no-deps einops
@@ -63,8 +64,10 @@ bevs:      ## BEV variant panels; FRAMES="1000 2000" or ranges "500:1400:100"
 mosaic:    ## BEV mosaic at 0/1/5/10 m from REF (needs `make odometry`)
 	$(RUN) scripts/make_mosaic.py --config $(CONFIG) --ref $(REF)
 
-smoke:     ## Sat-RoMa wrapper end-to-end on a synthetic pair
-	$(RUN) scripts/smoke_satroma.py --config $(CONFIG)
+SOLVER ?=
+
+smoke:     ## Sat-RoMa wrapper end-to-end on a synthetic pair; SOLVER=se2 for the fixed-scale solver
+	$(RUN) scripts/smoke_satroma.py --config $(CONFIG) $(if $(SOLVER),--solver $(SOLVER),) --out experiments/00_smoke$(if $(SOLVER),_$(SOLVER),)
 
 h1:        ## zero-shot Sat-RoMa on EA-covered frames, plus the token cosine probe
 	$(RUN) scripts/h1_ea.py --config $(CONFIG)
@@ -129,17 +132,230 @@ lift-splat-seq: ## multi-frame Mapillary splat (0/2/5 m) + pose NLL; prefers pos
 		--pose-nll-weight 0.5 \
 		--seq-dists 0,2,5
 
+# --- Eagle (docs/tasks/03_eval_density_solver_pf.md Task 0; slurm/README.md) ---
+EAGLE_DIR ?= /mnt/storage_6/project_data/pl1269-01/krupka_maciej/cross_view_sat_roma
+
+eagle-sync: ## push Fixtor panoramas, manifests and best checkpoints to Eagle scratch (13 GB first time)
+	rsync -avP data/mapillary/Fixtor eagle:$(EAGLE_DIR)/data/mapillary/
+	rsync -avP experiments/06_fg2_bevsplat/manifest*.json eagle:$(EAGLE_DIR)/experiments/06_fg2_bevsplat/
+	rsync -avP checkpoints/05_lift_splat_fixtor_*_best.pt eagle:$(EAGLE_DIR)/checkpoints/
+
+mapillary-seq: ## download one Mapillary sequence by id: SEQ=<sequence id> (env MAPILLARY_TOKEN)
+	MAPILLARY_TOKEN="$$MAPILLARY_TOKEN" $(RUN) -m mapillary_dl --sequence $(SEQ) --out data/mapillary
+
+MANIFEST_YEARS ?= 2025,2024,2022,2021
+
+manifest-val:  ## 200-frame validation manifest on IcRzj (MANIFEST_YEARS; leaf-on 2025/2024, leaf-off 2022/2021)
+	$(RUN) scripts/build_baseline_manifest.py --config $(CONFIG) --seq Fixtor/IcRzj0wTLZX874qitxVsQa \
+		--out experiments/06_fg2_bevsplat/manifest.json --n 200 --years $(MANIFEST_YEARS)
+
+manifest-test: ## 200-frame TEST manifest on the reserved route irAsBUK (make mapillary-seq SEQ=irAsBUKtGCfhPHuMbmOcLd first)
+	$(RUN) scripts/build_baseline_manifest.py --config $(CONFIG) --seq Fixtor/irAsBUKtGCfhPHuMbmOcLd \
+		--out experiments/06_fg2_bevsplat/manifest_test.json --n 200 --years $(MANIFEST_YEARS)
+
+years-viz: ## the same test location in every Poznań orthophoto year (INDEX= manifest_test entry) -> experiments/08_semantic
+	$(RUN) scripts/viz_years.py --config $(CONFIG) --index $(if $(INDEX),$(INDEX),60)
+
+eval-pose: ## score CKPT on MANIFEST with bootstrap CIs and a centre-guess chance row; TAG names the json
+	$(RUN) scripts/eval_pose.py --config $(CONFIG) --ckpt $(CKPT) --manifest $(MANIFEST) --tag $(TAG) $(EVAL_ARGS)
+
+pose-report: ## experiments/05_lift_splat/REPORT.md from every eval_*.json
+	$(RUN) scripts/report_pose.py
+
+MANIFEST_STEM ?= manifest_test
+EVAL_JSON ?=
+
+pose-cdf: ## error CDF of every scored checkpoint on MANIFEST_STEM (default manifest_test) for YEAR
+	$(RUN) scripts/plot_eval_cdf.py --config $(CONFIG) --manifest-stem $(MANIFEST_STEM) --year $(YEAR)
+
+SEQS ?= Fixtor/iHfmEq03Tc6752Y4Ke8wlC Fixtor/NWVA14Y83pMRsijaGFkmQS Fixtor/gXabFhpwk2dcl0i4518mDQ Fixtor/doQ3OhJBKe56c8UxjAFmat Fixtor/IcRzj0wTLZX874qitxVsQa Fixtor/irAsBUKtGCfhPHuMbmOcLd
+
+semantic-precompute: ## SegFormer class-id maps for every frame of SEQS -> data/mapillary/<seq>/semantic/<id>.png (GPU)
+	$(RUN) scripts/semantic_precompute.py --config $(CONFIG) --seqs $(SEQS)
+
+semantic-sheet: ## panorama + class overlay + the masked picture, from precomputed maps (SEQ=, INDEX="100 400", CONFIG=)
+	$(RUN) scripts/viz_semantic_sheet.py --config $(CONFIG) --seq $(if $(SEQ),$(SEQ),Fixtor/irAsBUKtGCfhPHuMbmOcLd) --index $(if $(INDEX),$(INDEX),100 400 700 1000)
+
+semantic-smoke: ## SegFormer classes + camera-only contact line on one Mapillary panorama (SEQ=, INDEX=)
+	$(RUN) scripts/semantic_erp.py --config $(CONFIG) --seq $(if $(SEQ),$(SEQ),Fixtor/IcRzj0wTLZX874qitxVsQa) --index $(if $(INDEX),$(INDEX),400)
+
+ipm-picture: ## dump the query picture CONFIG produces (SEQ=, INDEX="400 800", SEQ_DISTS=) to experiments/08_semantic
+	$(RUN) scripts/diag_picture.py --config $(CONFIG) --seq $(if $(SEQ),$(SEQ),Fixtor/irAsBUKtGCfhPHuMbmOcLd) --index $(if $(INDEX),$(INDEX),400) $(if $(SEQ_DISTS),--seq-dists $(SEQ_DISTS),)
+
+SPLIT ?= crossarea
+LIMIT ?= 0
+
+vigor-eval: ## our method on VIGOR (known orientation): CKPT=, SPLIT=crossarea|samearea, TAG=, LIMIT=, VIGOR_ARGS= (sub-cell rows: "--refine 16|8|4 --refine-init none coarse ransac [--refine-gate CELLS --refine-min-cert P]"; coarse-to-fine second pass: "--fine-config configs/vigor_cell00625_fine.yaml --fine-ckpt <pt> [--fine-gate 6]"; task 06: "--hyp 8", "--calib --val-frac 0.2 [--assume-train-split --val-samples N]")
+	$(RUN) scripts/eval_vigor.py --config $(CONFIG) --ckpt $(CKPT) --split $(SPLIT) --tag $(TAG) --limit $(LIMIT) $(VIGOR_ARGS)
+
+vigor-sweep: ## consensus sweep (scripts/sweep_consensus_vigor.py): cache the decoder once per frame on the calibration draw (held-out training frames, CALIB_CITIES= default the checkpoint's, CALIB_LIMIT=1000) and the test draw (CITIES=, LIMIT=), then sweep reproj/target/max modes/mode threshold/certainty/solver/RANSAC budget, select on calib, report test; CKPT=, CONFIG=, SPLIT=, TAG=, [FINE_CONFIG= FINE_CKPT=], SWEEP="--stage sweep|cache --workers N --solvers se2 ...", VIGOR_ARGS= (e.g. "--solver se2 --val-frac 0.2")
+	$(RUN) scripts/sweep_consensus_vigor.py --config $(CONFIG) --ckpt $(CKPT) --split $(SPLIT) --tag $(TAG) --limit $(LIMIT) $(if $(CITIES),--cities $(CITIES),) $(if $(CALIB_CITIES),--calib-cities $(CALIB_CITIES),) $(if $(CALIB_LIMIT),--calib-limit $(CALIB_LIMIT),) $(if $(FINE_CKPT),--fine-config $(FINE_CONFIG) --fine-ckpt $(FINE_CKPT),) $(VIGOR_ARGS) $(SWEEP)
+
+LOFTR_OUT ?= experiments/10_loc2_matcher
+loftr-fine: ## second-pass sanity check: coarse CKPT (CONFIG=configs/vigor_cell0125.yaml) + kornia LoFTR outdoor on the 56 m / 0.0625 m/px window around the coarse pose; SPLIT=, TAG=, LIMIT=, LOFTR_OUT= (default experiments/10_loc2_matcher; experiments/09_vigor for non-Task-04 checkpoints), VIGOR_ARGS="--cities Chicago --solver se2 [--loftr-weights PATH]"
+	$(RUN) scripts/loftr_fine_vigor.py --config $(CONFIG) --ckpt $(CKPT) --split $(SPLIT) --tag $(TAG) --limit $(LIMIT) --out $(LOFTR_OUT) $(VIGOR_ARGS)
+
+vigor-certainty: ## calibrated per-frame confidence: EVAL_JSON= (test draw) or CACHE= (test certainty cache), CALIB_JSON= (eval_vigor.py --calib frames) or FIT_CACHE= (calib certainty cache, its last VAL_FRAMES= frames (default certainty_head.val_frames) left out of the fit as the heads' validation frames; neither = 5-fold on the test frames), HEADS="a.pt b.pt" (pose-correctness heads, needs CACHE=), TAG=, OUT= (default: the test file's folder)
+	$(RUN) scripts/certainty_vigor.py $(if $(CACHE),--cache $(CACHE),--eval-json $(EVAL_JSON)) $(if $(CALIB_JSON),--calib-json $(CALIB_JSON),) $(if $(FIT_CACHE),--fit-cache $(FIT_CACHE),) $(if $(VAL_FRAMES),--val-frames $(VAL_FRAMES),) $(if $(HEADS),--head $(HEADS),) --tag $(TAG) $(if $(OUT),--out $(OUT),)
+
+DRAW ?= calib
+
+vigor-cert-cache: ## task 06 step 4: one frozen-matcher pass -> experiments/10_loc2_matcher/cert_cache/<TAG>_<DRAW>.pkl (maps, token rows, statistics, errors; gated against eval_vigor.py); CKPT=, CONFIG=, SPLIT=, DRAW=calib|test, TAG=, CALIB_LIMIT= (calib draw), CITIES= LIMIT= (test draw), VIGOR_ARGS="--solver se2 [--assume-train-split --val-samples 400 --train-cities ...] [--gate-frames 200]"
+	$(RUN) scripts/certainty_cache_vigor.py --config $(CONFIG) --ckpt $(CKPT) --split $(SPLIT) --draw $(DRAW) --tag $(TAG) --limit $(LIMIT) $(if $(CITIES),--cities $(CITIES),) $(if $(CALIB_LIMIT),--calib-limit $(CALIB_LIMIT),) $(VIGOR_ARGS)
+
+vigor-cert-head: ## task 06 step 4: train the pose-correctness head on a calib cache: CACHE=, TAG=, STREAMS="map tokens frame" (ablations: one stream), HEAD_ARGS="--epochs 60 --seed 0 --no-aug" -> experiments/10_loc2_matcher/certainty_head_<TAG>_<streams>.pt
+	$(RUN) scripts/train_certainty_head.py --config $(CONFIG) --cache $(CACHE) --tag $(TAG) $(if $(STREAMS),--streams $(STREAMS),) $(HEAD_ARGS)
+
+vigor-train: ## fine-tune CKPT on VIGOR (SPLIT=samearea|crossarea, CITIES="Chicago", STEPS=3000, TAG=); CKPT= empty + QUERY=ipm|erp|erp_depth = no warm start (erp_depth: loc2-depth TRAIN=1 first; VIGOR_ARGS="--head"; "--refine-weight 1" trains the conv refiner with RoMa's fine loss; CONFIG=configs/vigor_cell00625_fine.yaml = second-pass decoder on jittered 56 m windows)
+	$(RUN) scripts/train_vigor.py --config $(CONFIG) $(if $(CKPT),--ckpt $(CKPT),--query $(if $(QUERY),$(QUERY),ipm)) --split $(SPLIT) --tag $(TAG) $(if $(CITIES),--cities $(CITIES),) --steps $(if $(STEPS),$(STEPS),3000) $(VIGOR_ARGS)
+
+vigor-viz: ## overlay sheet of the worst (PICK=worst) or a spread (PICK=spread) of N frames of EVAL_JSON, re-matched with CKPT; TAG=
+	$(RUN) scripts/viz_vigor.py --config $(CONFIG) --ckpt $(CKPT) --eval-json $(EVAL_JSON) --tag $(TAG) --n $(if $(N),$(N),20) --pick $(if $(PICK),$(PICK),worst)
+
+vigor-aug-viz: ## sheet of one VIGOR sample unaugmented + N augmented draws (placed tokens through the label H on the canvas): SPLIT=, CITIES=, INDEX=, N=, CONFIG= (the training config, e.g. configs/vigor_cell0125.yaml), AUG_ARGS="--aug-geometric rot90,flip,shift --aug-rot-deg 10 --aug-photometric 1" -> experiments/14_regularisation/aug_<city>_<index>.jpg
+	$(RUN) scripts/viz_vigor_aug.py --config $(CONFIG) --split $(SPLIT) $(if $(CITIES),--cities $(CITIES),) --index $(if $(INDEX),$(INDEX),0) --n $(if $(N),$(N),5) $(AUG_ARGS)
+
+PANO_EVAL_JSON ?= experiments/13_panoroma_long/eval_vigor_e100_full_chicago_twopass_se2_samearea.json
+panoroma-viz: ## PanoRoMa match figures of frames that work (scripts/viz_panoroma_matches.py): CKPT= FINE_CKPT= (default the e100 coarse/fine last), EVAL_JSON= (eval_vigor.py run of the same pair; picks frames), N=10, PICK=quantiles|ids (QUANTILES="5 15 25 35 45 50", IDS="Chicago/<pano> ..."), DIAGRAM_ID= (annotated explanation figure), STAGE=all|compute|render, OUT= (default experiments/13_panoroma_long/viz); CONFIG defaults to configs/vigor_cell0125.yaml
+	$(RUN) scripts/viz_panoroma_matches.py --config $(if $(filter configs/default.yaml,$(CONFIG)),configs/vigor_cell0125.yaml,$(CONFIG)) $(if $(CKPT),--ckpt $(CKPT),) $(if $(FINE_CKPT),--fine-ckpt $(FINE_CKPT),) --eval-json $(if $(EVAL_JSON),$(EVAL_JSON),$(PANO_EVAL_JSON)) --n $(if $(N),$(N),10) --pick $(if $(PICK),$(PICK),quantiles) $(if $(QUANTILES),--quantiles $(QUANTILES),) $(if $(IDS),--ids $(IDS),) $(if $(DIAGRAM_ID),--diagram-id "$(DIAGRAM_ID)",) --stage $(if $(STAGE),$(STAGE),all) $(if $(OUT),--out $(OUT),)
+
+vigor-report: ## experiments/09_vigor/REPORT.md: one table per split from every eval json there + IDEAS.md (the ideas/jobs ledger)
+	$(RUN) scripts/report_vigor.py --config $(CONFIG)
+
+loc2-depth: ## UniK3D depth (Loc²'s layout) for the VIGOR draw: SPLIT=, CITIES=, LIMIT= (TRAIN=1 for the training labels)
+	$(RUN) scripts/loc2_depth_vigor.py --config $(CONFIG) --split $(SPLIT) --limit $(LIMIT) $(if $(CITIES),--cities $(CITIES),) $(if $(TRAIN),--train,) $(VIGOR_ARGS)
+
+loc2-vigor: ## Loc² released checkpoint on the same VIGOR samples as vigor-eval (needs loc2-depth first); SPLIT=, CITIES=, LIMIT=, TAG=
+	$(RUN) scripts/eval_loc2_vigor.py --config $(CONFIG) --split $(SPLIT) --tag $(TAG) --limit $(LIMIT) $(if $(CITIES),--cities $(CITIES),) $(VIGOR_ARGS)
+
+fg2-vigor: ## FG² released checkpoint on the same VIGOR samples as vigor-eval (SPLIT=, CITIES=, LIMIT=, TAG=, VIGOR_ARGS=)
+	$(RUN) scripts/eval_fg2_vigor.py --config $(CONFIG) --split $(SPLIT) --tag $(TAG) --limit $(LIMIT) $(if $(CITIES),--cities $(CITIES),) $(VIGOR_ARGS)
+
+vigor-check-labels: ## verify the (dy, dx) label convention from the lat/lon in the file names (needs the splits)
+	$(RUN) scripts/vigor_check_labels.py $(VIGOR_ARGS)
+
+vigor-calibrate: ## settle row_sign and camera height on 150 VIGOR samples (CKPT=)
+	$(RUN) scripts/eval_vigor.py --config $(CONFIG) --ckpt $(CKPT) --split $(SPLIT) --tag calib --calibrate $(VIGOR_ARGS)
+
+wayback-fetch: ## task 05: Esri Wayback windows of the eval draw -> data/vigor/<City>/wayback_<year>/ (+ JSON sidecars); SPLIT=, CITIES=, LIMIT=, YEARS="2025 2019" (default wayback.years), WAYBACK_ARGS="--draw test|calib [--val-samples N] | --all | --dry-run | --select-by capture|publication | --stride N"; the version per year = closest CAPTURE date (wayback.select_by); resumable
+	$(RUN) scripts/fetch_wayback_vigor.py --config $(CONFIG) --split $(SPLIT) $(if $(CITIES),--cities $(CITIES),) --limit $(if $(LIMIT),$(LIMIT),0) $(if $(YEARS),--years $(YEARS),) $(WAYBACK_ARGS)
+
+wayback-calib: ## task 05: constant (dx, dy) offset VIGOR tile -> Wayback window of the version whose capture date is closest to wayback.calib_year (wayback.select_by), gradient-domain band-limited phase correlation (search radius wayback.calib_max_shift_m, PSR >= wayback.calib_min_psr) on wayback.calib_tiles tiles of CITY= -> data/vigor/<City>/wayback_calibration.json (PASS = residual < wayback.calib_gate_m and >= wayback.calib_min_tiles tiles); WAYBACK_ARGS="--split samearea --year 2021 --tiles 150 | --pairs-dir $$VIGOR_DIR (offline, windows on disk)"
+	$(RUN) scripts/calibrate_wayback_vigor.py --config $(CONFIG) --city $(CITY) $(WAYBACK_ARGS)
+
+pose-diag: ## failure diagnostics of one EVAL_JSON (confidence gate, cross-year consistency, tail) for YEAR
+	$(RUN) scripts/diag_eval.py --config $(CONFIG) --eval-json $(EVAL_JSON) --year $(YEAR)
+
+pose-diag-semantic: ## do misses coincide with structure-less panoramas? EVAL_JSON=, MANIFEST=, YEAR= (needs semantic maps)
+	$(RUN) scripts/diag_semantic_vs_error.py --config $(CONFIG) --eval-json $(EVAL_JSON) --manifest $(MANIFEST) --year $(YEAR)
+
+pose-viz: ## per-frame overlay sheet for CKPT on MANIFEST (frames spread over EVAL_JSON's error range); TAG=
+	$(RUN) scripts/viz_pose.py --config $(CONFIG) --ckpt $(CKPT) --manifest $(MANIFEST) --year $(YEAR) --tag $(TAG) $(if $(EVAL_JSON),--eval-json $(EVAL_JSON),)
+
+eagle-pull: ## on Eagle: sync the checkout to the pushed branch (hard reset; the cluster checkout never has local commits)
+	@# `git pull` refuses when untracked result files (experiments/**/*.json written by jobs) collide with
+	@# files committed from the laptop; a hard reset to origin overwrites them with the committed copies.
+	git fetch -q origin && git reset -q --hard origin/$$(git rev-parse --abbrev-ref HEAD) && git log --oneline | head -1
+
+eagle-fetch-vigor: ## on Eagle: download + extract VIGOR from the shared Drive folder (CPU job, resumable) into project_data/.../vigor
+	mkdir -p slurm/logs
+	FETCH_ARGS="$(FETCH_ARGS)" sbatch --export=ALL $(SBATCH_ARGS) slurm/fetch_vigor.sbatch    # FETCH_ARGS="--only-extract" to just extract; SBATCH_ARGS="--begin=..." to retry after the Drive quota resets
+
+eagle-fetch-wayback: ## on Eagle: CPU job running `make wayback-fetch` / `wayback-calib` with the given variables (CPU node, internet): WAYBACK_TARGET=wayback-fetch|wayback-calib plus that target's variables (SPLIT= CITIES= LIMIT= YEARS= CITY= WAYBACK_ARGS=)
+	mkdir -p slurm/logs
+	WAYBACK_TARGET="$(WAYBACK_TARGET)" SPLIT="$(SPLIT)" CITIES="$(CITIES)" LIMIT="$(LIMIT)" YEARS="$(YEARS)" CITY="$(CITY)" WAYBACK_ARGS="$(WAYBACK_ARGS)" CONFIG="$(CONFIG)" sbatch --export=ALL $(SBATCH_ARGS) slurm/fetch_wayback.sbatch
+
+eagle-watch: ## from the laptop: follow every job in slurm/watch_list.txt (queue + new log lines) until all have finished
+	bash slurm/watch_all.sh
+
+eagle-submit: ## submit CMD="scripts/x.py ..." JOB=name as one H100 job (run on Eagle, repo root); SBATCH_ARGS="--dependency=afterok:<id>" to chain
+	mkdir -p slurm/logs   # SLURM does not create the --output directory itself
+	@# CMD goes through the environment, NOT --export=ALL,CMD=...: sbatch splits --export on commas,
+	@# which silently truncated "--years 2025,2024,2021 ..." and "--seq-dists 0,2,5" (2026-09-23).
+	CMD="$(CMD)" sbatch --job-name=$(JOB) --export=ALL $(SBATCH_ARGS) slurm/run.sbatch
+
+eagle-probe: ## on Eagle: short H100 job timing train_vigor.py --profile over PROBE_BATCHES / PROBE_WORKERS / PROBE_PREFETCH / PROBE_PIN (0|1) with PROBE_ARGS (config, query, split, ...); stops at the first OOM; `grep PROFILE` the log
+	mkdir -p slurm/logs
+	PROBE_BATCHES="$(PROBE_BATCHES)" PROBE_WORKERS="$(PROBE_WORKERS)" PROBE_PREFETCH="$(PROBE_PREFETCH)" PROBE_PIN="$(PROBE_PIN)" PROBE_STEPS="$(PROBE_STEPS)" PROBE_ARGS="$(PROBE_ARGS)" sbatch --job-name=$(if $(JOB),$(JOB),probe) --export=ALL $(SBATCH_ARGS) slurm/probe_vigor.sbatch
+
+eagle-submit-ddp: ## submit CMD="scripts/train_vigor.py ... --batch <GLOBAL>" JOB=name as one 4-H100 node job (torchrun, slurm/run_ddp.sbatch); SBATCH_ARGS as eagle-submit; NPROC=4
+	mkdir -p slurm/logs
+	CMD="$(CMD)" NPROC="$(if $(NPROC),$(NPROC),4)" sbatch --job-name=$(JOB) --export=ALL $(SBATCH_ARGS) slurm/run_ddp.sbatch
+
+# Default for training on Eagle (decisions 2026-09-29): one full proxima node, 4x H100, H100 precision settings.
+H100_TRAIN_FLAGS ?= --workers 8 --pin-memory --tf32 --encoder-dtype bfloat16 --decoder-dtype bfloat16 --compile encoder
+
+wandb-sync: ## from the laptop: stream an Eagle training CSV into W&B (laptop's own W&B login, ~/.netrc as in sat_roma); TAG= JOBID= [OUT=experiments/13_panoroma_long]
+	$(RUN) scripts/wandb_sync_csv.py --tag $(TAG) $(if $(JOBID),--jobid $(JOBID),) --out $(if $(OUT),$(OUT),experiments/13_panoroma_long)
+
+eagle-train: ## on Eagle, THE default way to train: 4x H100 node (eagle-submit-ddp) + H100_TRAIN_FLAGS; TRAIN_ARGS="--config ... --batch 32 --epochs ... --tag ..." JOB= SBATCH_ARGS= (single GPU only for smoke tests: eagle-submit)
+	$(MAKE) eagle-submit-ddp JOB=$(JOB) SBATCH_ARGS="$(SBATCH_ARGS)" CMD="scripts/train_vigor.py $(TRAIN_ARGS) $(H100_TRAIN_FLAGS)"
+
+eagle-probe-ddp: ## on Eagle: short 4-H100 job running each ';'-separated PROBE_RUNS entry ("NPROC args", NPROC=1 = plain python on one GPU) with PROBE_ARGS; `grep -E 'PROFILE|CHECK'` the log
+	mkdir -p slurm/logs
+	PROBE_RUNS="$(PROBE_RUNS)" PROBE_ARGS="$(PROBE_ARGS)" sbatch --job-name=$(if $(JOB),$(JOB),probe-ddp) --export=ALL $(SBATCH_ARGS) slurm/probe_ddp.sbatch
+
+ipm-train: ## camera-only RGB-IPM query (frozen encoder, decoder fine-tune) with the Lift-Splat recipe; task 03 Task 2
+	$(RUN) scripts/train_lift_splat.py --config $(CONFIG) --query ipm --out experiments/05_lift_splat/fixtor_ipm \
+		--years 2025,2024,2021 --val-year 2025 --steps 3000 \
+		--neighbour-radius 4 --neighbour-weight 0.5 --pose-nll-weight 0.5
+
+erp-train: ## ERP-token query (Loc²-style: match the panorama's tokens, place after matching); task 03 Task 6
+	$(RUN) scripts/train_lift_splat.py --config $(CONFIG) --query erp --out experiments/05_lift_splat/fixtor_erp \
+		--years 2025,2024,2021 --val-year 2025 --steps 3000 \
+		--neighbour-radius 4 --neighbour-weight 0.5 --pose-nll-weight 0.5
+
+lift-splat-pose-nll-only: ## A alone: pose-heatmap NLL, single frame, from aug best (separates A from B); task 03 Task 1
+	$(RUN) scripts/train_lift_splat.py --config $(CONFIG) --out experiments/05_lift_splat/fixtor_pose_nll \
+		--ckpt checkpoints/05_lift_splat_fixtor_aug_best.pt \
+		--years 2025,2024,2021 --val-year 2025 --steps 2000 \
+		--neighbour-radius 4 --neighbour-weight 0.5 --pose-nll-weight 0.5
+
+hybrid-viz: ## ERP | IPM ground mask | dense ground PCA | f_q PCA | pose boxes for a hybrid checkpoint (CKPT=, TAG=)
+	$(RUN) scripts/viz_hybrid.py --config $(CONFIG) --ckpt $(CKPT) --tag $(TAG)
+
+ROUTE ?= Fixtor/IcRzj0wTLZX874qitxVsQa
+YEAR ?= 2025
+
+track-route: ## particle filter along ROUTE with CKPT's heatmap as observation (TAG=, YEAR=, TRACK_ARGS=)
+	$(RUN) scripts/track_route.py --config $(CONFIG) --ckpt $(CKPT) --route $(ROUTE) --year $(YEAR) --tag $(TAG) $(TRACK_ARGS)
+
 # --- Task 02: FG² / BevSplat transfer (docs/tasks/02_fg2_bevsplat.md) ---
 baselines-manifest: ## immutable ≥200-frame Fixtor held-out manifest (2025+2024)
 	$(RUN) scripts/build_baseline_manifest.py --out experiments/06_fg2_bevsplat/manifest.json --n 200
 
-fg2-smoke: ## FG² 20-frame smoke on the shared manifest (oracle + native heading)
-	$(RUN) scripts/eval_fg2.py --manifest experiments/06_fg2_bevsplat/manifest.json \
-		--out experiments/06_fg2_bevsplat/fg2_zero --n 20 --smoke
+# --- Poznań three-way comparison (decision 2026-09-29): Loc², FG², PanoRoMa on one manifest, one scorer ---
+# Defaults from configs/default.yaml `poznan:` (manifest, years 2025/2024, heading prior); outputs under
+# experiments/12_poznan_three_way/. HEADING=prior|gt, DEPTH=unik3d|flat, PZ_ARGS= extra flags (e.g. "--n 20").
+HEADING ?= prior
+DEPTH   ?= unik3d
+PZ_MANIFEST = $(if $(MANIFEST),--manifest $(MANIFEST),)
 
-fg2-eval: ## FG² zero-shot on the full held-out manifest
-	$(RUN) scripts/eval_fg2.py --manifest experiments/06_fg2_bevsplat/manifest.json \
-		--out experiments/06_fg2_bevsplat/fg2_zero
+vigor-depth-height: ## camera height implied by UniK3D on VIGOR (300 panoramas per city) and on Poznań by the same rule (levelled, all azimuths, no road mask) -> experiments/12_poznan_three_way/depth_check/vigor_height_check.json
+	$(RUN) scripts/depth_height_check_vigor.py --config $(CONFIG)
+
+poznan-depth: ## UniK3D metric depth (Loc²'s PNG layout, <seq>/unik3d_depth_v2/<id>.png) for every panorama of MANIFEST + camera-height check (GPU); DEPTH_ARGS="--limit 20 | --check-only"
+	$(RUN) scripts/unik3d_depth_poznan.py --config $(CONFIG) $(PZ_MANIFEST) $(DEPTH_ARGS)
+
+fg2-smoke: ## FG² zero-shot, 20 frame ids x the years (HEADING=)
+	$(RUN) scripts/eval_fg2.py --config $(CONFIG) $(PZ_MANIFEST) --heading $(HEADING) --smoke \
+		--out experiments/12_poznan_three_way/smoke/fg2_$(HEADING) $(PZ_ARGS)
+
+fg2-eval: ## FG² zero-shot on the manifest (HEADING=prior|gt) -> experiments/12_poznan_three_way/fg2_<heading>
+	$(RUN) scripts/eval_fg2.py --config $(CONFIG) $(PZ_MANIFEST) --heading $(HEADING) $(PZ_ARGS)
+
+loc2-smoke: ## Loc² zero-shot, 20 frame ids x the years (DEPTH=unik3d|flat, HEADING=)
+	$(RUN) scripts/eval_loc2.py --config $(CONFIG) $(PZ_MANIFEST) --heading $(HEADING) --depth $(DEPTH) --smoke \
+		--out experiments/12_poznan_three_way/smoke/loc2_$(DEPTH)_$(HEADING) $(PZ_ARGS)
+
+loc2-eval: ## Loc² zero-shot on the manifest (DEPTH=unik3d|flat, HEADING=prior|gt) -> experiments/12_poznan_three_way/loc2_<depth>_<heading>
+	$(RUN) scripts/eval_loc2.py --config $(CONFIG) $(PZ_MANIFEST) --heading $(HEADING) --depth $(DEPTH) $(PZ_ARGS)
+
+panoroma-poznan: ## PanoRoMa (coarse + second pass, cfg.poznan.panoroma) on the manifest (HEADING=, PZ_ARGS="--ref-up crop | --limit 20 | --sanity 0")
+	$(RUN) scripts/eval_panoroma_poznan.py --config $(CONFIG) $(PZ_MANIFEST) --heading $(HEADING) $(PZ_ARGS)
+
+poznan-three-way: ## experiments/12_poznan_three_way/REPORT.md (+ three_way.json/csv, cdf.png) from every run there + the IPM row
+	$(RUN) scripts/report_poznan_three_way.py --config $(CONFIG)
 
 fg2-train: ## FG² minimal fine-tune (frozen DINO, 2000 updates); SEED=0/1/2
 	$(RUN) scripts/train_fg2.py --manifest experiments/06_fg2_bevsplat/manifest.json \
@@ -168,6 +384,18 @@ overfit:   ## fusion training plumbing test: 4 frames, SYNTHETIC reference (no o
 
 train:     ## fusion BEV + Sat-RoMa decoder on the real orthophoto (needs data.ortho in the config)
 	$(RUN) scripts/train_fusion.py --config $(CONFIG)
+
+# --- KITScenes Multimodal (gated on HuggingFace: accept the terms, `hf auth login` / HF_TOKEN) ---
+# Defaults from configs/default.yaml `kitscenes:`. SCENE= <uuid> SPLIT= val|train|test; outputs under experiments/15_kitscenes/.
+KS_SCENE = $(if $(SCENE),$(SCENE),142f1419-b6f2-4215-4055-6eb161f63043)
+KS_SPLIT = $(if $(SPLIT),$(SPLIT),val)
+kitscenes-fetch: ## download + extract ONE KITScenes scene (default: the smallest val scene, 1.65 GB) into data/kitscenes; SCENE= SPLIT=
+	mkdir -p data/kitscenes
+	hf download KIT-MRT/KITScenes-Multimodal --repo-type dataset --local-dir data/kitscenes --include "data/sequence_archives.csv" --include "data/$(KS_SPLIT)/$(KS_SCENE).tar"
+	tar -xf data/kitscenes/data/$(KS_SPLIT)/$(KS_SCENE).tar -C data/kitscenes/data/$(KS_SPLIT) && rm data/kitscenes/data/$(KS_SPLIT)/$(KS_SCENE).tar
+
+kitscenes-pano: ## 6 ring cameras -> ERP panorama + availability mask_*.png + LiDAR overlay + calibration checks -> experiments/15_kitscenes; FRAMES="0 50", CROP=1 (pano_crop_*.jpg without black pixels), EGO_MASK=20 (crop below -20 deg: ego car), MAX_EL=
+	$(RUN) scripts/kitscenes_pano.py --config $(CONFIG) $(if $(FRAMES),--frames $(FRAMES),) $(if $(CROP),--crop,) $(if $(EGO_MASK),--ego-mask-deg $(EGO_MASK),) $(if $(MAX_EL),--max-elevation-deg $(MAX_EL),)
 
 calib: stats mask lens oxts viewer   ## all calibration artefacts
 all: test calib odometry bevs mosaic smoke   ## everything that needs no orthophoto

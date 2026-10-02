@@ -1,0 +1,19 @@
+[run] host=gpu17 date=2026-09-29T17:50:24+02:00 CMD=scripts/train_vigor.py --config configs/vigor_cell0125.yaml --query erp_depth --head --pose-nll-weight 0.5 --split samearea --val-samples 16 --val-frac 0.2 --batch 8 --workers 8 --train-limit 64 --save-every-epochs 1 --tag smoke_resume --out /mnt/storage_6/project_data/pl1269-01/krupka_maciej/probe_panoroma/experiments/smoke --resume auto --epochs 3
+pose NLL weight 0.5  refine weight 0.0
+train 42087 (['NewYork', 'Seattle', 'SanFrancisco', 'Chicago'])  val 16 of 10522 held out from the train list (val_frac 0.2)  mode erp_depth  batch 8
+depth: dropped 0 train / 0 val labels without a depth file -> train 42087  val 16
+VCE weight 1.0  {'mode': 'sample', 'n_samples': 1024, 'grid_m': 5.0, 'points': 10, 'use_certainty': True}
+--train-limit: training on the first 64 labels only (smoke test)
+8 steps per epoch (batch 8, drop_last)  total 24 steps = 3 epochs  validation every 8 steps  workers 8 prefetch 2 pin_memory False
+Using Dinov3 as Sat Encoder, model: vit_large_patch16_dinov3.sat493m
+no --ckpt: decoder = released Sat-RoMa checkpoint, query untrained
+query erp_depth: 2.23 M trainable parameters (lr 0.0002)
+checkpoint contents: query 2.23 M tensors (9 MiB)  decoder 66.71 M tensors (254 MiB)  | optimised 68.94 M params | frozen encoder 303.1 M NOT saved
+--resume auto: resuming from /mnt/storage_6/project_data/pl1269-01/krupka_maciej/probe_panoroma/checkpoints/vigor_smoke_resume_resume.pt
+resumed /mnt/storage_6/project_data/pl1269-01/krupka_maciej/probe_panoroma/checkpoints/vigor_smoke_resume_resume.pt: step 16 (epoch 2.00), best 13.632 at step 16
+step 17 TRAIN  CE 6.771  poseNLL 6.647  top1 0.0%  arg 18.1 m  n 10306  VCE 18.86 m  procrustes 18.83 m  (38s, epoch 2.12)
+step 24 VAL    CE 6.567  poseNLL 6.237  top1 0.6%  heatmap-argmax (not a pose) 14.8 m  n 19013  VCE 13.64 m  procrustes 13.61 m
+  best -> /mnt/storage_6/project_data/pl1269-01/krupka_maciej/probe_panoroma/checkpoints/vigor_smoke_resume_best.pt
+  epoch 3 -> /mnt/storage_6/project_data/pl1269-01/krupka_maciej/probe_panoroma/checkpoints/vigor_smoke_resume_ep003.pt (263 MiB)
+wrote /mnt/storage_6/project_data/pl1269-01/krupka_maciej/probe_panoroma/checkpoints/vigor_smoke_resume_best.pt (best, step 24), /mnt/storage_6/project_data/pl1269-01/krupka_maciej/probe_panoroma/checkpoints/vigor_smoke_resume_last_finite.pt (last finite validation) and /mnt/storage_6/project_data/pl1269-01/krupka_maciej/probe_panoroma/checkpoints/vigor_smoke_resume_last.pt (last, step 24, 263 MiB); resume state /mnt/storage_6/project_data/pl1269-01/krupka_maciej/probe_panoroma/checkpoints/vigor_smoke_resume_resume.pt; non-finite steps 0, no-update steps 0
+[run] exit=0 date=2026-09-29T17:52:04+02:00

@@ -1,0 +1,1541 @@
+{
+  "prior/IPM + Sat-RoMa (existing)": {
+    "summary": {
+      "all": {
+        "n": 400,
+        "matched": 399,
+        "median_m": 5.693739793017913,
+        "median_ci": [
+          4.939311035450855,
+          6.537559658845507
+        ],
+        "recall@5m": 0.4525,
+        "recall@5m_ci": [
+          0.405,
+          0.505
+        ],
+        "recall@10m": 0.715,
+        "recall@10m_ci": [
+          0.67,
+          0.7575
+        ],
+        "frac_gt_30m": 0.0525,
+        "recall@1m": 0.06,
+        "mean_capped_m": 11.609292080831901,
+        "median_deg": 2.62636753861602,
+        "mean_deg": 4.350202967434038,
+        "n_heading": 399
+      },
+      "2024": {
+        "n": 200,
+        "matched": 199,
+        "median_m": 5.9450139117182745,
+        "median_ci": [
+          4.772112998101644,
+          6.672434520636845
+        ],
+        "recall@5m": 0.45,
+        "recall@5m_ci": [
+          0.385,
+          0.52
+        ],
+        "recall@10m": 0.71,
+        "recall@10m_ci": [
+          0.645,
+          0.77
+        ],
+        "frac_gt_30m": 0.05,
+        "recall@1m": 0.06,
+        "mean_capped_m": 14.239101972902182,
+        "median_deg": 2.47109938773172,
+        "mean_deg": 4.739972696300762,
+        "n_heading": 199
+      },
+      "2025": {
+        "n": 200,
+        "matched": 200,
+        "median_m": 5.507534229946653,
+        "median_ci": [
+          4.341912517118052,
+          6.852070436489672
+        ],
+        "recall@5m": 0.455,
+        "recall@5m_ci": [
+          0.39,
+          0.525
+        ],
+        "recall@10m": 0.72,
+        "recall@10m_ci": [
+          0.66,
+          0.78
+        ],
+        "frac_gt_30m": 0.055,
+        "recall@1m": 0.06,
+        "mean_capped_m": 8.979482188761622,
+        "median_deg": 2.675541722036446,
+        "mean_deg": 3.9623820872116493,
+        "n_heading": 200
+      }
+    },
+    "source": "checkpoints/05_lift_splat_fixtor_ipm_best.pt, solver srt",
+    "same_entries": true
+  },
+  "prior/FG\u00b2 native": {
+    "summary": {
+      "all": {
+        "n": 40,
+        "matched": 40,
+        "median_m": 2.914648996501139,
+        "median_ci": [
+          1.8673734305975263,
+          6.056406861888002
+        ],
+        "recall@5m": 0.6,
+        "recall@5m_ci": [
+          0.45,
+          0.75
+        ],
+        "recall@10m": 0.725,
+        "recall@10m_ci": [
+          0.575,
+          0.85
+        ],
+        "frac_gt_30m": 0.025,
+        "recall@1m": 0.125,
+        "mean_capped_m": 7.202244716230153,
+        "median_deg": 2.7014671488020383,
+        "mean_deg": 4.131167208530217,
+        "n_heading": 40
+      },
+      "2024": {
+        "n": 20,
+        "matched": 20,
+        "median_m": 3.0957751981307973,
+        "median_ci": [
+          1.6803801343150555,
+          6.545522917691123
+        ],
+        "recall@5m": 0.6,
+        "recall@5m_ci": [
+          0.4,
+          0.8
+        ],
+        "recall@10m": 0.75,
+        "recall@10m_ci": [
+          0.55,
+          0.9
+        ],
+        "frac_gt_30m": 0.05,
+        "recall@1m": 0.15,
+        "mean_capped_m": 7.756503735565211,
+        "median_deg": 2.675173585433413,
+        "mean_deg": 4.194954572787286,
+        "n_heading": 20
+      },
+      "2025": {
+        "n": 20,
+        "matched": 20,
+        "median_m": 2.914648996501139,
+        "median_ci": [
+          1.397411635962765,
+          8.473284411199407
+        ],
+        "recall@5m": 0.6,
+        "recall@5m_ci": [
+          0.4,
+          0.8
+        ],
+        "recall@10m": 0.7,
+        "recall@10m_ci": [
+          0.5,
+          0.9
+        ],
+        "frac_gt_30m": 0.0,
+        "recall@1m": 0.1,
+        "mean_capped_m": 6.647985696895093,
+        "median_deg": 2.7014671488020383,
+        "mean_deg": 4.067379844273148,
+        "n_heading": 20
+      }
+    },
+    "source": "experiments/12_poznan_three_way/smoke_local/fg2_prior",
+    "same_entries": false
+  },
+  "prior/Loc\u00b2 native flat depth": {
+    "summary": {
+      "all": {
+        "n": 40,
+        "matched": 40,
+        "median_m": 3.402225540302096,
+        "median_ci": [
+          2.19986336352091,
+          4.0920485253477485
+        ],
+        "recall@5m": 0.725,
+        "recall@5m_ci": [
+          0.6,
+          0.85
+        ],
+        "recall@10m": 0.775,
+        "recall@10m_ci": [
+          0.65,
+          0.875
+        ],
+        "frac_gt_30m": 0.075,
+        "recall@1m": 0.075,
+        "mean_capped_m": 8.643400705246155,
+        "median_deg": 1.7244384433292907,
+        "mean_deg": 4.348974852482522,
+        "n_heading": 40
+      },
+      "2024": {
+        "n": 20,
+        "matched": 20,
+        "median_m": 3.612597774386341,
+        "median_ci": [
+          2.2169898855676493,
+          4.116455318693602
+        ],
+        "recall@5m": 0.8,
+        "recall@5m_ci": [
+          0.6,
+          0.95
+        ],
+        "recall@10m": 0.8,
+        "recall@10m_ci": [
+          0.6,
+          0.95
+        ],
+        "frac_gt_30m": 0.1,
+        "recall@1m": 0.05,
+        "mean_capped_m": 8.572198936202629,
+        "median_deg": 2.1288106339410433,
+        "mean_deg": 3.667318929171414,
+        "n_heading": 20
+      },
+      "2025": {
+        "n": 20,
+        "matched": 20,
+        "median_m": 2.914552257724035,
+        "median_ci": [
+          1.6660328168483123,
+          7.306844762493091
+        ],
+        "recall@5m": 0.65,
+        "recall@5m_ci": [
+          0.45,
+          0.85
+        ],
+        "recall@10m": 0.75,
+        "recall@10m_ci": [
+          0.55,
+          0.95
+        ],
+        "frac_gt_30m": 0.05,
+        "recall@1m": 0.1,
+        "mean_capped_m": 8.714602474289675,
+        "median_deg": 1.5122787342219226,
+        "mean_deg": 5.030630775793631,
+        "n_heading": 20
+      }
+    },
+    "source": "experiments/12_poznan_three_way/smoke_local/loc2_flat_prior",
+    "same_entries": false
+  },
+  "prior/Loc\u00b2 native UniK3D": {
+    "summary": {
+      "all": {
+        "n": 40,
+        "matched": 40,
+        "median_m": 2.7019856423486313,
+        "median_ci": [
+          1.958347280967094,
+          3.9209536890399552
+        ],
+        "recall@5m": 0.675,
+        "recall@5m_ci": [
+          0.525,
+          0.8
+        ],
+        "recall@10m": 0.775,
+        "recall@10m_ci": [
+          0.65,
+          0.9
+        ],
+        "frac_gt_30m": 0.075,
+        "recall@1m": 0.075,
+        "mean_capped_m": 8.459414734034693,
+        "median_deg": 2.9974638546340486,
+        "mean_deg": 4.683953027620242,
+        "n_heading": 40
+      },
+      "2024": {
+        "n": 20,
+        "matched": 20,
+        "median_m": 3.347183677678287,
+        "median_ci": [
+          2.0473118040321077,
+          6.815290314241346
+        ],
+        "recall@5m": 0.65,
+        "recall@5m_ci": [
+          0.45,
+          0.85
+        ],
+        "recall@10m": 0.75,
+        "recall@10m_ci": [
+          0.55,
+          0.9
+        ],
+        "frac_gt_30m": 0.1,
+        "recall@1m": 0.0,
+        "mean_capped_m": 9.368146230530927,
+        "median_deg": 2.8466519740859155,
+        "mean_deg": 5.116496098736245,
+        "n_heading": 20
+      },
+      "2025": {
+        "n": 20,
+        "matched": 20,
+        "median_m": 2.4930572149314054,
+        "median_ci": [
+          1.5321964079301336,
+          4.32065159279895
+        ],
+        "recall@5m": 0.7,
+        "recall@5m_ci": [
+          0.5,
+          0.9
+        ],
+        "recall@10m": 0.8,
+        "recall@10m_ci": [
+          0.6,
+          0.95
+        ],
+        "frac_gt_30m": 0.05,
+        "recall@1m": 0.15,
+        "mean_capped_m": 7.550683237538462,
+        "median_deg": 3.1777712068716824,
+        "mean_deg": 4.251409956504238,
+        "n_heading": 20
+      }
+    },
+    "source": "experiments/12_poznan_three_way/smoke_local/loc2_unik3d_prior",
+    "same_entries": false
+  },
+  "prior/PanoRoMa coarse (crop)": {
+    "summary": {
+      "all": {
+        "n": 40,
+        "matched": 40,
+        "median_m": 5.4422559341852,
+        "median_ci": [
+          4.411160516759014,
+          7.5635163426858325
+        ],
+        "recall@5m": 0.425,
+        "recall@5m_ci": [
+          0.275,
+          0.575
+        ],
+        "recall@10m": 0.75,
+        "recall@10m_ci": [
+          0.625,
+          0.875
+        ],
+        "frac_gt_30m": 0.075,
+        "recall@1m": 0.025,
+        "mean_capped_m": 10.103693697980251,
+        "median_deg": 7.925585193981471,
+        "mean_deg": 10.316182438419451,
+        "n_heading": 40
+      },
+      "2024": {
+        "n": 20,
+        "matched": 20,
+        "median_m": 5.751965589337928,
+        "median_ci": [
+          4.411160516759014,
+          9.49467526780803
+        ],
+        "recall@5m": 0.4,
+        "recall@5m_ci": [
+          0.2,
+          0.6
+        ],
+        "recall@10m": 0.7,
+        "recall@10m_ci": [
+          0.5,
+          0.9
+        ],
+        "frac_gt_30m": 0.05,
+        "recall@1m": 0.0,
+        "mean_capped_m": 10.31925809184895,
+        "median_deg": 7.886497730295897,
+        "mean_deg": 9.662358463395748,
+        "n_heading": 20
+      },
+      "2025": {
+        "n": 20,
+        "matched": 20,
+        "median_m": 5.4422559341852,
+        "median_ci": [
+          3.512597891464635,
+          7.058730959807583
+        ],
+        "recall@5m": 0.45,
+        "recall@5m_ci": [
+          0.25,
+          0.65
+        ],
+        "recall@10m": 0.8,
+        "recall@10m_ci": [
+          0.6,
+          0.95
+        ],
+        "frac_gt_30m": 0.1,
+        "recall@1m": 0.05,
+        "mean_capped_m": 9.888129304111553,
+        "median_deg": 8.272453155707336,
+        "mean_deg": 10.97000641344316,
+        "n_heading": 20
+      }
+    },
+    "source": "experiments/12_poznan_three_way/smoke_local/panoroma_prior_crop",
+    "same_entries": false
+  },
+  "prior/PanoRoMa two-pass (crop)": {
+    "summary": {
+      "all": {
+        "n": 40,
+        "matched": 40,
+        "median_m": 6.122835080077924,
+        "median_ci": [
+          4.099955862870667,
+          7.34364965906507
+        ],
+        "recall@5m": 0.475,
+        "recall@5m_ci": [
+          0.325,
+          0.65
+        ],
+        "recall@10m": 0.775,
+        "recall@10m_ci": [
+          0.65,
+          0.9
+        ],
+        "frac_gt_30m": 0.075,
+        "recall@1m": 0.0,
+        "mean_capped_m": 10.194892759474588,
+        "median_deg": 5.934385365548513,
+        "mean_deg": 8.936284386532723,
+        "n_heading": 40
+      },
+      "2024": {
+        "n": 20,
+        "matched": 20,
+        "median_m": 5.4575738195142,
+        "median_ci": [
+          3.561425460494341,
+          8.252461204922747
+        ],
+        "recall@5m": 0.5,
+        "recall@5m_ci": [
+          0.3,
+          0.75
+        ],
+        "recall@10m": 0.75,
+        "recall@10m_ci": [
+          0.55,
+          0.9
+        ],
+        "frac_gt_30m": 0.1,
+        "recall@1m": 0.0,
+        "mean_capped_m": 10.098907773905598,
+        "median_deg": 8.593648759397794,
+        "mean_deg": 12.045485638001816,
+        "n_heading": 20
+      },
+      "2025": {
+        "n": 20,
+        "matched": 20,
+        "median_m": 6.286205313496305,
+        "median_ci": [
+          3.779168375467445,
+          7.850950263093852
+        ],
+        "recall@5m": 0.45,
+        "recall@5m_ci": [
+          0.25,
+          0.65
+        ],
+        "recall@10m": 0.8,
+        "recall@10m_ci": [
+          0.6,
+          0.95
+        ],
+        "frac_gt_30m": 0.05,
+        "recall@1m": 0.0,
+        "mean_capped_m": 10.290877745043577,
+        "median_deg": 4.155785355942294,
+        "mean_deg": 5.82708313506363,
+        "n_heading": 20
+      }
+    },
+    "source": "experiments/12_poznan_three_way/smoke_local/panoroma_prior_crop",
+    "same_entries": false
+  },
+  "prior/PanoRoMa fine (ungated) (crop)": {
+    "summary": {
+      "all": {
+        "n": 40,
+        "matched": 40,
+        "median_m": 6.122835080077924,
+        "median_ci": [
+          4.051242748228595,
+          7.34364965906507
+        ],
+        "recall@5m": 0.475,
+        "recall@5m_ci": [
+          0.325,
+          0.625
+        ],
+        "recall@10m": 0.775,
+        "recall@10m_ci": [
+          0.65,
+          0.9
+        ],
+        "frac_gt_30m": 0.075,
+        "recall@1m": 0.0,
+        "mean_capped_m": 10.133146207686973,
+        "median_deg": 5.107733718247291,
+        "mean_deg": 8.58139780580618,
+        "n_heading": 40
+      },
+      "2024": {
+        "n": 20,
+        "matched": 20,
+        "median_m": 5.4575738195142,
+        "median_ci": [
+          3.0520569716993253,
+          8.462597527733202
+        ],
+        "recall@5m": 0.5,
+        "recall@5m_ci": [
+          0.3,
+          0.7
+        ],
+        "recall@10m": 0.75,
+        "recall@10m_ci": [
+          0.55,
+          0.9
+        ],
+        "frac_gt_30m": 0.1,
+        "recall@1m": 0.0,
+        "mean_capped_m": 9.975414670330373,
+        "median_deg": 7.914135636890089,
+        "mean_deg": 11.335712476548725,
+        "n_heading": 20
+      },
+      "2025": {
+        "n": 20,
+        "matched": 20,
+        "median_m": 6.286205313496305,
+        "median_ci": [
+          3.779168375467445,
+          7.850950263093852
+        ],
+        "recall@5m": 0.45,
+        "recall@5m_ci": [
+          0.25,
+          0.65
+        ],
+        "recall@10m": 0.8,
+        "recall@10m_ci": [
+          0.6,
+          0.95
+        ],
+        "frac_gt_30m": 0.05,
+        "recall@1m": 0.0,
+        "mean_capped_m": 10.290877745043577,
+        "median_deg": 4.155785355942294,
+        "mean_deg": 5.82708313506363,
+        "n_heading": 20
+      }
+    },
+    "source": "experiments/12_poznan_three_way/smoke_local/panoroma_prior_crop",
+    "same_entries": false
+  },
+  "prior/PanoRoMa coarse (north)": {
+    "summary": {
+      "all": {
+        "n": 40,
+        "matched": 40,
+        "median_m": 6.357604034156281,
+        "median_ci": [
+          4.070212353108689,
+          8.577441301193812
+        ],
+        "recall@5m": 0.4,
+        "recall@5m_ci": [
+          0.25,
+          0.575
+        ],
+        "recall@10m": 0.675,
+        "recall@10m_ci": [
+          0.525,
+          0.825
+        ],
+        "frac_gt_30m": 0.075,
+        "recall@1m": 0.0,
+        "mean_capped_m": 10.850256003840732,
+        "median_deg": 5.770564259538695,
+        "mean_deg": 16.009238676628772,
+        "n_heading": 40
+      },
+      "2024": {
+        "n": 20,
+        "matched": 20,
+        "median_m": 5.973957033389208,
+        "median_ci": [
+          3.8662105483365536,
+          8.577441301193812
+        ],
+        "recall@5m": 0.4,
+        "recall@5m_ci": [
+          0.2,
+          0.6
+        ],
+        "recall@10m": 0.75,
+        "recall@10m_ci": [
+          0.55,
+          0.95
+        ],
+        "frac_gt_30m": 0.05,
+        "recall@1m": 0.0,
+        "mean_capped_m": 9.39501661974366,
+        "median_deg": 5.771075458808752,
+        "mean_deg": 8.623217181768384,
+        "n_heading": 20
+      },
+      "2025": {
+        "n": 20,
+        "matched": 20,
+        "median_m": 7.264030664869448,
+        "median_ci": [
+          3.8878260956162833,
+          17.409521203112988
+        ],
+        "recall@5m": 0.4,
+        "recall@5m_ci": [
+          0.2,
+          0.6
+        ],
+        "recall@10m": 0.6,
+        "recall@10m_ci": [
+          0.4,
+          0.8
+        ],
+        "frac_gt_30m": 0.1,
+        "recall@1m": 0.0,
+        "mean_capped_m": 12.305495387937803,
+        "median_deg": 5.395017578802047,
+        "mean_deg": 23.395260171489163,
+        "n_heading": 20
+      }
+    },
+    "source": "experiments/12_poznan_three_way/smoke_local/panoroma_prior_north",
+    "same_entries": false
+  },
+  "prior/PanoRoMa two-pass (north)": {
+    "summary": {
+      "all": {
+        "n": 40,
+        "matched": 40,
+        "median_m": 5.616013086247668,
+        "median_ci": [
+          3.089179264353721,
+          9.26547439110309
+        ],
+        "recall@5m": 0.475,
+        "recall@5m_ci": [
+          0.325,
+          0.65
+        ],
+        "recall@10m": 0.675,
+        "recall@10m_ci": [
+          0.525,
+          0.825
+        ],
+        "frac_gt_30m": 0.05,
+        "recall@1m": 0.0,
+        "mean_capped_m": 10.223798890419147,
+        "median_deg": 3.501076505700845,
+        "mean_deg": 11.395588073265625,
+        "n_heading": 40
+      },
+      "2024": {
+        "n": 20,
+        "matched": 20,
+        "median_m": 5.580999919108448,
+        "median_ci": [
+          2.584318732030107,
+          8.783674431825851
+        ],
+        "recall@5m": 0.5,
+        "recall@5m_ci": [
+          0.3,
+          0.7
+        ],
+        "recall@10m": 0.75,
+        "recall@10m_ci": [
+          0.55,
+          0.95
+        ],
+        "frac_gt_30m": 0.05,
+        "recall@1m": 0.0,
+        "mean_capped_m": 9.131898710109514,
+        "median_deg": 4.095144515488142,
+        "mean_deg": 6.7429921853084664,
+        "n_heading": 20
+      },
+      "2025": {
+        "n": 20,
+        "matched": 20,
+        "median_m": 5.616013086247668,
+        "median_ci": [
+          2.9132649335668743,
+          18.070284077849116
+        ],
+        "recall@5m": 0.45,
+        "recall@5m_ci": [
+          0.25,
+          0.65
+        ],
+        "recall@10m": 0.6,
+        "recall@10m_ci": [
+          0.4,
+          0.8
+        ],
+        "frac_gt_30m": 0.05,
+        "recall@1m": 0.0,
+        "mean_capped_m": 11.31569907072878,
+        "median_deg": 3.501076505700845,
+        "mean_deg": 16.048183961222783,
+        "n_heading": 20
+      }
+    },
+    "source": "experiments/12_poznan_three_way/smoke_local/panoroma_prior_north",
+    "same_entries": false
+  },
+  "prior/PanoRoMa fine (ungated) (north)": {
+    "summary": {
+      "all": {
+        "n": 40,
+        "matched": 40,
+        "median_m": 6.381729117574177,
+        "median_ci": [
+          4.381109603110654,
+          9.26547439110309
+        ],
+        "recall@5m": 0.4,
+        "recall@5m_ci": [
+          0.25,
+          0.575
+        ],
+        "recall@10m": 0.675,
+        "recall@10m_ci": [
+          0.525,
+          0.825
+        ],
+        "frac_gt_30m": 0.05,
+        "recall@1m": 0.0,
+        "mean_capped_m": 10.357578526056955,
+        "median_deg": 4.394357102822584,
+        "mean_deg": 10.896968300535779,
+        "n_heading": 40
+      },
+      "2024": {
+        "n": 20,
+        "matched": 20,
+        "median_m": 6.892926429950568,
+        "median_ci": [
+          3.9318596674903725,
+          8.783674431825851
+        ],
+        "recall@5m": 0.4,
+        "recall@5m_ci": [
+          0.2,
+          0.6
+        ],
+        "recall@10m": 0.75,
+        "recall@10m_ci": [
+          0.55,
+          0.95
+        ],
+        "frac_gt_30m": 0.05,
+        "recall@1m": 0.0,
+        "mean_capped_m": 9.94000395037841,
+        "median_deg": 4.394357102822584,
+        "mean_deg": 8.50385316288282,
+        "n_heading": 20
+      },
+      "2025": {
+        "n": 20,
+        "matched": 20,
+        "median_m": 5.70528937503096,
+        "median_ci": [
+          3.4612566550546697,
+          16.86017852729831
+        ],
+        "recall@5m": 0.4,
+        "recall@5m_ci": [
+          0.2,
+          0.6
+        ],
+        "recall@10m": 0.6,
+        "recall@10m_ci": [
+          0.4,
+          0.8
+        ],
+        "frac_gt_30m": 0.05,
+        "recall@1m": 0.0,
+        "mean_capped_m": 10.7751531017355,
+        "median_deg": 4.482081719069355,
+        "mean_deg": 13.290083438188741,
+        "n_heading": 20
+      }
+    },
+    "source": "experiments/12_poznan_three_way/smoke_local/panoroma_prior_north",
+    "same_entries": false
+  },
+  "prior/PanoRoMa coarse (north_ext71)": {
+    "summary": {
+      "all": {
+        "n": 40,
+        "matched": 40,
+        "median_m": 4.885215007545552,
+        "median_ci": [
+          3.5198741233389352,
+          8.326327440356046
+        ],
+        "recall@5m": 0.525,
+        "recall@5m_ci": [
+          0.375,
+          0.7
+        ],
+        "recall@10m": 0.675,
+        "recall@10m_ci": [
+          0.525,
+          0.8
+        ],
+        "frac_gt_30m": 0.1,
+        "recall@1m": 0.05,
+        "mean_capped_m": 11.546239430412509,
+        "median_deg": 6.8981357848748885,
+        "mean_deg": 15.568471503812436,
+        "n_heading": 40
+      },
+      "2024": {
+        "n": 20,
+        "matched": 20,
+        "median_m": 4.885215007545552,
+        "median_ci": [
+          3.3651495880339604,
+          18.902004005526884
+        ],
+        "recall@5m": 0.55,
+        "recall@5m_ci": [
+          0.35,
+          0.75
+        ],
+        "recall@10m": 0.65,
+        "recall@10m_ci": [
+          0.45,
+          0.85
+        ],
+        "frac_gt_30m": 0.05,
+        "recall@1m": 0.05,
+        "mean_capped_m": 11.173000768574592,
+        "median_deg": 7.143514366051822,
+        "mean_deg": 22.731874743085456,
+        "n_heading": 20
+      },
+      "2025": {
+        "n": 20,
+        "matched": 20,
+        "median_m": 4.590194028112883,
+        "median_ci": [
+          2.761670863300921,
+          16.473555908119785
+        ],
+        "recall@5m": 0.5,
+        "recall@5m_ci": [
+          0.3,
+          0.75
+        ],
+        "recall@10m": 0.7,
+        "recall@10m_ci": [
+          0.5,
+          0.9
+        ],
+        "frac_gt_30m": 0.15,
+        "recall@1m": 0.05,
+        "mean_capped_m": 11.919478092250428,
+        "median_deg": 6.0959569292099705,
+        "mean_deg": 8.40506826453941,
+        "n_heading": 20
+      }
+    },
+    "source": "experiments/12_poznan_three_way/smoke_local/panoroma_prior_north_ext71",
+    "same_entries": false
+  },
+  "prior/PanoRoMa two-pass (north_ext71)": {
+    "summary": {
+      "all": {
+        "n": 40,
+        "matched": 40,
+        "median_m": 4.643019915117504,
+        "median_ci": [
+          2.9617938939884647,
+          8.027874836518183
+        ],
+        "recall@5m": 0.55,
+        "recall@5m_ci": [
+          0.375,
+          0.7
+        ],
+        "recall@10m": 0.675,
+        "recall@10m_ci": [
+          0.525,
+          0.8
+        ],
+        "frac_gt_30m": 0.1,
+        "recall@1m": 0.05,
+        "mean_capped_m": 11.024852184724995,
+        "median_deg": 5.16819308327738,
+        "mean_deg": 16.27657141260039,
+        "n_heading": 40
+      },
+      "2024": {
+        "n": 20,
+        "matched": 20,
+        "median_m": 4.225492322045584,
+        "median_ci": [
+          2.8320312646915022,
+          16.648682334399194
+        ],
+        "recall@5m": 0.55,
+        "recall@5m_ci": [
+          0.35,
+          0.75
+        ],
+        "recall@10m": 0.65,
+        "recall@10m_ci": [
+          0.45,
+          0.85
+        ],
+        "frac_gt_30m": 0.1,
+        "recall@1m": 0.0,
+        "mean_capped_m": 11.35814062257209,
+        "median_deg": 4.730507084755656,
+        "mean_deg": 20.913633116408807,
+        "n_heading": 20
+      },
+      "2025": {
+        "n": 20,
+        "matched": 20,
+        "median_m": 4.950343188567158,
+        "median_ci": [
+          2.0968915771669256,
+          13.126721555973246
+        ],
+        "recall@5m": 0.55,
+        "recall@5m_ci": [
+          0.35,
+          0.75
+        ],
+        "recall@10m": 0.7,
+        "recall@10m_ci": [
+          0.5,
+          0.9
+        ],
+        "frac_gt_30m": 0.1,
+        "recall@1m": 0.1,
+        "mean_capped_m": 10.691563746877899,
+        "median_deg": 6.346313212435113,
+        "mean_deg": 11.639509708791975,
+        "n_heading": 20
+      }
+    },
+    "source": "experiments/12_poznan_three_way/smoke_local/panoroma_prior_north_ext71",
+    "same_entries": false
+  },
+  "prior/PanoRoMa fine (ungated) (north_ext71)": {
+    "summary": {
+      "all": {
+        "n": 40,
+        "matched": 40,
+        "median_m": 5.545890344000888,
+        "median_ci": [
+          3.817718121159503,
+          8.953164731441428
+        ],
+        "recall@5m": 0.475,
+        "recall@5m_ci": [
+          0.325,
+          0.625
+        ],
+        "recall@10m": 0.675,
+        "recall@10m_ci": [
+          0.525,
+          0.8
+        ],
+        "frac_gt_30m": 0.1,
+        "recall@1m": 0.05,
+        "mean_capped_m": 11.216385029997877,
+        "median_deg": 5.233883397874303,
+        "mean_deg": 10.854359812025626,
+        "n_heading": 40
+      },
+      "2024": {
+        "n": 20,
+        "matched": 20,
+        "median_m": 6.3569142228082445,
+        "median_ci": [
+          3.714922887950343,
+          16.648682334399194
+        ],
+        "recall@5m": 0.45,
+        "recall@5m_ci": [
+          0.25,
+          0.65
+        ],
+        "recall@10m": 0.65,
+        "recall@10m_ci": [
+          0.45,
+          0.85
+        ],
+        "frac_gt_30m": 0.1,
+        "recall@1m": 0.0,
+        "mean_capped_m": 11.701557855022596,
+        "median_deg": 5.233883397874303,
+        "mean_deg": 8.875853489950506,
+        "n_heading": 20
+      },
+      "2025": {
+        "n": 20,
+        "matched": 20,
+        "median_m": 5.164371038552055,
+        "median_ci": [
+          2.4975542834325863,
+          13.812207800111274
+        ],
+        "recall@5m": 0.5,
+        "recall@5m_ci": [
+          0.3,
+          0.7
+        ],
+        "recall@10m": 0.7,
+        "recall@10m_ci": [
+          0.5,
+          0.9
+        ],
+        "frac_gt_30m": 0.1,
+        "recall@1m": 0.1,
+        "mean_capped_m": 10.731212204973158,
+        "median_deg": 5.555300846600758,
+        "mean_deg": 12.832866134100744,
+        "n_heading": 20
+      }
+    },
+    "source": "experiments/12_poznan_three_way/smoke_local/panoroma_prior_north_ext71",
+    "same_entries": false
+  },
+  "gt/FG\u00b2 native": {
+    "summary": {
+      "all": {
+        "n": 40,
+        "matched": 40,
+        "median_m": 3.1037061538686164,
+        "median_ci": [
+          1.880726672333045,
+          5.730169436089732
+        ],
+        "recall@5m": 0.6,
+        "recall@5m_ci": [
+          0.45,
+          0.75
+        ],
+        "recall@10m": 0.75,
+        "recall@10m_ci": [
+          0.625,
+          0.875
+        ],
+        "frac_gt_30m": 0.025,
+        "recall@1m": 0.2,
+        "mean_capped_m": 6.787959591545698,
+        "median_deg": 3.3336865246195515,
+        "mean_deg": 4.9491019810768675,
+        "n_heading": 40
+      },
+      "2024": {
+        "n": 20,
+        "matched": 20,
+        "median_m": 2.895013326950714,
+        "median_ci": [
+          1.6036585796796947,
+          7.284603572003604
+        ],
+        "recall@5m": 0.6,
+        "recall@5m_ci": [
+          0.4,
+          0.8
+        ],
+        "recall@10m": 0.75,
+        "recall@10m_ci": [
+          0.55,
+          0.9
+        ],
+        "frac_gt_30m": 0.05,
+        "recall@1m": 0.2,
+        "mean_capped_m": 7.265972220141547,
+        "median_deg": 3.1127652454652264,
+        "mean_deg": 4.5963979807578195,
+        "n_heading": 20
+      },
+      "2025": {
+        "n": 20,
+        "matched": 20,
+        "median_m": 3.1294224435973157,
+        "median_ci": [
+          1.5178492958922418,
+          9.188775757809914
+        ],
+        "recall@5m": 0.6,
+        "recall@5m_ci": [
+          0.4,
+          0.8
+        ],
+        "recall@10m": 0.75,
+        "recall@10m_ci": [
+          0.55,
+          0.9
+        ],
+        "frac_gt_30m": 0.0,
+        "recall@1m": 0.2,
+        "mean_capped_m": 6.309946962949849,
+        "median_deg": 3.4556879723606215,
+        "mean_deg": 5.3018059813959155,
+        "n_heading": 20
+      }
+    },
+    "source": "experiments/12_poznan_three_way/smoke_local/fg2_gt",
+    "same_entries": false
+  },
+  "gt/Loc\u00b2 native flat depth": {
+    "summary": {
+      "all": {
+        "n": 40,
+        "matched": 40,
+        "median_m": 3.439894287731377,
+        "median_ci": [
+          2.3350309389069976,
+          4.226047198005228
+        ],
+        "recall@5m": 0.675,
+        "recall@5m_ci": [
+          0.55,
+          0.8
+        ],
+        "recall@10m": 0.75,
+        "recall@10m_ci": [
+          0.625,
+          0.875
+        ],
+        "frac_gt_30m": 0.075,
+        "recall@1m": 0.025,
+        "mean_capped_m": 9.262954800439548,
+        "median_deg": 2.5024721227354974,
+        "mean_deg": 4.237070700702698,
+        "n_heading": 40
+      },
+      "2024": {
+        "n": 20,
+        "matched": 20,
+        "median_m": 3.697643464950591,
+        "median_ci": [
+          2.1436827370583678,
+          4.589457790047399
+        ],
+        "recall@5m": 0.7,
+        "recall@5m_ci": [
+          0.5,
+          0.9
+        ],
+        "recall@10m": 0.8,
+        "recall@10m_ci": [
+          0.6,
+          0.95
+        ],
+        "frac_gt_30m": 0.1,
+        "recall@1m": 0.05,
+        "mean_capped_m": 8.898154508241209,
+        "median_deg": 2.828124465543624,
+        "mean_deg": 3.312050920052532,
+        "n_heading": 20
+      },
+      "2025": {
+        "n": 20,
+        "matched": 20,
+        "median_m": 2.9130926588893153,
+        "median_ci": [
+          2.1506460969845347,
+          14.281508688509213
+        ],
+        "recall@5m": 0.65,
+        "recall@5m_ci": [
+          0.45,
+          0.85
+        ],
+        "recall@10m": 0.7,
+        "recall@10m_ci": [
+          0.5,
+          0.9
+        ],
+        "frac_gt_30m": 0.05,
+        "recall@1m": 0.0,
+        "mean_capped_m": 9.627755092637887,
+        "median_deg": 2.269990019187617,
+        "mean_deg": 5.162090481352864,
+        "n_heading": 20
+      }
+    },
+    "source": "experiments/12_poznan_three_way/smoke_local/loc2_flat_gt",
+    "same_entries": false
+  },
+  "gt/Loc\u00b2 native UniK3D": {
+    "summary": {
+      "all": {
+        "n": 40,
+        "matched": 40,
+        "median_m": 2.8846316592610064,
+        "median_ci": [
+          2.2319394154784886,
+          4.424128646305593
+        ],
+        "recall@5m": 0.675,
+        "recall@5m_ci": [
+          0.55,
+          0.825
+        ],
+        "recall@10m": 0.75,
+        "recall@10m_ci": [
+          0.625,
+          0.875
+        ],
+        "frac_gt_30m": 0.075,
+        "recall@1m": 0.05,
+        "mean_capped_m": 8.83006286105152,
+        "median_deg": 2.060703842252451,
+        "mean_deg": 5.2470401906424495,
+        "n_heading": 40
+      },
+      "2024": {
+        "n": 20,
+        "matched": 20,
+        "median_m": 3.4374227214935247,
+        "median_ci": [
+          2.401156047484495,
+          5.757406770304806
+        ],
+        "recall@5m": 0.65,
+        "recall@5m_ci": [
+          0.45,
+          0.85
+        ],
+        "recall@10m": 0.75,
+        "recall@10m_ci": [
+          0.55,
+          0.9
+        ],
+        "frac_gt_30m": 0.1,
+        "recall@1m": 0.0,
+        "mean_capped_m": 9.36811313387803,
+        "median_deg": 2.2385334694470203,
+        "mean_deg": 4.752210766867255,
+        "n_heading": 20
+      },
+      "2025": {
+        "n": 20,
+        "matched": 20,
+        "median_m": 2.585526859073663,
+        "median_ci": [
+          1.6398362144204182,
+          5.170941757158975
+        ],
+        "recall@5m": 0.7,
+        "recall@5m_ci": [
+          0.5,
+          0.9
+        ],
+        "recall@10m": 0.75,
+        "recall@10m_ci": [
+          0.55,
+          0.9
+        ],
+        "frac_gt_30m": 0.05,
+        "recall@1m": 0.1,
+        "mean_capped_m": 8.292012588225008,
+        "median_deg": 2.060703842252451,
+        "mean_deg": 5.741869614417643,
+        "n_heading": 20
+      }
+    },
+    "source": "experiments/12_poznan_three_way/smoke_local/loc2_unik3d_gt",
+    "same_entries": false
+  },
+  "gt/PanoRoMa coarse (north)": {
+    "summary": {
+      "all": {
+        "n": 40,
+        "matched": 40,
+        "median_m": 5.700191127210842,
+        "median_ci": [
+          3.9969307414172053,
+          11.41488532608393
+        ],
+        "recall@5m": 0.475,
+        "recall@5m_ci": [
+          0.3,
+          0.625
+        ],
+        "recall@10m": 0.65,
+        "recall@10m_ci": [
+          0.5,
+          0.8
+        ],
+        "frac_gt_30m": 0.1,
+        "recall@1m": 0.0,
+        "mean_capped_m": 12.204720022595023,
+        "median_deg": 4.965558590111238,
+        "mean_deg": 13.49996579514866,
+        "n_heading": 40
+      },
+      "2024": {
+        "n": 20,
+        "matched": 20,
+        "median_m": 6.7941052505499435,
+        "median_ci": [
+          3.9761068269357223,
+          13.789693626920918
+        ],
+        "recall@5m": 0.4,
+        "recall@5m_ci": [
+          0.2,
+          0.6
+        ],
+        "recall@10m": 0.65,
+        "recall@10m_ci": [
+          0.45,
+          0.85
+        ],
+        "frac_gt_30m": 0.1,
+        "recall@1m": 0.0,
+        "mean_capped_m": 11.77055441635807,
+        "median_deg": 7.343274093086778,
+        "mean_deg": 9.16554606011133,
+        "n_heading": 20
+      },
+      "2025": {
+        "n": 20,
+        "matched": 20,
+        "median_m": 4.862030333964023,
+        "median_ci": [
+          3.8259964883896003,
+          23.28774480713141
+        ],
+        "recall@5m": 0.55,
+        "recall@5m_ci": [
+          0.35,
+          0.8
+        ],
+        "recall@10m": 0.65,
+        "recall@10m_ci": [
+          0.45,
+          0.85
+        ],
+        "frac_gt_30m": 0.1,
+        "recall@1m": 0.0,
+        "mean_capped_m": 12.638885628831975,
+        "median_deg": 3.947645664885615,
+        "mean_deg": 17.83438553018599,
+        "n_heading": 20
+      }
+    },
+    "source": "experiments/12_poznan_three_way/smoke_local/panoroma_gt_north",
+    "same_entries": false
+  },
+  "gt/PanoRoMa two-pass (north)": {
+    "summary": {
+      "all": {
+        "n": 40,
+        "matched": 40,
+        "median_m": 4.919249125826431,
+        "median_ci": [
+          3.6864464520581484,
+          9.630232537687561
+        ],
+        "recall@5m": 0.5,
+        "recall@5m_ci": [
+          0.35,
+          0.65
+        ],
+        "recall@10m": 0.65,
+        "recall@10m_ci": [
+          0.5,
+          0.8
+        ],
+        "frac_gt_30m": 0.1,
+        "recall@1m": 0.025,
+        "mean_capped_m": 11.464496590463654,
+        "median_deg": 2.8415135877651734,
+        "mean_deg": 5.209124686615373,
+        "n_heading": 40
+      },
+      "2024": {
+        "n": 20,
+        "matched": 20,
+        "median_m": 5.9823228014162595,
+        "median_ci": [
+          2.9677448568417626,
+          14.133101163463955
+        ],
+        "recall@5m": 0.5,
+        "recall@5m_ci": [
+          0.3,
+          0.7
+        ],
+        "recall@10m": 0.65,
+        "recall@10m_ci": [
+          0.45,
+          0.85
+        ],
+        "frac_gt_30m": 0.1,
+        "recall@1m": 0.05,
+        "mean_capped_m": 11.354717308889876,
+        "median_deg": 3.699193882538088,
+        "mean_deg": 4.257471165763325,
+        "n_heading": 20
+      },
+      "2025": {
+        "n": 20,
+        "matched": 20,
+        "median_m": 4.919249125826431,
+        "median_ci": [
+          2.557956914086901,
+          20.540539000461628
+        ],
+        "recall@5m": 0.5,
+        "recall@5m_ci": [
+          0.3,
+          0.7
+        ],
+        "recall@10m": 0.65,
+        "recall@10m_ci": [
+          0.45,
+          0.85
+        ],
+        "frac_gt_30m": 0.1,
+        "recall@1m": 0.0,
+        "mean_capped_m": 11.574275872037429,
+        "median_deg": 2.6741919068115774,
+        "mean_deg": 6.16077820746742,
+        "n_heading": 20
+      }
+    },
+    "source": "experiments/12_poznan_three_way/smoke_local/panoroma_gt_north",
+    "same_entries": false
+  },
+  "gt/PanoRoMa fine (ungated) (north)": {
+    "summary": {
+      "all": {
+        "n": 40,
+        "matched": 40,
+        "median_m": 5.713365192728883,
+        "median_ci": [
+          4.679608199249891,
+          9.630232537687561
+        ],
+        "recall@5m": 0.425,
+        "recall@5m_ci": [
+          0.275,
+          0.575
+        ],
+        "recall@10m": 0.65,
+        "recall@10m_ci": [
+          0.5,
+          0.8
+        ],
+        "frac_gt_30m": 0.1,
+        "recall@1m": 0.025,
+        "mean_capped_m": 11.88804804897591,
+        "median_deg": 3.3715892135404104,
+        "mean_deg": 8.31149774131021,
+        "n_heading": 40
+      },
+      "2024": {
+        "n": 20,
+        "matched": 20,
+        "median_m": 7.550582550806085,
+        "median_ci": [
+          4.620706425068799,
+          14.133101163463955
+        ],
+        "recall@5m": 0.4,
+        "recall@5m_ci": [
+          0.2,
+          0.6
+        ],
+        "recall@10m": 0.65,
+        "recall@10m_ci": [
+          0.45,
+          0.85
+        ],
+        "frac_gt_30m": 0.1,
+        "recall@1m": 0.05,
+        "mean_capped_m": 11.919984171296042,
+        "median_deg": 4.219939029049003,
+        "mean_deg": 8.09261173174589,
+        "n_heading": 20
+      },
+      "2025": {
+        "n": 20,
+        "matched": 20,
+        "median_m": 5.26836185038613,
+        "median_ci": [
+          3.6036171048279115,
+          20.540539000461628
+        ],
+        "recall@5m": 0.45,
+        "recall@5m_ci": [
+          0.25,
+          0.65
+        ],
+        "recall@10m": 0.65,
+        "recall@10m_ci": [
+          0.45,
+          0.85
+        ],
+        "frac_gt_30m": 0.1,
+        "recall@1m": 0.0,
+        "mean_capped_m": 11.856111926655782,
+        "median_deg": 2.7808874611219583,
+        "mean_deg": 8.530383750874531,
+        "n_heading": 20
+      }
+    },
+    "source": "experiments/12_poznan_three_way/smoke_local/panoroma_gt_north",
+    "same_entries": false
+  }
+}

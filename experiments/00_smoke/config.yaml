@@ -1,11 +1,11 @@
 run:
   command: scripts/smoke_satroma.py --config configs/default.yaml
-  time: '2026-09-19 22:36:19'
-  git: '9604087'
+  time: '2026-09-23 21:12:52'
+  git: 3151e2d
 config:
   data:
     root: data/dur360bev
-    ortho: null
+    ortho: data/ortho/durham/2009_ea_irrgb/durham_2009_25cm.vrt
   erp:
     size:
     - 1280
@@ -62,6 +62,74 @@ config:
     min_valid_frac: 0.5
     reproj_cells: 3.0
     seed: 0
+    solver: srt
+  fusion:
+    backbone: convnext_tiny.dinov3_lvd1689m
+    dim: 128
+    ground_fill: true
+  train:
+    steps: 2000
+    batch: 2
+    lr_bev: 0.0002
+    lr_decoder: 1.0e-05
+    weight_decay: 0.01
+    min_patch_valid: 0.25
+    min_ref_cell_valid: 0.5
+    val_ranges:
+    - - 710
+      - 2400
+    val_every: 250
+    val_frames: 32
+    seed: 0
+  lift:
+    erp_size:
+    - 896
+    - 448
+    dim: 128
+    depth_bins: 16
+    d_min: 1.0
+    d_max: 40.0
+    max_elev_deg: -5.0
+    min_patch_valid: 0.05
+    train_decoder: true
+    lr_lift: 0.0002
+    steps: 2000
+    batch: 1
+    local_radius: 6
+    max_offset_frac: 0.1
+    max_rot_deg: 10.0
+    margin_m: 120.0
+    val_every: 200
+    val_frames: 48
+    neighbour_radius: 0
+    neighbour_weight: 0.5
+    ref_scales:
+    - 3
+    - 4
+    - 5
+    - 6
+    offset_range:
+    - 0.05
+    - 0.18
+    rot_range:
+    - 3.0
+    - 20.0
+    colour_jitter: true
+    attitude_noise_deg: 2.0
+    neg_frac: 0.15
+    neg_sep_frac:
+    - 0.7
+    - 1.4
+    certainty_weight: 0.01
+    pose_nll_weight: 0.0
+    seq_dists_m:
+    - 0.0
+    query_mode: lift
+    min_elev_deg: -3.5
+    ground_max_range_m: 28.0
+  ipm:
+    height_m: 1.7
+    blind_radius_m: 1.2
   reference:
     scale: 4
     max_offset_frac: 0.3

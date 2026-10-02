@@ -18,8 +18,11 @@ from bevloc.match import satroma
 def main():
     ap = C.add_args(argparse.ArgumentParser(description=__doc__))
     ap.add_argument("--out", default="experiments/00_smoke")
+    ap.add_argument("--solver", default="", help="srt | se2 (default cfg.matcher.solver)")
     a = ap.parse_args()
     cfg = C.load(a.config)
+    if a.solver:
+        cfg.matcher.solver = a.solver
     out = Path(a.out)
     C.snapshot(cfg, out)
     ref_path = Path(satroma.PACKAGE_DIR) / "examples/reference.png"
@@ -37,7 +40,8 @@ def main():
         results[f"use_means={use_means}"] = dict(modes=r.n_modes, patches=r.n_patches, multimodal=r.n_multimodal,
                                                  inlier_ratio=r.inlier_ratio, error_px=err)
         est[use_means] = (r, err)
-        print(f"use_means={use_means}: modes {r.n_modes}, inliers {r.inlier_ratio:.2f}, error px {err}")
+        print(f"solver={cfg.matcher.solver} use_means={use_means}: modes {r.n_modes}, "
+              f"inliers {r.inlier_ratio:.2f}, error px {err}")
     json.dump(results, open(out / "metrics.json", "w"), indent=1)
 
     write_overlay(out / "synthetic_pair.jpg", query, ref, H_gt, est, cfg.matcher.checkpoint)

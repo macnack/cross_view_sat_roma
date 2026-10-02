@@ -62,7 +62,67 @@ Parser: `bevloc.data.dur360.read_scan`.
   pairs them directly. Median offset from OxTS: image −1 ms, LiDAR +0 ms; worst case 30 ms, i.e. the
   0.03 s tolerance of the dataset (0.3 m at 10 m/s). OxTS rate 10.0 Hz.
 
+## kitscenes/ — KITScenes Multimodal (KIT-MRT, arXiv:2606.02956, CC BY-NC 4.0, early release v1.0.x)
+
+Gated on HuggingFace: accept the terms with the account whose token you use (`hf auth login` / `HF_TOKEN`), then
+`make kitscenes-fetch` (default: the smallest val scene `142f1419-…`, 1.65 GB, 100 frames at 10 Hz, Frankfurt; `SCENE=`
+`SPLIT=` for others). Scenes are `data/kitscenes/data/<split>/<scene>/`; reader and conventions: `bevloc.data.kitscenes`.
+
+No 360° camera: six undistorted pinhole ring cameras (3504×2272, f ≈ 1843 px, 87°×63°), stitched into an ERP
+panorama (`ErpStitcher`, `make kitscenes-pano`) with the scene's `calibration/calib.json` — covers ±28° of elevation
+(34 % of a 2048×1024 ERP), the rest is invalid. Verified on the scene (tests/test_kitscenes.py, experiments/15_kitscenes):
+- reference frame = `lidar_top` (identity extrinsic): x forward, y left, z up; camera extrinsics are OpenCV camera → reference;
+- ring yaws +1, +61, +121, −179, −118, −58° (60° apart); all cameras 0.18 m below the LiDAR origin, level;
+- LiDAR depth edges projected into the panorama coincide with colour edges (gradient peak at 0 px on frames 50 and 99);
+- `poses.txt` heading minus direction of travel: median −1.40°, σ 0.28° (n = 82) — UNVERIFIED cause (crab angle vs
+  GNSS/INS mounting vs map-frame convergence); pose frame = local metres around `maps/origin.json` (Frankfurt, 50.1104 N 8.6821 E).
+No orthophoto of Karlsruhe / Frankfurt / Sindelfingen is available yet, so there is no matcher run on it.
+
 ## ortho/durham/<year>/ — orthophoto reference (NOT YET AVAILABLE)
 Environment Agency Vertical Aerial Photography (OGL v3), EPSG:27700. Build one VRT over the tiles
 (`gdalbuildvrt`) and point `data.ortho` in `configs/default.yaml` at it; `bevloc.data.ortho.OrthoMap`
 rejects any other CRS.
+
+## vigor/ — VIGOR (Zhu et al., CVPR 2021) and the Esri Wayback reference years (task 05)
+
+`scripts/fetch_vigor.py` (`make eagle-fetch-vigor`) extracts the release to `$VIGOR_DIR` (default `data/vigor`):
+`<City>/panorama/`, `<City>/satellite/satellite_<lat>_<lon>.png` (640 px Google Static Maps tiles, zoom 20,
+captured 2020–2021) and `splits/`; `bevloc.data.vigor` documents the label conventions.
+
+Multi-year references of the same footprints from **Esri World Imagery Wayback** (`bevloc.data.wayback`,
+`scripts/fetch_wayback_vigor.py`, `make wayback-fetch` / `wayback-calib`; `wayback:` in `configs/default.yaml`):
+
+```
+vigor/
+  wayback/waybackconfig.json                 pinned release list (re-download with --refresh-releases)
+  wayback_tiles/<release>/<z>/<x>_<y>.jpg    raw XYZ tiles as served (the resumable layer; .missing = HTTP 404)
+  wayback_tiles/tilemap_z<z>.json            version walks per tile: which releases actually changed there (dropped
+                                             automatically when the pinned release list gains a newer release)
+  wayback_tiles/metadata.json                capture metadata per (release, tile) from the metadata layer
+  <City>/wayback_calibration.json            constant (dx, dy) offset VIGOR -> Wayback (make wayback-calib; per-tile
+                                             offsets, responses, PSRs; applied by the fetcher only when it PASSes)
+  <City>/wayback_calib_<year>/               the uncalibrated calibration windows (offset 0) and their sidecars
+  wayback_tiles/metadata.json                capture metadata (identify) per release and walk tile: the selection input
+  <City>/wayback_<year>/<sat_name>.png       the footprint of the VIGOR tile (640 * CITY_RES m) from the version whose
+                                             CAPTURE date is closest to 1 July <year> (`wayback.select_by`; publication
+                                             dates lag the capture by up to years), ~0.125 m/px, north-up / east-right,
+                                             calibrated
+  <City>/wayback_<year>/<sat_name>.json      sidecar: release number + publication date, capture date / sensor /
+                                             resolution (metadata layer), the selection rule and the dates it used,
+                                             zoom, source GSD, tiles + sha256 of their bytes, offset applied, attribution
+```
+`vigor.ref_source: wayback_<year>` (or `eval_vigor.py --ref-source` / `--ref-sources a b`) reads these instead of the
+tile. Terms: Esri's Living Atlas imagery is free for research with the attribution **"Esri, Maxar, Earthstar
+Geographics"**; the tiles must not be redistributed — everything under `data/` stays uncommitted, and the paper cites
+the source and the release / capture dates recorded in the sidecars. Volume: ~9 zoom-19 tiles (~15 kB each) per
+footprint and year, ~0.5 MB per written PNG.
+
+Calibration status (2026-09-28, gradient-domain band-limited phase correlation with a PSR gate, 150 real pairs per
+city against the release closest to 2021; `bevloc.data.wayback` module doc): **New York PASS** — +0.50 m east,
++0.21 m south, residual 0.16 m over 39 tiles (0.15 m NYS aerial ortho). **Chicago, San Francisco, Seattle FAIL** —
+the 2021-ish Esri layer there is 0.46–0.5 m off-nadir satellite imagery (WorldView-2 / GeoEye-1); only 4–6 of 150
+tiles give a peak above the noise (PSR ≥ 7) and their offsets scatter by ~1 m: roofs and trees are displaced
+relative to the ground (relief displacement), so no constant offset aligns the tile to < 0.3 m. Their
+`wayback_<year>` windows are written with offset 0 (uncalibrated; the sidecar's `calibration_status` says why).
+Re-measure the windows already on disk without the network: `make wayback-calib CITY=<City> WAYBACK_ARGS="--pairs-dir
+$VIGOR_DIR"`. The fetch runs `wayback.workers` (6) tiles at a time under the global `wayback.rate_hz` (10/s).
