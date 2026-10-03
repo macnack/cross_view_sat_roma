@@ -21,6 +21,7 @@ from bevloc.match.se2 import se2_ransac
 
 sys.path.insert(0, str(Path(__file__).resolve().parent))
 from tiny_satroma import cfg_stub, tiny_decoder, tiny_matcher  # noqa: E402
+from vigor_labels import corrected  # noqa: E402
 
 K = 56
 ROOT = Path(__file__).resolve().parents[1]
@@ -377,6 +378,7 @@ def _vigor_setup(tmp_path, monkeypatch, n_labels=10):
     for k in range(2, n_labels + 1):
         shutil.copy(root / "Chicago" / "panorama" / "p1,1.0,.jpg", root / "Chicago" / "panorama" / f"p{k},1.0,.jpg")
         lab.write_text(lab.read_text() + line.replace("p1,", f"p{k},"))
+    corrected(lab.parent)
     tm = dict(val_frac=0.2, val_samples=0, cities=["Chicago"])
 
     def fake_decoder_fine(fa, cfg_, ds_, dev):

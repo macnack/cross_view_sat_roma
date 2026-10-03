@@ -6,7 +6,7 @@ Layout under ``root`` (scripts/fetch_vigor.py):
   <root>/splits/**/<City>/{satellite_list.txt, same_area_balanced_{train,test}.txt, pano_label_balanced.txt}
 Label line: ``pano sat1 dy1 dx1 sat2 dy2 dx2 sat3 dy3 dx3 sat4 dy4 dx4``. sat1 is the positive tile
 (the panorama lies in its central quarter); (dy, dx) are tile pixels with dy > 0 = panorama south of the
-tile centre and dx > 0 = panorama WEST of it (verified against the lat/lon in the file names). ``__corrected`` label files (SliceMatch) are preferred when present.
+tile centre and dx > 0 = panorama WEST of it (verified against the lat/lon in the file names). Only SliceMatch's ``__corrected`` label files are ever read (RawLabelsError otherwise, see check_corrected).
 
 Protocol used here = the standard "known orientation" one (FG², CCVPE, Loc²): the query is the panorama
 of one location, the reference is its positive tile, the pose to recover is the panorama's position in
@@ -117,18 +117,57 @@ def jitter_disc(rng, radius_m):
     return np.array([r * np.cos(a), r * np.sin(a)])
 
 
+CORRECTED = "__corrected"     # SliceMatch's label files: <name>__corrected.txt
+
+
+class RawLabelsError(RuntimeError):
+    """VIGOR's original (uncorrected) labels would be used. Decision 2026-10-03: never (wrong ground resolution)."""
+
+
+RAW_HINT = ("VIGOR's original labels use a wrong ground resolution and must never be used (decision 2026-10-03). Use "
+            "SliceMatch's corrected labels (github.com/tudelft-iv/SliceMatch, VIGOR_corrected_labels -> "
+            "splits__corrected/<City>/*__corrected.txt); on Eagle VIGOR_DIR=/mnt/storage_6/project_data/pl1269-01/"
+            "krupka_maciej/vigor_corrected.")
+
+
+def check_corrected(label_root: Path) -> Path:
+    """Raise RawLabelsError unless every city folder of `label_root` holds SliceMatch's ``*__corrected.txt`` labels and
+    every plain-named label file next to them (the names FG²'s and Loc²'s own loaders read) is byte-identical to its
+    ``__corrected`` counterpart. Returns label_root."""
+    label_root = Path(label_root)
+    cities = sorted(p.parent for p in label_root.glob("*/satellite_list.txt"))
+    if not cities:
+        raise FileNotFoundError(f"no <City>/satellite_list.txt under {label_root}")
+    for d in cities:
+        if not any(d.glob(f"*{CORRECTED}.txt")):
+            raise RawLabelsError(f"{d}: no *{CORRECTED}.txt label file. {RAW_HINT}")
+        for f in d.glob("*.txt"):
+            if f.name == "satellite_list.txt" or f.stem.endswith(CORRECTED):
+                continue
+            c = f.with_name(f.stem + CORRECTED + ".txt")
+            if not c.is_file() or c.read_bytes() != f.read_bytes():
+                raise RawLabelsError(f"{f} is not a copy of {c.name}: raw labels. {RAW_HINT}")
+    return label_root
+
+
 def find_label_root(root: Path) -> Path:
-    """Directory that holds <City>/satellite_list.txt (the zip extracts to varying depths)."""
+    """Directory that holds <City>/satellite_list.txt with SliceMatch's corrected labels (the zip extracts to varying
+    depths). Folders of raw labels next to it are ignored; RawLabelsError when only raw labels exist (check_corrected)."""
     root = Path(root)
-    hits = sorted(root.glob("**/satellite_list.txt"))
+    hits = sorted({p.parent.parent for p in root.glob("**/satellite_list.txt")})
     if not hits:
-        raise FileNotFoundError(f"no satellite_list.txt under {root}; extract splits.zip first")
-    return hits[0].parent.parent
+        raise FileNotFoundError(f"no satellite_list.txt under {root}; extract the corrected label splits first")
+    good = [h for h in hits if any(h.glob(f"*/*{CORRECTED}.txt"))]
+    if not good:
+        raise RawLabelsError(f"only raw label folders under {root} ({', '.join(str(h) for h in hits)}). {RAW_HINT}")
+    return check_corrected(good[0])
 
 
 def _label_file(label_root: Path, city: str, name: str) -> Path:
-    corrected = label_root / city / name.replace(".txt", "__corrected.txt")
-    return corrected if corrected.exists() else label_root / city / name
+    corrected = Path(label_root) / city / name.replace(".txt", CORRECTED + ".txt")
+    if not corrected.is_file():
+        raise RawLabelsError(f"{corrected} missing (refusing the raw {name}). {RAW_HINT}")
+    return corrected
 
 
 def read_labels(root, cities, split, train):

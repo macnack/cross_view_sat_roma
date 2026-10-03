@@ -6,6 +6,7 @@ import numpy as np
 
 from bevloc import config as C
 from bevloc.data.vigor import CITY_RES, VigorPairs, collate_vigor, find_label_root, read_labels, split_cities
+from vigor_labels import corrected  # noqa: E402
 
 
 def _make(tmp_path, city="Chicago", dy=40.0, dx=-24.0):
@@ -23,6 +24,7 @@ def _make(tmp_path, city="Chicago", dy=40.0, dx=-24.0):
     line = f"p1,1.0,.jpg s1.png {dy} {dx} s1.png 0 0 s1.png 0 0 s1.png 0 0\n"
     (lab / "pano_label_balanced.txt").write_text(line)
     (lab / "same_area_balanced_test.txt").write_text(line)
+    corrected(lab)
     return tmp_path
 
 
@@ -84,3 +86,30 @@ def test_collate_stacks_the_ipm_keys(tmp_path):
     b = collate_vigor([ds[0], ds[0]])
     assert b["bev"].shape[0] == 2 and b["H"].shape == (2, 3, 3) and b["erp"].shape[:2] == (2, 1)
     assert ds.centre_guess_m(0) == float(np.hypot(24.0, 40.0) * CITY_RES["Chicago"])
+
+
+def test_raw_labels_are_refused(tmp_path):
+    """Decision 2026-10-03: VIGOR's original labels must never be read, only SliceMatch's __corrected ones."""
+    import pytest
+    from bevloc.data.vigor import RawLabelsError
+    root = _make(tmp_path)
+    lab = root / "splits" / "VIGOR" / "Chicago"
+    # a plain file that differs from its __corrected twin = raw labels
+    (lab / "same_area_balanced_test.txt").write_text("p1,1.0,.jpg s1.png 1 2 s1.png 0 0 s1.png 0 0 s1.png 0 0\n")
+    with pytest.raises(RawLabelsError):
+        find_label_root(root)
+    # no __corrected file at all
+    for f in lab.glob("*__corrected.txt"):
+        f.unlink()
+    with pytest.raises(RawLabelsError):
+        read_labels(root, ["Chicago"], "crossarea", train=False)
+
+
+def test_corrected_labels_are_read_and_raw_folders_beside_them_ignored(tmp_path):
+    root = _make(tmp_path, dy=40.0, dx=-24.0)
+    raw = root / "splits_raw" / "VIGOR" / "Chicago"                 # a raw label folder next to the corrected one
+    raw.mkdir(parents=True)
+    (raw / "satellite_list.txt").write_text("s1.png\n")
+    (raw / "pano_label_balanced.txt").write_text("p1,1.0,.jpg s1.png 9 9 s1.png 0 0 s1.png 0 0 s1.png 0 0\n")
+    assert find_label_root(root) == root / "splits" / "VIGOR"
+    assert read_labels(root, ["Chicago"], "crossarea", train=False)[0]["dy"] == 40.0

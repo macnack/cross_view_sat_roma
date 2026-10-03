@@ -19,6 +19,7 @@ from bevloc.data.vigor import CITY_RES, DEPTH_DIR, R_NORTH, VigorPairs, collate_
 from bevloc.model import regularise as REG
 from bevloc.model.coarse import roma_coarse_loss, smoothed_cross_entropy
 from bevloc.model.depth_query import depth_placement_metric_at, metric_to_bev_px
+from vigor_labels import corrected  # noqa: E402
 
 for _d in ("scripts", "tests"):
     if str(C.REPO / _d) not in sys.path:
@@ -59,6 +60,7 @@ def _make_scene(tmp_path, city="Chicago"):
     line = f"p1,1.0,.png s1.png {DY} {DX} s1.png 0 0 s1.png 0 0 s1.png 0 0\n"
     for f in ("pano_label_balanced.txt", "same_area_balanced_test.txt", "same_area_balanced_train.txt"):
         (lab / f).write_text(line)
+    corrected(lab)
     return tmp_path
 
 

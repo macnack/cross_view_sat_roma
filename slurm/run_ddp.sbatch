@@ -19,7 +19,7 @@ cd "${SLURM_SUBMIT_DIR:?run sbatch from the repo root}"
 mkdir -p slurm/logs
 P=/mnt/storage_6/project_data/pl1269-01/krupka_maciej
 export SAT_DATA_DIR="${SAT_DATA_DIR:-$P/sat_data}"
-export VIGOR_DIR="${VIGOR_DIR:-$P/vigor}"
+export VIGOR_DIR="${VIGOR_DIR:-$P/vigor_corrected}"   # SliceMatch corrected labels only (raw labels raise RawLabelsError)
 export HF_HOME="${HF_HOME:-$P/hf_home}"
 export HUGGINGFACE_HUB_CACHE="${HUGGINGFACE_HUB_CACHE:-$P/hf_cache/hub}"
 export HF_HUB_OFFLINE="${HF_HUB_OFFLINE:-1}"

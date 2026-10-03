@@ -22,6 +22,7 @@ from bevloc.model import certainty_head as CH
 
 sys.path.insert(0, str(Path(__file__).resolve().parent))
 from test_two_pass import _setup  # noqa: E402
+from vigor_labels import corrected  # noqa: E402
 
 ROOT = Path(__file__).resolve().parents[1]
 
@@ -197,6 +198,7 @@ def _vigor_root(tmp_path, n_train=20, n_test=4):
                 shutil.copy(src, src.with_name(f"p{k},1.0,.jpg"))
             lines.append(line.replace("p1,", f"p{k},"))
         (lab / name).write_text("".join(lines))
+    corrected(lab)
     tm = dict(val_frac=0.2, val_samples=0, cities=["Chicago"], split="samearea")
     M = dict(cfg=cfg, dev="cpu", mode="ipm", train_meta=tm, matcher=matcher, query=query, cons=cons)
     return root, M

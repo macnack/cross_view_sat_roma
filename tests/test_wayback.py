@@ -25,6 +25,7 @@ from bevloc.match.satroma import SatRoMa, consensus_for_query, consensus_union
 sys.path.insert(0, str(Path(__file__).resolve().parent))
 from test_vigor_window import DX, DY, SIGMA, _camera_px, _make, _marker_centroid  # noqa: E402
 from tiny_satroma import StubPictureQuery, plant_translation, tiny_decoder, tiny_matcher  # noqa: E402
+from vigor_labels import corrected  # noqa: E402
 
 LAT, LON = 41.88, -87.63
 SAT = f"satellite_{LAT}_{LON}.png"
@@ -133,6 +134,7 @@ def _layout(tmp_path, offset_px=(0.0, 0.0), out_gsd=0.125):
     for f in ("pano_label_balanced.txt", "same_area_balanced_test.txt", "same_area_balanced_train.txt", "satellite_list.txt"):
         p = root / "splits" / "VIGOR" / "Chicago" / f
         p.write_text(p.read_text().replace("s1.png", SAT))
+    corrected(p.parent)
     return root
 
 
@@ -685,6 +687,7 @@ def test_dry_run_prints_the_capture_year_histogram_and_the_request_count(tmp_pat
     for f in ("pano_label_balanced.txt", "same_area_balanced_test.txt", "same_area_balanced_train.txt", "satellite_list.txt"):
         p = root / "splits" / "VIGOR" / "Chicago" / f
         p.write_text(p.read_text().replace("s1.png", SAT))
+    corrected(p.parent)
     F = _load("fetch_wayback_vigor")
     svc = FakeService()
     counts = F.main(["--root", str(root), "--split", "samearea", "--cities", "Chicago", "--years", "2025", "2019",
@@ -812,6 +815,7 @@ def _multi_tile_root(tmp_path, n=8):
     d = tmp_path / "splits" / "VIGOR" / "Chicago"
     d.mkdir(parents=True)
     (d / "satellite_list.txt").write_text("\n".join(names) + "\n")
+    (d / "pano_label_balanced__corrected.txt").write_text("")
     return tmp_path, names
 
 

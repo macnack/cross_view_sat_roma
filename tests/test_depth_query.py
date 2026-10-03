@@ -16,6 +16,7 @@ from bevloc.model.depth_query import (
     ErpDepthQuery, ProjectionHead, depth_placement, depth_placement_metric, sample_token_depth,
 )
 from bevloc.model.query import build_query, load_query_state
+from vigor_labels import corrected  # noqa: E402
 
 R_N = torch.from_numpy(R_NORTH.copy())[None]          # (1, 3, 3) world ENU -> camera (x east, y down, z north)
 FAR = 60.0                                            # beyond max_depth: invalid
@@ -108,6 +109,7 @@ def _vigor_layout(tmp_path, dy, dx, depth_png=None, city="Chicago"):
     (lab / "satellite_list.txt").write_text("s1.png\n")
     lines = "".join(f"{p} s1.png {dy} {dx} s1.png 0 0 s1.png 0 0 s1.png 0 0\n" for p in ("p1.jpg", "p2.jpg"))
     (lab / "same_area_balanced_test.txt").write_text(lines)
+    corrected(lab)
     if depth_png is not None:                                # only p1 gets a depth file
         path = depth_png_path(tmp_path, city, "p1.jpg")
         path.parent.mkdir(parents=True)

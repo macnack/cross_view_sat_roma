@@ -19,6 +19,7 @@ from bevloc.data import augment as AUG
 from bevloc.data.vigor import CITY_RES, DEPTH_DIR, VigorPairs, collate_vigor
 from bevloc.model.coarse import coarse_targets, ref_cell_validity
 from bevloc.model.depth_query import ErpDepthQuery
+from vigor_labels import corrected  # noqa: E402
 
 ERP_W, ERP_H = 896, 448
 DY, DX = -30.0, 50.0                  # camera 30 tile px north, 50 px west of the tile centre
@@ -58,6 +59,7 @@ def _scene(tmp_path, city="Chicago"):
     line = f"p1,1.0,.png s1.png {DY} {DX} s1.png 0 0 s1.png 0 0 s1.png 0 0\n"
     for f in ("pano_label_balanced.txt", "same_area_balanced_test.txt", "same_area_balanced_train.txt"):
         (lab / f).write_text(line)
+    corrected(lab)
     return tmp_path
 
 

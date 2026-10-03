@@ -11,6 +11,7 @@ from bevloc import config as C
 from bevloc.data.vigor import (
     CITY_RES, VigorPairs, canvas_to_en, collate_vigor, en_to_canvas, pose_en, window_affine,
 )
+from vigor_labels import corrected  # noqa: E402
 
 DY, DX = 40.0, -24.0              # label: 40 tile px south, 24 px EAST of the tile centre (dx > 0 = west)
 SIGMA = 3.0                       # tile px, Gaussian marker at the camera
@@ -33,6 +34,7 @@ def _make(tmp_path, city="Chicago", dy=DY, dx=DX, size=640):
     (lab / "pano_label_balanced.txt").write_text(line)
     (lab / "same_area_balanced_test.txt").write_text(line)
     (lab / "same_area_balanced_train.txt").write_text(line)
+    corrected(lab)
     return tmp_path
 
 

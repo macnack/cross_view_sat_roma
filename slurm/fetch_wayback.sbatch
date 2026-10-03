@@ -18,7 +18,7 @@ set -euo pipefail
 cd "${SLURM_SUBMIT_DIR:?run sbatch from the repo root}"
 mkdir -p slurm/logs
 P=/mnt/storage_6/project_data/pl1269-01/krupka_maciej
-export VIGOR_DIR="${VIGOR_DIR:-$P/vigor}"
+export VIGOR_DIR="${VIGOR_DIR:-$P/vigor_corrected}"   # SliceMatch corrected labels only (raw labels raise RawLabelsError)
 export PYTHONPATH="src:.pydeps"
 export PYTHONUNBUFFERED=1
 SIF="${SIF:-/mnt/storage_6/project_data/pl0467-01/container_mackop/sat_roma_2026-09-02.sif}"
