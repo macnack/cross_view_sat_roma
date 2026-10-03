@@ -124,13 +124,37 @@ figure.fig figcaption b { color: var(--fg); }
 <div class="wrap">
 
 <header>
-  <div class="eyebrow">cross_view_sat_roma · branch task03/eval-density-solver-pf · status 2 Oct 2026</div>
+  <div class="eyebrow">cross_view_sat_roma · branch task03/eval-density-solver-pf · status 3 Oct 2026</div>
   <h1>Camera-only cross-view localisation with the Sat-RoMa matcher: what we built and where it stands</h1>
   <p class="lede">One ground panorama in, a metric position on the satellite tile out. This page collects the VIGOR benchmark campaign (24 Sep – 1 Oct): the method we settled on, now named <b>PanoRoMa</b>, how it differs from FG² and Loc², every result on identical sample draws, the 100-epoch training and regularisation runs, what did not work, and the decisions still open.</p>
   <p class="meta">VIGOR, known orientation. All rows on shared seed-0 draws: 3000 Chicago same-area · 12000 all four cities · 6000 San Francisco + Chicago cross-area. Metric: position error in metres, median with 95 % bootstrap CI, mean, recall ≤ 5 m.</p>
 </header>
 
-<div style="border-left:4px solid var(--bad);background:var(--surface);padding:14px 18px;border-radius:0 6px 6px 0;font-size:15px"><b>Correction, 1–2 Oct:</b> a bug in our depth script corrupted almost every UniK3D depth map, so every PanoRoMa and Loc² number in sections 0–9 below that was produced before 1 Oct is <b>superseded</b>. The corrected results are in the section directly below (full Chicago test split, retrained on corrected depth). FG² and the flat-ground rows were never affected.</div>
+<div style="border-left:4px solid var(--bad);background:var(--surface);padding:14px 18px;border-radius:0 6px 6px 0;font-size:15px"><b>Correction, 1–2 Oct:</b> a bug in our depth script corrupted almost every UniK3D depth map, so every PanoRoMa and Loc² number in sections 0–9 below that was produced before 1 Oct is <b>superseded</b>. The corrected results are in the section directly below (full Chicago test split, retrained on corrected depth). FG² and the flat-ground rows were never affected. <b>3 Oct:</b> all three methods re-scored on SliceMatch's corrected VIGOR labels, in the next section: FG² 0.98 m, PanoRoMa 1.19 m, Loc² 1.21 m. Our model was trained on the original labels, so this is not yet like for like.</div>
+
+<section>
+  <h2>Re-scored on SliceMatch's corrected labels</h2>
+  <p>Same 12,739 Chicago same-area test panoramas, same checkpoints, nothing retrained. Only the ground-truth positions changed: SliceMatch (Lentsch et al., TU Delft, CVPR 2023) found that VIGOR's labels were computed with a wrong ground resolution and published <code>splits__corrected</code>; FG²'s README tells users to train and test on them.</p>
+  <div class="box scroll">
+    <table>
+      <thead><tr><th>Method</th><th class="num">Original labels: median</th><th class="num">Corrected labels: median (95 % CI)</th><th class="num">Mean, original → corrected</th><th class="num">≤ 5 m, corrected</th></tr></thead>
+      <tbody>
+        <tr><td>FG² (trained on corrected labels)</td><td class="num">1.05 m</td><td class="num"><b>0.98 m</b> (0.96–0.99)</td><td class="num">1.87 → <b>1.84 m</b></td><td class="num"><b>95 %</b></td></tr>
+        <tr class="ours"><td>PanoRoMa D, two-pass (trained on original labels)</td><td class="num">1.12 m</td><td class="num">1.19 m (1.17–1.21)</td><td class="num">2.44 → 2.53 m</td><td class="num">92 %</td></tr>
+        <tr><td>Loc² (corrected depth)</td><td class="num">1.26 m</td><td class="num">1.21 m (1.19–1.23)</td><td class="num">3.01 → 3.03 m</td><td class="num">88 %</td></tr>
+        <tr><td>PanoRoMa D, first pass only</td><td class="num">1.37 m</td><td class="num">1.53 m (1.51–1.55)</td><td class="num">2.66 → 2.80 m</td><td class="num">91 %</td></tr>
+      </tbody>
+    </table>
+  </div>
+  <ul class="plain">
+    <li><b>The correction is small and radial.</b> Every label moves outward from the tile centre by about 3 % of its distance: median shift 0.45 m, at most 0.80 m, never more than 1 m. That is why the recall at 5 m and 10 m stays the same for every method and only the median moves.</li>
+    <li><b>Each method's predictions are identical in both runs</b> (checked frame by frame: 0.00 m difference). What changed is the yardstick, so the change says which label set each model learned.</li>
+    <li><b>FG² gains 0.07 m, PanoRoMa loses 0.07 m.</b> FG² was trained on the corrected labels; we trained on the original ones, so our model learned positions about 3 % too close to the tile centre. Our predictions sit closer to the original label than to the corrected one on 58 % of frames, and on average 0.40 m short in the radial direction (0.68 m in the first pass). Loc² gains 0.05 m. Its loader reads <code>splits_new</code>, and I have not checked which labels those are.</li>
+    <li><b>The fair gap to FG² is therefore not 0.21 m.</b> On corrected labels we are 0.21 m behind FG², but a like-for-like comparison needs PanoRoMa retrained on the corrected labels. On the original labels, the set we trained on, the gap is 0.07 m. A retrained model should land somewhere between the two.</li>
+    <li><b>A second, separate offset.</b> On both label sets our final predictions sit on average 0.43 m north and 0.12 m east of the label (the first pass shows the same 0.41 m north). Subtracting that constant would take the corrected median from 1.19 m to 1.11 m. Labels cannot explain a constant shift that training should have removed, so this points to a convention mismatch somewhere in our pipeline, such as a half-pixel, row or tile-centre offset. It should be found before retraining.</li>
+  </ul>
+  <p class="note">Source: <code>experiments/17_corrected_labels/</code> (RESULTS.md, <code>label_effect.json</code>, <code>make vigor-label-effect</code>); Eagle jobs 8890915, 8890919, 8890920. Corrected labels: github.com/tudelft-iv/SliceMatch, file <code>VIGOR_corrected_labels</code>.</p>
+</section>
 
 <section>
   <h2>Corrected results and where the methods fail</h2>

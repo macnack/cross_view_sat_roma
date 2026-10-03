@@ -402,3 +402,5 @@ calib: stats mask lens oxts viewer   ## all calibration artefacts
 all: test calib odometry bevs mosaic smoke   ## everything that needs no orthophoto
 failure-viz: ## frames of the full Chicago test split where FG² and/or PanoRoMa D fail (scripts/viz_failure_cases.py): IDS_JSON= (categories -> panorama files), EXTRA_BOTH=2, STAGE=all|compute|compute-pano|compute-fg2|render, OUT=experiments/16_full_test/failures
 	$(RUN) scripts/viz_failure_cases.py --config $(if $(filter configs/default.yaml,$(CONFIG)),configs/vigor_cell0125.yaml,$(CONFIG)) --ids-json $(if $(IDS_JSON),$(IDS_JSON),experiments/16_full_test/failures/fail_cases.json) --extra-both $(if $(EXTRA_BOTH),$(EXTRA_BOTH),2) --stage $(if $(STAGE),$(STAGE),all) --out $(if $(OUT),$(OUT),experiments/16_full_test/failures)
+vigor-label-effect: ## original vs SliceMatch-corrected VIGOR labels for FG², Loc², PanoRoMa D on the full Chicago test split (scripts/label_correction_effect.py) -> experiments/17_corrected_labels/label_effect.json
+	$(RUN) scripts/label_correction_effect.py --old experiments/16_full_test --new experiments/17_corrected_labels
