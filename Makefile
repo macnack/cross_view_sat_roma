@@ -406,3 +406,5 @@ vigor-label-effect: ## original vs SliceMatch-corrected VIGOR labels for FG², L
 	$(RUN) scripts/label_correction_effect.py --old experiments/16_full_test --new experiments/17_corrected_labels
 vigor-pose-offset: ## constant pose offset + radial scale per city of PanoRoMa VIGOR evals (scripts/pose_offset_vigor.py): JSONS= (default: experiments 14-17 two-pass jsons)
 	$(RUN) scripts/pose_offset_vigor.py $(if $(JSONS),$(JSONS),experiments/14_regularisation/eval_vigor_*.json experiments/15_panoroma_v2/eval_vigor_v2_*_twopass_*.json experiments/16_full_test/eval_vigor_*.json experiments/17_corrected_labels/eval_vigor_*.json)
+vigor-compare-corrected: ## PanoRoMa D retrained on corrected labels vs FG², Loc², old PanoRoMa D on the full Chicago test (scripts/compare_corrected_chicago.py) -> experiments/18_panoroma_corrected_labels/compare_corrected.json
+	$(RUN) scripts/compare_corrected_chicago.py
