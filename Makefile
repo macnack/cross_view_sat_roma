@@ -408,3 +408,5 @@ vigor-pose-offset: ## constant pose offset + radial scale per city of PanoRoMa V
 	$(RUN) scripts/pose_offset_vigor.py $(if $(JSONS),$(JSONS),experiments/14_regularisation/eval_vigor_*.json experiments/15_panoroma_v2/eval_vigor_v2_*_twopass_*.json experiments/16_full_test/eval_vigor_*.json experiments/17_corrected_labels/eval_vigor_*.json)
 vigor-compare-corrected: ## PanoRoMa D retrained on corrected labels vs FG², Loc², old PanoRoMa D on the full Chicago test (scripts/compare_corrected_chicago.py) -> experiments/18_panoroma_corrected_labels/compare_corrected.json
 	$(RUN) scripts/compare_corrected_chicago.py
+vigor-offset-calib: ## remove a model's constant pose offset: per-city median residual on held-out TRAINING frames (CALIB_JSON= eval_vigor.py --calib run), subtracted from TEST_JSON= (scripts/offset_calibrate_vigor.py) -> experiments/18_panoroma_corrected_labels/offset_<TAG>.json
+	$(RUN) scripts/offset_calibrate_vigor.py --calib-json $(CALIB_JSON) --test-json $(TEST_JSON) $(if $(TAG),--tag $(TAG),)

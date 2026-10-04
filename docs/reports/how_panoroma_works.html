@@ -73,7 +73,7 @@ a { color: var(--accent); }
 <div class="wrap">
 
 <header>
-  <div class="eyebrow">cross_view_sat_roma · 3 Oct 2026 · explanation page</div>
+  <div class="eyebrow">cross_view_sat_roma · 4 Oct 2026 · explanation page</div>
   <h1>How PanoRoMa finds a car on a satellite map</h1>
   <p class="lede">One 360° street panorama goes in; the camera's position on a satellite tile comes out. This page explains the network, what each loss teaches it, which parts come from Loc² and which are ours, how well it works, and shows ten real matches from the test set.</p>
 </header>
@@ -166,19 +166,20 @@ flowchart LR
 
 <section>
   <h2>Does it work?</h2>
-  <p>The whole VIGOR Chicago same-area test list (12,739 panoramas), known heading, on corrected depth. FG² and Loc² are their released models run on exactly the same panoramas. Scored twice: against VIGOR's original labels and against the corrected labels from SliceMatch (TU Delft), which move each true position outward by about 3 % (0.45 m on a typical frame).</p>
+  <p>The whole VIGOR Chicago same-area test list (12,739 panoramas), known heading, on corrected depth. FG² and Loc² are their released models run on exactly the same panoramas. Scored against the corrected labels from SliceMatch (TU Delft), which move each true position outward by about 3 % (0.45 m on a typical frame); FG² was trained on them, and PanoRoMa has now been retrained on them too.</p>
   <div class="box scroll">
     <table>
-      <thead><tr><th>Method</th><th class="num">Original labels: median</th><th class="num">Corrected labels: median (95 % CI)</th><th class="num">Mean, original → corrected</th><th class="num">≤ 5 m, corrected</th></tr></thead>
+      <thead><tr><th>Method</th><th class="num">Original labels: median</th><th class="num">Corrected labels: median (95 % CI)</th><th class="num">Mean</th><th class="num">≤ 5 m</th><th class="num">&gt; 5 m</th></tr></thead>
       <tbody>
-        <tr><td>FG² (trained on corrected labels)</td><td class="num">1.05 m</td><td class="num"><b>0.98 m</b> (0.96–0.99)</td><td class="num">1.87 → <b>1.84 m</b></td><td class="num"><b>95 %</b></td></tr>
-        <tr class="ours"><td>PanoRoMa D, two-pass (trained on original labels)</td><td class="num">1.12 m</td><td class="num">1.19 m (1.17–1.21)</td><td class="num">2.44 → 2.53 m</td><td class="num">92 %</td></tr>
-        <tr><td>Loc² (corrected depth)</td><td class="num">1.26 m</td><td class="num">1.21 m (1.19–1.23)</td><td class="num">3.01 → 3.03 m</td><td class="num">88 %</td></tr>
-        <tr><td>PanoRoMa D, first pass only</td><td class="num">1.37 m</td><td class="num">1.53 m (1.51–1.55)</td><td class="num">2.66 → 2.80 m</td><td class="num">91 %</td></tr>
+        <tr><td>FG² (trained on corrected labels)</td><td class="num">1.05 m</td><td class="num"><b>0.98 m</b> (0.96–0.99)</td><td class="num"><b>1.84 m</b></td><td class="num"><b>94.7 %</b></td><td class="num"><b>5.3 %</b></td></tr>
+        <tr class="ours"><td>PanoRoMa D, retrained on corrected labels</td><td class="num">—</td><td class="num">1.07 m (1.06–1.09)</td><td class="num">2.40 m</td><td class="num">92.1 %</td><td class="num">7.9 %</td></tr>
+        <tr><td>PanoRoMa D, trained on original labels</td><td class="num">1.12 m</td><td class="num">1.19 m (1.17–1.21)</td><td class="num">2.53 m</td><td class="num">91.8 %</td><td class="num">8.2 %</td></tr>
+        <tr><td>Loc² (corrected depth)</td><td class="num">1.26 m</td><td class="num">1.21 m (1.19–1.23)</td><td class="num">3.03 m</td><td class="num">88.0 %</td><td class="num">12.0 %</td></tr>
+        <tr><td>PanoRoMa D retrained, first pass only</td><td class="num">—</td><td class="num">1.42 m (1.40–1.45)</td><td class="num">2.72 m</td><td class="num">91.1 %</td><td class="num">8.9 %</td></tr>
       </tbody>
     </table>
   </div>
-  <p>PanoRoMa is clearly better than Loc² on the original labels and level with it on the corrected ones. It is behind FG², the best published method: 0.07 m on the original labels, 0.21 m on the corrected ones. Part of that is the labels themselves: FG² was trained on the corrected labels and we were trained on the original ones, so our model learned positions slightly too close to the tile centre. A retrain on the corrected labels is needed for a like-for-like number. Our predictions also show a constant 0.4 m shift to the north on both label sets, which looks like a coordinate-convention bug and is being looked into. The rest of the gap is the hard frames: 8 % of ours are off by more than 5 m against 5 % for FG². On Poznań streets, without any Poznań training, PanoRoMa reaches 3.40 m (FG² 4.15 m, Loc² 3.30 m).</p>
+  <p>PanoRoMa is clearly better than Loc² and 0.09 m behind FG², the best published method, on the median (0.56 m on the mean). The gap is in the hard frames: 7.9 % of ours are off by more than 5 m against 5.3 % for FG². On Poznań streets, without any Poznań training, an earlier PanoRoMa reaches 3.40 m (FG² 4.15 m, Loc² 3.30 m). One known flaw: the predictions sit a constant 0.4 m north of the label. It comes from the rotation augmentation in training, not from the labels, and removing it would bring the median to about 1.0 m; a correction measured on held-out training frames is being evaluated.</p>
   <div class="warn"><b>Fixed:</b> the depth maps had horizontal stripes because of a bug in our depth script (the UniK3D camera object was reused and shrank with every image). Every number above uses regenerated depth and a retrained PanoRoMa. The ten figures below are still from the earlier model on the striped depth (panel 2); they show how the method works, not the current error levels.</div>
 </section>
 
