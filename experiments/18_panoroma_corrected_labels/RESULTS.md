@@ -24,3 +24,24 @@ bf16 decoder, `last` checkpoints (protocol fixed in docs/decisions.md before the
 - Partial run during training (job 8895879): epoch-70 checkpoint, first pass only, 1.36 m median / 2.77 m mean on the same
   list (`eval_vigor_cl_ep070_coarse_chicago_samearea.json`; CI 1.34–1.38). The epoch-100 first pass is 1.42 m (CI 1.40–1.45) / 2.72 m:
   the first-pass median did not improve between epoch 70 and 100 (the intervals do not overlap, 0.06 m worse), the mean is level.
+
+## Per-city offset correction (2026-10-04)
+
+`make vigor-offset-calib` (`bevloc.eval.pose_offset`): the constant offset of each city is the median residual
+(prediction − label, east/north) of the frames within 5 m on 4,000 held-out TRAINING frames (job 8905031,
+`eval_vigor.py --calib --limit 4000`, the --val-frac part of the training list the model never trained on; ~1,000 per city),
+then subtracted from every test prediction of that city. No test frame is used in the fit (ids checked disjoint) and the
+uncorrected errors are first reproduced from the positions. Offsets (east, north): Chicago (−0.01, +0.37) m, New York
+(+0.09, +0.46), San Francisco (−0.18, +0.24), Seattle (−0.07, +0.34).
+
+| Chicago test, corrected labels | Median (95 % CI) | Mean | <= 5 m | <= 10 m | > 5 m |
+|---|---|---|---|---|---|
+| PanoRoMa D retrained, uncorrected | 1.073 m (1.057–1.089) | 2.399 m | 92.1 % | 95.3 % | 7.9 % |
+| **… with per-city offset correction** | **1.013 m (1.000–1.027)** | 2.347 m | 92.1 % | 95.3 % | 7.9 % |
+| FG² | 0.98 m (0.96–0.99) | 1.84 m | 94.7 % | 96.9 % | 5.3 % |
+
+The correction improves 59 % of the frames and moves the median by 0.06 m (intervals do not overlap), the mean by 0.05 m;
+the recall is unchanged because the offset is far below the 5 m threshold. The median gap to FG² falls from 0.09 to 0.03 m;
+the tail (7.9 vs 5.3 % over 5 m) and the 0.5 m mean gap are untouched. The offset estimated on calibration frames (+0.37 m
+north in Chicago) agrees with the one measured on the test frames (+0.36 m median of the frames within 5 m), so it
+transfers. Result file: `offset_cl_new_chicago.json`.

@@ -173,13 +173,14 @@ flowchart LR
       <tbody>
         <tr><td>FG² (trained on corrected labels)</td><td class="num">1.05 m</td><td class="num"><b>0.98 m</b> (0.96–0.99)</td><td class="num"><b>1.84 m</b></td><td class="num"><b>94.7 %</b></td><td class="num"><b>5.3 %</b></td></tr>
         <tr class="ours"><td>PanoRoMa D, retrained on corrected labels</td><td class="num">—</td><td class="num">1.07 m (1.06–1.09)</td><td class="num">2.40 m</td><td class="num">92.1 %</td><td class="num">7.9 %</td></tr>
+        <tr class="ours"><td>… with per-city offset correction (fitted on held-out training frames)</td><td class="num">—</td><td class="num">1.01 m (1.00–1.03)</td><td class="num">2.35 m</td><td class="num">92.1 %</td><td class="num">7.9 %</td></tr>
         <tr><td>PanoRoMa D, trained on original labels</td><td class="num">1.12 m</td><td class="num">1.19 m (1.17–1.21)</td><td class="num">2.53 m</td><td class="num">91.8 %</td><td class="num">8.2 %</td></tr>
         <tr><td>Loc² (corrected depth)</td><td class="num">1.26 m</td><td class="num">1.21 m (1.19–1.23)</td><td class="num">3.03 m</td><td class="num">88.0 %</td><td class="num">12.0 %</td></tr>
         <tr><td>PanoRoMa D retrained, first pass only</td><td class="num">—</td><td class="num">1.42 m (1.40–1.45)</td><td class="num">2.72 m</td><td class="num">91.1 %</td><td class="num">8.9 %</td></tr>
       </tbody>
     </table>
   </div>
-  <p>PanoRoMa is clearly better than Loc² and 0.09 m behind FG², the best published method, on the median (0.56 m on the mean). The gap is in the hard frames: 7.9 % of ours are off by more than 5 m against 5.3 % for FG². On Poznań streets, without any Poznań training, an earlier PanoRoMa reaches 3.40 m (FG² 4.15 m, Loc² 3.30 m). One known flaw: the predictions sit a constant 0.4 m north of the label. It comes from the rotation augmentation in training, not from the labels, and removing it would bring the median to about 1.0 m; a correction measured on held-out training frames is being evaluated.</p>
+  <p>PanoRoMa is clearly better than Loc² and 0.09 m behind FG², the best published method, on the median (0.03 m with the offset correction below; 0.56 m on the mean). The gap is in the hard frames: 7.9 % of ours are off by more than 5 m against 5.3 % for FG². On Poznań streets, without any Poznań training, an earlier PanoRoMa reaches 3.40 m (FG² 4.15 m, Loc² 3.30 m). One known flaw: the predictions sit a constant 0.4 m north of the label. It comes from the rotation augmentation in training, not from the labels, and a per-city correction measured on held-out training frames (not on the test frames) removes it and brings the median to 1.01 m, 0.03 m behind FG².</p>
   <div class="warn"><b>Fixed:</b> the depth maps had horizontal stripes because of a bug in our depth script (the UniK3D camera object was reused and shrank with every image). Every number above uses regenerated depth and a retrained PanoRoMa. The ten figures below are still from the earlier model on the striped depth (panel 2); they show how the method works, not the current error levels.</div>
 </section>
 

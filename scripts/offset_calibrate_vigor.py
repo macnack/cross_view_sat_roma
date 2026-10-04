@@ -59,7 +59,7 @@ def main():
     res = dict(calib_json=a.calib_json, test_json=a.test_json, n_calib=len(calib), n_test=len(test), offsets=off,
                uncorrected=stats(raw, rng), corrected=stats(cor, rng),
                frac_frames_better=float(np.mean(cor[np.isfinite(raw)] < raw[np.isfinite(raw)])))
-    for city in sorted(off):
+    for city in sorted({r["city"] for r in test}):
         sel = np.array([r["city"] == city for r in test])
         res.setdefault("per_city", {})[city] = dict(n=int(sel.sum()), uncorrected=stats(raw[sel], rng), corrected=stats(cor[sel], rng))
     for city, o in off.items():
