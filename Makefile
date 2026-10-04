@@ -410,3 +410,5 @@ vigor-compare-corrected: ## PanoRoMa D retrained on corrected labels vs FG², Lo
 	$(RUN) scripts/compare_corrected_chicago.py
 vigor-offset-calib: ## remove a model's constant pose offset: per-city median residual on held-out TRAINING frames (CALIB_JSON= eval_vigor.py --calib run), subtracted from TEST_JSON= (scripts/offset_calibrate_vigor.py) -> experiments/18_panoroma_corrected_labels/offset_<TAG>.json
 	$(RUN) scripts/offset_calibrate_vigor.py --calib-json $(CALIB_JSON) --test-json $(TEST_JSON) $(if $(TAG),--tag $(TAG),)
+kitscenes-vigor: ## KITScenes scene -> VIGOR-layout dataset (scripts/kitscenes_to_vigor.py: north-aligned ERP + free DOP20 tile + labels): SCENE_DIR= OUT=data/kit_vigor/<name> [STRIDE=1 PRIOR_M=17.8 SEED=0 WMS=hessen|lgl]; needs KITSCENES_DEVKIT_DIR or the submodule
+	$(RUN) scripts/kitscenes_to_vigor.py --scene-dir $(SCENE_DIR) --out $(OUT) $(if $(STRIDE),--stride $(STRIDE),) $(if $(PRIOR_M),--prior-m $(PRIOR_M),) $(if $(SEED),--seed $(SEED),) $(if $(WMS),--wms $(WMS),)
