@@ -22,12 +22,14 @@ import numpy as np
 from PIL import Image
 
 
-def mask_depth(depth_mm, pano_bgr, ego_mask_deg):
-    """depth_mm uint16 (H, W), pano_bgr uint8 (H, W, 3) at the same size -> uint16 depth with invalid pixels set to 0."""
+def mask_depth(depth_mm, pano_bgr, ego_mask_deg, band_deg=None):
+    """depth_mm uint16 (H, W), pano_bgr uint8 (H, W, 3) at the same size -> uint16 depth with invalid pixels set to 0.
+    band_deg = (top, bottom) elevations of a panorama cropped to a band (None = the full sphere)."""
     h = depth_mm.shape[0]
     valid = (pano_bgr.max(axis=2) > 4).astype(np.uint8)
     valid = cv2.morphologyEx(valid, cv2.MORPH_OPEN, np.ones((5, 5), np.uint8)).astype(bool)
-    el = (0.5 - (np.arange(h) + 0.5) / h) * 180.0                    # row-centre elevation, + up
+    top, bot = (90.0, -90.0) if band_deg is None else band_deg
+    el = top + (bot - top) * (np.arange(h) + 0.5) / h                # row-centre elevation, + up
     valid &= (el >= -float(ego_mask_deg))[:, None]
     out = depth_mm.copy()
     out[~valid] = 0
@@ -45,6 +47,12 @@ def main():
     root = Path(a.root) / a.city
     out_dir = root / a.dst
     out_dir.mkdir(parents=True, exist_ok=True)
+    bf = root / "erp_band.json"
+    band_deg = None
+    if bf.is_file():
+        import json
+        b = json.loads(bf.read_text())
+        band_deg = (float(b["top_deg"]), float(b["bottom_deg"]))
     n, frac = 0, []
     for dp in sorted((root / a.src).glob("*.png")):
         pano = cv2.imread(str(root / "panorama" / (dp.stem + ".jpg")), cv2.IMREAD_COLOR)
@@ -53,7 +61,7 @@ def main():
         d = np.array(Image.open(dp))
         if d.shape[:2] != pano.shape[:2]:
             pano = cv2.resize(pano, (d.shape[1], d.shape[0]), interpolation=cv2.INTER_NEAREST)
-        masked, valid = mask_depth(d, pano, a.ego_mask_deg)
+        masked, valid = mask_depth(d, pano, a.ego_mask_deg, band_deg)
         Image.fromarray(masked).save(out_dir / dp.name)
         frac.append(valid.mean())
         n += 1

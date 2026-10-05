@@ -12,6 +12,12 @@ For every `stride`-th frame of the scene:
     the GSD of VIGOR's Chicago tiles (0.111262 m/px, 71.2 m), north-up, centred at the true position plus a random offset
     inside the disc of radius `prior_m` (VIGOR's positive tile has the camera in its central quarter, 17.8 m);
   * label: VIGOR's (dy, dx) in tile px, dy > 0 = panorama SOUTH of the tile centre, dx > 0 = panorama WEST of it.
+With --crop the panorama is cut to the largest band centred on the horizon that has image at every azimuth
+(`bevloc.data.kitscenes.symmetric_band`): no black pixel is left, the JPEGs are 2048 x rows, and
+`<out>/Chicago/erp_band.json` records the elevations (top_deg / bottom_deg), rows and full_width. The VIGOR reader
+(`bevloc.data.vigor.read_band`) then resizes panorama and depth to the band at the model's pixel scale, and the PanoRoMa
+query (`erp_band` in the batch) computes every token's ray from the band's elevations; the depth script gives UniK3D's
+spherical camera the band's vertical field of view. FG² and Loc² assume a full sphere: run them on the uncropped dataset.
 The layout is `<out>/Chicago/{panorama,satellite}` and `<out>/splits__corrected/Chicago/*` (the corrected-label names the
 reader requires; the labels here are exact by construction). The folder is named Chicago only because FG²'s loader
 recognises four VIGOR city names and takes the ground resolution from the name: ours is Chicago's, so metres are right.
@@ -118,6 +124,7 @@ def main():
     ap.add_argument("--wms", choices=sorted(WMS), default=None, help="default: by the scene origin")
     ap.add_argument("--erp", type=int, nargs=2, default=(2048, 1024))
     ap.add_argument("--no-check", action="store_true")
+    ap.add_argument("--crop", action="store_true", help="cut the panoramas to the image band (no black pixel); see the module doc")
     ap.add_argument("--limit", type=int, default=0)
     a = ap.parse_args()
 
@@ -147,6 +154,13 @@ def main():
         if abs(peak) > 8:
             raise SystemExit(f"the rolled panorama is misaligned with the LiDAR (peak {peak} px): heading or roll direction wrong")
 
+    band = None
+    if a.crop:
+        _, v0 = st(sc.images(sc.frame_ids[0]))                     # the coverage is the cameras' geometry: the same for every frame
+        r0, r1, top, bot = K.symmetric_band(v0)
+        band = dict(top_deg=top, bottom_deg=bot, rows=int(r1 - r0), full_width=int(W), row0=int(r0), row1=int(r1))
+        print(f"crop to rows {r0}..{r1} of {H}: elevation {top:+.1f} .. {bot:+.1f} deg ({r1 - r0} rows)", flush=True)
+
     out = Path(a.out)
     pdir, sdir = out / "Chicago/panorama", out / "Chicago/satellite"
     lab = out / "splits__corrected/Chicago"
@@ -165,6 +179,8 @@ def main():
         b = bearing_cw_from_north(R)
         erp, valid = st(sc.images(f))
         erp = np.roll(erp, int(round(b / 360.0 * W)), axis=1)
+        if band is not None:
+            erp = erp[band["row0"]:band["row1"]]
         r, ang = a.prior_m * np.sqrt(rng.random()), 2 * np.pi * rng.random()
         off = np.array([r * np.cos(ang), r * np.sin(ang)])           # camera minus tile centre (east, north)
         c_en = e_n - off
@@ -188,8 +204,10 @@ def main():
     for suffix in (".txt", "__corrected.txt"):
         (lab / f"same_area_balanced_train{suffix}").write_text("")
     (lab / "satellite_list.txt").write_text("\n".join(sorted(set(sats))) + "\n")
+    if band is not None:
+        (out / "Chicago/erp_band.json").write_text(json.dumps(band, indent=1))
     (out / "kit_meta.json").write_text(json.dumps(dict(scene=sc.path.name, wms=wms, credit=WMS[wms]["credit"], res_m=RES,
-                                                       prior_m=a.prior_m, seed=a.seed, frames=meta), indent=1))
+                                                       prior_m=a.prior_m, seed=a.seed, band=band, frames=meta), indent=1))
     print(f"wrote {len(lines)} samples to {out}", flush=True)
 
 

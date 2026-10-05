@@ -44,6 +44,7 @@ cross-source union of scripts/eval_vigor.py --ref-sources); `missing_refs` lists
 """
 from __future__ import annotations
 
+import json
 import os
 from pathlib import Path
 
@@ -191,6 +192,21 @@ def read_labels(root, cities, split, train):
     return out
 
 
+def read_band(root, city):
+    """Elevation band of a city's cropped panoramas, from <root>/<city>/erp_band.json (written by
+    scripts/kitscenes_to_vigor.py --crop), or None for full-sphere panoramas (every VIGOR city). The file:
+    top_deg / bottom_deg (elevation of the first row's top edge / the last row's bottom edge), rows (panorama height in
+    px) and full_width (panorama width in px). Returns dict(top, bottom (radians), rows, full_width) or None."""
+    f = Path(root) / city / "erp_band.json"
+    if not f.is_file():
+        return None
+    b = json.loads(f.read_text())
+    top, bot = float(b["top_deg"]), float(b["bottom_deg"])
+    if not (-90.0 <= bot < top <= 90.0):
+        raise ValueError(f"{f}: bad elevation band top {top}, bottom {bot}")
+    return dict(top=float(np.radians(top)), bottom=float(np.radians(bot)), rows=int(b["rows"]), full_width=int(b["full_width"]))
+
+
 def depth_png_path(root, city: str, pano: str, depth_dir: str | None = None) -> Path:
     """Loc²'s depth layout, <root>/<City>/<DEPTH_DIR>/<stem>.png (same as bevloc.baselines.loc2.depth_png_path, kept
     here so the reader needs no baseline import). Loc²'s own dataloader hardcodes "unik3d_depth"; ours is versioned."""
@@ -290,6 +306,7 @@ class VigorPairs(Dataset):
             E = getattr(cfg, "erp_depth", None)
             erp_size = tuple(E.erp_size) if (mode == "erp_depth" and E is not None and hasattr(E, "erp_size")) else (896, 448)
         self.erp_w, self.erp_h = (int(v) for v in erp_size)
+        self.band = {}       # per-city elevation band of cropped panoramas (read_band); empty = full spheres
         self.depth = bool(mode == "erp_depth") if depth is None else bool(depth)
         w = getattr(V, "ref_window_m", None)
         self.ref_window_m = None if w is None else float(w)
@@ -297,6 +314,7 @@ class VigorPairs(Dataset):
         self.jitter_seed = None if train else int(seed)
         self.aug = None             # training augmentation (bevloc.data.augment.PairAug); None = off, nothing drawn
         self.labels = read_labels(self.root, cities or split_cities(split, train), split, train)
+        self.band = {c: b for c in sorted({lab["city"] for lab in self.labels}) if (b := read_band(self.root, c)) is not None}
         if stride > 1:
             self.labels = self.labels[::stride]
         if limit:
@@ -334,6 +352,16 @@ class VigorPairs(Dataset):
     def missing_refs(self, source=None):
         """Labels (dicts) whose reference file of `source` is absent (a fetch that did not cover the draw)."""
         return [lab for lab in self.labels if not self.ref_path(lab["city"], lab["sat"], source).is_file()]
+
+    def erp_wh(self, city):
+        """(width, height) the panorama (and its depth) is resized to for `city`: the configured erp size, or for a cropped
+        panorama (an elevation band) the full-sphere width and the band's rows at the same pixel scale, rounded down
+        to a whole number of 16 px tokens."""
+        b = self.band.get(city)
+        if b is None:
+            return self.erp_w, self.erp_h
+        h = int(b["rows"] * self.erp_w / b["full_width"] // 16) * 16
+        return self.erp_w, max(16, h)
 
     def label_scale(self, city):
         """(canvas px per VIGOR tile px, metres per VIGOR tile px): the label geometry, independent of the file."""
@@ -439,7 +467,7 @@ class VigorPairs(Dataset):
         cy = c + self.row_sign * lab["dy"] * s
         o = (n - 1) / 2.0                                        # the camera is the BEV centre
         H = np.array([[1.0, 0.0, cx - o], [0.0, 1.0, cy - o], [0.0, 0.0, 1.0]], np.float32)
-        erp = cv2.resize(pano, (self.erp_w, self.erp_h), interpolation=cv2.INTER_AREA)
+        erp = cv2.resize(pano, self.erp_wh(lab["city"]), interpolation=cv2.INTER_AREA)
         out = dict(
             id=f"{lab['city']}/{lab['pano']}", city=lab["city"], year=0, scale=int(self.cfg.reference.scale),
             negative=False,
@@ -477,7 +505,7 @@ class VigorPairs(Dataset):
         cam = en_to_canvas(en, centre, cell, size)               # the camera on the window canvas
         o = (n - 1) / 2.0
         H = np.array([[1.0, 0.0, cam[0] - o], [0.0, 1.0, cam[1] - o], [0.0, 0.0, 1.0]], np.float32)
-        erp = cv2.resize(pano, (self.erp_w, self.erp_h), interpolation=cv2.INTER_AREA)
+        erp = cv2.resize(pano, self.erp_wh(lab["city"]), interpolation=cv2.INTER_AREA)
         out = dict(
             id=f"{lab['city']}/{lab['pano']}", city=lab["city"], year=0, scale=int(self.cfg.reference.scale),
             negative=False,
@@ -518,8 +546,11 @@ class VigorPairs(Dataset):
         if self.depth:
             dp = depth_png_path(self.root, lab["city"], lab["pano"])
             if dp.is_file():
-                d = cv2.resize(read_depth_png(dp), (self.erp_w, self.erp_h), interpolation=cv2.INTER_NEAREST)
+                d = cv2.resize(read_depth_png(dp), self.erp_wh(lab["city"]), interpolation=cv2.INTER_NEAREST)
                 out["depth"] = torch.from_numpy(d)[None]
+        b = self.band.get(lab["city"])
+        if b is not None:
+            out["erp_band"] = torch.tensor([b["top"], b["bottom"]], dtype=torch.float32)
         if self._query_mode() == "ipm":
             ipm = self.cfg.ipm
             bev, valid = ipm_erp(pano, R_NORTH, self.height, n, float(g.cell_m), float(ipm.blind_radius_m))
@@ -540,7 +571,7 @@ def collate_vigor(batch):
         raise KeyError("some samples have no depth: filter with VigorPairs.keep_with_depth() first")
     out = {k: torch.stack([b[k] for b in batch]) for k in
            ("erp", "R_w2c", "se2", "H", "en", "ref", "ref_centre_en") +(("bev", "bev_valid") if "bev" in batch[0] else ())
-           + (("depth",) if all(has_depth) else ())}
+           + (("depth",) if all(has_depth) else ()) + (("erp_band",) if "erp_band" in batch[0] else ())}
     out["id"] = [b["id"] for b in batch]
     out["city"] = [b["city"] for b in batch]
     out["year"] = [0] * len(batch)

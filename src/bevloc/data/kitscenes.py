@@ -197,6 +197,23 @@ def clean_band(valid, ego_mask_deg=None, max_elevation_deg=None):
     return r0, r1, (float(90.0 - r0 * 180.0 / h), float(90.0 - r1 * 180.0 / h))
 
 
+def symmetric_band(valid):
+    """Rows (r0, r1) of the largest band centred on the horizon (row H / 2) that has image at EVERY azimuth, and its
+    elevations: (r0, r1, top_deg, bottom_deg), r1 exclusive. The panorama cropped to it has no black pixel and keeps the
+    camera's horizon at the middle row, which is what a UniK3D spherical camera with a vertical FoV of top - bottom
+    assumes. Raises if the horizon row itself is not covered everywhere."""
+    h = valid.shape[0]
+    ok = valid.all(1)
+    mid = h // 2
+    k = 0
+    while mid - k - 1 >= 0 and mid + k < h and ok[mid - k - 1] and ok[mid + k]:
+        k += 1
+    if k == 0:
+        raise ValueError("the rows around the horizon are not covered at every azimuth")
+    r0, r1 = mid - k, mid + k
+    return r0, r1, float(90.0 - r0 * 180.0 / h), float(90.0 - r1 * 180.0 / h)
+
+
 def crop_clean(erp, valid, ego_mask_deg=None, max_elevation_deg=None):
     """ERP and mask cropped to `clean_band`: a panorama with no unavailable pixel. Returns (erp, valid, info) where info
     holds the rows / elevations so the crop can be mapped back to the full ERP (row = r0 + row_in_crop)."""

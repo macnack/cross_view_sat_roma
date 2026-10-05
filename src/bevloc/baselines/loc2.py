@@ -109,7 +109,7 @@ def load_unik3d(device, name="unik3d-vitl", resolution_level=9, interpolation_mo
     return model.to(device).eval()
 
 
-def spherical_camera(width: int, height: int):
+def spherical_camera(width: int, height: int, vfov_half: float = 1.57080):
     """Loc²'s docs/equirectangular.json for a W x H panorama: full 360 x 180 degrees.
 
     Single use: UniK3D.infer mutates the camera it is given (BatchCamera.from_camera shares its params, .to(device)
@@ -120,16 +120,16 @@ def spherical_camera(width: int, height: int):
     from unik3d.utils.camera import Spherical  # noqa: WPS433
     # half-FoVs exactly as docs/equirectangular.json (3.14159, 1.5708), not math.pi: math.pi changes 0.7 % of the
     # pixels by > 1 cm (up to 0.45 m at depth edges) against Loc²'s released preprocessing (measured 2026-10-01)
-    return Spherical(params=torch.tensor([1.0, 1.0, 1.0, 1.0, float(width), float(height), 3.14159, 1.57080]))
+    return Spherical(params=torch.tensor([1.0, 1.0, 1.0, 1.0, float(width), float(height), 3.14159, float(vfov_half)]))
 
 
-def infer_distance(model, rgb):
+def infer_distance(model, rgb, vfov_half: float = 1.57080):
     """UniK3D metric distance along the ray (H, W) float32 numpy for one ERP panorama ``rgb`` (H, W, 3) uint8, as
     third_party/Loc2/preprocess/infer_depth_vigor.py: full-sphere Spherical camera of the image size, normalize=True,
     |points|. A new camera every call (see `spherical_camera`)."""
     h, w = rgb.shape[:2]
     with torch.no_grad():
-        out = model.infer(rgb=torch.from_numpy(rgb).permute(2, 0, 1), camera=spherical_camera(w, h), normalize=True,
+        out = model.infer(rgb=torch.from_numpy(rgb).permute(2, 0, 1), camera=spherical_camera(w, h, vfov_half), normalize=True,
                           rays=None)
     return out["points"][0].norm(dim=0).detach().float().cpu().numpy()
 

@@ -26,7 +26,7 @@ from PIL import Image
 
 from bevloc import config as C
 from bevloc.baselines import loc2 as loc2_wrap
-from bevloc.data.vigor import DEPTH_DIR, STRIPE_MAX, read_labels, split_cities
+from bevloc.data.vigor import DEPTH_DIR, STRIPE_MAX, read_band, read_labels, split_cities
 
 
 def draw(labels, limit, seed):
@@ -74,7 +74,11 @@ def main():
     writer = loc2_wrap.DepthWriter(a.stripe_max)
     for k, (city, pano) in enumerate(todo, 1):
         img = np.array(Image.open(Path(a.root) / city / "panorama" / pano).convert("RGB"))
-        depth = loc2_wrap.infer_distance(model, img)                         # metres along the ray, fresh camera
+        band = read_band(a.root, city)                                       # cropped panoramas (KITScenes --crop): a vertical FoV
+        if band is not None and abs(band["top"] + band["bottom"]) > np.radians(0.5):
+            raise SystemExit(f"{city}: the elevation band is not centred on the horizon; UniK3D's spherical camera is")
+        vfov = 1.57080 if band is None else (band["top"] - band["bottom"]) / 2.0
+        depth = loc2_wrap.infer_distance(model, img, vfov)                   # metres along the ray, fresh camera
         writer.write(depth, loc2_wrap.depth_png_path(a.root, city, pano), f"{city}/{pano}")
         if k % 100 == 0 or k == len(todo):
             print(f"  {k}/{len(todo)} done  {(time.time() - t0) / k:.2f} s/img  last {city}/{pano} "
