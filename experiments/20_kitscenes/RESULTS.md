@@ -54,3 +54,19 @@ fails. Cropping hurts this PanoRoMa checkpoint badly. Untested explanation: the 
 over the token grid) were trained on full 56 x 28 grids; a band changes which grid rows carry ground, so features and head see an input they never
 saw. Not tested: the same crop on VIGOR (the penalty in a controlled setting) and a decoder / head trained on band panoramas. FG² and Loc² assume
 a full sphere and were not run on the crop.
+
+## Token masking at inference (no retraining), 2026-10-05
+
+`BEVLOC_MASK_INVALID_TOKENS` (`ErpDepthQuery`, `ProjectionHead.forward(valid, zero)`): tokens whose depth is exactly 0 (the black rows of the partial panorama
+and the ego-car rows, depth from `kit_mask_depth.py`) are masked in the frozen-checkpoint's projection head. Uncropped Frankfurt scene, same 100 frames,
+PanoRoMa D retrained on corrected labels, depth masked. Tokens beyond 35 m (sky) are not masked.
+
+| Masking | First pass median | Two-pass median (95 % CI) | <= 5 m |
+|---|---|---|---|
+| off (reference) | 5.14 m | 4.57 m (3.78–5.74) | 56 % |
+| `attn`: head attention ignores them as keys | 4.71 m | 5.06 m (4.20–5.83) | 49 % |
+| `head`: also zeroed before the head's convs / normalisation | 20.93 m | 21.81 m (19.52–24.01) | 5 % |
+| `all`: also their query features zeroed | 28.73 m | 18.30 m (16.54–20.85) | 9 % |
+
+Chance 13.3 m. Inference-time masking does not help this checkpoint: `attn` is level with the unmasked run, `head` / `all` break it far beyond chance (they change
+the GroupNorm statistics and the token layout the head was trained on, 70 % of the tokens zeroed). Whether a model TRAINED with masked black rows works is untested.
