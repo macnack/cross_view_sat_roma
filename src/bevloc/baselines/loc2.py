@@ -123,6 +123,23 @@ def spherical_camera(width: int, height: int, vfov_half: float = 1.57080):
     return Spherical(params=torch.tensor([1.0, 1.0, 1.0, 1.0, float(width), float(height), 3.14159, float(vfov_half)]))
 
 
+def infer_band_distance(model, rgb, top_rad: float, bottom_rad: float):
+    """UniK3D distance for a panorama CROPPED to the elevation band top_rad .. bottom_rad (a KITScenes ring-camera
+    stitch without its black rows): the band is put back at its rows of the full-sphere canvas (black elsewhere), UniK3D
+    runs with the full-sphere camera exactly as for every uncropped panorama, and the band's rows are returned.
+
+    Why not a spherical camera with the band's own vertical FoV: measured 2026-10-05 on 100 KITScenes frames (LiDAR on
+    5 frames: uncropped / LiDAR range 1.01), the narrow-FoV camera returns 0.79 x the uncropped depth at every elevation
+    (a global metric-scale bias), which makes the placed tokens 21 % too close."""
+    import math
+    rows, W = rgb.shape[:2]
+    H = int(round(rows * math.pi / (float(top_rad) - float(bottom_rad))))
+    r0 = int(round((math.pi / 2 - float(top_rad)) / math.pi * H))
+    canvas = np.zeros((H, W, 3), np.uint8)
+    canvas[r0:r0 + rows] = rgb
+    return infer_distance(model, canvas)[r0:r0 + rows]
+
+
 def infer_distance(model, rgb, vfov_half: float = 1.57080):
     """UniK3D metric distance along the ray (H, W) float32 numpy for one ERP panorama ``rgb`` (H, W, 3) uint8, as
     third_party/Loc2/preprocess/infer_depth_vigor.py: full-sphere Spherical camera of the image size, normalize=True,

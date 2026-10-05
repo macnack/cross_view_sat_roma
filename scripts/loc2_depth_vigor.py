@@ -49,6 +49,9 @@ def main():
     ap.add_argument("--name", default="unik3d-vitl")
     ap.add_argument("--resolution-level", type=int, default=9)
     ap.add_argument("--overwrite", action="store_true")
+    ap.add_argument("--band-depth", choices=("full", "narrow"), default="full",
+                    help="cropped (band) panoramas: UniK3D on the band put back in a full sphere (default, unbiased) or with a "
+                         "spherical camera of the band's own vertical FoV (measured 0.79 x the true scale)")
     ap.add_argument("--stripe-max", type=float, default=STRIPE_MAX,
                     help="row-stripe guard (relative, bevloc.data.vigor.depth_stripe_score); maps above it are not written but listed (rejects_*.json)")
     a = ap.parse_args()
@@ -77,8 +80,12 @@ def main():
         band = read_band(a.root, city)                                       # cropped panoramas (KITScenes --crop): a vertical FoV
         if band is not None and abs(band["top"] + band["bottom"]) > np.radians(0.5):
             raise SystemExit(f"{city}: the elevation band is not centred on the horizon; UniK3D's spherical camera is")
-        vfov = 1.57080 if band is None else (band["top"] - band["bottom"]) / 2.0
-        depth = loc2_wrap.infer_distance(model, img, vfov)                   # metres along the ray, fresh camera
+        if band is None:
+            depth = loc2_wrap.infer_distance(model, img)                     # metres along the ray, fresh camera
+        elif a.band_depth == "full":                                         # the band put back in a full sphere (unbiased)
+            depth = loc2_wrap.infer_band_distance(model, img, band["top"], band["bottom"])
+        else:                                                                # narrow spherical camera: 0.79 x too small, see infer_band_distance
+            depth = loc2_wrap.infer_distance(model, img, (band["top"] - band["bottom"]) / 2.0)
         writer.write(depth, loc2_wrap.depth_png_path(a.root, city, pano), f"{city}/{pano}")
         if k % 100 == 0 or k == len(todo):
             print(f"  {k}/{len(todo)} done  {(time.time() - t0) / k:.2f} s/img  last {city}/{pano} "

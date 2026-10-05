@@ -119,3 +119,25 @@ def test_a_full_sphere_dataset_is_unchanged(tmp_path):
     ds = VigorPairs(root, _cfg(), cities=["Chicago"], split="samearea", train=False)
     s = ds[0]
     assert "erp_band" not in s and s["erp"].shape[-2:] == (448, 896)
+
+
+def test_band_depth_is_computed_on_the_full_sphere_canvas_and_cropped_back(monkeypatch):
+    """infer_band_distance puts the band at its rows of a full-sphere canvas, runs the full-sphere model, returns the rows."""
+    from bevloc.baselines import loc2
+
+    Hf, W, r0, rows = 1024, 64, 355, 314
+    top, bot = math.radians(90.0 - r0 * 180.0 / Hf), math.radians(90.0 - (r0 + rows) * 180.0 / Hf)
+    seen = {}
+
+    def fake(model, canvas, vfov_half=1.5708):
+        seen["shape"], seen["vfov"] = canvas.shape, vfov_half
+        seen["band_rows"] = canvas[r0:r0 + rows]
+        seen["outside_black"] = not canvas[:r0].any() and not canvas[r0 + rows:].any()
+        return np.repeat(np.arange(canvas.shape[0], dtype=np.float32)[:, None], canvas.shape[1], 1)   # value = the row index
+
+    monkeypatch.setattr(loc2, "infer_distance", fake)
+    img = np.full((rows, W, 3), 77, np.uint8)
+    d = loc2.infer_band_distance(None, img, top, bot)
+    assert seen["shape"] == (Hf, W, 3) and seen["vfov"] == 1.5708           # the full-sphere camera
+    assert (seen["band_rows"] == 77).all() and seen["outside_black"]
+    assert d.shape == (rows, W) and (d[:, 0] == np.arange(r0, r0 + rows)).all()
