@@ -25,6 +25,8 @@ the 224 px virtual picture (35 m > 28 m at 0.25 m/px); nothing downstream clips 
 """
 from __future__ import annotations
 
+import os
+
 import torch
 import torch.nn as nn
 import torch.nn.functional as F
@@ -135,15 +137,30 @@ class ProjectionHead(nn.Module):
         nn.init.zeros_(self.up.weight)
         nn.init.zeros_(self.up.bias)
 
-    def forward(self, f):
+    def forward(self, f, valid=None):
+        """f (B, C, h, w) frozen tokens. valid (B, h, w) bool or None: tokens that carry no image (the black rows of a
+        panorama with partial coverage, the ego car) are zeroed before the convolutions and the normalisation and
+        ignored as attention keys, so an invalid token influences no valid one; None = every token valid (training)."""
+        m = None if valid is None else valid[:, None].to(f.dtype)
         x = self.down(f)
+        if m is not None:
+            x = x * m
         for conv, norm in zip(self.convs, self.norms):
             p = F.pad(x, (1, 1, 0, 0), mode="circular")          # azimuth wraps
             p = F.pad(p, (0, 0, 1, 1), mode="replicate")         # poles do not
             x = x + F.gelu(norm(conv(p)))
+            if m is not None:
+                x = x * m
         B, C, h, w = x.shape
-        x = self.attn(x.flatten(2).transpose(1, 2)).transpose(1, 2).reshape(B, C, h, w)
-        return f + self.up(x)
+        pad = None
+        if valid is not None:
+            pad = ~valid.reshape(B, -1)                          # True = ignore this key
+            pad = pad & ~pad.all(dim=1, keepdim=True)            # a sample without any valid token keeps all keys (no NaN)
+        x = self.attn(x.flatten(2).transpose(1, 2), src_key_padding_mask=pad).transpose(1, 2).reshape(B, C, h, w)
+        out = self.up(x)
+        if m is not None:
+            out = out * m
+        return f + out
 
 
 class ErpDepthQuery(nn.Module):
@@ -156,6 +173,11 @@ class ErpDepthQuery(nn.Module):
         E = getattr(cfg, "erp_depth", None)
         self.max_depth = float(getattr(E, "max_depth_m", 35.0)) if E else 35.0
         self.patch = 16
+        # Token masking at inference / training: "off" (default, what every checkpoint was trained with), "head" (the head ignores
+        # tokens without depth), "all" (also zero the query features of those tokens). $BEVLOC_MASK_INVALID_TOKENS overrides.
+        self.mask_invalid = os.environ.get("BEVLOC_MASK_INVALID_TOKENS") or str(getattr(E, "mask_invalid_tokens", "off") or "off")
+        if self.mask_invalid not in ("off", "head", "all"):
+            raise ValueError(f"erp_depth.mask_invalid_tokens must be off | head | all, got {self.mask_invalid!r}")
         self.head = None
         if E is not None and bool(getattr(E, "head", False)):
             self.head = ProjectionHead(in_dim=1024, dim=int(getattr(E, "head_dim", 256)),
@@ -185,7 +207,15 @@ class ErpDepthQuery(nn.Module):
             raise ValueError("ErpDepthQuery is single-frame; got T=%d" % erp.shape[1])
         with torch.no_grad():
             f_q = matcher.model.encoder(erp[:, 0])[16]
-        if self.head is not None:
-            f_q = self.head(f_q.float())                         # the encoder may emit fp16 under autocast
         _, valid = self.placement(batch)
+        has_image = None
+        if self.mask_invalid != "off":
+            # tokens WITHOUT any depth (exactly 0: no image / the ego car, see scripts/kit_mask_depth.py), not the tokens beyond
+            # max_depth_m (sky, far buildings: real content the model was trained with)
+            h, w = f_q.shape[-2:]
+            has_image = sample_token_depth(batch["depth"].float(), h, w) > 0
+        if self.head is not None:
+            f_q = self.head(f_q.float(), has_image)              # the encoder may emit fp16 under autocast
+        if self.mask_invalid == "all":
+            f_q = f_q * has_image[:, None].to(f_q.dtype)
         return f_q, valid.float()
