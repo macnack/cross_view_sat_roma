@@ -33,3 +33,24 @@ Limits: one 10-second trajectory on one straight bridge: the frames are strongly
 is ambiguous along its axis for any matcher. Not evidence about KITScenes in general. Untested explanations for the PanoRoMa gap: its
 56 x 28-token grid has only ~3 token rows of ground in the ±28° band (a VIGOR panorama has ~14); its projection head mixes black and image
 tokens with self-attention (masking the depth does not change the features); the along-axis ambiguity.
+
+## Cropped panoramas (no black pixel), 2026-10-05
+
+`kitscenes_to_vigor.py --crop` (dataset `frankfurt_142f1419_crop`, `make eagle-fetch-kitscenes CROP=1`): panoramas cut to the largest band
+around the horizon with image at every azimuth (+27.6° .. −27.6°, 314 of 1024 rows); the reader resizes the band to 896 x 128 px (8 token rows) and
+every token's ray / placement uses the band's elevations (`erp_band`, unit-tested to equal the rays of the same rows of a full sphere). PanoRoMa D
+(same checkpoints), same 100 frames:
+
+| PanoRoMa two pass | Median (95 % CI) | Mean | <= 5 m |
+|---|---|---|---|
+| uncropped (black rows kept), depth masked | 4.57 m (3.78–5.74) | 9.02 m | 56 % |
+| cropped, UniK3D with a narrow-FoV spherical camera | 9.26 m (6.70–11.33) | 11.17 m | 31 % |
+| cropped, UniK3D on the band put back in a full-sphere canvas | 10.16 m (7.22–12.17) | 11.75 m | 26 % |
+
+Chance level (tile centre) 13.3 m. The narrow-FoV camera gave depth 0.79 x the uncropped depth at every elevation (a global scale bias; the uncropped
+depth is 1.01 x LiDAR), so the first cropped row is confounded by a depth failure; `loc2.infer_band_distance` (full-sphere canvas, band rows cropped
+back) reduces the bias to 0.93 x the uncropped depth (84 % of pixels within 10 %) but the result stays near chance: the depth scale is not what
+fails. Cropping hurts this PanoRoMa checkpoint badly. Untested explanation: the frozen encoder's token features and the projection head (self-attention
+over the token grid) were trained on full 56 x 28 grids; a band changes which grid rows carry ground, so features and head see an input they never
+saw. Not tested: the same crop on VIGOR (the penalty in a controlled setting) and a decoder / head trained on band panoramas. FG² and Loc² assume
+a full sphere and were not run on the crop.
