@@ -137,11 +137,12 @@ class ProjectionHead(nn.Module):
         nn.init.zeros_(self.up.weight)
         nn.init.zeros_(self.up.bias)
 
-    def forward(self, f, valid=None):
+    def forward(self, f, valid=None, zero=True):
         """f (B, C, h, w) frozen tokens. valid (B, h, w) bool or None: tokens that carry no image (the black rows of a
         panorama with partial coverage, the ego car) are zeroed before the convolutions and the normalisation and
-        ignored as attention keys, so an invalid token influences no valid one; None = every token valid (training)."""
-        m = None if valid is None else valid[:, None].to(f.dtype)
+        ignored as attention keys, so an invalid token influences no valid one; None = every token valid (training).
+        zero=False: only the attention keys are masked (the convolutions and the normalisation see every token)."""
+        m = None if valid is None or not zero else valid[:, None].to(f.dtype)
         x = self.down(f)
         if m is not None:
             x = x * m
@@ -173,11 +174,12 @@ class ErpDepthQuery(nn.Module):
         E = getattr(cfg, "erp_depth", None)
         self.max_depth = float(getattr(E, "max_depth_m", 35.0)) if E else 35.0
         self.patch = 16
-        # Token masking at inference / training: "off" (default, what every checkpoint was trained with), "head" (the head ignores
-        # tokens without depth), "all" (also zero the query features of those tokens). $BEVLOC_MASK_INVALID_TOKENS overrides.
+        # Token masking at inference / training: "off" (default, what every checkpoint was trained with), "attn" (the head's
+        # attention ignores tokens without depth), "head" (also zeroed before the head's convolutions / normalisation, so they
+        # influence no valid token), "all" (also zero their query features). $BEVLOC_MASK_INVALID_TOKENS overrides.
         self.mask_invalid = os.environ.get("BEVLOC_MASK_INVALID_TOKENS") or str(getattr(E, "mask_invalid_tokens", "off") or "off")
-        if self.mask_invalid not in ("off", "head", "all"):
-            raise ValueError(f"erp_depth.mask_invalid_tokens must be off | head | all, got {self.mask_invalid!r}")
+        if self.mask_invalid not in ("off", "attn", "head", "all"):
+            raise ValueError(f"erp_depth.mask_invalid_tokens must be off | attn | head | all, got {self.mask_invalid!r}")
         self.head = None
         if E is not None and bool(getattr(E, "head", False)):
             self.head = ProjectionHead(in_dim=1024, dim=int(getattr(E, "head_dim", 256)),
@@ -215,7 +217,7 @@ class ErpDepthQuery(nn.Module):
             h, w = f_q.shape[-2:]
             has_image = sample_token_depth(batch["depth"].float(), h, w) > 0
         if self.head is not None:
-            f_q = self.head(f_q.float(), has_image)              # the encoder may emit fp16 under autocast
+            f_q = self.head(f_q.float(), has_image, zero=self.mask_invalid != "attn")   # the encoder may emit fp16 under autocast
         if self.mask_invalid == "all":
             f_q = f_q * has_image[:, None].to(f_q.dtype)
         return f_q, valid.float()
