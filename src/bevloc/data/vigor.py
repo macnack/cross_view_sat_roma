@@ -315,6 +315,19 @@ class VigorPairs(Dataset):
         self.aug = None             # training augmentation (bevloc.data.augment.PairAug); None = off, nothing drawn
         self.labels = read_labels(self.root, cities or split_cities(split, train), split, train)
         self.band = {c: b for c in sorted({lab["city"] for lab in self.labels}) if (b := read_band(self.root, c)) is not None}
+        # Controlled crop test: cut a FULL-sphere dataset's panoramas (and depth) to +-crop_band_deg of elevation on the fly, as the
+        # KITScenes ring cameras see (27.6 deg = their image band), so a model can be evaluated on cropped input without
+        # touching the files. cfg.vigor.crop_band_deg or $BEVLOC_CROP_BAND_DEG; datasets that already ship an erp_band.json
+        # are not cropped again.
+        cb = os.environ.get("BEVLOC_CROP_BAND_DEG") or getattr(V, "crop_band_deg", None)
+        self.crop_deg = float(cb) if cb and not self.band else None
+        if self.crop_deg:
+            if not 0.0 < self.crop_deg < 90.0:
+                raise ValueError(f"crop_band_deg must be in (0, 90), got {self.crop_deg}")
+            rows = int(round(2 * self.crop_deg / 180.0 * 1024))
+            for c in sorted({lab["city"] for lab in self.labels}):
+                self.band[c] = dict(top=float(np.radians(self.crop_deg)), bottom=float(-np.radians(self.crop_deg)), rows=rows,
+                                    full_width=2048)
         if stride > 1:
             self.labels = self.labels[::stride]
         if limit:
@@ -352,6 +365,14 @@ class VigorPairs(Dataset):
     def missing_refs(self, source=None):
         """Labels (dicts) whose reference file of `source` is absent (a fetch that did not cover the draw)."""
         return [lab for lab in self.labels if not self.ref_path(lab["city"], lab["sat"], source).is_file()]
+
+    def _crop(self, arr):
+        """Rows of a full-sphere panorama (or depth map) inside +-crop_band_deg of the horizon; unchanged when no crop is set."""
+        if not self.crop_deg:
+            return arr
+        h = arr.shape[0]
+        r0 = int(round((90.0 - self.crop_deg) / 180.0 * h))
+        return arr[r0:h - r0]
 
     def erp_wh(self, city):
         """(width, height) the panorama (and its depth) is resized to for `city`: the configured erp size, or for a cropped
@@ -461,7 +482,7 @@ class VigorPairs(Dataset):
         pano = cv2.imread(str(self.root / lab["city"] / "panorama" / lab["pano"]), cv2.IMREAD_COLOR)
         if pano is None:
             raise RuntimeError(f"unreadable panorama {lab['city']}/{lab['pano']}")
-        pano = cv2.cvtColor(pano, cv2.COLOR_BGR2RGB)
+        pano = self._crop(cv2.cvtColor(pano, cv2.COLOR_BGR2RGB))
         # camera position on the canvas: tile centre + offset, scaled tile px -> canvas px
         cx = c + self.col_sign * lab["dx"] * s
         cy = c + self.row_sign * lab["dy"] * s
@@ -501,7 +522,7 @@ class VigorPairs(Dataset):
         pano = cv2.imread(str(self.root / lab["city"] / "panorama" / lab["pano"]), cv2.IMREAD_COLOR)
         if pano is None:
             raise RuntimeError(f"unreadable panorama {lab['city']}/{lab['pano']}")
-        pano = cv2.cvtColor(pano, cv2.COLOR_BGR2RGB)
+        pano = self._crop(cv2.cvtColor(pano, cv2.COLOR_BGR2RGB))
         cam = en_to_canvas(en, centre, cell, size)               # the camera on the window canvas
         o = (n - 1) / 2.0
         H = np.array([[1.0, 0.0, cam[0] - o], [0.0, 1.0, cam[1] - o], [0.0, 0.0, 1.0]], np.float32)
@@ -546,7 +567,7 @@ class VigorPairs(Dataset):
         if self.depth:
             dp = depth_png_path(self.root, lab["city"], lab["pano"])
             if dp.is_file():
-                d = cv2.resize(read_depth_png(dp), self.erp_wh(lab["city"]), interpolation=cv2.INTER_NEAREST)
+                d = cv2.resize(self._crop(read_depth_png(dp)), self.erp_wh(lab["city"]), interpolation=cv2.INTER_NEAREST)
                 out["depth"] = torch.from_numpy(d)[None]
         b = self.band.get(lab["city"])
         if b is not None:

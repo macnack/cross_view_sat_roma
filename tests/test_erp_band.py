@@ -141,3 +141,32 @@ def test_band_depth_is_computed_on_the_full_sphere_canvas_and_cropped_back(monke
     assert seen["shape"] == (Hf, W, 3) and seen["vfov"] == 1.5708           # the full-sphere camera
     assert (seen["band_rows"] == 77).all() and seen["outside_black"]
     assert d.shape == (rows, W) and (d[:, 0] == np.arange(r0, r0 + rows)).all()
+
+
+def test_on_the_fly_crop_equals_a_dataset_cropped_on_disk(tmp_path, monkeypatch):
+    """BEVLOC_CROP_BAND_DEG on a full-sphere dataset gives the sample of the same rows stored as a band dataset."""
+    rng = np.random.default_rng(0)
+    yy, xx = np.mgrid[0:1024, 0:2048]                                           # smooth, so JPEG round trips agree
+    pano = np.stack([128 + 100 * np.sin(yy / 60.0), 128 + 100 * np.sin(xx / 90.0), 128 + 100 * np.sin((yy + xx) / 120.0)], -1).astype(np.uint8)
+    depth = rng.integers(2000, 20000, (1024, 2048)).astype(np.uint16)
+    r0 = int(round((90.0 - 27.6) / 180.0 * 1024))                              # 355: rows 355..669 (314 rows)
+    top = 90.0 - r0 * 180.0 / 1024
+
+    def make(root, p, d, band):
+        _layout(root, False)                                                   # tiles, labels, folders
+        cv2.imwrite(str(root / "Chicago" / "panorama" / "p1.jpg"), p, [cv2.IMWRITE_JPEG_QUALITY, 100])
+        Image.fromarray(d).save(depth_png_path(root, "Chicago", "p1.jpg"))
+        if band:
+            (root / "Chicago" / "erp_band.json").write_text(json.dumps(dict(top_deg=top, bottom_deg=-top, rows=314, full_width=2048)))
+        return root
+
+    full = make(tmp_path / "full", pano, depth, False)
+    disk = make(tmp_path / "disk", pano[r0:1024 - r0], depth[r0:1024 - r0], True)
+    monkeypatch.setenv("BEVLOC_CROP_BAND_DEG", "27.6")
+    a = VigorPairs(full, _cfg(), cities=["Chicago"], split="samearea", train=False)[0]
+    monkeypatch.delenv("BEVLOC_CROP_BAND_DEG")
+    b = VigorPairs(disk, _cfg(), cities=["Chicago"], split="samearea", train=False)[0]
+    assert a["erp"].shape == b["erp"].shape and a["erp"].shape[-2:] == (128, 896)
+    assert torch.equal(a["depth"], b["depth"])
+    assert torch.allclose(a["erp"], b["erp"], atol=0.03)
+    assert torch.allclose(a["erp_band"], b["erp_band"], atol=1e-4)
