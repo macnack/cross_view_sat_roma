@@ -4,7 +4,7 @@
 # with scripts/kitscenes_to_vigor.py (the free 20 cm DOP20 tiles come from the Hessen / LGL-BW WMS). CPU node with
 # internet (proxima-cpu, like slurm/fetch_vigor.sbatch); no GPU.
 #
-#   make eagle-fetch-kitscenes SCENE=142f1419-b6f2-4215-4055-6eb161f63043 SPLIT=val NAME=frankfurt_142f1419
+#   make eagle-fetch-kitscenes SCENE=142f1419-b6f2-4215-4055-6eb161f63043 KIT_SPLIT=val NAME=frankfurt_142f1419
 #
 # One-time, once per account: put the HF token in a private file the job reads (never printed, never on the command line):
 #   ssh -t eagle 'umask 077; read -rs -p "HF token: " T; echo "$T" > $HF_TOKEN_FILE'      (default path below)

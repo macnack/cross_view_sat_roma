@@ -412,9 +412,9 @@ vigor-offset-calib: ## remove a model's constant pose offset: per-city median re
 	$(RUN) scripts/offset_calibrate_vigor.py --calib-json $(CALIB_JSON) --test-json $(TEST_JSON) $(if $(TAG),--tag $(TAG),)
 kitscenes-vigor: ## KITScenes scene -> VIGOR-layout dataset (scripts/kitscenes_to_vigor.py: north-aligned ERP + free DOP20 tile + labels): SCENE_DIR= OUT=data/kit_vigor/<name> [STRIDE=1 PRIOR_M=17.8 SEED=0 WMS=hessen|lgl]; needs KITSCENES_DEVKIT_DIR or the submodule
 	$(RUN) scripts/kitscenes_to_vigor.py --scene-dir $(SCENE_DIR) --out $(OUT) $(if $(STRIDE),--stride $(STRIDE),) $(if $(PRIOR_M),--prior-m $(PRIOR_M),) $(if $(SEED),--seed $(SEED),) $(if $(WMS),--wms $(WMS),)
-eagle-fetch-kitscenes: ## on Eagle: download one KITScenes scene from HuggingFace (needs the HF token file, see slurm/fetch_kitscenes.sbatch) and convert it to a VIGOR-layout dataset kit_vigor/<NAME> (SCENE=<uuid> SPLIT=val NAME=<name> [STRIDE= PRIOR_M= SEED= WMS=])
+eagle-fetch-kitscenes: ## on Eagle: download one KITScenes scene from HuggingFace (needs the HF token file, see slurm/fetch_kitscenes.sbatch) and convert it to a VIGOR-layout dataset kit_vigor/<NAME> (SCENE=<uuid> KIT_SPLIT=val NAME=<name> [STRIDE= PRIOR_M= SEED= WMS=])
 	mkdir -p slurm/logs
-	sbatch --export=ALL,SCENE=$(SCENE),SPLIT=$(if $(SPLIT),$(SPLIT),val),NAME=$(NAME),STRIDE=$(STRIDE),PRIOR_M=$(PRIOR_M),SEED=$(SEED),WMS=$(WMS) $(SBATCH_ARGS) slurm/fetch_kitscenes.sbatch
+	sbatch --export=ALL,SCENE=$(SCENE),SPLIT=$(or $(KIT_SPLIT),val),NAME=$(NAME),STRIDE=$(STRIDE),PRIOR_M=$(PRIOR_M),SEED=$(SEED),WMS=$(WMS) $(SBATCH_ARGS) slurm/fetch_kitscenes.sbatch
 
 KIT_ROOT ?= /mnt/storage_6/project_data/pl1269-01/krupka_maciej/kit_vigor/$(NAME)
 eagle-kit-compare: ## on Eagle: depth + PanoRoMa + FG² + Loc² on kit_vigor/<NAME> (NAME=, DEP=<fetch job id> to chain after it; PANO_CKPT/PANO_FINE override the checkpoints); results in experiments/20_kitscenes
