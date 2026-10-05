@@ -1,0 +1,886 @@
+{
+  "meta": {
+    "method": "Loc2",
+    "checkpoint": {
+      "checkpoint": "checkpoints/baselines/loc2/vigor/samearea/known_ori/model.pt",
+      "sha256": "c7753a0fc68cbc58048691d89588d7943ca3431b831fce085f85eb5d77e7a34d",
+      "area": "samearea",
+      "orientation": "known_ori",
+      "native": {
+        "ground_image_size": [
+          714,
+          1428
+        ],
+        "satellite_image_size": [
+          630,
+          630
+        ],
+        "sat_bev_res": 41,
+        "num_samples_matches": 1024,
+        "max_depth_m": 35.0,
+        "depth_png_max_m": 65.0,
+        "panorama_size": [
+          2048,
+          1024
+        ]
+      },
+      "license": "AGPL-3.0 (third_party/Loc2/LICENSE)"
+    },
+    "split": "samearea",
+    "cities": [
+      "Chicago"
+    ],
+    "n": 100,
+    "limit": 0,
+    "seed": 0,
+    "orientation": "known_ori",
+    "max_depth_m": 35.0,
+    "skipped_no_depth": 0,
+    "n_no_usable_depth": 0,
+    "no_usable_depth": [],
+    "depth_dir": "unik3d_depth_v2_kitmask",
+    "city_res": {
+      "NewYork": 0.113248,
+      "Seattle": 0.100817,
+      "SanFrancisco": 0.118141,
+      "Chicago": 0.111262
+    },
+    "sec_per_sample": {
+      "model": 0.09300269842147828,
+      "procrustes": 0.009991557598114013,
+      "ransac": 0.1548634624481201
+    }
+  },
+  "frames": [
+    {
+      "pano": "kit142f1419_0000,50.100711,8.666975,.jpg",
+      "city": "Chicago",
+      "centre_guess_m": 14.206207275390625,
+      "procrustes_m": 6.945024490356445,
+      "ransac_m": 0.8864778876304626
+    },
+    {
+      "pano": "kit142f1419_0001,50.100702,8.666984,.jpg",
+      "city": "Chicago",
+      "centre_guess_m": 3.6030497550964355,
+      "procrustes_m": 4.48851203918457,
+      "ransac_m": 3.2135555744171143
+    },
+    {
+      "pano": "kit142f1419_0002,50.100694,8.666994,.jpg",
+      "city": "Chicago",
+      "centre_guess_m": 16.052282333374023,
+      "procrustes_m": 10.023221015930176,
+      "ransac_m": 2.6406290531158447
+    },
+    {
+      "pano": "kit142f1419_0003,50.100686,8.667003,.jpg",
+      "city": "Chicago",
+      "centre_guess_m": 13.863862037658691,
+      "procrustes_m": 4.241241455078125,
+      "ransac_m": 1.8202054500579834
+    },
+    {
+      "pano": "kit142f1419_0004,50.100678,8.667013,.jpg",
+      "city": "Chicago",
+      "centre_guess_m": 13.124137878417969,
+      "procrustes_m": 16.94428062438965,
+      "ransac_m": 22.858154296875
+    },
+    {
+      "pano": "kit142f1419_0005,50.100670,8.667022,.jpg",
+      "city": "Chicago",
+      "centre_guess_m": 16.077733993530273,
+      "procrustes_m": 2.1765310764312744,
+      "ransac_m": 12.393842697143555
+    },
+    {
+      "pano": "kit142f1419_0006,50.100663,8.667031,.jpg",
+      "city": "Chicago",
+      "centre_guess_m": 16.48214340209961,
+      "procrustes_m": 1.4162310361862183,
+      "ransac_m": 1.251882553100586
+    },
+    {
+      "pano": "kit142f1419_0007,50.100655,8.667041,.jpg",
+      "city": "Chicago",
+      "centre_guess_m": 15.204756736755371,
+      "procrustes_m": 0.9601120948791504,
+      "ransac_m": 3.117154359817505
+    },
+    {
+      "pano": "kit142f1419_0008,50.100647,8.667050,.jpg",
+      "city": "Chicago",
+      "centre_guess_m": 16.53753662109375,
+      "procrustes_m": 1.2478580474853516,
+      "ransac_m": 2.8547744750976562
+    },
+    {
+      "pano": "kit142f1419_0009,50.100640,8.667059,.jpg",
+      "city": "Chicago",
+      "centre_guess_m": 9.744778633117676,
+      "procrustes_m": 1.294724702835083,
+      "ransac_m": 2.750392198562622
+    },
+    {
+      "pano": "kit142f1419_0010,50.100632,8.667068,.jpg",
+      "city": "Chicago",
+      "centre_guess_m": 2.995468854904175,
+      "procrustes_m": 1.1235712766647339,
+      "ransac_m": 0.9770665168762207
+    },
+    {
+      "pano": "kit142f1419_0011,50.100625,8.667077,.jpg",
+      "city": "Chicago",
+      "centre_guess_m": 14.576723098754883,
+      "procrustes_m": 1.7341880798339844,
+      "ransac_m": 1.5409284830093384
+    },
+    {
+      "pano": "kit142f1419_0012,50.100617,8.667085,.jpg",
+      "city": "Chicago",
+      "centre_guess_m": 13.963533401489258,
+      "procrustes_m": 2.4677352905273438,
+      "ransac_m": 1.394604206085205
+    },
+    {
+      "pano": "kit142f1419_0013,50.100610,8.667094,.jpg",
+      "city": "Chicago",
+      "centre_guess_m": 17.77519989013672,
+      "procrustes_m": 3.819399833679199,
+      "ransac_m": 1.9617949724197388
+    },
+    {
+      "pano": "kit142f1419_0014,50.100603,8.667102,.jpg",
+      "city": "Chicago",
+      "centre_guess_m": 14.737923622131348,
+      "procrustes_m": 3.26511549949646,
+      "ransac_m": 1.8756366968154907
+    },
+    {
+      "pano": "kit142f1419_0015,50.100596,8.667111,.jpg",
+      "city": "Chicago",
+      "centre_guess_m": 14.769157409667969,
+      "procrustes_m": 2.1645195484161377,
+      "ransac_m": 1.6203804016113281
+    },
+    {
+      "pano": "kit142f1419_0016,50.100589,8.667119,.jpg",
+      "city": "Chicago",
+      "centre_guess_m": 6.542435646057129,
+      "procrustes_m": 1.3370568752288818,
+      "ransac_m": 1.9856423139572144
+    },
+    {
+      "pano": "kit142f1419_0017,50.100582,8.667127,.jpg",
+      "city": "Chicago",
+      "centre_guess_m": 12.901724815368652,
+      "procrustes_m": 2.8587892055511475,
+      "ransac_m": 2.067678451538086
+    },
+    {
+      "pano": "kit142f1419_0018,50.100576,8.667135,.jpg",
+      "city": "Chicago",
+      "centre_guess_m": 12.40698528289795,
+      "procrustes_m": 6.63093376159668,
+      "ransac_m": 1.1969107389450073
+    },
+    {
+      "pano": "kit142f1419_0019,50.100569,8.667142,.jpg",
+      "city": "Chicago",
+      "centre_guess_m": 17.202985763549805,
+      "procrustes_m": 4.33822774887085,
+      "ransac_m": 2.4448513984680176
+    },
+    {
+      "pano": "kit142f1419_0020,50.100563,8.667150,.jpg",
+      "city": "Chicago",
+      "centre_guess_m": 13.456706047058105,
+      "procrustes_m": 2.528709650039673,
+      "ransac_m": 1.8517621755599976
+    },
+    {
+      "pano": "kit142f1419_0021,50.100556,8.667158,.jpg",
+      "city": "Chicago",
+      "centre_guess_m": 13.722150802612305,
+      "procrustes_m": 1.9023411273956299,
+      "ransac_m": 1.816031575202942
+    },
+    {
+      "pano": "kit142f1419_0022,50.100550,8.667165,.jpg",
+      "city": "Chicago",
+      "centre_guess_m": 11.139122009277344,
+      "procrustes_m": 7.858368396759033,
+      "ransac_m": 1.9900215864181519
+    },
+    {
+      "pano": "kit142f1419_0023,50.100544,8.667173,.jpg",
+      "city": "Chicago",
+      "centre_guess_m": 8.483665466308594,
+      "procrustes_m": 5.524681091308594,
+      "ransac_m": 2.141775608062744
+    },
+    {
+      "pano": "kit142f1419_0024,50.100538,8.667180,.jpg",
+      "city": "Chicago",
+      "centre_guess_m": 5.1594133377075195,
+      "procrustes_m": 3.830524206161499,
+      "ransac_m": 4.450094699859619
+    },
+    {
+      "pano": "kit142f1419_0025,50.100532,8.667187,.jpg",
+      "city": "Chicago",
+      "centre_guess_m": 15.791913032531738,
+      "procrustes_m": 3.921809196472168,
+      "ransac_m": 6.62006139755249
+    },
+    {
+      "pano": "kit142f1419_0026,50.100526,8.667194,.jpg",
+      "city": "Chicago",
+      "centre_guess_m": 16.66451644897461,
+      "procrustes_m": 6.1554365158081055,
+      "ransac_m": 7.100087642669678
+    },
+    {
+      "pano": "kit142f1419_0027,50.100520,8.667201,.jpg",
+      "city": "Chicago",
+      "centre_guess_m": 10.319696426391602,
+      "procrustes_m": 1.5730642080307007,
+      "ransac_m": 0.7508723139762878
+    },
+    {
+      "pano": "kit142f1419_0028,50.100514,8.667208,.jpg",
+      "city": "Chicago",
+      "centre_guess_m": 11.945042610168457,
+      "procrustes_m": 4.760362148284912,
+      "ransac_m": 7.734686374664307
+    },
+    {
+      "pano": "kit142f1419_0029,50.100508,8.667215,.jpg",
+      "city": "Chicago",
+      "centre_guess_m": 8.548483848571777,
+      "procrustes_m": 4.746662616729736,
+      "ransac_m": 1.4628634452819824
+    },
+    {
+      "pano": "kit142f1419_0030,50.100502,8.667222,.jpg",
+      "city": "Chicago",
+      "centre_guess_m": 11.321602821350098,
+      "procrustes_m": 2.4575157165527344,
+      "ransac_m": 1.6313036680221558
+    },
+    {
+      "pano": "kit142f1419_0031,50.100497,8.667229,.jpg",
+      "city": "Chicago",
+      "centre_guess_m": 5.362256050109863,
+      "procrustes_m": 8.193666458129883,
+      "ransac_m": 9.435746192932129
+    },
+    {
+      "pano": "kit142f1419_0032,50.100491,8.667235,.jpg",
+      "city": "Chicago",
+      "centre_guess_m": 9.728239059448242,
+      "procrustes_m": 4.331692695617676,
+      "ransac_m": 3.7740557193756104
+    },
+    {
+      "pano": "kit142f1419_0033,50.100485,8.667242,.jpg",
+      "city": "Chicago",
+      "centre_guess_m": 7.950769424438477,
+      "procrustes_m": 5.607933044433594,
+      "ransac_m": 1.7052769660949707
+    },
+    {
+      "pano": "kit142f1419_0034,50.100480,8.667249,.jpg",
+      "city": "Chicago",
+      "centre_guess_m": 10.755484580993652,
+      "procrustes_m": 2.0483171939849854,
+      "ransac_m": 3.391326427459717
+    },
+    {
+      "pano": "kit142f1419_0035,50.100474,8.667255,.jpg",
+      "city": "Chicago",
+      "centre_guess_m": 14.11825180053711,
+      "procrustes_m": 8.81607723236084,
+      "ransac_m": 7.838342666625977
+    },
+    {
+      "pano": "kit142f1419_0036,50.100469,8.667262,.jpg",
+      "city": "Chicago",
+      "centre_guess_m": 11.812254905700684,
+      "procrustes_m": 6.8960065841674805,
+      "ransac_m": 3.8960838317871094
+    },
+    {
+      "pano": "kit142f1419_0037,50.100463,8.667268,.jpg",
+      "city": "Chicago",
+      "centre_guess_m": 12.585150718688965,
+      "procrustes_m": 2.307558298110962,
+      "ransac_m": 1.6750648021697998
+    },
+    {
+      "pano": "kit142f1419_0038,50.100458,8.667275,.jpg",
+      "city": "Chicago",
+      "centre_guess_m": 14.018097877502441,
+      "procrustes_m": 7.082089424133301,
+      "ransac_m": 10.699589729309082
+    },
+    {
+      "pano": "kit142f1419_0039,50.100452,8.667281,.jpg",
+      "city": "Chicago",
+      "centre_guess_m": 17.339637756347656,
+      "procrustes_m": 12.07455062866211,
+      "ransac_m": 0.9887415766716003
+    },
+    {
+      "pano": "kit142f1419_0040,50.100447,8.667288,.jpg",
+      "city": "Chicago",
+      "centre_guess_m": 15.494485855102539,
+      "procrustes_m": 13.621051788330078,
+      "ransac_m": 4.089242458343506
+    },
+    {
+      "pano": "kit142f1419_0041,50.100441,8.667294,.jpg",
+      "city": "Chicago",
+      "centre_guess_m": 12.950213432312012,
+      "procrustes_m": 11.510488510131836,
+      "ransac_m": 8.062960624694824
+    },
+    {
+      "pano": "kit142f1419_0042,50.100436,8.667300,.jpg",
+      "city": "Chicago",
+      "centre_guess_m": 11.462124824523926,
+      "procrustes_m": 11.203834533691406,
+      "ransac_m": 6.9951491355896
+    },
+    {
+      "pano": "kit142f1419_0043,50.100431,8.667306,.jpg",
+      "city": "Chicago",
+      "centre_guess_m": 15.010553359985352,
+      "procrustes_m": 7.647951602935791,
+      "ransac_m": 7.231459140777588
+    },
+    {
+      "pano": "kit142f1419_0044,50.100426,8.667312,.jpg",
+      "city": "Chicago",
+      "centre_guess_m": 6.0344977378845215,
+      "procrustes_m": 8.845745086669922,
+      "ransac_m": 8.934338569641113
+    },
+    {
+      "pano": "kit142f1419_0045,50.100420,8.667318,.jpg",
+      "city": "Chicago",
+      "centre_guess_m": 17.14191246032715,
+      "procrustes_m": 7.700950622558594,
+      "ransac_m": 6.993424415588379
+    },
+    {
+      "pano": "kit142f1419_0046,50.100415,8.667324,.jpg",
+      "city": "Chicago",
+      "centre_guess_m": 2.1585724353790283,
+      "procrustes_m": 4.591886043548584,
+      "ransac_m": 6.229828357696533
+    },
+    {
+      "pano": "kit142f1419_0047,50.100410,8.667330,.jpg",
+      "city": "Chicago",
+      "centre_guess_m": 17.63181495666504,
+      "procrustes_m": 11.093413352966309,
+      "ransac_m": 1.133682131767273
+    },
+    {
+      "pano": "kit142f1419_0048,50.100405,8.667336,.jpg",
+      "city": "Chicago",
+      "centre_guess_m": 6.8654561042785645,
+      "procrustes_m": 2.842658042907715,
+      "ransac_m": 2.9427409172058105
+    },
+    {
+      "pano": "kit142f1419_0049,50.100401,8.667342,.jpg",
+      "city": "Chicago",
+      "centre_guess_m": 16.79191017150879,
+      "procrustes_m": 31.353208541870117,
+      "ransac_m": 4.08029317855835
+    },
+    {
+      "pano": "kit142f1419_0050,50.100396,8.667347,.jpg",
+      "city": "Chicago",
+      "centre_guess_m": 12.332071304321289,
+      "procrustes_m": 0.6935675740242004,
+      "ransac_m": 1.4225375652313232
+    },
+    {
+      "pano": "kit142f1419_0051,50.100391,8.667353,.jpg",
+      "city": "Chicago",
+      "centre_guess_m": 15.939456939697266,
+      "procrustes_m": 2.0479836463928223,
+      "ransac_m": 10.734682083129883
+    },
+    {
+      "pano": "kit142f1419_0052,50.100386,8.667358,.jpg",
+      "city": "Chicago",
+      "centre_guess_m": 9.18259048461914,
+      "procrustes_m": 1.4236704111099243,
+      "ransac_m": 0.5850151777267456
+    },
+    {
+      "pano": "kit142f1419_0053,50.100382,8.667363,.jpg",
+      "city": "Chicago",
+      "centre_guess_m": 11.844000816345215,
+      "procrustes_m": 1.8419345617294312,
+      "ransac_m": 0.5640023350715637
+    },
+    {
+      "pano": "kit142f1419_0054,50.100377,8.667369,.jpg",
+      "city": "Chicago",
+      "centre_guess_m": 3.5827033519744873,
+      "procrustes_m": 0.9250590801239014,
+      "ransac_m": 1.6736462116241455
+    },
+    {
+      "pano": "kit142f1419_0055,50.100373,8.667374,.jpg",
+      "city": "Chicago",
+      "centre_guess_m": 13.951959609985352,
+      "procrustes_m": 0.5952584743499756,
+      "ransac_m": 6.660340785980225
+    },
+    {
+      "pano": "kit142f1419_0056,50.100368,8.667379,.jpg",
+      "city": "Chicago",
+      "centre_guess_m": 15.095622062683105,
+      "procrustes_m": 0.39661020040512085,
+      "ransac_m": 1.1933395862579346
+    },
+    {
+      "pano": "kit142f1419_0057,50.100364,8.667384,.jpg",
+      "city": "Chicago",
+      "centre_guess_m": 15.496720314025879,
+      "procrustes_m": 1.4734268188476562,
+      "ransac_m": 1.654815912246704
+    },
+    {
+      "pano": "kit142f1419_0058,50.100360,8.667389,.jpg",
+      "city": "Chicago",
+      "centre_guess_m": 17.15743637084961,
+      "procrustes_m": 1.3314828872680664,
+      "ransac_m": 0.7932671308517456
+    },
+    {
+      "pano": "kit142f1419_0059,50.100356,8.667394,.jpg",
+      "city": "Chicago",
+      "centre_guess_m": 16.32673454284668,
+      "procrustes_m": 0.8935372829437256,
+      "ransac_m": 0.376221239566803
+    },
+    {
+      "pano": "kit142f1419_0060,50.100352,8.667399,.jpg",
+      "city": "Chicago",
+      "centre_guess_m": 10.4446439743042,
+      "procrustes_m": 0.4935510754585266,
+      "ransac_m": 1.0782426595687866
+    },
+    {
+      "pano": "kit142f1419_0061,50.100348,8.667403,.jpg",
+      "city": "Chicago",
+      "centre_guess_m": 17.495323181152344,
+      "procrustes_m": 1.5116639137268066,
+      "ransac_m": 1.2765631675720215
+    },
+    {
+      "pano": "kit142f1419_0062,50.100344,8.667408,.jpg",
+      "city": "Chicago",
+      "centre_guess_m": 9.056426048278809,
+      "procrustes_m": 1.45745050907135,
+      "ransac_m": 0.7134619951248169
+    },
+    {
+      "pano": "kit142f1419_0063,50.100340,8.667413,.jpg",
+      "city": "Chicago",
+      "centre_guess_m": 16.774694442749023,
+      "procrustes_m": 1.8186473846435547,
+      "ransac_m": 2.6262717247009277
+    },
+    {
+      "pano": "kit142f1419_0064,50.100336,8.667417,.jpg",
+      "city": "Chicago",
+      "centre_guess_m": 6.282026767730713,
+      "procrustes_m": 0.6660954356193542,
+      "ransac_m": 1.2422105073928833
+    },
+    {
+      "pano": "kit142f1419_0065,50.100333,8.667421,.jpg",
+      "city": "Chicago",
+      "centre_guess_m": 13.627467155456543,
+      "procrustes_m": 1.3721098899841309,
+      "ransac_m": 1.0210974216461182
+    },
+    {
+      "pano": "kit142f1419_0066,50.100329,8.667425,.jpg",
+      "city": "Chicago",
+      "centre_guess_m": 16.017108917236328,
+      "procrustes_m": 1.3654115200042725,
+      "ransac_m": 0.8431908488273621
+    },
+    {
+      "pano": "kit142f1419_0067,50.100326,8.667429,.jpg",
+      "city": "Chicago",
+      "centre_guess_m": 9.559467315673828,
+      "procrustes_m": 0.2870475947856903,
+      "ransac_m": 0.5512322187423706
+    },
+    {
+      "pano": "kit142f1419_0068,50.100322,8.667433,.jpg",
+      "city": "Chicago",
+      "centre_guess_m": 16.10004234313965,
+      "procrustes_m": 1.1776870489120483,
+      "ransac_m": 1.2128247022628784
+    },
+    {
+      "pano": "kit142f1419_0069,50.100319,8.667437,.jpg",
+      "city": "Chicago",
+      "centre_guess_m": 17.431976318359375,
+      "procrustes_m": 2.52986478805542,
+      "ransac_m": 1.949704647064209
+    },
+    {
+      "pano": "kit142f1419_0070,50.100316,8.667441,.jpg",
+      "city": "Chicago",
+      "centre_guess_m": 13.232104301452637,
+      "procrustes_m": 1.9997127056121826,
+      "ransac_m": 0.7179745435714722
+    },
+    {
+      "pano": "kit142f1419_0071,50.100313,8.667444,.jpg",
+      "city": "Chicago",
+      "centre_guess_m": 16.394248962402344,
+      "procrustes_m": 1.2302030324935913,
+      "ransac_m": 2.012025833129883
+    },
+    {
+      "pano": "kit142f1419_0072,50.100310,8.667448,.jpg",
+      "city": "Chicago",
+      "centre_guess_m": 11.348966598510742,
+      "procrustes_m": 4.8451457023620605,
+      "ransac_m": 2.741210460662842
+    },
+    {
+      "pano": "kit142f1419_0073,50.100307,8.667451,.jpg",
+      "city": "Chicago",
+      "centre_guess_m": 3.6939613819122314,
+      "procrustes_m": 1.968277931213379,
+      "ransac_m": 1.0877243280410767
+    },
+    {
+      "pano": "kit142f1419_0074,50.100304,8.667455,.jpg",
+      "city": "Chicago",
+      "centre_guess_m": 11.472200393676758,
+      "procrustes_m": 5.316588878631592,
+      "ransac_m": 24.730905532836914
+    },
+    {
+      "pano": "kit142f1419_0075,50.100302,8.667458,.jpg",
+      "city": "Chicago",
+      "centre_guess_m": 1.7759220600128174,
+      "procrustes_m": 1.2186188697814941,
+      "ransac_m": 0.8035333156585693
+    },
+    {
+      "pano": "kit142f1419_0076,50.100299,8.667461,.jpg",
+      "city": "Chicago",
+      "centre_guess_m": 4.991279602050781,
+      "procrustes_m": 0.40632906556129456,
+      "ransac_m": 1.5312473773956299
+    },
+    {
+      "pano": "kit142f1419_0077,50.100296,8.667464,.jpg",
+      "city": "Chicago",
+      "centre_guess_m": 9.314817428588867,
+      "procrustes_m": 0.40463653206825256,
+      "ransac_m": 1.1851146221160889
+    },
+    {
+      "pano": "kit142f1419_0078,50.100294,8.667467,.jpg",
+      "city": "Chicago",
+      "centre_guess_m": 17.2925968170166,
+      "procrustes_m": 2.0781993865966797,
+      "ransac_m": 1.9660989046096802
+    },
+    {
+      "pano": "kit142f1419_0079,50.100291,8.667470,.jpg",
+      "city": "Chicago",
+      "centre_guess_m": 16.552860260009766,
+      "procrustes_m": 1.5491132736206055,
+      "ransac_m": 2.3226470947265625
+    },
+    {
+      "pano": "kit142f1419_0080,50.100289,8.667473,.jpg",
+      "city": "Chicago",
+      "centre_guess_m": 10.9838228225708,
+      "procrustes_m": 1.059100866317749,
+      "ransac_m": 1.0846788883209229
+    },
+    {
+      "pano": "kit142f1419_0081,50.100287,8.667475,.jpg",
+      "city": "Chicago",
+      "centre_guess_m": 12.445320129394531,
+      "procrustes_m": 1.115624189376831,
+      "ransac_m": 2.9994492530822754
+    },
+    {
+      "pano": "kit142f1419_0082,50.100284,8.667478,.jpg",
+      "city": "Chicago",
+      "centre_guess_m": 15.677118301391602,
+      "procrustes_m": 2.6643707752227783,
+      "ransac_m": 3.3579049110412598
+    },
+    {
+      "pano": "kit142f1419_0083,50.100282,8.667481,.jpg",
+      "city": "Chicago",
+      "centre_guess_m": 9.246349334716797,
+      "procrustes_m": 10.283746719360352,
+      "ransac_m": 2.5745019912719727
+    },
+    {
+      "pano": "kit142f1419_0084,50.100280,8.667483,.jpg",
+      "city": "Chicago",
+      "centre_guess_m": 16.710296630859375,
+      "procrustes_m": 1.0514675378799438,
+      "ransac_m": 1.5526783466339111
+    },
+    {
+      "pano": "kit142f1419_0085,50.100278,8.667485,.jpg",
+      "city": "Chicago",
+      "centre_guess_m": 10.444480895996094,
+      "procrustes_m": 0.9817736148834229,
+      "ransac_m": 3.060561180114746
+    },
+    {
+      "pano": "kit142f1419_0086,50.100276,8.667487,.jpg",
+      "city": "Chicago",
+      "centre_guess_m": 10.005209922790527,
+      "procrustes_m": 1.708378553390503,
+      "ransac_m": 2.4570698738098145
+    },
+    {
+      "pano": "kit142f1419_0087,50.100275,8.667490,.jpg",
+      "city": "Chicago",
+      "centre_guess_m": 16.698793411254883,
+      "procrustes_m": 20.706695556640625,
+      "ransac_m": 28.847862243652344
+    },
+    {
+      "pano": "kit142f1419_0088,50.100273,8.667492,.jpg",
+      "city": "Chicago",
+      "centre_guess_m": 14.54695987701416,
+      "procrustes_m": 1.7774324417114258,
+      "ransac_m": 5.873502731323242
+    },
+    {
+      "pano": "kit142f1419_0089,50.100271,8.667493,.jpg",
+      "city": "Chicago",
+      "centre_guess_m": 17.12615203857422,
+      "procrustes_m": 4.001266002655029,
+      "ransac_m": 5.804715633392334
+    },
+    {
+      "pano": "kit142f1419_0090,50.100270,8.667495,.jpg",
+      "city": "Chicago",
+      "centre_guess_m": 16.513822555541992,
+      "procrustes_m": 2.356902837753296,
+      "ransac_m": 2.9631905555725098
+    },
+    {
+      "pano": "kit142f1419_0091,50.100269,8.667497,.jpg",
+      "city": "Chicago",
+      "centre_guess_m": 6.689708709716797,
+      "procrustes_m": 4.076774597167969,
+      "ransac_m": 4.632761001586914
+    },
+    {
+      "pano": "kit142f1419_0092,50.100267,8.667498,.jpg",
+      "city": "Chicago",
+      "centre_guess_m": 15.04719066619873,
+      "procrustes_m": 2.139195203781128,
+      "ransac_m": 1.89730966091156
+    },
+    {
+      "pano": "kit142f1419_0093,50.100266,8.667500,.jpg",
+      "city": "Chicago",
+      "centre_guess_m": 11.195029258728027,
+      "procrustes_m": 8.229360580444336,
+      "ransac_m": 6.855961322784424
+    },
+    {
+      "pano": "kit142f1419_0094,50.100265,8.667501,.jpg",
+      "city": "Chicago",
+      "centre_guess_m": 13.33696460723877,
+      "procrustes_m": 5.885190963745117,
+      "ransac_m": 2.9963202476501465
+    },
+    {
+      "pano": "kit142f1419_0095,50.100264,8.667502,.jpg",
+      "city": "Chicago",
+      "centre_guess_m": 7.842761039733887,
+      "procrustes_m": 3.1946001052856445,
+      "ransac_m": 5.287051200866699
+    },
+    {
+      "pano": "kit142f1419_0096,50.100263,8.667503,.jpg",
+      "city": "Chicago",
+      "centre_guess_m": 12.878125190734863,
+      "procrustes_m": 2.6234865188598633,
+      "ransac_m": 3.9242336750030518
+    },
+    {
+      "pano": "kit142f1419_0097,50.100262,8.667504,.jpg",
+      "city": "Chicago",
+      "centre_guess_m": 17.638530731201172,
+      "procrustes_m": 3.475278377532959,
+      "ransac_m": 0.530200719833374
+    },
+    {
+      "pano": "kit142f1419_0098,50.100261,8.667505,.jpg",
+      "city": "Chicago",
+      "centre_guess_m": 1.42497718334198,
+      "procrustes_m": 4.164303302764893,
+      "ransac_m": 5.601337909698486
+    },
+    {
+      "pano": "kit142f1419_0099,50.100261,8.667506,.jpg",
+      "city": "Chicago",
+      "centre_guess_m": 17.605478286743164,
+      "procrustes_m": 4.212865829467773,
+      "ransac_m": 1.7714375257492065
+    }
+  ],
+  "summary": {
+    "all": {
+      "procrustes": {
+        "n": 100,
+        "matched": 100,
+        "median_m": 2.4982224702835083,
+        "median_ci": [
+          2.0232386589050293,
+          3.824962019920349
+        ],
+        "recall@5m": 0.74,
+        "recall@5m_ci": [
+          0.64,
+          0.82
+        ],
+        "recall@10m": 0.9,
+        "recall@10m_ci": [
+          0.84,
+          0.95
+        ],
+        "frac_gt_30m": 0.01
+      },
+      "ransac": {
+        "n": 100,
+        "matched": 100,
+        "median_m": 2.0398521423339844,
+        "median_ci": [
+          1.8181185126304626,
+          2.802583336830139
+        ],
+        "recall@5m": 0.77,
+        "recall@5m_ci": [
+          0.68,
+          0.85
+        ],
+        "recall@10m": 0.94,
+        "recall@10m_ci": [
+          0.89,
+          0.98
+        ],
+        "frac_gt_30m": 0.0
+      },
+      "centre_guess": {
+        "n": 100,
+        "matched": 100,
+        "median_m": 13.284534454345703,
+        "median_ci": [
+          11.945042610168457,
+          14.206207275390625
+        ],
+        "recall@5m": 0.08,
+        "recall@5m_ci": [
+          0.03,
+          0.13
+        ],
+        "recall@10m": 0.26,
+        "recall@10m_ci": [
+          0.18,
+          0.35
+        ],
+        "frac_gt_30m": 0.0
+      },
+      "mean_procrustes_m": 4.235325283110142,
+      "mean_ransac_m": 3.7984334886074067
+    },
+    "Chicago": {
+      "procrustes": {
+        "n": 100,
+        "matched": 100,
+        "median_m": 2.4982224702835083,
+        "median_ci": [
+          2.0232386589050293,
+          3.824962019920349
+        ],
+        "recall@5m": 0.74,
+        "recall@5m_ci": [
+          0.64,
+          0.82
+        ],
+        "recall@10m": 0.9,
+        "recall@10m_ci": [
+          0.84,
+          0.95
+        ],
+        "frac_gt_30m": 0.01
+      },
+      "ransac": {
+        "n": 100,
+        "matched": 100,
+        "median_m": 2.0398521423339844,
+        "median_ci": [
+          1.8181185126304626,
+          2.802583336830139
+        ],
+        "recall@5m": 0.77,
+        "recall@5m_ci": [
+          0.68,
+          0.85
+        ],
+        "recall@10m": 0.94,
+        "recall@10m_ci": [
+          0.89,
+          0.98
+        ],
+        "frac_gt_30m": 0.0
+      },
+      "centre_guess": {
+        "n": 100,
+        "matched": 100,
+        "median_m": 13.284534454345703,
+        "median_ci": [
+          11.945042610168457,
+          14.206207275390625
+        ],
+        "recall@5m": 0.08,
+        "recall@5m_ci": [
+          0.03,
+          0.13
+        ],
+        "recall@10m": 0.26,
+        "recall@10m_ci": [
+          0.18,
+          0.35
+        ],
+        "frac_gt_30m": 0.0
+      },
+      "mean_procrustes_m": 4.235325283110142,
+      "mean_ransac_m": 3.7984334886074067
+    }
+  }
+}
