@@ -408,3 +408,89 @@ def test_selected_height_is_the_argmax_slice_per_valid_cell():
     assert bool(ok[0, 12, 17]) and int(ok.sum()) == 35 * 35 - 1
     zs = torch.tensor(q.z)
     assert torch.allclose(z_m[ok], zs[z_idx[ok]])                                   # metres above ground of the slice
+
+
+# ---- (h) review fixes: PE frequencies, zero-supervision loss, augmentation consistency, H end to end, matcher name --
+
+def test_sinusoidal_pe_frequencies_stay_below_the_grid_nyquist_and_depend_on_metres_only():
+    from bevloc.model.pillar_query import pe_frequencies, sinusoidal_2d
+    f = pe_frequencies(256, max_period_m=70.0, min_period_m=4.0)
+    periods = 2 * math.pi / f
+    assert f.numel() == 64 and periods.max() <= 70.0 + 1e-4 and periods.min() >= 4.0 - 1e-4
+    assert bool((periods[:-1] > periods[1:]).all())                                   # log-spaced, descending
+    pe_c = sinusoidal_2d(grid_xy(35, 2.0), 256, 70.0, 4.0)
+    pe_f = sinusoidal_2d(grid_xy(56, 1.0), 256, 70.0, 4.0)
+    assert pe_c.shape == (256, 35, 35) and pe_f.shape == (256, 56, 56)
+    pt = sinusoidal_2d(torch.tensor([[[10.0, 0.0]]]), 256, 70.0, 4.0)[:, 0, 0]
+    assert torch.allclose(pe_c[:, 12, 17], pt, atol=1e-5)                               # the same metres, the same code
+    assert float((pe_c[:, 12, 17] - pe_c[:, 13, 17]).abs().max()) > 0.05               # neighbours are distinguishable
+    assert bool((pe_c.abs() <= 1.0).all())
+
+
+def test_height_loss_is_a_finite_zero_when_nothing_is_supervised_under_masked_slices():
+    cfg = _cfg(head=False, max_depression_deg=20.0)                                   # a Poznań-like ego cut: -inf logits
+    q = build_query(cfg, "pillar")
+    b = _batch(depth=torch.full((1, 1, H, W), 60.0))
+    q(b, _FakeMatcher)
+    loss, n = q.height_loss(b)
+    assert n == 0 and torch.isfinite(loss) and float(loss) == 0.0 and loss.requires_grad
+    loss.backward()
+    assert all(torch.isfinite(p.grad).all() for p in q.parameters() if p.grad is not None)
+
+
+def test_geometric_augmentation_rotates_the_pillar_features_with_the_canvas(monkeypatch):
+    """A forced quarter turn: the sampled pillar grid after the augmentation is the grid before, rotated with the map."""
+    import bevloc.data.augment as A
+    q = build_query(_cfg(head=False), "pillar")
+    g = torch.Generator().manual_seed(5)
+    erp = torch.rand(1, 3, H, W, generator=g)
+    Hm = torch.eye(3)
+    Hm[0, 2], Hm[1, 2] = 336.0 + 20, 336.0 - 30
+    sample = dict(erp=erp.clone(), ref=torch.rand(3, 896, 896, generator=g), H=Hm.clone(),
+                  en=torch.tensor([3.0, -5.0]), ref_centre_en=torch.zeros(2))
+    monkeypatch.setattr(A, "draw_geometry", lambda rng, a, Wd: (Wd // 4, 1, 0.0, 90.0, False))
+    aug = A.PairAug(geometric=("rot90",))
+    drawn = A.geometric(sample, np.random.default_rng(0), aug, 224, 0.125)
+    assert drawn["theta"] == 90.0
+    before = dict(erp=erp[None], R_w2c=R_N[None])
+    after = dict(erp=sample["erp"][None], R_w2c=R_N[None])
+    f_b, v_b = q(before, _FakeMatcher)
+    f_a, v_a = q(after, _FakeMatcher)
+    rot = torch.rot90(f_b, 1, dims=(2, 3))
+    assert torch.equal(v_a, torch.rot90(v_b, 1, dims=(1, 2)))
+    m = v_a[:, None] > 0                                   # the blind ego cell (straight down, lon undefined) never votes
+    assert torch.allclose(f_a[m.expand_as(f_a)], rot[m.expand_as(rot)], atol=1e-4)
+
+
+def test_pillar_cell_10m_ahead_lands_on_the_canvas_10m_north_of_the_camera(tmp_path):
+    from bevloc.data.vigor import CITY_RES, VigorPairs, collate_vigor
+    from test_depth_query import _vigor_layout
+    city, dy, dx = "Chicago", 40.0, -24.0
+    root = _vigor_layout(tmp_path, dy, dx)
+    cfg = _cfg()
+    ds = VigorPairs(root, cfg, cities=[city], split="samearea", train=False)
+    s = ds[0]
+    batch = collate_vigor([s])
+    xy, valid = build_query(cfg, "pillar").placement(batch)
+    assert bool(valid[0, 12, 17])
+    res = CITY_RES[city]
+    cam_e, cam_n = -dx * res, -dy * res
+    lm_e, lm_n = cam_e, cam_n + 10.0                                                  # 10 m north of the camera
+    col_t, row_t = 319.5 + lm_e / res, 319.5 - lm_n / res
+    S = int(cfg.grid.n * cfg.reference.scale)
+    k = res / cfg.grid.cell_m
+    new = int(round(640 * k))
+    x0 = (S - new) // 2
+    ratio = new / 640.0
+    exp = np.array([x0 + (col_t + 0.5) * ratio - 0.5, x0 + (row_t + 0.5) * ratio - 0.5])
+    u, v = xy[0, 12, 17].tolist()
+    p = batch["H"][0].double().numpy() @ np.array([u, v, 1.0])
+    assert np.abs(p[:2] / p[2] - exp).max() < 1.0, (p, exp)
+
+
+def test_matcher_name_recorded_in_the_checkpoint_must_match_the_evaluators():
+    from bevloc.match.satroma import check_matcher_name
+    check_matcher_name({"matcher_name": "0t1q66hy"}, "0t1q66hy")
+    check_matcher_name({}, "0t1q66hy")                                                 # older checkpoints: no record
+    with pytest.raises(ValueError, match="lvdtest"):
+        check_matcher_name({"matcher_name": "lvdtest"}, "0t1q66hy")

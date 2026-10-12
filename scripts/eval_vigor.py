@@ -71,7 +71,7 @@ from bevloc.eval.metrics import pose_errors
 from bevloc.eval.report import summarise_pose
 from bevloc.match.consensus import apply_settings, load_chosen, settings_of
 from bevloc.match.satroma import (
-    REFINE_INITS, SatRoMa, check_refinable, consensus_for_query, consensus_union, refined_for_query,
+    REFINE_INITS, SatRoMa, check_matcher_name, check_refinable, consensus_for_query, consensus_union, refined_for_query,
 )
 from bevloc.match.vote_stats import pose_px, ref_cell_valid, stats_row
 from bevloc.model.coarse import FeatureQueryMatcher
@@ -513,6 +513,10 @@ def decoder_fine(a, cfg, ds, dev):
     cfg_f.lift.query_mode = mode
     apply_query_cfg(cfg_f, state)
     matcher = FeatureQueryMatcher(cfg_f.matcher.checkpoint, dev, train_decoder=False)
+    try:
+        check_matcher_name(state.get("train"), getattr(matcher.wrapper, "name", None))
+    except ValueError as e:
+        raise SystemExit(f"--fine-ckpt {a.fine_ckpt}: {e}")
     matcher.model.decoder.load_state_dict(state["decoder"], strict=False)
     dec_dtype = apply_decoder_dtype(matcher, a)
     query = build_query(cfg_f, mode).to(dev)
@@ -560,6 +564,10 @@ def run(a, make_fine=None):
     train_meta = state.get("train")
     print(f"checkpoint {a.ckpt}: mode {mode}, step {state.get('step')}, training {train_meta}", flush=True)
     matcher = FeatureQueryMatcher(cfg.matcher.checkpoint, dev, train_decoder=False)
+    try:
+        check_matcher_name(train_meta, getattr(matcher.wrapper, "name", None))
+    except ValueError as e:
+        raise SystemExit(f"--ckpt {a.ckpt}: {e}")
     matcher.model.decoder.load_state_dict(state["decoder"], strict=False)
     dec_dtype = apply_decoder_dtype(matcher, a)
     print(f"decoder autocast {dec_dtype} (checkpoint trained with "

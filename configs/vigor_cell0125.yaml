@@ -175,6 +175,8 @@ pillar:                           # FG²-style pillar feature lift into a BEV gr
   head_heads: 4
   head_ff_mult: 2
   z_embed_dim: 64
+  pe_max_period_m: 70.0           # fixed metric periods of the head's positional embedding (log-spaced down to pe_min_period_m,
+  pe_min_period_m: 4.0            #   >= 2 cells: no aliasing); in metres, so the coarse and fine passes share the head
   lr_head: 2.0e-4
   height_weight: 0.0              # Row A; Row B trains with --height-weight 1
   height_tol_m: 1.0

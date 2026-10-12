@@ -33,6 +33,20 @@ def height_panel(z_m, z_max, cell_px=12):
     return img
 
 
+def colour_bar(width, z_max, height=56):
+    """A labelled horizontal legend: 0 m (dark) .. z_max m (yellow), black = no image."""
+    bar = np.zeros((height, width, 3), np.uint8)
+    n = max(width - 200, 100)
+    ramp = cv2.applyColorMap(np.tile(np.linspace(0, 255, n).astype(np.uint8), (24, 1)), cv2.COLORMAP_VIRIDIS)
+    bar[8:32, 100:100 + n] = ramp
+    f = cv2.FONT_HERSHEY_SIMPLEX
+    cv2.putText(bar, "0 m", (100, 50), f, 0.5, (255, 255, 255), 1, cv2.LINE_AA)
+    cv2.putText(bar, f"{z_max:g} m above ground", (100 + n - 190, 50), f, 0.5, (255, 255, 255), 1, cv2.LINE_AA)
+    cv2.putText(bar, "selected slice height per 2 m cell (black: no image); ego = +, forward = up, left = left",
+                (320, 50), f, 0.45, (200, 200, 200), 1, cv2.LINE_AA)
+    return bar
+
+
 def main():
     ap = C.add_args(argparse.ArgumentParser(description=__doc__))
     ap.add_argument("--ckpt", required=True)
@@ -70,6 +84,7 @@ def main():
         pano = cv2.resize(pano, (int(pano.shape[1] * h / pano.shape[0]), h))
         rows.append(np.concatenate([pano, np.full((h, 8, 3), 255, np.uint8), panel], 1))
     sheet = np.concatenate(rows, 0)
+    sheet = np.concatenate([sheet, colour_bar(sheet.shape[1], z_max)], 0)
     out = Path(a.out) / f"height_{a.tag}.jpg"
     out.parent.mkdir(parents=True, exist_ok=True)
     cv2.imwrite(str(out), sheet, [cv2.IMWRITE_JPEG_QUALITY, 90])

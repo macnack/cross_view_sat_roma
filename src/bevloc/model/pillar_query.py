@@ -139,19 +139,28 @@ from bevloc.model.erp_query import band_of                                      
 
 # the cfg.pillar keys that decide the module's parameter shapes: a checkpoint restores these into an evaluator's
 # config (query.apply_query_cfg); the grid keys (cell_m, range_m, cam_height_m, ...) always come from the config
-PILLAR_ARCH_KEYS = ("head", "head_dim", "head_convs", "head_heads", "head_ff_mult", "z_above_ground_m", "z_embed_dim")
+PILLAR_ARCH_KEYS = ("head", "head_dim", "head_convs", "head_heads", "head_ff_mult", "z_above_ground_m", "z_embed_dim",
+                    "pe_max_period_m", "pe_min_period_m")
 
 
-def sinusoidal_2d(xy_m, dim, scale_m=70.0):
-    """Fixed sinusoidal embedding of metric positions xy (n, n, 2) -> (dim, n, n); periods from scale_m / 2 down."""
-    half = dim // 2
-    k = torch.arange(half // 2, device=xy_m.device, dtype=xy_m.dtype)
-    freq = (2 * math.pi / float(scale_m)) * (2.0 ** k)                            # (half/2,)
+def pe_frequencies(dim, max_period_m=70.0, min_period_m=4.0, device=None, dtype=torch.float32):
+    """dim/4 angular frequencies, log-spaced from period max_period_m down to min_period_m (never above the
+    grid's Nyquist rate: min_period_m >= 2 cells), so the embedding is a function of metres alone — identical for the
+    coarse and the fine grid, and free of the aliasing a 2^k ladder produces beyond a handful of octaves."""
+    n = max(int(dim) // 4, 1)
+    periods = torch.logspace(math.log10(float(max_period_m)), math.log10(float(min_period_m)), n, device=device, dtype=dtype)
+    return 2 * math.pi / periods
+
+
+def sinusoidal_2d(xy_m, dim, max_period_m=70.0, min_period_m=4.0):
+    """Fixed sinusoidal embedding of metric positions xy (n, n, 2) -> (dim, n, n): [sin, cos] of x and of y at
+    `pe_frequencies`; zero-padded to dim when dim is not a multiple of 4."""
+    freq = pe_frequencies(dim, max_period_m, min_period_m, device=xy_m.device, dtype=xy_m.dtype)
     out = []
     for a in (xy_m[..., 0], xy_m[..., 1]):
-        ang = a[..., None] * freq                                                  # (n, n, half/2)
+        ang = a[..., None] * freq                                                  # (n, n, dim/4)
         out += [torch.sin(ang), torch.cos(ang)]
-    pe = torch.cat(out, -1)                                                        # (n, n, 4 * (half/2))
+    pe = torch.cat(out, -1)
     if pe.shape[-1] < dim:
         pe = torch.cat([pe, torch.zeros(*pe.shape[:-1], dim - pe.shape[-1], device=pe.device, dtype=pe.dtype)], -1)
     return pe.permute(2, 0, 1)
@@ -175,6 +184,8 @@ class PillarQuery(nn.Module):
         self.max_dep = float(getattr(P, "max_depression_deg", 90.0))
         self.blind = float(getattr(P, "blind_radius_m", 0.0))
         self.tol_m, self.tol_frac = float(getattr(P, "height_tol_m", 1.0)), float(getattr(P, "height_tol_frac", 0.10))
+        # positional embedding periods in metres (fixed, not tied to the grid: the coarse and fine passes share the head)
+        self.pe_periods = (float(getattr(P, "pe_max_period_m", 70.0)), float(getattr(P, "pe_min_period_m", 4.0)))
         self.patch, C = 16, 1024
         zd = int(getattr(P, "z_embed_dim", 64))
         self.z_embed = nn.Parameter(0.02 * torch.randn(len(self.z), zd))
@@ -231,7 +242,7 @@ class PillarQuery(nn.Module):
         f_q = pooled.reshape(B, self.nq, self.nq, C).permute(0, 3, 1, 2)
         valid = geo["cell_valid"].reshape(B, self.nq, self.nq)
         if self.head is not None:
-            pos = sinusoidal_2d(geo["xy_m"].reshape(self.nq, self.nq, 2), self.head.down.out_channels, 2 * self.range)[None]
+            pos = sinusoidal_2d(geo["xy_m"].reshape(self.nq, self.nq, 2), self.head.down.out_channels, *self.pe_periods)[None]
             f_q = self.head(f_q, valid, zero=False, pos=pos)
         self._last = dict(logits=logits, geo=geo)
         return f_q, valid.float()
@@ -261,6 +272,6 @@ class PillarQuery(nn.Module):
         target, has = height_targets(geo["rng"], geo["uv"], geo["ok"], batch["depth"], H, W, self.tol_m, self.tol_frac)
         has = has & geo["cell_valid"]
         n = int(has.sum())
-        if n == 0:
-            return logits.sum() * 0.0, 0
+        if n == 0:                                                                   # a finite zero that keeps the graph
+            return logits.masked_fill(~torch.isfinite(logits), 0.0).sum() * 0.0, 0   # (-inf of masked slices times 0 = nan)
         return F.cross_entropy(logits[has], target[has]), n

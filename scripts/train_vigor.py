@@ -357,6 +357,7 @@ def main():
             f"pin_memory {a.pin_memory}", flush=True)
 
     matcher = FeatureQueryMatcher(cfg.matcher.checkpoint, dev, train_decoder=True)
+    train_meta.update(matcher_checkpoint=str(cfg.matcher.checkpoint), matcher_name=getattr(matcher.wrapper, "name", None))
     if a.encoder_dtype != "float32" or a.check_encoder:
         set_encoder_dtype(matcher.model.encoder, a.encoder_dtype)
     if a.decoder_dtype != DECODER_DTYPE_DEFAULT:

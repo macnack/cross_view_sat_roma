@@ -122,6 +122,16 @@ def load_matcher(checkpoint, device=None):
                           im_b_size=config.get("im_b_size", 896), name=name)
 
 
+def check_matcher_name(train_meta, name):
+    """A checkpoint trained on one Sat-RoMa decoder / encoder (`train_meta["matcher_name"]`, recorded by
+    train_vigor.py) must be evaluated with the same matcher: a decoder fine-tuned on DINOv3-LVD features loaded under
+    a config naming the sat493m matcher would silently run the wrong encoder. Older checkpoints carry no record."""
+    rec = (train_meta or {}).get("matcher_name") if isinstance(train_meta, dict) else None
+    if rec is not None and name is not None and str(rec) != str(name):
+        raise ValueError(f"checkpoint was trained with matcher {rec!r} but the config builds {name!r} "
+                         f"(cfg.matcher.checkpoint): use the matching checkpoint / export directory")
+
+
 class SatRoMa:
     def __init__(self, checkpoint="0t1q66hy", device=None, use_means=False,
                  reproj_cells=3.0, seed=0, min_valid_frac=1.0, solver="srt"):

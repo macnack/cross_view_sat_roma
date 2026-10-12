@@ -167,7 +167,7 @@ def step(query, matcher, batch, cfg, min_patch, local_radius, neighbour_radius, 
             raise ValueError("height_weight > 0 needs the pillar query (PillarQuery.height_loss)")
         hloss, n_sup = query.height_loss(batch)
         loss = loss + float(height_weight) * hloss
-        st["height_ce"] = float(hloss.detach())
+        st["height_ce"] = float(hloss.detach()) if n_sup else float("nan")
         st["height_frac"] = n_sup / max(int((patch_frac >= min_patch).sum()), 1)
         st["n_height"] = int(n_sup)
         if parts is not None:
