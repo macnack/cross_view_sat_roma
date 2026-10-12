@@ -276,8 +276,8 @@ class FeatureQueryMatcher(nn.Module):
 
     def __init__(self, checkpoint, device, train_decoder=True):
         super().__init__()
-        from bevloc.match.satroma import SatRoMaMatcher
-        m = SatRoMaMatcher.from_pretrained(checkpoint, device=device)
+        from bevloc.match.satroma import load_matcher
+        m = load_matcher(checkpoint, device=device)        # a released name or a local export directory
         self.wrapper, self.model = m, m.model
         self.model.decoder.expose_intermediates = True     # gm_cls in eval mode too (BatchNorm stays frozen)
         for p in self.model.encoder.parameters():

@@ -325,3 +325,71 @@ def test_vigor_pairs_in_pillar_mode_loads_depth_only_when_asked(tmp_path):
     cfg.pillar.erp_size = [448, 224]
     ds2 = VigorPairs(root, cfg, cities=["Chicago"], split="samearea", train=False, depth=True)
     assert ds2.depth and (ds2.erp_w, ds2.erp_h) == (448, 224) and ds2[0]["depth"].shape == (1, 224, 448)
+
+
+# ---- (f) a Sat-RoMa decoder from a local export directory (the DINOv3-LVD row) -------------------------------
+
+def _fake_dinov3(monkeypatch, seen):
+    """sat-roma-infer's own offline stub: a stride-16 conv in timm's features_only shape; records the model type."""
+    import sat_roma.encoders as enc
+
+    class Inner(torch.nn.Module):
+        num_prefix_tokens = 1
+
+        def __init__(self):
+            super().__init__()
+            self.proj = torch.nn.Conv2d(3, 1024, 16, 16)
+
+        def forward_intermediates(self, x, indices=None, norm=False, output_fmt="NCHW", intermediates_only=True,
+                                  attn_mask=None, is_causal=False):
+            return [self.proj(x)]
+
+    class Net(torch.nn.Module):
+        def __init__(self):
+            super().__init__()
+            self.model, self.out_indices, self.norm, self.output_fmt = Inner(), (-1,), False, "NCHW"
+
+        def forward(self, x):
+            return self.model.forward_intermediates(x)
+
+    def build(model_type, compile=True, label="Sat Encoder", freeze=True):
+        seen.append(model_type)
+        return Net().eval(), 1024, enc._DINOV3_MODEL_NAMES.get(model_type, model_type)
+
+    monkeypatch.setattr(enc, "_build_frozen_dinov3", build)
+
+
+def test_load_matcher_builds_from_an_export_directory(tmp_path, monkeypatch):
+    import json
+    from safetensors.torch import save_file
+    from bevloc.match.satroma import SatRoMaMatcher, load_matcher
+    from sat_roma.build import build_sat_roma
+    seen = []
+    _fake_dinov3(monkeypatch, seen)
+    cfg = dict(name="lvdtest", encoder_type="satdinov3", pretrain_model="vit_large_patch16_dinov3_lvd",
+               resolution="medium", h_resized=224, w_resized=224, map_to_img_ratio=4, im_b_size=896, proj_dim=512,
+               gp_solver="lu", gp_sigma_noise=0.1, sat_normalize=True, cls_to_coord_res=56, decoder_scales=["16"])
+    src = build_sat_roma(pretrain_model=cfg["pretrain_model"], compile_backbone=False)
+    with torch.no_grad():
+        for p in src.decoder.parameters():
+            p.add_(0.01 * torch.randn_like(p))
+    dec = {k: v.contiguous() for k, v in src.state_dict().items() if not k.startswith("encoder.")}
+    d = tmp_path / "satroma_lvdtest"
+    d.mkdir()
+    save_file(dec, d / "sat_roma_lvdtest_decoder.safetensors")
+    (d / "sat_roma_lvdtest_config.json").write_text(json.dumps(cfg))
+    seen.clear()
+    m = load_matcher(str(d), device="cpu")
+    assert isinstance(m, SatRoMaMatcher) and m.name == "lvdtest" and (m.im_a_size, m.im_b_size) == (224, 896)
+    assert seen == ["vit_large_patch16_dinov3_lvd"]                     # the JSON's encoder, not the default
+    got = m.model.state_dict()
+    assert all(torch.equal(got[k], v) for k, v in dec.items())
+    # a plain name goes to the hub resolver as before
+    monkeypatch.setattr(SatRoMaMatcher, "from_pretrained", classmethod(lambda cls, name, device=None: ("hub", name)))
+    assert load_matcher("0t1q66hy", device="cpu") == ("hub", "0t1q66hy")
+    with pytest.raises(FileNotFoundError):
+        load_matcher(str(tmp_path / "missing_dir"), device="cpu")
+    # the training-side wrapper takes the same path
+    from bevloc.model.coarse import FeatureQueryMatcher
+    fq = FeatureQueryMatcher(str(d), "cpu")
+    assert fq.wrapper.name == "lvdtest"

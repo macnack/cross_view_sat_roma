@@ -83,6 +83,45 @@ class Match:
     sources: dict | None = field(default=None, compare=False)
 
 
+def load_matcher(checkpoint, device=None):
+    """A `SatRoMaMatcher` from a released name (`from_pretrained`, the hub cache) or from a local export directory
+    holding `sat_roma_<name>_decoder.safetensors` + `sat_roma_<name>_config.json` as `export_public_weights.py`
+    writes them (task 07: the DINOv3-LVD decoder `tpupzyfr`, which the package's hard-coded name table does not
+    know). The directory path mirrors `SatRoMaMatcher.from_pretrained` key by key, so an exported config with
+    another `pretrain_model` (e.g. `vit_large_patch16_dinov3_lvd`, ImageNet stats) builds the matching encoder."""
+    import glob
+    import json
+    p = Path(str(checkpoint))
+    if not p.is_dir():
+        if os.sep in str(checkpoint) or str(checkpoint).startswith("."):
+            raise FileNotFoundError(f"matcher checkpoint directory {checkpoint} does not exist")
+        return SatRoMaMatcher.from_pretrained(checkpoint, device=device)
+    cfgs = sorted(glob.glob(str(p / "sat_roma_*_config.json")))
+    if len(cfgs) != 1:
+        raise FileNotFoundError(f"{p} must hold exactly one sat_roma_<name>_config.json (found {len(cfgs)})")
+    config = json.loads(Path(cfgs[0]).read_text())
+    name = config.get("name") or Path(cfgs[0]).name[len("sat_roma_"):-len("_config.json")]
+    weights = p / f"sat_roma_{name}_decoder.safetensors"
+    if not weights.is_file():
+        raise FileNotFoundError(f"{weights} missing next to {cfgs[0]}")
+    from sat_roma.build import build_sat_roma
+    from sat_roma.weights import load_decoder_weights
+    if device is None:
+        device = "cuda" if torch.cuda.is_available() else "cpu"
+    model = build_sat_roma(resolution=config.get("resolution", "medium"),
+                           map_to_img_ratio=config.get("map_to_img_ratio", 4),
+                           proj_dim=config.get("proj_dim", 512),
+                           gp_solver=config.get("gp_solver", "lu"),
+                           gp_sigma_noise=config.get("gp_sigma_noise", 0.1),
+                           normalize_input=config.get("sat_normalize", True),
+                           pretrain_model=config.get("pretrain_model", "vit_large_patch16_dinov3"),
+                           compile_backbone=False)
+    load_decoder_weights(model, str(weights))
+    model = model.to(device).eval()
+    return SatRoMaMatcher(model=model, device=device, im_a_size=config.get("h_resized", 224),
+                          im_b_size=config.get("im_b_size", 896), name=name)
+
+
 class SatRoMa:
     def __init__(self, checkpoint="0t1q66hy", device=None, use_means=False,
                  reproj_cells=3.0, seed=0, min_valid_frac=1.0, solver="srt"):
@@ -90,8 +129,9 @@ class SatRoMa:
         per-patch peak (identical for all modes of a patch). use_means=True feeds
         the distinct per-mode means, i.e. genuine competing hypotheses.
         solver: "srt" = the package's 4-DoF similarity RANSAC + weighted refinement (published);
-        "se2" = fixed-scale 2-point SE(2) RANSAC on the same hypothesis set (kick-off H7)."""
-        self.m = SatRoMaMatcher.from_pretrained(checkpoint, device=device)
+        "se2" = fixed-scale 2-point SE(2) RANSAC on the same hypothesis set (kick-off H7).
+        checkpoint: a released name or a local export directory (`load_matcher`)."""
+        self.m = load_matcher(checkpoint, device=device)
         self.use_means = use_means
         # NOTE (2026-09-23): with the published refine=False configuration the package's model="sRT"
         # never reaches a solver: pipeline.estimate_homography returns the cv2.findHomography RANSAC
