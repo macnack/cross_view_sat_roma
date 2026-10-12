@@ -131,3 +131,117 @@ def test_height_targets_pick_the_slice_whose_range_matches_the_depth():
     far = torch.full((1, 1, H, W), 60.0)                   # 60 m everywhere: no slice agrees anywhere
     _, has2 = height_targets(rng, uv, ok, far, H, W, tol_m=1.0, tol_frac=0.1)
     assert not has2.any()
+
+
+# ---- (d) the module: factory, head, placement, height loss, checkpoint round trip ----------------------------
+
+from bevloc import config as C                                                   # noqa: E402
+from bevloc.model.depth_query import metric_to_bev_px                            # noqa: E402
+from bevloc.model.pillar_query import PILLAR_ARCH_KEYS, PillarQuery              # noqa: E402
+from bevloc.model.query import apply_query_cfg, build_query, load_query_state    # noqa: E402
+
+O = (224 - 1) / 2.0
+
+
+class _FakeMatcher:
+    class model:  # noqa: N801
+        @staticmethod
+        def encoder(x):
+            return {16: torch.nn.functional.avg_pool2d(x.repeat(1, 342, 1, 1)[:, :1024], 16)}
+
+
+def _cfg(head=True, cell=0.125, **pillar):
+    cfg = C.load(str(C.REPO / "configs/default.yaml"))
+    cfg.grid.cell_m = cell
+    cfg.lift.query_mode = "pillar"
+    cfg.pillar.head = head
+    for k, v in pillar.items():
+        setattr(cfg.pillar, k, v)
+    return cfg
+
+
+def _batch(B=1, depth=None):
+    b = dict(erp=torch.rand(B, 1, 3, H, W), R_w2c=R_N[None].repeat(B, 1, 1, 1))
+    if depth is not None:
+        b["depth"] = depth
+    return b
+
+
+def test_build_query_pillar_forward_shapes_and_identity_head_at_init():
+    cfg = _cfg(head=True)
+    q = build_query(cfg, "pillar")
+    assert isinstance(q, PillarQuery) and q.nq == 35                     # 2 m cells over +-35 m
+    b = _batch()
+    f_q, frac = q(b, _FakeMatcher)
+    assert f_q.shape == (1, 1024, 35, 35) and frac.shape == (1, 35, 35)
+    assert float(frac.sum()) == 35 * 35 - 1                               # the blind disc removes the ego cell only
+    q0 = build_query(_cfg(head=False), "pillar")
+    q0.load_state_dict({k: v for k, v in q.state_dict().items() if k in q0.state_dict()})
+    f0, _ = q0(b, _FakeMatcher)
+    assert torch.allclose(f_q, f0, atol=1e-6)                             # zero-initialised head output: identity
+    assert 1e5 <= sum(p.numel() for p in q.parameters()) <= 3e6
+
+
+def test_pillar_placement_is_the_cell_centres_in_virtual_bev_pixels():
+    q = build_query(_cfg(), "pillar")
+    xy, valid = q.placement(_batch(B=2))
+    assert xy.shape == (2, 35, 35, 2) and valid.shape == (2, 35, 35) and valid.dtype == torch.bool
+    exp = metric_to_bev_px(grid_xy(35, 2.0), 224, 0.125)
+    assert torch.allclose(xy[1], exp)
+    assert torch.allclose(xy[0, 12, 17], torch.tensor([O, O - 10.0 / 0.125]))   # 10 m ahead = 80 px up
+    assert not valid[0, 17, 17] and bool(valid[0, 12, 17])
+    # a narrow elevation band (a KITScenes-like crop, +-2.9 deg): the near cells have no slice inside it
+    b = _batch()
+    b["erp_band"] = torch.tensor([[0.05, -0.05]])
+    _, vb = build_query(_cfg(cam_height_m=2.5), "pillar").placement(b)
+    assert bool(vb.any()) and int(vb.sum()) < int(valid[0].sum()) and not vb[0, 15, 17]   # 4 m ahead: nothing in the band
+
+
+def test_pillar_placement_in_fine_pixels_is_twice_as_far_from_the_centre():
+    xy_c, _ = build_query(_cfg(cell=0.125), "pillar").placement(_batch())
+    xy_f, _ = build_query(_cfg(cell=0.0625, cell_m=1.0, range_m=28.0), "pillar").placement(_batch())
+    assert xy_f.shape[1:3] == (56, 56)
+    assert torch.allclose(xy_c[0, 12, 17] - O, torch.tensor([0.0, -80.0]))          # 10 m ahead at 0.125 m/px
+    at_coarse_gsd = metric_to_bev_px(grid_xy(56, 1.0), 224, 0.125)                 # the fine cells placed at the coarse GSD
+    assert torch.allclose(xy_f[0] - O, 2.0 * (at_coarse_gsd - O), atol=1e-4)      # twice as far at 0.0625 m/px
+
+
+def test_height_loss_supervises_the_slice_the_depth_agrees_with():
+    cfg = _cfg(head=False, cell_m=4.0, range_m=18.0)
+    q = build_query(cfg, "pillar")
+    geo = q.geometry(_batch())
+    k = 2
+    depth = torch.full((1, 1, H, W), 60.0)
+    uv, rng = geo["uv"], geo["rng"]
+    for n in range(uv.shape[1]):
+        c, r = int(uv[0, n, k, 0]) % W, min(int(uv[0, n, k, 1]), H - 1)
+        depth[0, 0, r, c] = rng[0, n, k]
+    b = _batch(depth=depth)
+    q(b, _FakeMatcher)
+    loss, n_sup = q.height_loss(b)
+    assert n_sup == 9 * 9 - 1 and torch.isfinite(loss) and float(loss.detach()) > 0   # every cell but the blind one
+    loss.backward()
+    assert q.scorer[0].weight.grad is not None and float(q.scorer[0].weight.grad.abs().sum()) > 0
+    with pytest.raises(KeyError):
+        q.height_loss(_batch())
+    _, n0 = q.height_loss(_batch(depth=torch.full((1, 1, H, W), 60.0)))
+    assert n0 == 0
+
+
+def test_pillar_state_round_trips_and_the_checkpoint_restores_architecture_keys_only():
+    cfg = _cfg(head=True)
+    cfg.pillar.head_dim = 64
+    q = build_query(cfg, "pillar")
+    with torch.no_grad():
+        for p in q.parameters():
+            p.add_(0.01 * torch.randn_like(p))
+    state = {"query": q.state_dict(), "mode": "pillar", "pillar": {k: getattr(cfg.pillar, k) for k in PILLAR_ARCH_KEYS}}
+    assert "cell_m" not in state["pillar"] and "head_dim" in state["pillar"]
+    cfg_eval = apply_query_cfg(_cfg(head=False, cell_m=1.0, range_m=28.0), state)
+    assert cfg_eval.pillar.head is True and cfg_eval.pillar.head_dim == 64
+    assert cfg_eval.pillar.cell_m == 1.0 and cfg_eval.pillar.range_m == 28.0   # grid keys stay the evaluator's
+    q2 = build_query(cfg_eval, "pillar")
+    assert load_query_state(q2, state) == (len(q.state_dict()),) * 2
+    for k, v in q.state_dict().items():
+        assert torch.equal(v, q2.state_dict()[k])
+    assert apply_query_cfg(_cfg(head=False), {"query": {}, "mode": "ipm"}).pillar.head is False   # other ckpts: untouched

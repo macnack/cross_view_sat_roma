@@ -5,6 +5,7 @@
   hybrid — dense IPM ground features + learned depth above the horizon   [task 03, Task 3]
   erp    — the panorama's own tokens; placement after matching (Loc²)     [task 03, Task 6]
   erp_depth — erp tokens [+ projection head], placed from metric depth    [task 04, Step 2]
+  pillar — FG²-style pillar feature lift into a BEV grid (no depth at inference) [task 07]
 """
 from __future__ import annotations
 
@@ -66,6 +67,9 @@ def build_query(cfg, mode):
     if mode == "erp_depth":
         from bevloc.model.depth_query import ErpDepthQuery
         return ErpDepthQuery(cfg)
+    if mode == "pillar":
+        from bevloc.model.pillar_query import PillarQuery
+        return PillarQuery(cfg)
     raise ValueError(f"unknown query mode {mode!r}")
 
 
@@ -109,4 +113,12 @@ def apply_query_cfg(cfg, state):
         base = vars(getattr(cfg, "erp_depth", SimpleNamespace())).copy()
         base.update(E)
         cfg.erp_depth = SimpleNamespace(**base)
+    P = state.get("pillar") if isinstance(state, dict) else None
+    if P:
+        # only the keys that shape the parameters (bevloc.model.pillar_query.PILLAR_ARCH_KEYS): the grid keys
+        # (cell_m, range_m, ...) stay the evaluator's / the fine pass's own, as the lift does not depend on them
+        from bevloc.model.pillar_query import PILLAR_ARCH_KEYS
+        base = vars(getattr(cfg, "pillar", SimpleNamespace())).copy()
+        base.update({k: v for k, v in P.items() if k in PILLAR_ARCH_KEYS})
+        cfg.pillar = SimpleNamespace(**base)
     return cfg

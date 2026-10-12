@@ -242,6 +242,30 @@ erp_depth:                        # ERP tokens placed from metric depth + Sat-Ro
   vce_points: 10                  # per side (Loc² num_virtual_point 10 -> 10 x 10)
   vce_use_certainty: true         # weight each token's pairs by sigmoid(gm_certainty)
 
+pillar:                           # FG²-style pillar feature lift into a BEV grid + Sat-RoMa decoder (task 07)
+  cell_m: 2.0                     # query grid spacing (FG²: 71 m / 41 = 1.75 m); n = 2 * range_m / cell_m cells per side
+  range_m: 35.0                   # half-extent of the query grid around the camera (= erp_depth.max_depth_m)
+  z_above_ground_m: [0.0, 0.5, 1.0, 2.0, 3.0, 4.0, 6.0, 8.0, 11.0, 15.0, 20.0]   # pillar slices above the ground plane (slice 0 = IPM)
+  cam_height_m: 2.0               # camera above the ground plane (Mapillary/Poznań: UniK3D v2 implies 2.08 m, decision 2026-10-01)
+  max_depression_deg: 20.0        # slices looking further down than this carry the ego car, not the scene (90 = no cut)
+  blind_radius_m: 1.2             # cells under the camera are never valid
+  erp_size: [896, 448]            # width, height of the panorama fed to the encoder -> 56 x 28 tokens
+  head: true                      # light BEV head on the pooled grid (ProjectionHead without the azimuth wrap)
+  head_dim: 256
+  head_convs: 2
+  head_heads: 4
+  head_ff_mult: 2
+  z_embed_dim: 64                 # learned height embedding seen by the slice scorer
+  lr_head: 2.0e-4                 # learning rate of the lift (scorer, embedding, head); the decoder uses train.lr_decoder
+  height_weight: 0.0              # > 0: CE on the height softmax against the depth-derived slice (Row B); 0 = pose only (Row A)
+  height_tol_m: 1.0               # a slice agrees with the depth within max(tol_m, tol_frac * range)
+  height_tol_frac: 0.10
+  vce_samples: 1024               # VCE options as erp_depth (coarse.vce_options reads this block for the pillar mode)
+  vce_mode: sample
+  vce_grid_m: 5.0
+  vce_points: 10
+  vce_use_certainty: true
+
 ipm:                              # camera-only flat-ground query on Mapillary (task 03, Task 2)
   height_m: 1.7                   # Mapillary rig height above the road, assumed (not in the files)
   blind_radius_m: 1.2             # disc under the camera (rig / vehicle roof)

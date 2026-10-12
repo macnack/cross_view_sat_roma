@@ -161,6 +161,30 @@ erp_depth:                        # ERP tokens placed from metric depth + Sat-Ro
   vce_points: 10                  # per side (Loc² num_virtual_point 10 -> 10 x 10)
   vce_use_certainty: true         # weight each token's pairs by sigmoid(gm_certainty)
 
+pillar:                           # FG²-style pillar feature lift into a BEV grid + Sat-RoMa decoder (task 07)
+  cell_m: 2.0                     # query grid spacing: 35 x 35 cells over +-35 m (FG²: 41 x 41 over 71 m)
+  range_m: 35.0
+  z_above_ground_m: [0.0, 0.5, 1.0, 2.0, 3.0, 4.0, 6.0, 8.0, 11.0, 15.0, 20.0]
+  cam_height_m: 2.5               # Street View rig (UniK3D v2 implies 2.58 m on VIGOR, decision 2026-10-01)
+  max_depression_deg: 90.0        # no ego-car cut on VIGOR (a 20 deg cut would drop the ground within 6.9 m)
+  blind_radius_m: 1.2
+  erp_size: [896, 448]
+  head: true
+  head_dim: 256
+  head_convs: 2
+  head_heads: 4
+  head_ff_mult: 2
+  z_embed_dim: 64
+  lr_head: 2.0e-4
+  height_weight: 0.0              # Row A; Row B trains with --height-weight 1
+  height_tol_m: 1.0
+  height_tol_frac: 0.10
+  vce_samples: 1024
+  vce_mode: sample
+  vce_grid_m: 5.0
+  vce_points: 10
+  vce_use_certainty: true
+
 ipm:                              # camera-only flat-ground query on Mapillary (task 03, Task 2)
   height_m: 1.7                   # Mapillary rig height above the road, assumed (not in the files)
   blind_radius_m: 1.2             # disc under the camera (rig / vehicle roof)

@@ -166,6 +166,30 @@ erp_depth:                        # ERP tokens placed from metric depth + Sat-Ro
   vce_points: 10                  # per side (Loc² num_virtual_point 10 -> 10 x 10)
   vce_use_certainty: true         # weight each token's pairs by sigmoid(gm_certainty)
 
+pillar:                           # FG²-style pillar feature lift, fine pass: 1 m cells over the 56 m window (task 07)
+  cell_m: 1.0                     # 56 x 56 cells over +-28 m = vigor.ref_window_m; the lift's parameters do not depend on the grid
+  range_m: 28.0
+  z_above_ground_m: [0.0, 0.5, 1.0, 2.0, 3.0, 4.0, 6.0, 8.0, 11.0, 15.0, 20.0]
+  cam_height_m: 2.5
+  max_depression_deg: 90.0
+  blind_radius_m: 1.2
+  erp_size: [896, 448]
+  head: true
+  head_dim: 256
+  head_convs: 2
+  head_heads: 4
+  head_ff_mult: 2
+  z_embed_dim: 64
+  lr_head: 2.0e-4
+  height_weight: 0.0
+  height_tol_m: 1.0
+  height_tol_frac: 0.10
+  vce_samples: 1024
+  vce_mode: sample
+  vce_grid_m: 5.0
+  vce_points: 10
+  vce_use_certainty: true
+
 ipm:                              # camera-only flat-ground query on Mapillary (task 03, Task 2)
   height_m: 1.7                   # Mapillary rig height above the road, assumed (not in the files)
   blind_radius_m: 1.2             # disc under the camera (rig / vehicle roof)

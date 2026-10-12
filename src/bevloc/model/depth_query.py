@@ -122,12 +122,14 @@ class ProjectionHead(nn.Module):
     Residual with a zero-initialised output projection: at initialisation the decoder sees the frozen tokens
     unchanged, so the released / warm-started decoder is not disturbed by a random head."""
 
-    def __init__(self, in_dim=1024, dim=256, heads=4, n_convs=2, ff_mult=2):
+    def __init__(self, in_dim=1024, dim=256, heads=4, n_convs=2, ff_mult=2, circular=True):
+        """circular: wrap the convolutions along the width (a panorama's azimuth); False for a BEV grid (zero padding)."""
         super().__init__()
         if int(dim) % 8:
             raise ValueError(f"erp_depth.head_dim must be divisible by 8 (GroupNorm with 8 groups), got {dim}")
         if int(dim) % int(heads):
             raise ValueError(f"erp_depth.head_dim {dim} must be divisible by head_heads {heads}")
+        self.circular = bool(circular)
         self.down = nn.Conv2d(in_dim, dim, 1)
         self.convs = nn.ModuleList([nn.Conv2d(dim, dim, 3, padding=0) for _ in range(int(n_convs))])
         self.norms = nn.ModuleList([nn.GroupNorm(8, dim) for _ in range(int(n_convs))])
@@ -137,18 +139,25 @@ class ProjectionHead(nn.Module):
         nn.init.zeros_(self.up.weight)
         nn.init.zeros_(self.up.bias)
 
-    def forward(self, f, valid=None, zero=True):
+    def forward(self, f, valid=None, zero=True, pos=None):
         """f (B, C, h, w) frozen tokens. valid (B, h, w) bool or None: tokens that carry no image (the black rows of a
         panorama with partial coverage, the ego car) are zeroed before the convolutions and the normalisation and
         ignored as attention keys, so an invalid token influences no valid one; None = every token valid (training).
-        zero=False: only the attention keys are masked (the convolutions and the normalisation see every token)."""
+        zero=False: only the attention keys are masked (the convolutions and the normalisation see every token).
+        pos (B or 1, dim, h, w) or None: a positional signal added inside the low-dimensional branch (the residual
+        output is still zero at initialisation, so the identity property holds)."""
         m = None if valid is None or not zero else valid[:, None].to(f.dtype)
         x = self.down(f)
+        if pos is not None:
+            x = x + pos.to(x.dtype)
         if m is not None:
             x = x * m
         for conv, norm in zip(self.convs, self.norms):
-            p = F.pad(x, (1, 1, 0, 0), mode="circular")          # azimuth wraps
-            p = F.pad(p, (0, 0, 1, 1), mode="replicate")         # poles do not
+            if self.circular:
+                p = F.pad(x, (1, 1, 0, 0), mode="circular")      # azimuth wraps
+                p = F.pad(p, (0, 0, 1, 1), mode="replicate")     # poles do not
+            else:
+                p = F.pad(x, (1, 1, 1, 1))                       # a BEV grid: zero padding
             x = x + F.gelu(norm(conv(p)))
             if m is not None:
                 x = x * m
