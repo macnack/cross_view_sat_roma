@@ -393,3 +393,18 @@ def test_load_matcher_builds_from_an_export_directory(tmp_path, monkeypatch):
     from bevloc.model.coarse import FeatureQueryMatcher
     fq = FeatureQueryMatcher(str(d), "cpu")
     assert fq.wrapper.name == "lvdtest"
+
+
+# ---- (g) the selected-height map (FG² Fig. 4 style overlay) -------------------------------------------------
+
+def test_selected_height_is_the_argmax_slice_per_valid_cell():
+    q = build_query(_cfg(head=False), "pillar")
+    b = _batch()
+    q(b, _FakeMatcher)
+    z_idx, z_m = q.selected_height()
+    assert z_idx.shape == (1, 35, 35) and z_m.shape == (1, 35, 35)
+    assert int(z_idx[0, 17, 17]) == -1 and z_m[0, 17, 17] != z_m[0, 17, 17]      # the blind cell: no selection
+    ok = z_idx >= 0
+    assert bool(ok[0, 12, 17]) and int(ok.sum()) == 35 * 35 - 1
+    zs = torch.tensor(q.z)
+    assert torch.allclose(z_m[ok], zs[z_idx[ok]])                                   # metres above ground of the slice

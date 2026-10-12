@@ -8,7 +8,7 @@ FRAMES  ?= 0 1000 1600 2000
 REF     ?= 200
 RUN      = PYTHONPATH=src:.pydeps $(PY)
 
-.PHONY: eagle-pillar-smoke panoroma-viz vigor-aug-viz poznan-depth loc2-smoke loc2-eval panoroma-poznan poznan-three-way wayback-fetch wayback-calib eagle-fetch-wayback fg2-vigor eagle-watch eagle-probe eagle-submit-ddp eagle-probe-ddp vigor-viz loc2-depth loc2-vigor vigor-report loftr-fine vigor-certainty vigor-sweep vigor-cert-cache vigor-cert-head
+.PHONY: eagle-pillar-smoke pillar-height-viz panoroma-viz vigor-aug-viz poznan-depth loc2-smoke loc2-eval panoroma-poznan poznan-three-way wayback-fetch wayback-calib eagle-fetch-wayback fg2-vigor eagle-watch eagle-probe eagle-submit-ddp eagle-probe-ddp vigor-viz loc2-depth loc2-vigor vigor-report loftr-fine vigor-certainty vigor-sweep vigor-cert-cache vigor-cert-head
 .PHONY: help deps test fetch stats mask lens viewer oxts odometry bevs mosaic smoke h1 targets overfit train calib all roma-viz mapillary mapillary-scan mapillary-sample ipm-smoke lift-overfit lift-splat lift-eval lift-splat-years lift-aug-viz lift-layers-viz lift-splat-aug lift-splat-pose-nll lift-splat-seq baselines-manifest fg2-smoke fg2-eval fg2-train bevsplat-smoke bevsplat-eval bevsplat-train baselines-report kitscenes-fetch kitscenes-pano
 help:
 	@grep -E '^[a-z0-9_-]+:.*##' $(MAKEFILE_LIST) | sed -E 's/:.*## /\t/' | expand -t 12
@@ -428,3 +428,6 @@ eagle-kit-compare: ## on Eagle: depth + PanoRoMa + FG² + Loc² on kit_vigor/<NA
 	case "$$M" in *" panoroma "*) sbatch --parsable --job-name=kit_panoroma_$(NAME) --export=ALL,CMD="scripts/eval_vigor.py --config configs/vigor_cell0125.yaml --root $(KIT_ROOT) --ckpt $(or $(PANO_CKPT),checkpoints/vigor_cl_reg_D_e100_last.pt) --fine-config configs/vigor_cell00625_fine.yaml --fine-ckpt $(or $(PANO_FINE),checkpoints/vigor_cl_reg_D_fine_e100_last.pt) --fine-gate 6 --solver se2 --decoder-dtype bfloat16 --split samearea --cities Chicago --limit 0 --tag kit_$(NAME)_panoroma --out experiments/20_kitscenes" --dependency=afterok:$$J --time=01:00:00 slurm/run.sbatch;; esac; \
 	case "$$M" in *" fg2 "*) sbatch --parsable --job-name=kit_fg2_$(NAME) --export=ALL,CMD="scripts/eval_fg2_vigor.py --root $(KIT_ROOT) --split samearea --cities Chicago --limit 0 --tag kit_$(NAME)_fg2 --out experiments/20_kitscenes" --dependency=afterok:$$J --time=00:40:00 slurm/run.sbatch;; esac; \
 	case "$$M" in *" loc2 "*) sbatch --parsable --job-name=kit_loc2_$(NAME) --export=ALL,CMD="scripts/eval_loc2_vigor.py --config configs/default.yaml --root $(KIT_ROOT) --split samearea --cities Chicago --limit 0 --tag kit_$(NAME)_loc2 --out experiments/20_kitscenes" --dependency=afterok:$$J --time=00:40:00 slurm/run.sbatch;; esac
+
+pillar-height-viz: ## task 07: selected-height overlay (FG² Fig. 4) of a pillar checkpoint on N frames: CKPT=, VIGOR_ROOT=data/vigor_smoke, TAG=, N=4 -> experiments/22_pillar_lift/height_<TAG>.jpg
+	$(RUN) scripts/viz_pillar_height.py --config $(if $(VIZ_CONFIG),$(VIZ_CONFIG),configs/vigor_cell0125.yaml) --ckpt $(CKPT) --root $(if $(VIGOR_ROOT),$(VIGOR_ROOT),$(VIGOR_DIR)) --tag $(TAG) --n $(if $(N),$(N),4)

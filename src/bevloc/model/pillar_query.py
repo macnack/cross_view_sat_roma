@@ -236,6 +236,19 @@ class PillarQuery(nn.Module):
         self._last = dict(logits=logits, geo=geo)
         return f_q, valid.float()
 
+    def selected_height(self):
+        """The slice the LAST forward selected per cell (FG² Fig. 4): index (B, n, n) long (−1 for a cell without
+        image) and its height above ground in metres (nan there)."""
+        if self._last is None:
+            raise RuntimeError("selected_height needs a forward pass first")
+        logits, geo = self._last["logits"].detach(), self._last["geo"]
+        B = logits.shape[0]
+        idx = logits.argmax(-1).reshape(B, self.nq, self.nq)
+        valid = geo["cell_valid"].reshape(B, self.nq, self.nq)
+        idx = torch.where(valid, idx, torch.full_like(idx, -1))
+        zs = torch.tensor(self.z + [float("nan")], device=idx.device)
+        return idx, zs[idx]                                                          # -1 indexes the nan
+
     def height_loss(self, batch):
         """Cross-entropy of the height softmax of the LAST forward against the depth-derived slice (Row B):
         (loss, number of supervised cells). batch["depth"] (B, 1, H, W) metres along the ray is required."""
