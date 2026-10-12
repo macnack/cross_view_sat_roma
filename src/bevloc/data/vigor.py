@@ -303,8 +303,8 @@ class VigorPairs(Dataset):
         self.height = float(height_m if height_m is not None else getattr(V, "height_m", 2.0))
         mode = self._query_mode()
         if erp_size is None:
-            E = getattr(cfg, "erp_depth", None)
-            erp_size = tuple(E.erp_size) if (mode == "erp_depth" and E is not None and hasattr(E, "erp_size")) else (896, 448)
+            E = getattr(cfg, "pillar" if mode == "pillar" else "erp_depth", None)
+            erp_size = tuple(E.erp_size) if (mode in ("erp_depth", "pillar") and E is not None and hasattr(E, "erp_size")) else (896, 448)
         self.erp_w, self.erp_h = (int(v) for v in erp_size)
         self.band = {}       # per-city elevation band of cropped panoramas (read_band); empty = full spheres
         self.depth = bool(mode == "erp_depth") if depth is None else bool(depth)

@@ -77,9 +77,12 @@ def refine_step_loss(out16, tap, H, use, tok_valid, query_xy, ref_size, cells, c
 
 def step(query, matcher, batch, cfg, min_patch, local_radius, neighbour_radius, neighbour_weight,
          certainty_weight=0.01, pose_nll_weight=0.0, vce_weight=0.0, vce_opts=None, generator=None,
-         refine_weight=0.0, refine_opts=None, parts=None, label_smoothing=0.0, feat_dropout=0.0):
+         refine_weight=0.0, refine_opts=None, parts=None, label_smoothing=0.0, feat_dropout=0.0,
+         height_weight=0.0):
     """vce_weight > 0 adds Loc²'s VCE pose loss (bevloc.model.coarse.vce_pose_loss) on the placed query points;
-    needs a query with `placement` (erp, erp_depth). vce_opts: its keyword arguments (coarse.vce_options).
+    needs a query with `placement` (erp, erp_depth, pillar). vce_opts: its keyword arguments (coarse.vce_options).
+    height_weight > 0 adds the pillar query's depth-taught height loss (`PillarQuery.height_loss`, task 07 Row B);
+    needs batch["depth"] and a query with `height_loss`.
     refine_weight > 0 adds RoMa's fine loss on the decoder's conv refiner (`refine_step_loss`; refine_opts =
     `refine_options(cfg)`); the caller unfreezes the refiner (`set_refiner_trainable`).
     parts: optional dict, filled with every loss term as name -> (weighted term, the count it is a mean over), so
@@ -156,6 +159,19 @@ def step(query, matcher, batch, cfg, min_patch, local_radius, neighbour_radius, 
         st["n_vce"] = vst["n_vce"]
         if parts is not None:
             parts["vce"] = (float(vce_weight) * vloss, vst["n_vce"])
+    st["height_ce"] = float("nan")
+    st["height_frac"] = float("nan")
+    st["n_height"] = 0
+    if height_weight:
+        if not hasattr(query, "height_loss"):
+            raise ValueError("height_weight > 0 needs the pillar query (PillarQuery.height_loss)")
+        hloss, n_sup = query.height_loss(batch)
+        loss = loss + float(height_weight) * hloss
+        st["height_ce"] = float(hloss.detach())
+        st["height_frac"] = n_sup / max(int((patch_frac >= min_patch).sum()), 1)
+        st["n_height"] = int(n_sup)
+        if parts is not None:
+            parts["height"] = (float(height_weight) * hloss, n_sup)
     for k in FINE_KEYS:
         st[k] = float("nan")
     st["fine_skipped"] = 0
@@ -185,7 +201,7 @@ def step(query, matcher, batch, cfg, min_patch, local_radius, neighbour_radius, 
 @torch.no_grad()
 def validate(query, matcher, loader, cfg, min_patch, local_radius, device, max_batches=32,
              certainty_weight=0.01, pose_nll_weight=0.0, vce_weight=0.0, vce_opts=None, refine_weight=0.0,
-             refine_opts=None):
+             refine_opts=None, height_weight=0.0):
     query.eval()
     rows = []
     # a fixed generator: the VCE's match draw is the same at every validation, so the curve is comparable
@@ -197,13 +213,14 @@ def validate(query, matcher, loader, cfg, min_patch, local_radius, device, max_b
         _, st = step(query, matcher, batch, cfg, min_patch, local_radius, 0, 0.0,
                      certainty_weight=certainty_weight, pose_nll_weight=pose_nll_weight,
                      vce_weight=vce_weight, vce_opts=vce_opts, generator=gen,
-                     refine_weight=refine_weight, refine_opts=refine_opts)
+                     refine_weight=refine_weight, refine_opts=refine_opts, height_weight=height_weight)
         rows.append(st)
     query.train()
     if not rows:
         return dict(ce=float("nan"), top1=float("nan"), top5=float("nan"), cell_err_m=float("nan"),
                     pose_nll=float("nan"), pose_err_m=float("nan"), vce_m=float("nan"), vce_pose_m=float("nan"),
-                    fine_epe_px=float("nan"), fine_epe_in_px=float("nan"), fine_skipped=0, n=0)
+                    fine_epe_px=float("nan"), fine_epe_in_px=float("nan"), fine_skipped=0, n=0,
+                    height_ce=float("nan"), height_frac=float("nan"))
     w = np.array([r["n"] for r in rows], float)
 
     def avg(key):
@@ -221,6 +238,7 @@ def validate(query, matcher, loader, cfg, min_patch, local_radius, device, max_b
                 vce_m=mean("vce_m"), vce_pose_m=mean("vce_pose_m"),
                 fine_epe_px=mean("fine_epe_px"), fine_epe_in_px=mean("fine_epe_in_px"),
                 fine_skipped=int(sum(int(r.get("fine_skipped", 0)) for r in rows)),
+                height_ce=mean("height_ce"), height_frac=mean("height_frac"),
                 n=int(w.sum()))
 
 

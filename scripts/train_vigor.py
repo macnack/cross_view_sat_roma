@@ -110,6 +110,7 @@ from bevloc.data import augment as AUG  # noqa: E402
 from bevloc.data.vigor import VigorPairs, collate_vigor, split_cities  # noqa: E402
 from bevloc.model import regularise as REG  # noqa: E402
 from bevloc.model.coarse import FeatureQueryMatcher, resolve_vce_weight, vce_options  # noqa: E402
+from bevloc.model.pillar_query import PILLAR_ARCH_KEYS  # noqa: E402
 from bevloc.model.query import apply_query_cfg, build_query, load_query_state  # noqa: E402
 from bevloc.model.refine import (  # noqa: E402
     REFINER_KEY, NonFiniteGuard, best_candidate, clip_refiner_grads, decoder_state, refiner_parameters,
@@ -121,8 +122,11 @@ def main():
     ap = C.add_args(argparse.ArgumentParser(description=__doc__))
     ap.add_argument("--ckpt", default=None, help="warm start; omit to start from the released Sat-RoMa decoder "
                     "(the no-Poznań ablation) with the query mode given by --query")
-    ap.add_argument("--query", default="ipm", choices=("lift", "ipm", "hybrid", "erp", "erp_depth"),
+    ap.add_argument("--query", default="ipm", choices=("lift", "ipm", "hybrid", "erp", "erp_depth", "pillar"),
                     help="query mode when no --ckpt")
+    ap.add_argument("--height-weight", type=float, default=None,
+                    help="pillar query: weight of the depth-taught height loss (task 07 Row B; default cfg.pillar.height_weight, "
+                         "0 = pose-only Row A). > 0 loads the UniK3D depth maps for training")
     ap.add_argument("--root", default=os.environ.get("VIGOR_DIR", "data/vigor"))
     ap.add_argument("--split", default="samearea", choices=("samearea", "crossarea"))
     ap.add_argument("--cities", nargs="*", default=None)
@@ -247,22 +251,30 @@ def main():
     if state:
         apply_query_cfg(cfg, state)                 # e.g. an erp_depth warm start keeps its head setting
     if a.head:
-        cfg.erp_depth.head = True
+        (cfg.pillar if mode == "pillar" else cfg.erp_depth).head = True
     L.query_mode = mode
     vce_w = resolve_vce_weight(cfg, mode) if a.vce_weight is None else float(a.vce_weight)
-    vce_opts = vce_options(cfg)
+    vce_opts = vce_options(cfg, mode)
+    height_w = 0.0
+    if mode == "pillar":
+        height_w = float(getattr(cfg.pillar, "height_weight", 0.0) if a.height_weight is None else a.height_weight)
+    elif a.height_weight:
+        raise SystemExit("--height-weight applies to --query pillar only")
     if a.pose_nll_weight is None:
         a.pose_nll_weight = 0.0 if mode == "erp_depth" else 0.5
     refine_w = float(getattr(cfg.train, "refine_weight", 0.0) or 0.0) if a.refine_weight is None else float(a.refine_weight)
     refine_opts = refine_options(cfg)
     grad_clip = float(getattr(cfg.train, "refine_grad_clip", 1.0))
     guard = NonFiniteGuard(int(getattr(cfg.train, "refine_max_nonfinite", 20)))
-    placed = mode == "erp_depth"          # heat-map "pose" = argmax of the token votes, not a pose for placed tokens
+    placed = mode in ("erp_depth", "pillar")   # heat-map "pose" = argmax of the token votes, not a pose for placed tokens
     train_meta = dict(pose_nll_weight=a.pose_nll_weight, vce_weight=vce_w, vce_opts=vce_opts if vce_w else None,
+                      height_weight=height_w if mode == "pillar" else None,
                       neighbour_radius=a.neighbour_radius, neighbour_weight=a.neighbour_weight, steps=a.steps,
                       batch=a.batch, local_radius=a.local_radius, refine_weight=refine_w,
                       refine_opts=refine_opts if refine_w else None,
                       grid=dict(cell_m=float(cfg.grid.cell_m),
+                                **({"pillar_cell_m": float(cfg.pillar.cell_m), "pillar_range_m": float(cfg.pillar.range_m)}
+                                   if mode == "pillar" else {}),
                                 ref_window_m=getattr(getattr(cfg, "vigor", None), "ref_window_m", None),
                                 ref_jitter_m=float(getattr(getattr(cfg, "vigor", None), "ref_jitter_m", 0.0) or 0.0)),
                       refine_grad_clip=grad_clip if refine_w else None,
@@ -273,7 +285,9 @@ def main():
     va_cities = a.val_cities or (tr_cities if a.split == "samearea" else split_cities(a.split, False))
     # the held-out split, so eval_vigor.py --calib can reproduce it and skip the frames used for selection (task 06)
     train_meta.update(split=a.split, cities=list(tr_cities), val_frac=a.val_frac, val_samples=a.val_samples)
-    tr = VigorPairs(a.root, cfg, cities=tr_cities, split=a.split, train=True)
+    # the pillar query needs depth only to supervise its height softmax (Row B); never at inference
+    tr = VigorPairs(a.root, cfg, cities=tr_cities, split=a.split, train=True,
+                    depth=(height_w > 0) if mode == "pillar" else None)
     if a.val_frac > 0:
         idx = np.random.default_rng(0).permutation(len(tr.labels))
         n_tr = int(len(idx) * (1.0 - a.val_frac))
@@ -285,7 +299,8 @@ def main():
         print(f"train {len(tr)} ({tr_cities})  val {len(va)} of {len(idx) - n_tr} held out from the train list "
               f"(val_frac {a.val_frac})  mode {mode}  batch {a.batch}", flush=True)
     else:
-        va = VigorPairs(a.root, cfg, cities=va_cities, split=a.split, train=False, limit=a.val_samples, seed=1)
+        va = VigorPairs(a.root, cfg, cities=va_cities, split=a.split, train=False, limit=a.val_samples, seed=1,
+                        depth=(height_w > 0) if mode == "pillar" else None)
         print(f"train {len(tr)} ({tr_cities})  val {len(va)} from the TEST labels ({va_cities})  mode {mode}  batch {a.batch}", flush=True)
     if tr.ref_window_m is not None:
         print(f"reference: {tr.ref_window_m} m window at {cfg.grid.cell_m} m/px centred on the true position + a "
@@ -299,7 +314,8 @@ def main():
               f"-> train {len(tr)}  val {len(va)}", flush=True)
         if not len(tr) or not len(va):
             raise SystemExit("no depth files: run `make loc2-depth SPLIT=... CITIES=... TRAIN=1` first")
-    print(f"VCE weight {vce_w}  {vce_opts if vce_w else ''}", flush=True)
+    print(f"VCE weight {vce_w}  {vce_opts if vce_w else ''}" + (f"  height weight {height_w}" if mode == "pillar" else ""),
+          flush=True)
     reg = REG.resolve(cfg, a)
     aug = AUG.from_config(cfg, a.aug_photometric, a.aug_geometric, a.aug_rot_deg)
     tr.set_aug(aug)                                 # training only: the validation copy never augments
@@ -367,8 +383,8 @@ def main():
     groups = []
     qp = [p for p in query.parameters() if p.requires_grad]
     if qp:
-        E = getattr(cfg, "erp_depth", None)
-        lr_q = float(getattr(E, "lr_head", L.lr_lift)) if mode == "erp_depth" and E is not None else L.lr_lift
+        E = getattr(cfg, "pillar" if mode == "pillar" else "erp_depth", None)
+        lr_q = float(getattr(E, "lr_head", L.lr_lift)) if mode in ("erp_depth", "pillar") and E is not None else L.lr_lift
         # weight_decay_head None: one group, the optimiser-wide decay (as before); else weights w / biases+norms 0
         groups += REG.module_groups(query, lr_q, reg["weight_decay_head"], "head")
         train_meta.update(lr_query=float(lr_q))
@@ -399,6 +415,8 @@ def main():
         # lean: the query module (projection head; the frozen encoder lives in the matcher, not here) and the decoder
         return {"query": query.state_dict(), "mode": mode,
                 "erp_depth": vars(cfg.erp_depth) if mode == "erp_depth" else None,
+                # architecture keys only: the grid keys stay the config's (the fine pass uses another grid)
+                "pillar": {k: getattr(cfg.pillar, k) for k in PILLAR_ARCH_KEYS} if mode == "pillar" else None,
                 "train": train_meta,
                 "decoder": decoder_state(matcher.model.decoder, include_refiner=keep_refiner),
                 "step": k, "epoch": k / spe, "val": v}
@@ -413,7 +431,7 @@ def main():
                                               for g, (n, b) in rep.items())
           + f"  | optimised {n_opt / 1e6:.2f} M params | frozen encoder {n_enc / 1e6:.1f} M NOT saved", flush=True)
     step_kw = dict(certainty_weight=0.01, pose_nll_weight=a.pose_nll_weight, vce_weight=vce_w, vce_opts=vce_opts,
-                   refine_weight=refine_w, refine_opts=refine_opts)
+                   refine_weight=refine_w, refine_opts=refine_opts, height_weight=height_w)
     if reg["label_smoothing"]:                     # training steps only; validate() scores the plain objective
         step_kw["label_smoothing"] = reg["label_smoothing"]
     if reg["feat_dropout"]:
@@ -469,7 +487,7 @@ def main():
     if a.check_encoder or a.check_decoder:
         run_check_encoder(a, query, matcher, va, va_loader, cfg, L, dev, to_dev, dict(
             pose_nll_weight=a.pose_nll_weight, vce_weight=vce_w, vce_opts=vce_opts, refine_weight=refine_w,
-            refine_opts=refine_opts), D)
+            refine_opts=refine_opts, height_weight=height_w), D)
         D.close()
         return
     if a.compile != "none":                        # after the checkpoint-content checks: keys are unchanged anyway
@@ -546,7 +564,7 @@ def main():
             (out / f"config_{a.tag}.yaml").write_text(Path(p_snap).read_text())
     if D.main and (rp is None or not log.is_file()):
         log.write_text("step,split,ce,top1,cell_err_m,pose_nll,pose_err_m,n,sec,vce_m,vce_pose_m,fine_epe_px,"
-                       "fine_epe_in_px,fine_skipped\n")
+                       "fine_epe_in_px,fine_skipped,height_ce,height_frac\n")
 
     def save_resume(k, v):
         cnt = dict(step=k, best=best, best_step=best_step, n_skip_step=n_skip_step, guard_total=guard.total,
@@ -601,11 +619,12 @@ def main():
             f.write(f"{k},train,{st['ce']:.4f},{st['acc']:.4f},{st['cell_err'] * m_per_cell:.2f},"
                     f"{st['pose_nll']:.4f},{st['pose_err'] * m_per_cell:.2f},{st['n']},{time.time() - t0:.1f},"
                     f"{st['vce_m']:.3f},{st['vce_pose_m']:.3f},{st['fine_epe_px']:.3f},{st['fine_epe_in_px']:.3f},"
-                    f"{st.get('fine_skipped', 0)}\n")
+                    f"{st.get('fine_skipped', 0)},{st.get('height_ce', float('nan')):.4f},{st.get('height_frac', float('nan')):.3f}\n")
         if k == k0 + 1 or k % 25 == 0:
             print(f"step {k} TRAIN  CE {st['ce']:.3f}  poseNLL {st['pose_nll']:.3f}  top1 {st['acc']:.1%}  "
                   f"arg {st['cell_err'] * m_per_cell:.1f} m  n {st['n']}"
                   + (f"  VCE {st['vce_m']:.2f} m  procrustes {st['vce_pose_m']:.2f} m" if vce_w else "")
+                  + (f"  height CE {st['height_ce']:.3f} ({st['height_frac']:.0%} cells)" if height_w else "")
                   + (f"  fine EPE {st['fine_epe_px']:.2f} px (input {st['fine_epe_in_px']:.2f})"
                      f"  non-finite steps {guard.total}" if refine_w else "")
                   + f"  ({time.time() - t0:.0f}s, epoch {k / spe:.2f})", flush=True)
@@ -613,12 +632,12 @@ def main():
             v = validate(query, matcher, va_loader, cfg, L.min_patch_valid, a.local_radius, device=dev,
                          max_batches=max(1, -(-a.val_samples // a.val_batch)), certainty_weight=0.01,
                          pose_nll_weight=a.pose_nll_weight, vce_weight=vce_w, vce_opts=vce_opts,
-                         refine_weight=refine_w, refine_opts=refine_opts)
+                         refine_weight=refine_w, refine_opts=refine_opts, height_weight=height_w)
             with log.open("a") as f:
                 f.write(f"{k},val,{v['ce']:.4f},{v['top1']:.4f},{v['cell_err_m'] / (cfg.grid.cell_m * 16) * m_per_cell:.2f},"
                         f"{v['pose_nll']:.4f},{v['pose_err_m'] / (cfg.grid.cell_m * 16) * m_per_cell:.2f},{v['n']},{time.time() - t0:.1f},"
                         f"{v['vce_m']:.3f},{v['vce_pose_m']:.3f},{v['fine_epe_px']:.3f},{v['fine_epe_in_px']:.3f},"
-                        f"{v.get('fine_skipped', 0)}\n")
+                        f"{v.get('fine_skipped', 0)},{v.get('height_ce', float('nan')):.4f},{v.get('height_frac', float('nan')):.3f}\n")
             pose_m = v["pose_err_m"] / (cfg.grid.cell_m * 16) * m_per_cell
             print(f"step {k} VAL    CE {v['ce']:.3f}  poseNLL {v['pose_nll']:.3f}  top1 {v['top1']:.1%}  "
                   + (f"{'heatmap-argmax (not a pose)' if placed else 'pose'} {pose_m:.1f} m  " if a.pose_nll_weight else "")

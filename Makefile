@@ -8,7 +8,7 @@ FRAMES  ?= 0 1000 1600 2000
 REF     ?= 200
 RUN      = PYTHONPATH=src:.pydeps $(PY)
 
-.PHONY: panoroma-viz vigor-aug-viz poznan-depth loc2-smoke loc2-eval panoroma-poznan poznan-three-way wayback-fetch wayback-calib eagle-fetch-wayback fg2-vigor eagle-watch eagle-probe eagle-submit-ddp eagle-probe-ddp vigor-viz loc2-depth loc2-vigor vigor-report loftr-fine vigor-certainty vigor-sweep vigor-cert-cache vigor-cert-head
+.PHONY: eagle-pillar-smoke panoroma-viz vigor-aug-viz poznan-depth loc2-smoke loc2-eval panoroma-poznan poznan-three-way wayback-fetch wayback-calib eagle-fetch-wayback fg2-vigor eagle-watch eagle-probe eagle-submit-ddp eagle-probe-ddp vigor-viz loc2-depth loc2-vigor vigor-report loftr-fine vigor-certainty vigor-sweep vigor-cert-cache vigor-cert-head
 .PHONY: help deps test fetch stats mask lens viewer oxts odometry bevs mosaic smoke h1 targets overfit train calib all roma-viz mapillary mapillary-scan mapillary-sample ipm-smoke lift-overfit lift-splat lift-eval lift-splat-years lift-aug-viz lift-layers-viz lift-splat-aug lift-splat-pose-nll lift-splat-seq baselines-manifest fg2-smoke fg2-eval fg2-train bevsplat-smoke bevsplat-eval bevsplat-train baselines-report kitscenes-fetch kitscenes-pano
 help:
 	@grep -E '^[a-z0-9_-]+:.*##' $(MAKEFILE_LIST) | sed -E 's/:.*## /\t/' | expand -t 12
@@ -206,8 +206,12 @@ vigor-cert-cache: ## task 06 step 4: one frozen-matcher pass -> experiments/10_l
 vigor-cert-head: ## task 06 step 4: train the pose-correctness head on a calib cache: CACHE=, TAG=, STREAMS="map tokens frame" (ablations: one stream), HEAD_ARGS="--epochs 60 --seed 0 --no-aug" -> experiments/10_loc2_matcher/certainty_head_<TAG>_<streams>.pt
 	$(RUN) scripts/train_certainty_head.py --config $(CONFIG) --cache $(CACHE) --tag $(TAG) $(if $(STREAMS),--streams $(STREAMS),) $(HEAD_ARGS)
 
-vigor-train: ## fine-tune CKPT on VIGOR (SPLIT=samearea|crossarea, CITIES="Chicago", STEPS=3000, TAG=); CKPT= empty + QUERY=ipm|erp|erp_depth = no warm start (erp_depth: loc2-depth TRAIN=1 first; VIGOR_ARGS="--head"; "--refine-weight 1" trains the conv refiner with RoMa's fine loss; CONFIG=configs/vigor_cell00625_fine.yaml = second-pass decoder on jittered 56 m windows)
+vigor-train: ## fine-tune CKPT on VIGOR (SPLIT=samearea|crossarea, CITIES="Chicago", STEPS=3000, TAG=); CKPT= empty + QUERY=ipm|erp|erp_depth|pillar = no warm start (erp_depth: loc2-depth TRAIN=1 first; VIGOR_ARGS="--head"; pillar: "--height-weight 1" = depth-taught Row B, task 07; "--refine-weight 1" trains the conv refiner with RoMa's fine loss; CONFIG=configs/vigor_cell00625_fine.yaml = second-pass decoder on jittered 56 m windows)
 	$(RUN) scripts/train_vigor.py --config $(CONFIG) $(if $(CKPT),--ckpt $(CKPT),--query $(if $(QUERY),$(QUERY),ipm)) --split $(SPLIT) --tag $(TAG) $(if $(CITIES),--cities $(CITIES),) --steps $(if $(STEPS),$(STEPS),3000) $(VIGOR_ARGS)
+
+PILLAR_SMOKE_ARGS = scripts/train_vigor.py --config configs/vigor_cell0125.yaml --query pillar --split samearea --cities Chicago --train-limit 64 --val-samples 16 --val-every 25 --batch 4 --steps 50 --tag $(if $(TAG),$(TAG),pillar_smoke) --out experiments/22_pillar_lift $(VIGOR_ARGS)
+eagle-pillar-smoke: ## task 07 smoke on Eagle (one H100, 64 frames, 50 steps): TAG=pillar_smoke VIGOR_ARGS="--height-weight 1" for Row B; proves the pillar query trains end to end before the gate runs
+	$(MAKE) eagle-submit JOB=$(if $(TAG),$(TAG),pillar_smoke) SBATCH_ARGS="--time=00:40:00" CMD="$(PILLAR_SMOKE_ARGS) --workers 4 --tf32 --encoder-dtype bfloat16 --decoder-dtype bfloat16"
 
 vigor-viz: ## overlay sheet of the worst (PICK=worst) or a spread (PICK=spread) of N frames of EVAL_JSON, re-matched with CKPT; TAG=
 	$(RUN) scripts/viz_vigor.py --config $(CONFIG) --ckpt $(CKPT) --eval-json $(EVAL_JSON) --tag $(TAG) --n $(if $(N),$(N),20) --pick $(if $(PICK),$(PICK),worst)

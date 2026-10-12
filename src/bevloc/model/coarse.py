@@ -434,17 +434,20 @@ def vce_pose_loss(gm_cls, query_xy, token_valid, H_gt, cell_m, n, ref_size=896, 
     return loss, dict(vce_m=float(loss.detach()), vce_pose_m=float(pose[ok].mean()), n_vce=int(ok.sum()))
 
 
+PLACED_MODES = ("erp_depth", "pillar")      # query modes whose tokens are placed (VCE on by default)
+
+
 def resolve_vce_weight(cfg, mode):
-    """cfg.train.vce_weight: a number, or "auto"/missing = 1.0 for the erp_depth query and 0 otherwise."""
+    """cfg.train.vce_weight: a number, or "auto"/missing = 1.0 for the placed queries (erp_depth, pillar), 0 otherwise."""
     v = getattr(getattr(cfg, "train", None), "vce_weight", "auto")
     if v is None or (isinstance(v, str) and v.lower() == "auto"):
-        return 1.0 if mode == "erp_depth" else 0.0
+        return 1.0 if mode in PLACED_MODES else 0.0
     return float(v)
 
 
-def vce_options(cfg):
-    """VCE keyword arguments from cfg.erp_depth (defaults = Loc²)."""
-    E = getattr(cfg, "erp_depth", None)
+def vce_options(cfg, mode="erp_depth"):
+    """VCE keyword arguments from cfg.erp_depth (or cfg.pillar for the pillar mode); defaults = Loc²."""
+    E = getattr(cfg, "pillar" if mode == "pillar" else "erp_depth", None)
     g = (lambda k, d: getattr(E, k, d) if E is not None else d)
     return dict(mode=str(g("vce_mode", "sample")), n_samples=int(g("vce_samples", 1024)),
                 grid_m=float(g("vce_grid_m", 5.0)), points=int(g("vce_points", 10)),

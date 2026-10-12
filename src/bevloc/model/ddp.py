@@ -51,12 +51,13 @@ def per_rank_batch(global_batch: int, world: int) -> int:
 # whose count is 0 on every rank (term off: the step logs a constant such as pose_nll 0.0) falls back to the plain
 # mean over the ranks with a finite value. Counts are summed; fine_skipped is 1 when any rank skipped.
 STAT_WMEAN = (("ce", "n"), ("acc", "n"), ("cell_err", "n"), ("pose_nll", "n_pose"), ("pose_err", "n_pose"),
-              ("vce_m", "n_vce"), ("vce_pose_m", "n_vce"), ("fine_epe_px", "n_fine"), ("fine_epe_in_px", "n_fine"))
-STAT_SUM = ("n", "n_pose", "n_vce", "n_fine", "fine_skipped")
+              ("vce_m", "n_vce"), ("vce_pose_m", "n_vce"), ("fine_epe_px", "n_fine"), ("fine_epe_in_px", "n_fine"),
+              ("height_ce", "n_height"), ("height_frac", "n"))
+STAT_SUM = ("n", "n_pose", "n_vce", "n_fine", "fine_skipped", "n_height")
 
 # every loss term of train_lift_splat.step(parts=...) (name -> (weighted term, count it is a mean over)); a term
 # missing from this list is refused by global_loss, so a new loss cannot silently bypass the reweighting
-PART_KEYS = ("ce", "hinge", "cert", "pose_nll", "vce", "fine_reg", "fine_cert")
+PART_KEYS = ("ce", "hinge", "cert", "pose_nll", "vce", "fine_reg", "fine_cert", "height")
 FINE_PARTS = ("fine_reg", "fine_cert")
 # recorded in a DDP run's train dict and resume counters: the loss terms are normalised by the GLOBAL counts
 # (global_loss); a DDP resume file without it (per-rank means, before review 2026-09-29) is refused

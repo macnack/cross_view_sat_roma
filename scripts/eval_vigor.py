@@ -70,7 +70,9 @@ from bevloc.data.vigor import CITY_RES, VigorPairs, pose_en, split_cities
 from bevloc.eval.metrics import pose_errors
 from bevloc.eval.report import summarise_pose
 from bevloc.match.consensus import apply_settings, load_chosen, settings_of
-from bevloc.match.satroma import REFINE_INITS, SatRoMa, consensus_for_query, consensus_union, refined_for_query
+from bevloc.match.satroma import (
+    REFINE_INITS, SatRoMa, check_refinable, consensus_for_query, consensus_union, refined_for_query,
+)
 from bevloc.match.vote_stats import pose_px, ref_cell_valid, stats_row
 from bevloc.model.coarse import FeatureQueryMatcher
 from bevloc.model.query import apply_query_cfg, build_query, load_query_state
@@ -491,6 +493,14 @@ def check_fine_grid(state, cfg_f, ckpt, config):
     if abs(float(rec) - float(cfg_f.grid.cell_m)) > 1e-9:
         raise SystemExit(f"--fine-ckpt {ckpt} was trained at cell_m {rec} m/px, but --fine-config {config} has "
                          f"{cfg_f.grid.cell_m} m/px: the fine pass needs a checkpoint trained with that config")
+    # the pillar query's own grid (task 07): the lift's parameters do not depend on it, but the decoder was trained on
+    # one spacing / extent, so a mismatch with the fine config is a mistake, not a transfer
+    P = getattr(cfg_f, "pillar", None)
+    for key in ("cell_m", "range_m"):
+        rec_p = grid.get(f"pillar_{key}")
+        if rec_p is not None and P is not None and abs(float(rec_p) - float(getattr(P, key))) > 1e-9:
+            raise SystemExit(f"--fine-ckpt {ckpt} was trained with pillar.{key} {rec_p}, but --fine-config {config} "
+                             f"has {getattr(P, key)}")
 
 
 def decoder_fine(a, cfg, ds, dev):
@@ -567,6 +577,11 @@ def run(a, make_fine=None):
     query = build_query(cfg, mode).to(dev)
     load_query_state(query, state)
     query.eval()
+    if a.refine:
+        try:
+            check_refinable(query)                 # once, not per sample: a BEV-grid query has no placement_at
+        except ValueError as e:
+            raise SystemExit(str(e))
     cons = {tag: SatRoMa.from_wrapper(matcher.wrapper, cfg, use_means=means, min_valid_frac=0.05)
             for tag, means in (("peak", False), ("means", True))}
     coarse_c, fine_c = chosen_consensus(a)

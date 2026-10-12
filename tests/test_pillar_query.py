@@ -245,3 +245,83 @@ def test_pillar_state_round_trips_and_the_checkpoint_restores_architecture_keys_
     for k, v in q.state_dict().items():
         assert torch.equal(v, q2.state_dict()[k])
     assert apply_query_cfg(_cfg(head=False), {"query": {}, "mode": "ipm"}).pillar.head is False   # other ckpts: untouched
+
+
+# ---- (e) wiring: training step, VCE options, DDP parts, refine refusal, dataset depth flag ----------------------
+
+import sys                                                                        # noqa: E402
+
+from bevloc.model.coarse import resolve_vce_weight, vce_options                   # noqa: E402
+from bevloc.model.ddp import PART_KEYS                                            # noqa: E402
+
+
+def test_vce_weight_and_options_come_from_the_pillar_block():
+    cfg = _cfg()
+    cfg.pillar.vce_samples = 77
+    cfg.erp_depth.vce_samples = 99
+    assert resolve_vce_weight(cfg, "pillar") == 1.0 and resolve_vce_weight(cfg, "ipm") == 0.0
+    assert vce_options(cfg, "pillar")["n_samples"] == 77
+    assert vce_options(cfg, "erp_depth")["n_samples"] == 99 and vce_options(cfg)["n_samples"] == 99
+
+
+def test_training_step_with_pillar_registers_the_height_part_and_backpropagates():
+    sys.path.insert(0, str(C.REPO / "scripts"))
+    from train_lift_splat import step, validate
+    from test_vce import REF, _TinyMatcher
+    cfg = _cfg()
+    cfg.pillar.head_dim = 32
+    cfg.pillar.vce_samples = 128
+    q = build_query(cfg, "pillar")
+    mt = _TinyMatcher()
+    depth = torch.full((2, 1, H, W), 60.0)
+    geo = q.geometry(dict(erp=torch.zeros(2, 1, 3, H, W), R_w2c=R_N[None].repeat(2, 1, 1, 1)))
+    uv, rng = geo["uv"], geo["rng"]
+    for b_ in range(2):                                    # render slice 0 (the ground) into both depth maps
+        for n in range(uv.shape[1]):
+            c, r = int(uv[b_, n, 0, 0]) % W, min(int(uv[b_, n, 0, 1]), H - 1)
+            depth[b_, 0, r, c] = rng[b_, n, 0]
+    Hm = torch.eye(3).repeat(2, 1, 1)
+    Hm[:, 0, 2], Hm[:, 1, 2] = 336.0, 330.0
+    batch = dict(erp=torch.rand(2, 1, 3, H, W), R_w2c=R_N[None].repeat(2, 1, 1, 1), depth=depth,
+                 ref=torch.rand(2, 3, REF, REF), H=Hm, negative=torch.zeros(2, dtype=torch.bool))
+    parts = {}
+    loss, st = step(q, mt, batch, cfg, 0.05, 0, 4, 0.5, certainty_weight=0.01, pose_nll_weight=0.5,
+                    vce_weight=1.0, vce_opts=vce_options(cfg, "pillar"), generator=torch.Generator().manual_seed(0),
+                    height_weight=1.0, parts=parts)
+    assert torch.isfinite(loss) and st["n"] > 0 and st["vce_m"] == st["vce_m"]
+    assert "height" in parts and "height" in PART_KEYS
+    assert st["height_ce"] == st["height_ce"] and st["height_frac"] > 0.5 and st["n_height"] > 0
+    s_parts = sum(t.detach() for t, _ in parts.values() if t is not None)
+    assert torch.allclose(s_parts, loss.detach(), rtol=1e-4, atol=1e-5)
+    loss.backward()
+    assert float(q.scorer[0].weight.grad.abs().sum()) > 0 and float(q.head.up.weight.grad.abs().sum()) > 0
+    v = validate(q, mt, [batch], cfg, 0.05, 0, "cpu", vce_weight=1.0, vce_opts=vce_options(cfg, "pillar"),
+                 height_weight=1.0)
+    assert v["height_ce"] == v["height_ce"] and v["height_frac"] > 0.5
+    # Row A: height_weight 0 -> no height term, nan stats, no depth needed
+    parts0 = {}
+    b0 = {k: v_ for k, v_ in batch.items() if k != "depth"}
+    l0, s0 = step(q, mt, b0, cfg, 0.05, 0, 4, 0.5, certainty_weight=0.01, pose_nll_weight=0.5, parts=parts0)
+    assert torch.isfinite(l0) and "height" not in parts0 and s0["height_ce"] != s0["height_ce"]
+
+
+def test_sub_cell_refinement_refuses_a_bev_query():
+    from bevloc.match.satroma import check_refinable, refined_for_query
+    q = build_query(_cfg(), "pillar")
+    with pytest.raises(ValueError, match="placement_at"):
+        check_refinable(q)
+    with pytest.raises(ValueError, match="placement_at"):
+        refined_for_query(None, None, None, q, {}, 16)
+    check_refinable(build_query(_cfg(), "erp_depth"))        # erp_depth / picture queries: fine
+
+
+def test_vigor_pairs_in_pillar_mode_loads_depth_only_when_asked(tmp_path):
+    from bevloc.data.vigor import VigorPairs
+    from test_depth_query import _png_mm, _vigor_layout
+    root = _vigor_layout(tmp_path, 0.0, 0.0, _png_mm(np.full((448, 896), 10.0, np.float32)))
+    cfg = _cfg()
+    ds = VigorPairs(root, cfg, cities=["Chicago"], split="samearea", train=False)
+    assert not ds.depth and "depth" not in ds[0] and (ds.erp_w, ds.erp_h) == (896, 448)
+    cfg.pillar.erp_size = [448, 224]
+    ds2 = VigorPairs(root, cfg, cities=["Chicago"], split="samearea", train=False, depth=True)
+    assert ds2.depth and (ds2.erp_w, ds2.erp_h) == (448, 224) and ds2[0]["depth"].shape == (1, 224, 448)

@@ -588,6 +588,14 @@ def consensus_union(cons, gms, query, batch, frac, n, min_frac=0.05, certainties
 REFINE_INITS = ("none", "coarse", "ransac")
 
 
+def check_refinable(query):
+    """The sub-cell refinement samples the refined warp on ERP pixels and places them with `placement_at`; a placed
+    query without it (the pillar lift: a BEV grid, task 07) cannot be refined this way. Raises ValueError."""
+    if hasattr(query, "placement") and not hasattr(query, "placement_at"):
+        raise ValueError(f"sub-cell refinement (--refine) needs placement_at on a placed query; "
+                         f"{type(query).__name__} is a BEV-grid query without it (use the two-pass fine decoder)")
+
+
 def refined_for_query(cons, o16, tap, query, batch, stride, init="coarse", coarse=None, gate_cells=None,
                       min_cert=0.0, frac=None, min_frac=0.05, min_corr=8):
     """Sub-cell consensus for one decoded sample from the decoder's stride-16 conv refiner (bevloc.model.refine).
@@ -615,6 +623,7 @@ def refined_for_query(cons, o16, tap, query, batch, stride, init="coarse", coars
     from bevloc.model.refine import apply_h, norm_to_px, px_to_norm, token_centres_px, warp_samples
     if init not in REFINE_INITS:
         raise ValueError(f"refine init must be one of {REFINE_INITS}, got {init!r}")
+    check_refinable(query)
     ref_size = int(cons.m.im_b_size)
     cells = int(round(o16["gm_cls"].shape[1] ** 0.5))
     placed = hasattr(query, "placement")
