@@ -97,8 +97,8 @@ Reading:
   layer ≥ 1 m below the panorama centre, median of 100 frames, p10 1.65 / p90 1.68; the first pass of the fit picked the
   bridge parapet tops 0.35 m below the camera on 46 frames, hence the 1 m cut). The KITScenes rows above assumed 2.5 m, so
   every ground slice was sampled 1.5× too far out. `configs/vigor_cell0125_kit.yaml` carries 1.66 m; KIT evaluations are
-  re-run with it: gate Row B on the cropped and the black-row dataset (jobs 9093571 / 9093572), and the full-budget coarse
-  checkpoint on both when 9091992 finishes (9093573 / 9093574).
+  re-run with it: gate Row B on the cropped and the black-row dataset (jobs 9093575 / 9093577), and the full-budget coarse
+  checkpoint on both when 9091992 finishes (9093576 / 9093578).
 - **Cross-area Row B**, same recipe trained on New York + Seattle: coarse 9093545 → 6000-frame coarse eval 9093546
   (`pillar_B_xa_e100_eval6000`); fine 9093547 → two-pass 6000 9093548 (`pillar_B_xa_e100_twopass6000`). References:
   PanoRoMa two-pass 1.94 m (coarse 2.27–2.50), FG² 1.41 m.
