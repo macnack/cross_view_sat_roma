@@ -115,7 +115,11 @@ Reading:
 - **DINOv3-LVD row**: `tpupzyfr` exported on Eagle (`checkpoints/satroma_tpupzyfr/`, 336 MB decoder; the config JSON's
   `pretrain_model` patched to `vit_large_patch16_dinov3_lvd`, no training sidecar, `config_source` says so), timm
   `vit_large_patch16_dinov3.lvd1689m` copied to `$P/hf_cache/hub`. Row B gate recipe with `configs/vigor_cell0125_lvd.yaml`
-  (9093567 → eval 9093568, `pillar_B_lvd_chi20`).
+  (9093567 → eval 9093568, `pillar_B_lvd_chi20`). Validation at epoch 20: CE 3.26 / Procrustes 2.44 m against 3.82 / 3.41 m
+  for the sat493m Row B (no-pose Row A: 3.54 / 3.29 m against 4.00 / 3.62 m).
+- **LVD Row B at the full budget** (Maciej, "run lvd row on full budget too"): experiment-18 recipe with
+  `configs/vigor_cell0125_lvd.yaml` / `configs/vigor_cell00625_fine_lvd.yaml`: coarse 9093830 → 3000-draw eval 9093831
+  (`pillar_B_lvd_e100_eval3000`), fine 9093832 → whole-Chicago two-pass 9093833 (`pillar_B_lvd_e100_chicago`).
 
 - (c) still open: the ablation ladder from the task doc (FG² deformable offsets → six lift iterations → DINOv3-LVD
   encoder, `configs/vigor_cell0125_lvd.yaml`, needs the `tpupzyfr` export).
