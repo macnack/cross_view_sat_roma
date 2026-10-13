@@ -91,5 +91,23 @@ Reading:
 3. Fine-config smoke (9091991, 50 steps from the gate checkpoint, 1 m cells over 56 m, 56 × 56 × 11 slices, batch 4):
    trains and validates (train CE 5.37 → 4.98, height CE 1.57 at 40 % supervised cells); the chained fine pass is unblocked.
 
+### Follow-ups submitted 2026-10-14 (Maciej: "do all on eagle")
+
+- **KIT rig camera height measured: 1.66 m** (`make kitscenes-cam-height`, `cam_height.json`; LiDAR ground plane, densest
+  layer ≥ 1 m below the panorama centre, median of 100 frames, p10 1.65 / p90 1.68; the first pass of the fit picked the
+  bridge parapet tops 0.35 m below the camera on 46 frames, hence the 1 m cut). The KITScenes rows above assumed 2.5 m, so
+  every ground slice was sampled 1.5× too far out. `configs/vigor_cell0125_kit.yaml` carries 1.66 m; KIT evaluations are
+  re-run with it: gate Row B on the cropped and the black-row dataset (jobs 9093571 / 9093572), and the full-budget coarse
+  checkpoint on both when 9091992 finishes (9093573 / 9093574).
+- **Cross-area Row B**, same recipe trained on New York + Seattle: coarse 9093545 → 6000-frame coarse eval 9093546
+  (`pillar_B_xa_e100_eval6000`); fine 9093547 → two-pass 6000 9093548 (`pillar_B_xa_e100_twopass6000`). References:
+  PanoRoMa two-pass 1.94 m (coarse 2.27–2.50), FG² 1.41 m.
+- **Row A without pose-NLL** on the gate recipe (9093549 → eval 9093550, `pillar_A_nopose_chi20`): does the pose-NLL
+  window around the camera cell hurt the ±35 m grid?
+- **DINOv3-LVD row**: `tpupzyfr` exported on Eagle (`checkpoints/satroma_tpupzyfr/`, 336 MB decoder; the config JSON's
+  `pretrain_model` patched to `vit_large_patch16_dinov3_lvd`, no training sidecar, `config_source` says so), timm
+  `vit_large_patch16_dinov3.lvd1689m` copied to `$P/hf_cache/hub`. Row B gate recipe with `configs/vigor_cell0125_lvd.yaml`
+  (9093567 → eval 9093568, `pillar_B_lvd_chi20`).
+
 - (c) still open: the ablation ladder from the task doc (FG² deformable offsets → six lift iterations → DINOv3-LVD
   encoder, `configs/vigor_cell0125_lvd.yaml`, needs the `tpupzyfr` export).
