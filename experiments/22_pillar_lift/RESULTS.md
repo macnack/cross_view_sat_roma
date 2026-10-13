@@ -54,5 +54,42 @@ Procrustes pose 11.0 → 3.6 m; Row B CE 6.31 → 3.82, top-1 0.5 → 9.1 %, Pro
   `last`) → whole Chicago same-area test two-pass se2 gate 6 m (9091995, `pillar_B_e100_chicago`). A 50-step smoke of
   the fine config from the gate checkpoint runs first (9091991, `pillar_fine_smoke_B`) so a fine-pass failure shows
   before the 14-h coarse pass ends.
+### (a) Band-input results (2026-10-14, jobs 9091987–9091990, 28 min each on VIGOR, 1 min on KITScenes)
+
+Same gate checkpoints (`vigor_pillar_{A,B}_chi20_last.pt`, Chicago-only, 20 epochs), coarse pass, `se2`, image-only.
+The ±27.6° crop is the experiment-21 protocol (panorama cut on the fly to the KITScenes image band, 896 × 128 px, the
+query's rays and slice validity use the band); the uncropped rows are the gate numbers.
+
+| Chicago 3000 draw, first pass | uncropped median (95 % CI) | cropped ±27.6° median (95 % CI) | ratio | cropped mean | cropped R@5 / R@10 | > 30 m |
+|---|---|---|---|---|---|---|
+| pillar Row B (depth-taught height) | 2.23 m (2.15–2.33) | **3.01 m** (2.91–3.15) | ×1.35 | 5.17 m | 0.70 / 0.86 | 0.6 % |
+| pillar Row A (pose only) | 2.56 m (2.47–2.65) | 4.00 m (3.84–4.17) | ×1.56 | 6.13 m | 0.60 / 0.81 | 0.6 % |
+| PanoRoMa D (100 ep, four cities, experiment 21) | 1.41 m | 5.20 m (two-pass 1.06 → 6.09 m) | ×3.7 | 7.90 m (two-pass) | 0.38 / 0.77 (two-pass) | — |
+| centre guess | 14.71 m | 14.71 m | | | | |
+
+| KITScenes Frankfurt, 100 frames, first pass | median (95 % CI) | mean | R@5 / R@10 | yaw median |
+|---|---|---|---|---|
+| pillar Row B, cropped dataset (band file) | 9.32 m (8.25–10.41) | 9.82 m | 0.23 / 0.55 | 2.6° |
+| pillar Row B, uncropped stitch (black rows) | 7.77 m (6.63–8.97) | 8.75 m | 0.22 / 0.69 | 4.0° |
+| PanoRoMa D two-pass, uncropped (experiment 20) | 4.70 m | | 0.55 / — | |
+| FG² / Loc² (experiment 20) | 2.34 / 2.44 m | | 0.94 / — | |
+| centre guess | 13.28 m | | | |
+
+Reading:
+1. **On VIGOR the band claim holds.** Cropping to the KITScenes band costs the pillar query ×1.35 (Row B) and ×1.56
+   (Row A) on the median, against ×3.7 for the ERP-token query at its full budget; the cropped pillar Row B (3.01 m) is
+   better than the cropped PanoRoMa first pass (5.20 m) and two-pass (6.09 m) despite being 0.8 m worse uncropped and
+   trained 20× less. The yaw stays at 1.2°. Depth-taught height degrades less under the crop than pose-only (×1.35 vs
+   ×1.56): the slices still visible in the band carry the learned height prior.
+2. **KITScenes is not answered by the gate checkpoint**: 7.8–9.3 m (chance 13.3 m), worse than PanoRoMa (4.70 m) and FG²
+   (2.34 m). Confounds, all stacked on this row: the checkpoint saw 20 epochs of Chicago only (PanoRoMa / FG²: four cities,
+   full budget); the pillar geometry assumes the VIGOR 2.5 m camera height while the KIT ring rig's height is not recorded
+   (a wrong height rescales every ground slice radially, which the ERP-token query with depth did not depend on); a
+   German DOP20 orthophoto. The cropped dataset is worse than the black-row stitch (9.3 vs 7.8 m, overlapping CIs), unlike
+   PanoRoMa (10.2 vs 4.7 m). Decide after the full-budget Row B (b) is evaluated on the same scene; measure the KIT rig
+   height from the LiDAR ground plane (`kitscenes_pano` calibration path) before that run.
+3. Fine-config smoke (9091991, 50 steps from the gate checkpoint, 1 m cells over 56 m, 56 × 56 × 11 slices, batch 4):
+   trains and validates (train CE 5.37 → 4.98, height CE 1.57 at 40 % supervised cells); the chained fine pass is unblocked.
+
 - (c) still open: the ablation ladder from the task doc (FG² deformable offsets → six lift iterations → DINOv3-LVD
   encoder, `configs/vigor_cell0125_lvd.yaml`, needs the `tpupzyfr` export).
