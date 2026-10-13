@@ -99,6 +99,14 @@ Reading:
   every ground slice was sampled 1.5× too far out. `configs/vigor_cell0125_kit.yaml` carries 1.66 m; KIT evaluations are
   re-run with it: gate Row B on the cropped and the black-row dataset (jobs 9093575 / 9093577), and the full-budget coarse
   checkpoint on both when 9091992 finishes (9093576 / 9093578).
+- **KIT re-evaluation with 1.66 m (jobs 9093575 / 9093577), gate Row B, first pass: cropped dataset 11.07 m (CI 8.88–12.32,
+  R@5 0.19, R@10 0.46, yaw 2.7°), black-row stitch 7.45 m (6.87–8.41, R@5 0.25, R@10 0.70, yaw 1.5°)** — against 9.32 /
+  7.77 m with 2.5 m assumed. The camera height is not the explanation: the correct geometry leaves the black-row row where
+  it was and makes the cropped row worse (the lift was trained with 2.5 m sampling on full spheres, so the sampling
+  pattern it learned is the VIGOR one). What remains on this scene is Chicago-only 20-epoch training versus the four-city
+  full-budget references, and the German orthophoto; the full-budget coarse checkpoint is evaluated on both datasets with
+  1.66 m when 9091992 finishes (9093576 / 9093578). (The eval JSON's `height_m` is `vigor.height_m`, the picture's;
+  `pillar.cam_height_m` is not recorded in the meta — a deferred minor.)
 - **Cross-area Row B**, same recipe trained on New York + Seattle: coarse 9093545 → 6000-frame coarse eval 9093546
   (`pillar_B_xa_e100_eval6000`); fine 9093547 → two-pass 6000 9093548 (`pillar_B_xa_e100_twopass6000`). References:
   PanoRoMa two-pass 1.94 m (coarse 2.27–2.50), FG² 1.41 m.
