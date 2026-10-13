@@ -333,19 +333,22 @@ def depth_edge_alignment(erp, pts, ring, pano_centre, shifts_px=range(-24, 25, 4
 
 
 def camera_height_above_ground(xyz, pano_centre=(0.0, 0.0, 0.0), r_min=3.0, r_max=15.0, band_m=0.3, z_bin_m=0.1,
-                               refits=3):
+                               refits=3, min_height_m=1.0):
     """Height of `pano_centre` above the road, from one sweep in the reference frame (sensor at the origin).
 
-    The ground is the densest horizontal layer below the sensor at 3-15 m (the mode of a 0.1 m histogram of z; a
-    wall spreads its returns over many bins, a pit or a kerb step has few), a plane is fitted by SVD to the points
-    within `band_m` of it and refitted on the points within band_m/2 of the plane. Returns the normal distance from
-    pano_centre to that plane (the camera height the pillar lift's `cam_height_m` means) and the ground-point count.
+    The ground is the densest horizontal layer at 3-15 m among the returns at least `min_height_m` below the panorama
+    centre (the mode of a 0.1 m histogram of z; a wall spreads its returns over many bins, a pit or a kerb step has
+    few, and a bridge parapet's top, a dense layer a few decimetres below a car-mounted camera, is above the cut), a
+    plane is fitted by SVD to the points within `band_m` of it and refitted on the points within band_m/2 of the
+    plane. Returns the normal distance from pano_centre to that plane (the camera height the pillar lift's
+    `cam_height_m` means) and the ground-point count.
     """
     p = np.asarray(xyz, np.float64)
     r = np.hypot(p[:, 0], p[:, 1])
-    q = p[(r >= r_min) & (r <= r_max) & (p[:, 2] < 0)]
+    z_cut = float(np.asarray(pano_centre, np.float64)[2]) - min_height_m
+    q = p[(r >= r_min) & (r <= r_max) & (p[:, 2] < z_cut)]
     if len(q) < 100:
-        raise ValueError(f"only {len(q)} returns below the sensor at {r_min}-{r_max} m")
+        raise ValueError(f"only {len(q)} returns more than {min_height_m} m below the panorama centre at {r_min}-{r_max} m")
     edges = np.arange(q[:, 2].min(), q[:, 2].max() + z_bin_m, z_bin_m)
     hist, _ = np.histogram(q[:, 2], edges)
     z0 = edges[np.argmax(hist)] + z_bin_m / 2

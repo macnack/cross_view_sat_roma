@@ -285,3 +285,14 @@ def test_camera_height_uses_the_plane_normal_under_pitch():
     xyz = _ground_scene(np.random.default_rng(1), pitch_deg=3.0)
     h, _ = K.camera_height_above_ground(xyz, pano_centre=(0.0, 0.0, -0.18))
     assert abs(h - 1.72 * np.cos(np.radians(3.0))) < 0.03
+
+
+def test_camera_height_ignores_a_dense_layer_just_below_the_camera():
+    """On a bridge the parapet tops form a horizontal layer denser than the deck at 3-15 m, 0.35 m below the
+    panorama centre (what the Frankfurt scene showed on 46 of 100 frames); the road is the dense layer at least
+    min_height_m below the centre."""
+    rng = np.random.default_rng(2)
+    xyz = _ground_scene(rng, n=6000)
+    parapet = np.stack([rng.uniform(3, 15, 9000), rng.choice([-4.0, 4.0], 9000), rng.normal(-0.53, 0.02, 9000)], 1)
+    h, _ = K.camera_height_above_ground(np.concatenate([xyz, parapet]), pano_centre=(0.0, 0.0, -0.18))
+    assert abs(h - 1.72) < 0.03
