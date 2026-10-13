@@ -40,12 +40,19 @@ Procrustes pose 11.0 → 3.6 m; Row B CE 6.31 → 3.82, top-1 0.5 → 9.1 %, Pro
    cross-area, Poznań) were not part of the gate. The height overlay (`height_smoke_B.jpg`) shows the selection
    behaving as FG² Fig. 4 describes (ground on roads, high slices toward façades).
 
-## Options after the gate (not yet decided)
+## After the gate (Maciej 2026-10-14: "do a and b, both on eagle"); jobs submitted 2026-10-14
 
-- (a) Band-input check with the existing Row B checkpoint: KITScenes Frankfurt (`make eagle-kit-compare` pattern)
-  and the VIGOR ±27.6° crop test — no retraining; this is where PanoRoMa collapses (4.70 m / 6.09 m) and where a
-  BEV-grid query should not.
-- (b) The full budget for Row B (four-city 100 epochs, coarse → fine, as experiment 18) to see whether the gap to
-  the ERP query closes with training rather than architecture.
-- (c) The ablation ladder from the task doc: FG² deformable offsets → six lift iterations → DINOv3-LVD encoder
-  (`configs/vigor_cell0125_lvd.yaml`, needs the `tpupzyfr` export).
+- (a) Band-input check with the gate checkpoints, no retraining (where PanoRoMa collapses: 4.70 m / 6.09 m):
+  VIGOR Chicago 3000 draw cropped to ±27.6° on the fly (`BEVLOC_CROP_BAND_DEG=27.6`, as experiment 21) for Row B
+  (job 9091987, tag `pillar_B_chi20_crop27`) and Row A (9091988); KITScenes Frankfurt 100 frames, cropped dataset
+  with its `erp_band.json` (`kit_vigor/frankfurt_142f1419_crop`, 9091989, `..._kit_frankfurt_crop`) and the uncropped
+  stitch with black rows (`frankfurt_142f1419_eagle`, 9091990, `..._kit_frankfurt_full`). Image-only; `pillar.cam_height_m`
+  stays 2.5 m on KITScenes (the rig height is not recorded; a caveat on that row).
+- (b) Full budget for Row B, experiment-18 recipe: four-city same-area, 100 epochs coarse (`pillar_B_e100`, 9091992,
+  `--aug-rot-deg 10`) → coarse eval on the 3000 draw (9091993, `pillar_B_e100_eval3000`) and fine
+  (`vigor_cell00625_fine.yaml`, 1 m cells over 56 m, `pillar_B_fine_e100`, 9091994, warm-started from the coarse
+  `last`) → whole Chicago same-area test two-pass se2 gate 6 m (9091995, `pillar_B_e100_chicago`). A 50-step smoke of
+  the fine config from the gate checkpoint runs first (9091991, `pillar_fine_smoke_B`) so a fine-pass failure shows
+  before the 14-h coarse pass ends.
+- (c) still open: the ablation ladder from the task doc (FG² deformable offsets → six lift iterations → DINOv3-LVD
+  encoder, `configs/vigor_cell0125_lvd.yaml`, needs the `tpupzyfr` export).
