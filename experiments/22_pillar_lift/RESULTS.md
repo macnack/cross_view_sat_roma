@@ -111,7 +111,12 @@ Reading:
   (`pillar_B_xa_e100_eval6000`); fine 9093547 → two-pass 6000 9093548 (`pillar_B_xa_e100_twopass6000`). References:
   PanoRoMa two-pass 1.94 m (coarse 2.27–2.50), FG² 1.41 m.
 - **Row A without pose-NLL** on the gate recipe (9093549 → eval 9093550, `pillar_A_nopose_chi20`): does the pose-NLL
-  window around the camera cell hurt the ±35 m grid?
+  window around the camera cell hurt the ±35 m grid? **Yes: 1.92 m (CI 1.85–2.00) / mean 3.74 m / R@1 0.21 / R@5 0.84 /
+  R@10 0.91 / > 30 m 0.4 % / yaw 1.1°, against 2.56 m with pose-NLL 0.5** — the largest single effect so far, below the
+  like-budget ERP-token reference (1.76 m) only by 0.16 m, and below Row B with pose-NLL (2.23 m). Row B without pose-NLL
+  submitted on the gate recipe (9094115 → eval 9094116, `pillar_B_nopose_chi20`). The three full-budget chains (same-area,
+  cross-area, LVD) run with pose-NLL 0.5 as experiment 18 did; to be decided after the Row B no-pose gate whether to
+  relaunch them with `--pose-nll-weight 0`.
 - **DINOv3-LVD row**: `tpupzyfr` exported on Eagle (`checkpoints/satroma_tpupzyfr/`, 336 MB decoder; the config JSON's
   `pretrain_model` patched to `vit_large_patch16_dinov3_lvd`, no training sidecar, `config_source` says so), timm
   `vit_large_patch16_dinov3.lvd1689m` copied to `$P/hf_cache/hub`. Row B gate recipe with `configs/vigor_cell0125_lvd.yaml`
