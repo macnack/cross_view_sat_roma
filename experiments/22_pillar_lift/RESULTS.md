@@ -121,7 +121,12 @@ Reading:
   `pretrain_model` patched to `vit_large_patch16_dinov3_lvd`, no training sidecar, `config_source` says so), timm
   `vit_large_patch16_dinov3.lvd1689m` copied to `$P/hf_cache/hub`. Row B gate recipe with `configs/vigor_cell0125_lvd.yaml`
   (9093567 → eval 9093568, `pillar_B_lvd_chi20`). Validation at epoch 20: CE 3.26 / Procrustes 2.44 m against 3.82 / 3.41 m
-  for the sat493m Row B (no-pose Row A: 3.54 / 3.29 m against 4.00 / 3.62 m).
+  for the sat493m Row B (no-pose Row A: 3.54 / 3.29 m against 4.00 / 3.62 m). **Eval (9093568): 1.70 m (CI 1.65–1.76) /
+  mean 2.81 m / R@1 0.24 / R@5 0.90 / R@10 0.95 / > 30 m 0.2 % / yaw 1.1°** — the best gate row, 0.53 m below the sat493m
+  Row B (2.23 m) and below the like-budget ERP-token reference (1.76 m), with pose-NLL 0.5 still on. The LVD encoder with
+  its own Sat-RoMa decoder (`tpupzyfr`, 24 M samples, shear-30) is a better starting point for the lift than sat493m /
+  `0t1q66hy`; the ImageNet-trained DINOv3 features are also the ones FG² and Loc² build on (DINOv2 / DINOv3-LVD). LVD + no
+  pose-NLL gate submitted (`pillar_B_lvd_nopose_chi20`).
 - **LVD Row B at the full budget** (Maciej, "run lvd row on full budget too"): experiment-18 recipe with
   `configs/vigor_cell0125_lvd.yaml` / `configs/vigor_cell00625_fine_lvd.yaml`: coarse 9093830 → 3000-draw eval 9093831
   (`pillar_B_lvd_e100_eval3000`), fine 9093832 → whole-Chicago two-pass 9093833 (`pillar_B_lvd_e100_chicago`).
