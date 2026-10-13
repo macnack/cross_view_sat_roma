@@ -257,3 +257,31 @@ def test_real_pose_heading_follows_travel():
     res = sc.heading_vs_travel()
     assert len(res) > 20
     assert abs(np.median(res)) < 5.0, np.median(res)          # quaternion = ego -> map, x-forward
+
+
+def _ground_scene(rng, z_ground=-1.9, pitch_deg=0.0, n=20000):
+    """Synthetic sweep in the reference frame: a ground plane (2 cm noise) tilted by pitch_deg about y, a wall at
+    x = 8 m, a few returns below the ground (a pit), the sensor at the origin."""
+    r = rng.uniform(1.0, 30.0, n)
+    a = rng.uniform(0, 2 * np.pi, n)
+    x, y = r * np.cos(a), r * np.sin(a)
+    z = z_ground + x * np.tan(np.radians(pitch_deg)) + rng.normal(0, 0.02, n)
+    wall = np.stack([np.full(3000, 8.0), rng.uniform(-10, 10, 3000), rng.uniform(z_ground, 3.0, 3000)], 1)
+    pit = np.stack([rng.uniform(4, 6, 200), rng.uniform(-1, 1, 200), rng.uniform(z_ground - 1.5, z_ground - 0.8, 200)], 1)
+    return np.concatenate([np.stack([x, y, z], 1), wall, pit])
+
+
+def test_camera_height_above_fitted_ground():
+    """pano_centre 0.18 m below a sensor 1.9 m above a flat road -> 1.72 m, walls and a pit notwithstanding."""
+    xyz = _ground_scene(np.random.default_rng(0))
+    h, n = K.camera_height_above_ground(xyz, pano_centre=(0.0, 0.0, -0.18))
+    assert abs(h - 1.72) < 0.03
+    assert n > 2000
+
+
+def test_camera_height_uses_the_plane_normal_under_pitch():
+    """A road tilted 3 deg about y: the height is the normal distance from pano_centre to the plane, 1.72 cos 3 deg,
+    not the vertical gap at the sensor (which would also be 1.72 here) nor the mean z of the ring at 3-15 m."""
+    xyz = _ground_scene(np.random.default_rng(1), pitch_deg=3.0)
+    h, _ = K.camera_height_above_ground(xyz, pano_centre=(0.0, 0.0, -0.18))
+    assert abs(h - 1.72 * np.cos(np.radians(3.0))) < 0.03

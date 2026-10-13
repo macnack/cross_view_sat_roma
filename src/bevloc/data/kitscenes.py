@@ -330,3 +330,34 @@ def depth_edge_alignment(erp, pts, ring, pano_centre, shifts_px=range(-24, 25, 4
     vi = np.clip(np.round(v).astype(int), 0, h - 1)
     curve = {int(s): float(gx[vi, np.round(u + s).astype(int) % w].mean()) for s in shifts_px}
     return {"curve": curve, "peak_shift_px": max(curve, key=curve.get), "n_edge_points": int(len(u))}
+
+
+def camera_height_above_ground(xyz, pano_centre=(0.0, 0.0, 0.0), r_min=3.0, r_max=15.0, band_m=0.3, z_bin_m=0.1,
+                               refits=3):
+    """Height of `pano_centre` above the road, from one sweep in the reference frame (sensor at the origin).
+
+    The ground is the densest horizontal layer below the sensor at 3-15 m (the mode of a 0.1 m histogram of z; a
+    wall spreads its returns over many bins, a pit or a kerb step has few), a plane is fitted by SVD to the points
+    within `band_m` of it and refitted on the points within band_m/2 of the plane. Returns the normal distance from
+    pano_centre to that plane (the camera height the pillar lift's `cam_height_m` means) and the ground-point count.
+    """
+    p = np.asarray(xyz, np.float64)
+    r = np.hypot(p[:, 0], p[:, 1])
+    q = p[(r >= r_min) & (r <= r_max) & (p[:, 2] < 0)]
+    if len(q) < 100:
+        raise ValueError(f"only {len(q)} returns below the sensor at {r_min}-{r_max} m")
+    edges = np.arange(q[:, 2].min(), q[:, 2].max() + z_bin_m, z_bin_m)
+    hist, _ = np.histogram(q[:, 2], edges)
+    z0 = edges[np.argmax(hist)] + z_bin_m / 2
+    g = q[np.abs(q[:, 2] - z0) < band_m]
+    c, n = g.mean(0), np.array([0.0, 0.0, 1.0])
+    for i in range(refits):
+        c = g.mean(0)
+        n = np.linalg.svd(g - c, full_matrices=False)[2][-1]
+        n = n if n[2] > 0 else -n
+        d = (q - c) @ n
+        g = q[np.abs(d) < band_m / 2]
+        if len(g) < 50:
+            raise ValueError("ground plane lost while refitting")
+    h = float((np.asarray(pano_centre, np.float64) - c) @ n)
+    return h, int(len(g))
